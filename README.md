@@ -1,4 +1,4 @@
-# Northstar · by Jindra
+# Tradee.ai · by Jindra
 
 Soukromý přehled trhů s dohledatelným skóre, COT, sezonalitou, reporty a osobními vlaječkami.
 
@@ -11,7 +11,7 @@ Soukromý přehled trhů s dohledatelným skóre, COT, sezonalitou, reporty a os
 - Osobní vlaječky uložené v Cloudflare D1 s kontrolou identity na serveru.
 
 ## Hlavní soubory
-- `app/northstar.tsx` — přehled, filtry, detaily a reporty.
+- `app/tradee.tsx` — přehled, filtry, detaily a reporty.
 - `app/indicator-history.tsx` — interaktivní historie indikátorů.
 - `app/score-analyzer.tsx` — sdílené grafy a sezonalita.
 - `lib/score-engine.ts` — FX model; `lib/markets.ts` — instrumenty a technický model.

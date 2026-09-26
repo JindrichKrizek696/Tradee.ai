@@ -1,2 +1,2 @@
-import ScoreAnalyzer from './northstar';
-export default function Page(){return <div className="score-app"><header className="score-top"><a href="#analyzer" className="score-brand"><img src="/favicon.svg" alt=""/> NORTHSTAR <b>/ by Jindra</b></a><span className="tag">MARKET INTELLIGENCE</span></header><main className="score-main"><ScoreAnalyzer/></main><footer className="score-footer">NORTHSTAR · Veřejná data. Dohledatelné výpočty. Vlastní rozhodnutí.</footer></div>}
+import Tradee from './tradee';
+export default function Page(){return <Tradee/>}
