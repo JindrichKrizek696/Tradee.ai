@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+  "checkedAt": "2026-09-26T07:53:45.796000+00:00",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,13 +11,13 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
@@ -29,31 +29,31 @@
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "rba": {
       "label": "RBA — zápis z jednání",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
       "publishedAt": "2026-08-11",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -77,7 +77,7 @@
       "label": "BEA — kalendář zveřejnění",
       "url": "https://www.bea.gov/news/schedule",
       "publishedAt": null,
-      "checkedAt": "2026-09-25T10:35:02.713170+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "bls-cal": {
       "label": "BLS — říjnový kalendář",
@@ -131,13 +131,19 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-09-25T13:21:30.186785+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-09-25T13:21:30.186785+00:00"
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+    },
+    "mufg-sep25": {
+      "label": "MUFG — FX Weekly 25. září",
+      "url": "https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/",
+      "publishedAt": "2026-09-25",
+      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
     }
   },
   "currencies": {
@@ -477,10 +483,10 @@
       "at": "2026-10-02T12:30:00Z",
       "title": "USA • zaměstnanost za září",
       "source": "bls-cal",
-      "watch": "Nová pracovní místa, nezaměstnanost, mzdy a revize minulých měsíců.",
+      "watch": "NFP, nezaměstnanost a mzdy. Očekávání +100 tisíc je uvedeno v MUFG FX Weekly 25. 9.: https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/ ; skutečnost dosud nevyšla.",
       "timeKnown": true,
       "importance": "vysoká",
-      "consensus": null,
+      "consensus": "+100 000 pracovních míst podle reportu MUFG z 25. 9. 2026; průběžně se může měnit",
       "actual": null
     },
     {
@@ -624,9 +630,26 @@
       ],
       "view": "Silná výrobní aktivita a přetrvávající cenové tlaky mohou podle autora komentáře zvýšit tlak na další zpřísnění BoJ. Kompozitní index však meziměsíčně zpomalil.",
       "caveat": "Názor poskytovatele průzkumu, ne příslib BoJ ani konsensus bank. Samotný PMI nemění základní makro hodnocení."
+    },
+    {
+      "name": "MUFG",
+      "date": "2026-09-25",
+      "source": "mufg-sep25",
+      "currencies": [
+        "USD",
+        "JPY",
+        "CHF"
+      ],
+      "view": "Banka upozorňuje na možnost přenosu ztrát z dluhopisů do akcií a carry obchodů. Jen podle ní může těžit z omezování rizika; očekává další zvýšení sazby BoJ v prosinci. U franku vidí slabší podporu ze sazeb.",
+      "caveat": "Názor jedné banky, ne jistý scénář ani tržní konsensus. Nemění mechanické skóre."
     }
   ],
   "changes": [
+    {
+      "at": "2026-09-26T07:53:45.796000+00:00",
+      "title": "Páteční ceny, nový report MUFG a britské ukazatele",
+      "body": "Obnoveny ECB, TFF a Legacy COT a cenové řady. Doplněn britský maloobchod a kvalitativní flash PMI. EUR/USD retail vzorek nyní 73 % long / 27 % short. Nový MUFG report a datované očekávání NFP +100 tisíc; váhy i makro vstupy beze změny."
+    },
     {
       "at": "2026-09-25T10:35:02.713170+00:00",
       "title": "Doplnění japonských a novozélandských statistik",
@@ -773,16 +796,16 @@
   "observations": {
     "USD": {
       "cot": {
-        "value": "Leveraged funds: long 12,118 / short 17,027 · netto -4,909 kontraktů",
-        "period": "2026-09-15",
-        "checkedAt": "2026-09-25T10:32:34.246634+00:00",
+        "value": "Leveraged funds: long 12,977 / short 17,472 · netto -4,495 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 098662. USD Index je pouze kontext."
       },
       "gdp": {
         "value": "+1,5 % anualizovaně; +0,4 % mezikvartálně",
         "period": "2026 Q2 · druhý odhad",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bea.gov/news/2026/gdp-second-estimate-and-corporate-profits-2nd-quarter-2026",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
@@ -803,7 +826,7 @@
       "retailSales": {
         "value": "Tržby +1,2 % meziměsíčně; +6,0 % meziročně",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.census.gov/retail/sales.html",
         "note": "Retail + food services; běžné ceny, sezónní očištění. Nejde o reálný objem."
       },
@@ -831,37 +854,37 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
         "value": "CPI +3,4 % meziročně; jádrová +2,4 %; CPI +0,4 % meziměsíčně SA",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bls.gov/news.release/archives/cpi_09112026.htm",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "employment": {
         "value": "Nefarmářská pracovní místa +162 000",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bls.gov/news.release/empsit.htm",
         "note": "Statistika BLS. Skóre pracovního trhu zatím vychází z odděleně uvedeného hodnocení centrální banky."
       }
     },
     "EUR": {
       "cot": {
-        "value": "Leveraged funds: long 103,260 / short 131,416 · netto -28,156 kontraktů",
-        "period": "2026-09-15",
-        "checkedAt": "2026-09-25T10:32:34.246634+00:00",
+        "value": "Leveraged funds: long 114,151 / short 140,845 · netto -26,694 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 099741. Strukturovaná data ověřena přes veřejné API CFTC."
+        "note": "CFTC TFF futures only, kontrakt 099741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
       "gdp": {
         "value": "+0,6 % mezikvartálně, sezónně očištěno",
         "period": "2026 Q2",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-07092026-ap",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
@@ -882,7 +905,7 @@
       "retailSales": {
         "value": "Reálný objem −0,6 % meziměsíčně, sezónně očištěno",
         "period": "2026-07",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/4-04092026-ap",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
@@ -910,32 +933,32 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
         "value": "HICP +3,2 % meziročně (červenec +2,9 %)",
         "period": "2026-08 · konečné vydání 17. září",
-        "checkedAt": "2026-09-24T19:18:11.666939+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-17092026-ap",
         "note": "Konečná hodnota 3,2 % nahrazuje předběžných 3,3 %. Samostatně nemění čtyřpilířové skóre."
       },
       "employment": {
         "value": "Nezaměstnanost eurozóny 6,4 %",
         "period": "2026-07",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/3-01092026-bp",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       }
     },
     "NZD": {
       "cot": {
-        "value": "Leveraged funds: long 17,242 / short 19,008 · netto -1,766 kontraktů",
-        "period": "2026-09-15",
-        "checkedAt": "2026-09-25T10:32:34.246634+00:00",
+        "value": "Leveraged funds: long 17,339 / short 22,126 · netto -4,787 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 112741. Strukturovaná data ověřena přes veřejné API CFTC."
+        "note": "CFTC TFF futures only, kontrakt 112741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
       "gdp": {
         "value": "+0,2 % mezikvartálně; předchozí čtvrtletí revidováno na +0,9 %",
@@ -975,21 +998,21 @@
       "mpmi": {
         "value": "53,1 · změna −1,2 bodu",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://businessnz.org.nz/pmi/expansion-endures",
         "note": "BNZ–BusinessNZ. Nad 50 expanze, ale meziměsíčně slabší tempo; nikoli automatický měnový signál."
       },
       "spmi": {
         "value": "PSI 51,2 · změna +0,6 bodu",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://businessnz.org.nz/psi/three-on-the-trot",
         "note": "BNZ–BusinessNZ Performance of Services Index. Nejde o totožný průzkum jako S&P Global."
       },
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1003,18 +1026,18 @@
       "employment": {
         "value": "Nezaměstnanost 5,6 %; podvyužití pracovní síly 13,8 %",
         "period": "2026 Q2",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.stats.govt.nz/news/economic-snapshot-households-and-businesses-experience-higher-fuel-prices-in-the-june-2026-quarter/",
         "note": "Stats NZ: předchozí čtvrtletí 5,4 % a 12,9 %. Ověřeno v indexovaném oficiálním souhrnu; údaje nejsou odhadem dalšího čtvrtletí."
       }
     },
     "AUD": {
       "cot": {
-        "value": "Leveraged funds: long 92,993 / short 31,858 · netto +61,135 kontraktů",
-        "period": "2026-09-15",
-        "checkedAt": "2026-09-25T10:32:34.246634+00:00",
+        "value": "Leveraged funds: long 87,095 / short 28,369 · netto +58,726 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 232741. Strukturovaná data ověřena přes veřejné API CFTC."
+        "note": "CFTC TFF futures only, kontrakt 232741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
       "gdp": {
         "value": "+0,4 % mezikvartálně; +2,1 % meziročně",
@@ -1040,7 +1063,7 @@
       "retailSales": {
         "value": "Výdaje domácností +1,1 % meziměsíčně; +7,0 % meziročně",
         "period": "2026-07",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/jul-2026",
         "note": "Náhradní ukazatel MHSI, běžné ceny a sezónní očištění. Retail Trade skončil po červnu 2025; série nejsou totožné."
       },
@@ -1068,7 +1091,7 @@
       "rates": {
         "value": "4,35 %",
         "period": "2026-08-11",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1082,23 +1105,23 @@
       "employment": {
         "value": "Nezaměstnanost 4,6 %; zaměstnanost +39 000; participace 67,1 %",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.abs.gov.au/media-centre/media-releases/unemployment-rate-rises-46-august",
         "note": "Nové vydání 24. září. Slabší údaj než starší hodnocení RBA v jádrovém modelu; důležitý rozpor pro další zasedání."
       }
     },
     "CAD": {
       "cot": {
-        "value": "Leveraged funds: long 29,857 / short 68,879 · netto -39,022 kontraktů",
-        "period": "2026-09-15",
-        "checkedAt": "2026-09-25T10:32:34.246634+00:00",
+        "value": "Leveraged funds: long 32,415 / short 79,276 · netto -46,861 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 090741. Strukturovaná data ověřena přes veřejné API CFTC."
+        "note": "CFTC TFF futures only, kontrakt 090741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
       "gdp": {
         "value": "+0,8 % mezikvartálně; +3,3 % anualizovaně",
         "period": "2026 Q2",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260828/dq260828a-eng.htm",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
@@ -1119,7 +1142,7 @@
       "retailSales": {
         "value": "−0,7 % meziměsíčně; +5,1 % meziročně; 73,697 mld. CAD",
         "period": "2026-07 · předběžná data",
-        "checkedAt": "2026-09-25T06:39:32.490202+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260924/dq260924a-eng.pdf",
         "note": "Celkový maloobchod v běžných cenách, sezónně očištěno. Ověřeno z indexované tabulky oficiálního PDF; přímé otevření PDF nebylo dostupné. Nezaměňovat s reálným objemem."
       },
@@ -1147,32 +1170,32 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
         "value": "CPI +3,0 % meziročně",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260914/dq260914a-eng.htm",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "employment": {
         "value": "Zaměstnanost −42 000; nezaměstnanost 6,4 %",
         "period": "2026-08",
-        "checkedAt": "2026-09-24T15:28:10.633574+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260904/dq260904a-eng.htm",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       }
     },
     "JPY": {
       "cot": {
-        "value": "Leveraged funds: long 110,302 / short 87,132 · netto +23,170 kontraktů",
-        "period": "2026-09-15",
-        "checkedAt": "2026-09-25T10:32:34.246634+00:00",
+        "value": "Leveraged funds: long 92,923 / short 85,500 · netto +7,423 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 097741. Strukturovaná data ověřena přes veřejné API CFTC."
+        "note": "CFTC TFF futures only, kontrakt 097741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
       "gdp": {
         "value": null,
@@ -1226,21 +1249,21 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
         "value": "Celková CPI +1,9 % meziročně; bez čerstvých potravin +1,7 %; bez čerstvých potravin a energií +1,9 %",
         "period": "2026-08",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html",
         "note": "Statistics Bureau of Japan, publikováno 18. 9. 2026, základ 2025 = 100. Skutečná spotřebitelská inflace; nezaměňovat s cenovými tlaky průzkumu PMI."
       },
       "employment": {
         "value": "Napjatý pracovní trh.",
         "period": "2026-09-18",
-        "checkedAt": "2026-09-24T15:07:00.382134+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Hodnocení centrální banky, nikoli nová statistika zaměstnanosti. Zahrnuto v jádrovém modelu."
       }
@@ -1249,60 +1272,95 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "inflation": {
         "value": "3,1 % y/y",
         "period": "srpen 2026",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "gdp": {
         "value": "+0,4 % q/q",
         "period": "2. čtvrtletí 2026",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "employment": {
         "value": "4,9 % nezaměstnanost",
         "period": "3 měsíce do července 2026",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
+      },
+      "cot": {
+        "value": "Leveraged funds: long 65,094 / short 51,855 · netto +13,239 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
+        "note": "CFTC TFF futures only, kontrakt 096742. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+      },
+      "retailSales": {
+        "value": "Reálný objem +0,5 % meziměsíčně; +0,9 % za tři měsíce",
+        "period": "2026-08 · první odhad",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "sourceUrl": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/august2026",
+        "note": "ONS, vydání 18. 9. 2026. Sezónně očištěno; tříměsíční změna proti třem měsícům do května. Kontext mimo samostatné bodování."
+      },
+      "mpmi": {
+        "value": "Výrobní aktivita dále expanduje, tempo mírně zpomalilo",
+        "period": "2026-09 · flash",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "sourceUrl": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/uk-flash-pmi-signals-slower-growth-and-rising-inflation-in-september",
+        "note": "Veřejný komentář S&P Global z 23. 9. Přesné dílčí indexy nejsou v čitelném textu potvrzeny; kompozit 51,7 není náhrada výrobního ani službového indexu."
+      },
+      "spmi": {
+        "value": "Aktivita služeb dále expanduje, tempo mírně zpomalilo",
+        "period": "2026-09 · flash",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "sourceUrl": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/uk-flash-pmi-signals-slower-growth-and-rising-inflation-in-september",
+        "note": "Veřejný komentář S&P Global z 23. 9. Přesné dílčí indexy nejsou v čitelném textu potvrzeny; kompozit 51,7 není náhrada výrobního ani službového indexu."
       }
     },
     "CHF": {
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
       "inflation": {
         "value": "0,8 % y/y",
         "period": "srpen 2026",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
       "gdp": {
         "value": "Solidní široce založený růst",
         "period": "2. čtvrtletí 2026",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
       "employment": {
         "value": "Nezaměstnanost mírně vzrostla",
         "period": "léto 2026",
-        "checkedAt": "2026-09-25T13:21:30.186785+00:00",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
+      },
+      "cot": {
+        "value": "Leveraged funds: long 8,727 / short 25,184 · netto -16,457 kontraktů",
+        "period": "2026-09-22",
+        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
+        "note": "CFTC TFF futures only, kontrakt 092741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       }
     }
   },
@@ -1323,11 +1381,11 @@
         "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
       },
       "retailPositions": {
-        "value": "Long 75 % / short 25 %",
-        "period": "Veřejný snapshot 25. 9. 2026; čas podkladových pozic neuveden",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
-        "sourceUrl": "https://www.myfxbook.com/community/outlook/EURUSD",
-        "note": "Vzorek Myfxbook, procenta poskytovatele podle objemu (nikoli celý forex). Možné zpoždění; opačný pár má prohozené strany. Pouze kontext, mimo skóre."
+        "value": "Long 73 % / short 27 %",
+        "period": "Veřejný snapshot 26. 9. 2026; čas podkladových pozic neuveden",
+        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "sourceUrl": "https://www.myfxbook.com/community/outlook",
+        "note": "Vzorek Myfxbook, procenta poskytovatele podle objemu; ne celý FX trh. Možné zpoždění. Kontext mimo skóre."
       }
     },
     "AUD/USD": {
@@ -1989,11 +2047,11 @@
     ]
   },
   "reviewStatus": {
-    "at": "2026-09-25T10:35:02.713170+00:00",
+    "at": "2026-09-26T07:53:45.796000+00:00",
     "notes": [
-      "Obnovena strukturovaná data ECB a CFTC; HTML CFTC vrací 403, veřejné API funguje.",
-      "Znovu ověřeny zdroje šesti centrálních bank a SEP; beze změny makro vstupů. Doplněna CPI Japonska, GDP a maloobchod NZ, kvalitativní japonské PMI a JOLTS.",
-      "Zdroje ostatních starších statistických pozorování bez plného nového ověření zachovávají původní checkedAt. Nový report MUFG 25. 9. nebyl dostupný; původní názor se nevydává za nový."
+      "Obnoveny ECB (64 instrumentů), TFF a Legacy (8 kontraktů) a 15 dalších trhů. Skóre a osobní vlaječky se řídí původní metodikou.",
+      "Znovu ověřena rozhodnutí osmi centrálních bank, vybrané statistiky a nadcházející americké a australské události. Nový MUFG 25. 9., britský maloobchod a kvalitativní PMI.",
+      "Kontrola není plným čerstvým pokrytím 11 oblastí každé měny: nepřístupná či nejednoznačná PMI, japonský maloobchod/HDP a švýcarské doplňky zůstávají neověřené. Ostatní retail páry a neověřená pozorování zachovávají původní checkedAt. Žádný chybějící údaj není nahrazen nulou."
     ]
   }
 }
