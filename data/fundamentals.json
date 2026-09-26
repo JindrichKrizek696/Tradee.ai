@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+  "checkedAt": "2026-09-26T14:53:07.780351+00:00",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,13 +11,13 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
@@ -29,31 +29,31 @@
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "rba": {
       "label": "RBA — zápis z jednání",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
       "publishedAt": "2026-08-11",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -77,7 +77,7 @@
       "label": "BEA — kalendář zveřejnění",
       "url": "https://www.bea.gov/news/schedule",
       "publishedAt": null,
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "bls-cal": {
       "label": "BLS — říjnový kalendář",
@@ -131,19 +131,37 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+      "checkedAt": "2026-09-26T14:53:07.780351+00:00"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
       "url": "https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/",
       "publishedAt": "2026-09-25",
       "checkedAt": "2026-09-26T07:53:45.796000+00:00"
+    },
+    "mof-us-sep25": {
+      "label": "Japonské ministerstvo financí",
+      "url": "https://www.mof.go.jp/english/policy/international_policy/convention/bilateral_meetings_between_finance_ministers/20260925190219.html",
+      "publishedAt": "2026-09-25",
+      "checkedAt": "2026-09-26T10:52:34.051854+00:00"
+    },
+    "ecb-credit-aug26": {
+      "label": "ECB — měnové a úvěrové statistiky",
+      "url": "https://www.ecb.europa.eu/press/stats/md/html/ecb.md2608~406f8d243d.en.html",
+      "publishedAt": "2026-09-25",
+      "checkedAt": "2026-09-26T10:52:34.051854+00:00"
+    },
+    "bls-sep-cal": {
+      "label": "BLS — zářijový kalendář",
+      "url": "https://www.bls.gov/schedule/2026/09_sched.htm",
+      "publishedAt": null,
+      "checkedAt": "2026-09-26T10:52:34.051854+00:00"
     }
   },
   "currencies": {
@@ -566,7 +584,7 @@
       "currency": "USD",
       "at": "2026-09-29T14:00:00Z",
       "title": "USA • JOLTS za srpen",
-      "source": "bls-year-cal",
+      "source": "bls-sep-cal",
       "watch": "Volná pracovní místa a fluktuace pracovníků. Výsledek ani konsensus dosud nepotvrzeny.",
       "timeKnown": true,
       "importance": "vysoká",
@@ -642,9 +660,35 @@
       ],
       "view": "Banka upozorňuje na možnost přenosu ztrát z dluhopisů do akcií a carry obchodů. Jen podle ní může těžit z omezování rizika; očekává další zvýšení sazby BoJ v prosinci. U franku vidí slabší podporu ze sazeb.",
       "caveat": "Názor jedné banky, ne jistý scénář ani tržní konsensus. Nemění mechanické skóre."
+    },
+    {
+      "name": "Japonské ministerstvo financí",
+      "date": "2026-09-25",
+      "source": "mof-us-sep25",
+      "currencies": [
+        "JPY",
+        "USD"
+      ],
+      "view": "Japonští a američtí ministři financí při hovoru 25. září označili podhodnocení jenu za důvod k obavám a potvrdili další spolupráci.",
+      "caveat": "Oficiální komunikace, nikoli oznámení nové intervence nebo garantovaný směr kurzu."
+    },
+    {
+      "name": "ECB — měnové a úvěrové statistiky",
+      "date": "2026-09-25",
+      "source": "ecb-credit-aug26",
+      "currencies": [
+        "EUR"
+      ],
+      "view": "V srpnu rostly upravené úvěry podnikům meziročně o 4,2 % oproti 4,4 % v červenci. Úvěry domácnostem zůstaly na 3,1 %. Růst M3 vzrostl z 3,4 % na 3,5 %.",
+      "caveat": "Statistické údaje ECB zveřejněné 25. září; kontext, nikoli nové rozhodnutí o sazbách. Samostatně nemění skóre."
     }
   ],
   "changes": [
+    {
+      "at": "2026-09-26T10:52:34.051854+00:00",
+      "title": "Komunikace k jenu a srpnové úvěry v eurozóně",
+      "body": "Doplněna oficiální komunikace Japonska a USA z 25. září a statistiky ECB. Obnovena historie kryptoměn do uzavřeného 25. září. Makro signály ani váhy beze změny."
+    },
     {
       "at": "2026-09-26T07:53:45.796000+00:00",
       "title": "Páteční ceny, nový report MUFG a britské ukazatele",
@@ -798,7 +842,7 @@
       "cot": {
         "value": "Leveraged funds: long 12,977 / short 17,472 · netto -4,495 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 098662. USD Index je pouze kontext."
       },
@@ -854,7 +898,7 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -877,7 +921,7 @@
       "cot": {
         "value": "Leveraged funds: long 114,151 / short 140,845 · netto -26,694 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 099741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
@@ -933,7 +977,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -956,7 +1000,7 @@
       "cot": {
         "value": "Leveraged funds: long 17,339 / short 22,126 · netto -4,787 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 112741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
@@ -1012,7 +1056,7 @@
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1035,7 +1079,7 @@
       "cot": {
         "value": "Leveraged funds: long 87,095 / short 28,369 · netto +58,726 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 232741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
@@ -1091,7 +1135,7 @@
       "rates": {
         "value": "4,35 %",
         "period": "2026-08-11",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1114,7 +1158,7 @@
       "cot": {
         "value": "Leveraged funds: long 32,415 / short 79,276 · netto -46,861 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 090741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
@@ -1170,7 +1214,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1193,7 +1237,7 @@
       "cot": {
         "value": "Leveraged funds: long 92,923 / short 85,500 · netto +7,423 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 097741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
@@ -1249,7 +1293,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1272,7 +1316,7 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -1300,7 +1344,7 @@
       "cot": {
         "value": "Leveraged funds: long 65,094 / short 51,855 · netto +13,239 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 096742. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       },
@@ -1330,7 +1374,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
@@ -1358,7 +1402,7 @@
       "cot": {
         "value": "Leveraged funds: long 8,727 / short 25,184 · netto -16,457 kontraktů",
         "period": "2026-09-22",
-        "checkedAt": "2026-09-26T06:50:42.756542+00:00",
+        "checkedAt": "2026-09-26T14:51:54.847059+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 092741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
       }
@@ -1383,8 +1427,8 @@
       "retailPositions": {
         "value": "Long 73 % / short 27 %",
         "period": "Veřejný snapshot 26. 9. 2026; čas podkladových pozic neuveden",
-        "checkedAt": "2026-09-26T07:53:45.796000+00:00",
-        "sourceUrl": "https://www.myfxbook.com/community/outlook",
+        "checkedAt": "2026-09-26T14:53:07.780351+00:00",
+        "sourceUrl": "https://www.myfxbook.com/community/outlook/EURUSD",
         "note": "Vzorek Myfxbook, procenta poskytovatele podle objemu; ne celý FX trh. Možné zpoždění. Kontext mimo skóre."
       }
     },
@@ -2047,11 +2091,11 @@
     ]
   },
   "reviewStatus": {
-    "at": "2026-09-26T07:53:45.796000+00:00",
+    "at": "2026-09-26T14:53:07.780351+00:00",
     "notes": [
-      "Obnoveny ECB (64 instrumentů), TFF a Legacy (8 kontraktů) a 15 dalších trhů. Skóre a osobní vlaječky se řídí původní metodikou.",
-      "Znovu ověřena rozhodnutí osmi centrálních bank, vybrané statistiky a nadcházející americké a australské události. Nový MUFG 25. 9., britský maloobchod a kvalitativní PMI.",
-      "Kontrola není plným čerstvým pokrytím 11 oblastí každé měny: nepřístupná či nejednoznačná PMI, japonský maloobchod/HDP a švýcarské doplňky zůstávají neověřené. Ostatní retail páry a neověřená pozorování zachovávají původní checkedAt. Žádný chybějící údaj není nahrazen nulou."
+      "ECB, TFF i Legacy COT a denní cenové řady obnoveny bez chyb. V porovnání s předchozí kontrolou nebyl potvrzen nový uzavřený obchodní den.",
+      "Znovu přečteny měnové podklady osmi centrálních bank a SEP. Bez změny makro signálů. Potvrzen EUR/USD retail 73 % long / 27 % short a nejbližší kalendáře RBA a BEA.",
+      "Vyhledání nových publikací nezjistilo potvrzenou změnu sledovaných statistik. Nejde o plnou novou verifikaci všech 11 samostatných pozorování každé měny: starší CPI, HDP, PMI, práce a maloobchod si zachovávají časy posledního skutečného ověření. Nepotvrzené PMI CAD/CHF a jiné mezery zůstávají neověřené."
     ]
   }
 }
