@@ -1,7 +1,8 @@
-import {sqliteTable,text,integer,index} from 'drizzle-orm/sqlite-core';
+import {sqliteTable,text,integer,real,index} from 'drizzle-orm/sqlite-core';
 export const members=sqliteTable('members',{id:text('id').primaryKey(),email:text('email').notNull(),name:text('name').notNull(),role:text('role').notNull().default('member')});
 export const content=sqliteTable('content',{id:text('id').primaryKey(),kind:text('kind').notNull(),title:text('title').notNull(),body:text('body').notNull().default(''),media:text('media').notNull().default(''),published:integer('published').notNull().default(0),updated:text('updated').notNull()},t=>[index('content_kind').on(t.kind)]);
 export const messages=sqliteTable('messages',{id:text('id').primaryKey(),userId:text('user_id').notNull(),name:text('name').notNull(),channel:text('channel').notNull(),body:text('body').notNull(),created:text('created').notNull()},t=>[index('messages_channel_created').on(t.channel,t.created)]);
 export const snapshots=sqliteTable('snapshots',{id:text('id').primaryKey(),data:text('data').notNull(),source:text('source').notNull(),created:text('created').notNull()});
 export const progress=sqliteTable('progress',{id:text('id').primaryKey(),userId:text('user_id').notNull(),lessonId:text('lesson_id').notNull()},t=>[index('progress_user').on(t.userId)]);
 export const watchFlags=sqliteTable('watch_flags',{id:text('id').primaryKey(),userId:text('user_id').notNull(),instrument:text('instrument').notNull(),flag:text('flag').notNull(),updated:text('updated').notNull()},t=>[index('watch_flags_user').on(t.userId)]);
+export const trades=sqliteTable('trades',{id:text('id').primaryKey(),userId:text('user_id').notNull(),date:text('date').notNull(),instrument:text('instrument').notNull(),pnl:real('pnl').notNull(),note:text('note').notNull().default(''),created:text('created').notNull()},t=>[index('trades_user_date').on(t.userId,t.date)]);

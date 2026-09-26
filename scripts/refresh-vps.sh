@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Obnova podkladů na VPS: stáhne veřejná data (ECB, CFTC, Yahoo), uloží snímek skóre,
+# sestaví nový build Workeru a restartuje službu tradee. Spouští cron každé 4 hodiny.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+export WRANGLER_SEND_METRICS=false
+export PYTHONUNBUFFERED=1
+# shellcheck disable=SC1091
+source "$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null
+echo "== $(date -Is) refresh start"
+python3 scripts/refresh-score-data.py || echo "!! refresh-score-data selhal"
+python3 scripts/refresh-expanded-data.py || echo "!! refresh-expanded-data selhal"
+node --experimental-strip-types scripts/capture-score-history.mjs || echo "!! capture-score-history selhal"
+node --experimental-strip-types scripts/check-score.mjs || echo "!! check-score hlásí problém"
+if npm run build >/tmp/tradee-build.log 2>&1; then
+  sudo systemctl restart tradee && echo "== $(date -Is) nasazeno"
+else
+  echo "!! build selhal"; tail -20 /tmp/tradee-build.log
+fi
+python3 scripts/sync-mariadb.py || echo "!! sync do MariaDB selhal"

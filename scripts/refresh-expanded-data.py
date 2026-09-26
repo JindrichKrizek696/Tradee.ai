@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 CODES={'CAD':'090741','JPY':'097741','EUR':'099741','AUD':'232741','USD':'098662','NZD':'112741','GBP':'096742','CHF':'092741'}
 ASSETS={'BTC-USD':'Bitcoin','ETH-USD':'Ethereum','SOL-USD':'Solana','^NDX':'Nasdaq 100','^GSPC':'S&P 500','AAPL':'Apple','MSFT':'Microsoft','NVDA':'NVIDIA','AMZN':'Amazon','GOOGL':'Alphabet','META':'Meta','TSLA':'Tesla','BRK-B':'Berkshire Hathaway','JPM':'JPMorgan Chase','AVGO':'Broadcom'}
 def get(url):
- with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 Northstar Research'}),timeout=40) as r:return json.load(r)
+ with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 Tradee.ai Research'}),timeout=40) as r:return json.load(r)
 def run():
  now=dt.datetime.now(dt.timezone.utc);today=now.date();stamp=now.isoformat();issues=[]
  p=ROOT/'data/expanded-market.json';d=json.loads(p.read_text()) if p.exists() else {'legacy':{},'prices':{}}
