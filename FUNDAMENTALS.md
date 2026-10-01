@@ -44,10 +44,12 @@ Do `data/fundamentals.json → events` zapisuj jen to, co přidává hodnotu:
 - **doplnění** události ze skriptu – použij její `id` z `calendar.json` (např. `us-cpi-2026-10-14`) a vyplň `signal`, `watch`, `consensus`, `previous`, `actual`, `verifiedAt`, případně přesný čas (`at`, `timeKnown:true`) z oficiálního zdroje;
 - **nové události**, které skript neumí: krypto (upgrady sítí, SEC/ETF, velké unlocky – jen BTC/ETH/SOL), komodity (OPEC+, zlato), výsledky sledovaných a velkých technologických firem, politika (volby, G7/G20, cla), projevy guvernérů a zápisy ze zasedání, ostatní centrální banky a statistiky mimo USA, dokud je nepokrývá skript. ID ve tvaru `{kind}-{YYYY-MM-DD}`.
 
-Pole události: `id, at (ISO UTC), timeKnown, title („Země • co“, česky), category (macro | central-bank | exchange | commodity | crypto | equity | politics), markets (USD EUR GBP JPY CHF AUD NZD CAD BTC ETH SOL OIL GOLD GAS INDEX nebo ticker), kind, signal, global, source (URL oficiálního zdroje), watch, consensus, previous, actual, verifiedAt`.
+Pole události: `id, at (ISO UTC), timeKnown, title („Země • co“, česky), category (macro | central-bank | exchange | commodity | crypto | equity | politics), markets (USD EUR GBP JPY CHF AUD NZD CAD BTC ETH SOL OIL GOLD GAS INDEX nebo ticker), kind, signal, global, source (klíč do `sources` jako dosud, např. `bls-cal` – ne URL), watch, consensus, previous, actual, verifiedAt`.
 
 **Síla `signal`:** 3 = sazby centrálních bank G8, NFP/CPI/HDP/PCE USA, CPI a HDP velkých ekonomik, OPEC+, výsledky Nvidia/Apple/Microsoft; 2 = PMI, maloobchod, PPI, JOLTS, obchodní bilance, zásoby ropy, projevy guvernérů, výsledky ostatních sledovaných firem; 1 = ostatní.
 
 **Štítek VŠE (`global:true`):** automaticky FOMC, NFP USA, CPI USA, HDP USA, sazby ECB, OPEC+. Ručně jen pro mimořádné události s dopadem na všechny trhy (válka, volby v USA, plošná cla) a vždy s odůvodněním ve `watch`.
+
+Jedna událost = jeden záznam na typ a den (žádné zvláštní záznamy pro tiskovou konferenci). Přesný čas (`at`) zapisuj jen s `timeKnown:true`; bez něj zůstává čas ze skriptu.
 
 Nevyplňuj neověřený konsensus ani výsledek; neznámé = `null`.

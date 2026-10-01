@@ -21,30 +21,41 @@ const STOCK=/^[A-Z][A-Z.-]{0,5}$/;
 const day=(iso:string)=>iso.slice(0,10);
 const legacySignal=(s?:string):Signal|undefined=>!s?undefined:/high|vysok/i.test(s)?3:/med|stř/i.test(s)?2:1;
 
-export function normalizeCurated(e:CuratedEvent):Omit<CalendarEvent,'signal'|'global'|'markets'>&{signal?:Signal;global?:boolean;markets?:string[]}{
+export function normalizeCurated(e:CuratedEvent,base=false):Omit<CalendarEvent,'signal'|'global'|'markets'|'category'>&{signal?:Signal;global?:boolean;markets?:string[];category?:Category}{
  const kind=e.kind??LEGACY_KINDS.find(([re])=>re.test(e.title))?.[1];
- return {id:e.id,at:e.at,timeKnown:e.timeKnown,title:e.title,source:e.source,kind,
-  category:e.category??(BANKS.test(e.title)?'central-bank':'macro'),
-  markets:e.markets??(e.currency?[e.currency]:undefined),
-  signal:e.signal??legacySignal(e.importance),global:e.global,verified:true,
-  watch:e.watch,consensus:e.consensus??null,previous:e.previous??null,actual:e.actual??null,verifiedAt:e.verifiedAt};
+ // Když existuje událost ze skriptu, odhady agenta (kategorie z titulku, trhy z currency, neověřený čas) ji nepřebíjí.
+ const markets=e.markets?.length?e.markets:base?undefined:e.currency?[e.currency]:undefined;
+ return {id:e.id,title:e.title,source:e.source,kind,
+  ...(!base||e.timeKnown?{at:e.at,timeKnown:e.timeKnown}:{}),
+  category:e.category??(base?undefined:BANKS.test(e.title)?'central-bank':'macro'),
+  markets,signal:e.signal??legacySignal(e.importance),global:e.global,verified:true,
+  watch:e.watch,consensus:e.consensus??null,previous:e.previous??null,actual:e.actual??null,verifiedAt:e.verifiedAt} as ReturnType<typeof normalizeCurated>;
 }
+
+// Měny a trhy události bez ohledu na formát záznamu (starý currency, nový markets).
+export const eventMarkets=(e:{currency?:string;markets?:string[]})=>[...new Set([...(e.currency?[e.currency]:[]),...(e.markets??[])])];
+
+// Agent píše do source klíč z fundamentals.sources (např. bls-cal); URL nechá beze změny.
+const resolveSource=(s:string|undefined,sources?:Record<string,{url?:string}>)=>!s?undefined:/^https?:\/\//.test(s)?s:sources?.[s]?.url;
+export function sourceUrl(s:string){try{return /^https?:\/\//.test(s)?new URL(s).hostname.replace(/^www\./,''):null}catch{return null}}
 
 const filled=(v:unknown)=>v!==undefined&&v!==null&&v!==''&&!(Array.isArray(v)&&!v.length);
 
-export function mergeCalendar(auto:AutoEvent[],curated:CuratedEvent[]):CalendarEvent[]{
+export function mergeCalendar(auto:AutoEvent[],curated:CuratedEvent[],sources?:Record<string,{url?:string}>):CalendarEvent[]{
  const byId=new Map<string,Partial<CalendarEvent>>();
  for(const a of auto)byId.set(a.id,{...a,verified:false});
  for(const raw of curated){
-  const c=normalizeCurated(raw);
+  const kind=raw.kind??LEGACY_KINDS.find(([re])=>re.test(raw.title))?.[1];
   // Agent použil ID skriptu, nebo jde o stejný typ ve stejný den (staré záznamy s vlastním ID).
-  const match=byId.has(c.id)?c.id:c.kind?[...byId.entries()].find(([,a])=>!a.verified&&a.kind===c.kind&&day(a.at!)===day(c.at))?.[0]:undefined;
+  const match=byId.has(raw.id)?raw.id:kind?[...byId.entries()].find(([,a])=>!a.verified&&a.kind===kind&&day(a.at!)===day(raw.at))?.[0]:undefined;
   const base=match?byId.get(match)!:{};
-  if(match&&match!==c.id)byId.delete(match);
+  const c={...normalizeCurated(raw,!!match),source:resolveSource(raw.source,sources)};
+  if(match&&match!==raw.id)byId.delete(match);
   const merged:Partial<CalendarEvent>={...base};
   for(const [k,v] of Object.entries(c))if(filled(v))(merged as Record<string,unknown>)[k]=v;
   merged.verified=true;
-  byId.set(c.id,merged);
+  merged.category??='macro';
+  byId.set(raw.id,merged);
  }
  return [...byId.values()].map(e=>({
   ...e,

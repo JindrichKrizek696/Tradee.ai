@@ -1,6 +1,7 @@
 // Kontrola kalendáře bez prohlížeče: node --experimental-strip-types scripts/check-calendar.mjs
 import {readFileSync} from 'node:fs';
-import {mergeCalendar,filterEvents,defaultFilters,readFilters,flaggedMarkets,filterMarket,relative,upcomingCalendar} from '../lib/calendar.ts';
+import {mergeCalendar,filterEvents,defaultFilters,readFilters,flaggedMarkets,filterMarket,relative,upcomingCalendar,eventMarkets,sourceUrl} from '../lib/calendar.ts';
+import {scoreV2} from '../lib/score-engine.ts';
 const read=f=>JSON.parse(readFileSync(new URL('../data/'+f,import.meta.url),'utf8'));
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -53,8 +54,28 @@ check('vlaječky → trhy',fm==='BTC,EUR,INDEX,USD',fm);
 check('relative',relative('2026-10-02T10:50:00Z',now)==='za 2 h 50 min'&&relative('2026-10-06T08:00:00Z',now)==='za 4 d'&&relative('2026-10-02T07:15:00Z',now)==='před 45 min',[relative('2026-10-02T10:50:00Z',now),relative('2026-10-06T08:00:00Z',now),relative('2026-10-02T07:15:00Z',now)]);
 check('dashboard: síla ≥ 2 nebo VŠE',upcomingCalendar(m,now,5).map(e=>e.id).join()==='us-jobs-sep,eth-upgrade-2026-10-03,rba-oct,eia-oil-2026-10-07,us-cpi-2026-10-14',upcomingCalendar(m,now,5).map(e=>e.id));
 
+// C1: source agenta je klíč do fundamentals.sources, ne URL.
+const srcs={'bls-cal':{url:'https://www.bls.gov/schedule/'}};
+const k=mergeCalendar([auto[0]],[{...curated[0],source:'bls-cal'}],srcs).find(e=>e.id==='us-jobs-sep');
+check('C1: klíč zdroje → URL ze sources',k?.source==='https://www.bls.gov/schedule/',k?.source);
+const k2=mergeCalendar([auto[0]],[{...curated[0],source:'neznamy-klic'}],srcs).find(e=>e.id==='us-jobs-sep');
+check('C1: neznámý klíč nepřepíše URL skriptu',k2?.source==='https://bls',k2?.source);
+check('C1: sourceUrl bez platné URL vrací null',sourceUrl('bls-cal')===null&&sourceUrl('https://www.bls.gov/x')==='bls.gov',[sourceUrl('bls-cal'),sourceUrl('https://www.bls.gov/x')]);
+// I1: nové záznamy mají markets místo currency – staré pohledy je nesmí ztratit.
+check('I1: eventMarkets spojí currency i markets',eventMarkets({currency:'USD',markets:['EUR']}).join()==='USD,EUR'&&eventMarkets({markets:['JPY']}).join()==='JPY',[eventMarkets({currency:'USD',markets:['EUR']}),eventMarkets({markets:['JPY']})]);
+{const f=read('fundamentals.json'),core=read('score-market.json'),exp=read('expanded-market.json');const market={...core,prices:{...core.prices,...exp.prices},legacy:exp.legacy,refresh:{attemptedAt:exp.refresh.attemptedAt,issues:[]}};
+ const t=Date.parse('2026-10-02T08:00:00Z');const ev={id:'x-eur-2026-10-03',at:'2026-10-03T08:00:00Z',title:'Eurozóna • test',source:'',timeKnown:true,markets:['EUR'],signal:2};
+ const r=scoreV2({...f,events:[ev]},market,'EUR/USD',t);check('I1: score-engine 72 h vidí událost jen s markets',r.events.some(e=>e.id===ev.id),r.events.map(e=>e.id));}
+// I3: fallbacky agenta nepřebijí lepší data skriptu.
+const i3=mergeCalendar([auto[1]],[{id:'eia-oil-2026-10-07',at:'2026-10-07T00:00:00Z',title:'EIA • ropa',source:'',timeKnown:false,signal:3}]).find(e=>e.id==='eia-oil-2026-10-07');
+check('I3: kategorie a trhy skriptu zůstanou',i3?.category==='commodity'&&i3?.markets.join()==='OIL',i3);
+check('I3: neověřený čas agenta nepřepíše přesný čas skriptu',i3?.at==='2026-10-07T14:30:00Z'&&i3?.timeKnown===true&&i3?.signal===3,i3);
+const i3b=mergeCalendar([auto[3]],[{id:'us-cpi-2026-10-14',at:'2026-10-14T12:31:00Z',title:'USA • CPI',source:'',timeKnown:true}]).find(e=>e.id==='us-cpi-2026-10-14');
+check('I3: ověřený čas agenta má přednost',i3b?.at==='2026-10-14T12:31:00Z',i3b?.at);
+
 // Skutečná data z repa: žádná duplicita mezi skriptem a agentem.
-const real=mergeCalendar(read('calendar.json').events,read('fundamentals.json').events);
+const real=mergeCalendar(read('calendar.json').events,read('fundamentals.json').events,read('fundamentals.json').sources);
+check('C1: reálná data – každý zdroj je URL nebo prázdný',real.every(e=>!e.source||/^https?:\/\//.test(e.source)),real.filter(e=>e.source&&!/^https?:/.test(e.source)).map(e=>e.id+':'+e.source));
 const keys=real.map(e=>(e.kind??e.id)+'@'+e.at.slice(0,10));
 check('reálná data bez duplicit',new Set(keys).size===keys.length,keys.filter((k,i)=>keys.indexOf(k)!==i));
 console.log('reálně',real.length,'událostí,',real.filter(e=>e.verified).length,'ověřených');

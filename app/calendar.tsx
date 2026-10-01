@@ -2,7 +2,7 @@
 import {Fragment,useEffect,useMemo,useRef,useState} from 'react';
 import {SlidersHorizontal} from 'lucide-react';
 import {pairs} from '@/lib/score-engine';
-import {categories,marketLabels,signalLabels,defaultFilters,filterEvents,flaggedMarkets,readFilters,relative,type CalendarEvent,type Category,type Filters,type Signal} from '@/lib/calendar';
+import {categories,marketLabels,signalLabels,defaultFilters,filterEvents,flaggedMarkets,readFilters,relative,sourceUrl,type CalendarEvent,type Category,type Filters,type Signal} from '@/lib/calendar';
 const KEY='tradee.calendar.filters',TZ='Europe/Prague';
 const time=(s:string)=>new Date(s).toLocaleTimeString('cs-CZ',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});
 const dayName=(s:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:TZ,weekday:'long',day:'numeric',month:'long'});
@@ -28,7 +28,7 @@ function EventDetail({e,flags,now}:{e:CalendarEvent;flags:Record<string,string>;
  return <div className="c-detail">
   <div><h4>Na co se dívat</h4><p>{e.watch||'Agent zatím nedoplnil.'}</p>{affected.length>0&&<small>Dotčené páry: {affected.slice(0,8).join(', ')}{affected.length>8?' …':''}{followed.length>0&&<> · sleduješ: <b>{followed.join(', ')}</b></>}</small>}</div>
   <div><h4>Očekávání · předchozí</h4><p><b>{e.consensus||'zatím neznámé'}</b></p><small>předchozí: {e.previous||'—'}</small><h4>Výsledek</h4><p>{e.actual||(Date.parse(e.at)<now?'čeká na ověření':'zatím neznámý')}</p></div>
-  <div><h4>Zdroj</h4>{e.source?<a href={e.source} target="_blank" rel="noreferrer" onClick={x=>x.stopPropagation()}>{new URL(e.source).hostname.replace(/^www\./,'')}</a>:<p>—</p>}<small>{e.verified?'ověřeno agentem'+(e.verifiedAt?' '+stamp(e.verifiedAt):''):'jen termín z oficiálního kalendáře'}{!e.timeKnown&&' · přesný čas neověřen'}</small></div>
+  <div><h4>Zdroj</h4>{e.source&&sourceUrl(e.source)?<a href={e.source} target="_blank" rel="noreferrer" onClick={x=>x.stopPropagation()}>{sourceUrl(e.source)}</a>:<p>—</p>}<small>{e.verified?'ověřeno agentem'+(e.verifiedAt?' '+stamp(e.verifiedAt):''):'jen termín z oficiálního kalendáře'}{!e.timeKnown&&' · přesný čas neověřen'}</small></div>
  </div>;
 }
 

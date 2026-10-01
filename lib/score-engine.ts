@@ -1,4 +1,5 @@
 import type {FundamentalData,CoreFactor} from './fundamentals';
+import {eventMarkets} from './calendar.ts';
 export type CotGroup={long:number;short:number;spread:number;net:number};
 export type CotRow={date:string;openInterest:number;groups:Record<string,CotGroup>};
 export type CotContract={contract:string;code:string;isProxy:boolean;sourceUrl:string;checkedAt:string;history:CotRow[]};
@@ -59,6 +60,6 @@ export function scoreV2(data:FundamentalData,market:MarketData,instrument:string
  const bounds=[Math.max(-100,known-missing),Math.min(100,known+missing)];
  const bias=score===null?'Nedostatek dat':score>0?'Bullish':score<0?'Bearish':'Vyrovnané';
  const magnitude=score===null?'Bez závěru':Math.abs(score)<15?'Slabá převaha':Math.abs(score)<40?'Střední převaha':'Výrazná převaha';
- const events=data.events.filter(e=>(quote?members:currencies).includes(e.currency??'')&&Date.parse(e.at)>=now&&Date.parse(e.at)-now<=72*3600000).sort((a,b)=>a.at.localeCompare(b.at));
+ const events=data.events.filter(e=>eventMarkets(e).some(c=>(quote?members:currencies).includes(c))&&Date.parse(e.at)>=now&&Date.parse(e.at)-now<=72*3600000).sort((a,b)=>a.at.localeCompare(b.at));
  return {score,known,coverage,macroCoverage,parts,bias,magnitude,alignment,bounds,missing,base,quote,others,events,price,season,macro:parts.slice(0,4).every(p=>p.contribution!==null)?parts.slice(0,4).reduce((s,p)=>s+(p.contribution??0),0):null};
 }

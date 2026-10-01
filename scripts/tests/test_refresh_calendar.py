@@ -139,5 +139,24 @@ class Build(unittest.TestCase):
         out = rc.build({}, lambda url: '' if url == rc.ECB_URL else fixture(FILES[url]), NOW)
         self.assertFalse(out['sources']['ecb']['ok'])
 
+class Hardening(unittest.TestCase):
+    def test_partial_source_keeps_missing_kinds(self):
+        first = rc.build({}, fake_fetch(), NOW)
+        no_cpi = 'BEGIN:VEVENT'.join(b for b in fixture('bls.ics').split('BEGIN:VEVENT') if 'SUMMARY:Consumer Price Index' not in b)
+        second = rc.build(first, lambda url: no_cpi if url == rc.BLS_URL else fixture(FILES[url]), NOW)
+        self.assertIn('us-cpi-2026-10-14', ids(second['events']))
+        self.assertIn('us-cpi', second['sources']['bls']['error'])
+
+    def test_corrupt_previous_file(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'calendar.json'
+            p.write_text('{"events": [', encoding='utf-8')
+            self.assertEqual(rc.load_previous(p), {})
+            rc.write_atomic(p, {'events': []})
+            self.assertEqual(rc.load_previous(p), {'events': []})
+            self.assertEqual([x.name for x in Path(d).iterdir()], ['calendar.json'])
+
+
 if __name__ == '__main__':
     unittest.main()

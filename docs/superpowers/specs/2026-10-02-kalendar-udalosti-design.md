@@ -93,7 +93,7 @@ type CalendarEvent = {
   signal: 1|2|3;           // slabá / střední / silná
   global: boolean;         // štítek VŠE
   verified: boolean;       // ✓ agent / ○ jen skript
-  source: string;          // URL oficiálního zdroje
+  source: string;          // URL oficiálního zdroje (agent píše klíč do fundamentals.sources, při slučování se převede na URL)
   watch?: string;          // na co se dívat
   consensus?: string|null; previous?: string|null; actual?: string|null;
   verifiedAt?: string;     // kdy ověřil agent

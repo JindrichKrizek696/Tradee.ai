@@ -4,6 +4,7 @@ Každý zdroj má vlastní parser; spadlý zdroj nechá svoje události z minul�
 import calendar as cal
 import html
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -207,8 +208,16 @@ def build(previous, fetcher, now):
             got = parser(fetcher(url))
             if not got:
                 raise ValueError('zdroj nevrátil žádné události')
-            events += got
-            sources[name] = {'ok': True, 'lastSuccess': utc_iso(now), 'url': url, 'error': None}
+            # Částečně rozbitý zdroj (změněný název vydání, jiné HTML): typy, které minule měly budoucí
+            # události a teď chybí, převezmeme z minulého běhu a zapíšeme varování.
+            kinds = {e['kind'] for e in got}
+            lost = [x for x in prev_events if x.get('origin') == name and x['kind'] not in kinds and parse_utc(x['at']) >= now]
+            missing = sorted({x['kind'] for x in lost})
+            events += got + lost
+            sources[name] = {'ok': True, 'lastSuccess': utc_iso(now), 'url': url,
+                             'error': f"chybí typy: {', '.join(missing)} (ponechána minulá data)" if missing else None}
+            if missing:
+                print(f"!! kalendář: zdroj {name} – chybí typy {', '.join(missing)}", file=sys.stderr)
         except Exception as e:  # noqa: BLE001 – jeden spadlý zdroj nesmí shodit ostatní
             events += [x for x in prev_events if x.get('origin') == name]
             sources[name] = {'ok': False, 'lastSuccess': prev_sources.get(name, {}).get('lastSuccess'), 'url': url, 'error': f'{type(e).__name__}: {e}'[:300]}
@@ -220,10 +229,23 @@ def build(previous, fetcher, now):
     return {'generatedAt': utc_iso(now), 'sources': sources, 'events': sorted(unique.values(), key=lambda e: (e['at'], e['id']))}
 
 
+def load_previous(path):
+    """Minulý běh; poškozený nebo chybějící soubor nesmí zastavit další obnovu."""
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+
+
+def write_atomic(path, data):
+    tmp = path.with_name(path.name + '.tmp')
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    os.replace(tmp, path)
+
+
 def main():
-    previous = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
-    data = build(previous, fetch, datetime.now(timezone.utc))
-    OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    data = build(load_previous(OUT), fetch, datetime.now(timezone.utc))
+    write_atomic(OUT, data)
     status = ', '.join(f"{k}={'ok' if v['ok'] else 'CHYBA'}" for k, v in data['sources'].items())
     print(f"kalendář ok: {len(data['events'])} událostí · {status}")
     return 0
