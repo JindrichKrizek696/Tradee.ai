@@ -33,17 +33,17 @@ Filtry uložené k účtu, notifikace na blížící se události, historie výs
 ## Architektura a tok dat
 
 ```
-oficiální kalendáře ──► scripts/refresh-calendar.py ──► data/calendar.json  (kostra, „termín“)
+oficiální kalendáře ──► scripts/refresh_calendar.py ──► data/calendar.json  (kostra, „termín“)
                          (cron přes refresh-vps.sh, 4 h)          │
                                                                   ▼
 agent podle FUNDAMENTALS.md ──► data/fundamentals.json.events ──► lib/calendar.ts: merge ──► UI
                                 (doplnění, „ověřeno“)                (build-time import JSON)
 ```
 
-### 1. Kostra – `scripts/refresh-calendar.py`
+### 1. Kostra – `scripts/refresh_calendar.py`
 
 - Spouští ho `scripts/refresh-vps.sh` před buildem (stejný 4h cron, žádný nový cron).
-- Stahuje termíny na **60 dní dopředu** z oficiálních zdrojů. Každý zdroj = samostatný parser (funkce), aby šly testovat a vypínat jednotlivě:
+- Stahuje termíny na **60 dní dopředu** (a 7 dní zpět kvůli proběhlým) z oficiálních zdrojů. **Plán 1** = BLS, BEA, Fed, ECB, NYSE + vypočtené (EIA, Baker Hughes, expirace opcí); **plán 2** = ostatní centrální banky a statistické úřady stejným vzorem. Každý zdroj = samostatný parser (funkce), aby šly testovat a vypínat jednotlivě:
   - makro: BLS, BEA, ECB, Eurostat, ONS, StatCan, ABS, Stats NZ, japonská a švýcarská statistika,
   - centrální banky: kalendáře zasedání všech 8 bank,
   - burzy: svátkové kalendáře NYSE, CME, LSE, JPX; expirace opcí výpočtem (3. pátek v měsíci),
@@ -56,7 +56,7 @@ agent podle FUNDAMENTALS.md ──► data/fundamentals.json.events ──► li
     "events": [ /* CalendarEvent bez agentových polí */ ]
   }
   ```
-- **Stálé ID** podle zdroje, typu a období, např. `bls-cpi-2026-09`, `fed-fomc-2026-10-28`, `nyse-holiday-2026-11-26`. Stejná událost má při dalším běhu stejné ID (žádné duplikáty).
+- **Stálé ID** = typ + místní datum vydání, např. `us-cpi-2026-10-14`, `fomc-2026-10-28`, `nyse-holiday-2026-11-26`. Každá událost nese i `origin` (klíč zdroje), aby šlo při výpadku zachovat data právě toho zdroje. Stejná událost má při dalším běhu stejné ID (žádné duplikáty).
 - **Selhání zdroje:** parser, který spadne nebo vrátí 0 událostí, se přeskočí; pro jeho zdroj zůstanou události z předchozího `calendar.json`, `ok:false`, `error` s textem a `lastSuccess` beze změny. Chyba jde do `refresh.log`. Ostatní zdroje se zpracují normálně.
 - Snímek `data/calendar.json` je v gitu (aby šel build lokálně), na VPS ho přepisuje cron – stejně jako ostatní soubory v `data/`.
 
@@ -71,13 +71,13 @@ agent podle FUNDAMENTALS.md ──► data/fundamentals.json.events ──► li
 
 Čistá funkce `mergeCalendar(auto, curated, now) → CalendarEvent[]`:
 
-- spojí podle `id`; agentův záznam přepíše pole skriptu (prázdné hodnoty agenta nepřepisují neprázdné ze skriptu),
+- spojí podle `id`; když agentův záznam nemá ID skriptu, ale má stejný `kind` ve stejný den (dnešní ruční záznamy jako `us-jobs-sep`), spáruje se s ním – žádné duplicity; agentův záznam přepíše pole skriptu (prázdné hodnoty agenta nepřepisují neprázdné ze skriptu),
 - `verified: true` pro záznamy od agenta, `false` pro čistě skriptové,
 - chybějící `signal` doplní z tabulky **výchozí síly podle typu** (`DEFAULT_SIGNAL` v kódu, např. CPI/NFP/sazby = 3, ISM/PMI/zásoby ropy = 2, svátky burz = 1),
 - `global` (štítek VŠE) = agentova hodnota, jinak podle pevného seznamu typů `GLOBAL_KINDS`: FOMC, NFP USA, CPI USA, HDP USA, ECB sazby, OPEC+, velké geopolitické události (jen agent),
 - výstup seřazený podle `at`.
 
-Starší funkce (`upcomingEvents` v `lib/dashboard.ts`, kalendář v `fundamental-analyzer.tsx`) přejdou na `mergeCalendar`.
+Dashboard přejde z `upcomingEvents` (`lib/dashboard.ts`) na sloučený kalendář; `upcomingEvents` zůstává kvůli `check-dashboard.mjs`.
 
 ### Datový model
 
@@ -130,9 +130,9 @@ Schválené mockupy: varianta A (hustá tabulka) + celá stránka s filtry.
 
 Nejbližších 5 událostí se silou ≥ 2 nebo `global`, stejný styl řádku (bez filtrů), odkaz „Zobrazit vše“.
 
-### Detail páru – záložka Makro kalendář
+### Detail páru
 
-Stejné řádky, filtrované na měny daného páru + `global`.
+Záložka „Makro kalendář“ je jen v `app/fundamental-analyzer.tsx`, které živá aplikace nepoužívá (`app/page.tsx` → `tradee.tsx`). Mimo rozsah; detail události ukazuje dotčené páry sám.
 
 ## Testy
 
