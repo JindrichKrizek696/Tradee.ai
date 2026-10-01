@@ -3,6 +3,22 @@ import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
+import { existsSync, readFileSync } from "node:fs";
+
+// Přístup k MariaDB pro lokální vývoj: hodnoty z ignorovaného .mariadb.env (host, port, user, password, db).
+const mariadbVars: Record<string, string> = (() => {
+  const path = new URL("./.mariadb.env", import.meta.url);
+  if (!existsSync(path)) return {};
+  return Object.fromEntries(
+    readFileSync(path, "utf8")
+      .split(/\r?\n/)
+      .filter((l) => l.includes("=") && !l.startsWith("#"))
+      .map((l) => {
+        const i = l.indexOf("=");
+        return [l.slice(0, i).trim(), l.slice(i + 1).trim()];
+      }),
+  );
+})();
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -16,6 +32,7 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 const localBindingConfig = {
   main: "vinext/server/fetch-handler",
   compatibility_flags: ["nodejs_compat"],
+  vars: mariadbVars,
   d1_databases: d1
     ? [
         {

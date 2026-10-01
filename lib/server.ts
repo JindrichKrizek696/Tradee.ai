@@ -1,7 +1,9 @@
 import {env} from 'cloudflare:workers';
-export const runtime=()=>env as unknown as {DB:D1Database;BUCKET:R2Bucket;OWNER_EMAIL?:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string};
-export function db(){const d=runtime().DB;if(!d)throw new Error('Databáze zatím není dostupná.');return d}
+import {createDb,type Db} from './mysql';
+export const runtime=()=>env as unknown as {BUCKET:R2Bucket;OWNER_EMAIL?:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string;MARIADB_HOST?:string;MARIADB_PORT?:string;MARIADB_USER?:string;MARIADB_PASSWORD?:string;MARIADB_DB?:string};
+let cached:Db|null=null;
+export function db(){const e=runtime();if(!e.MARIADB_HOST||!e.MARIADB_USER||!e.MARIADB_DB)throw new Error('Databáze zatím není dostupná.');return cached??=createDb({host:e.MARIADB_HOST,port:Number(e.MARIADB_PORT||3306),user:e.MARIADB_USER,password:e.MARIADB_PASSWORD||'',database:e.MARIADB_DB})}
 export async function identity(req:Request){const id=req.headers.get('oai-authenticated-user-id');const email=req.headers.get('oai-authenticated-user-email');if(!id||!email)throw new Error('Pro tuto akci se přihlas.');const isOwner=!!runtime().OWNER_EMAIL&&email.toLowerCase()===runtime().OWNER_EMAIL!.toLowerCase();let name=req.headers.get('oai-authenticated-user-full-name')||email.split('@')[0];if(req.headers.get('oai-authenticated-user-full-name-encoding')==='percent-encoded-utf-8'){try{name=decodeURIComponent(name)}catch{}}
 await db().prepare('INSERT INTO members(id,email,name,role) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email,name=excluded.name').bind(id,email,name,isOwner?'admin':'member').run();const row=await db().prepare('SELECT role FROM members WHERE id=?').bind(id).first<{role:string}>();return {id,email,name,role:isOwner?'admin':row?.role||'member',owner:isOwner};}
 export function sameOrigin(req:Request){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw new Error('Nepovolený původ požadavku.');}
-export function failed(e:unknown){console.error(e);return Response.json({error:e instanceof Error&& !/D1_|SQLITE|binding|R2/.test(e.message)?e.message:'Uložení dat momentálně není dostupné. Zkus to prosím znovu.'},{status:400,headers:{'Cache-Control':'no-store'}})}
+export function failed(e:unknown){console.error(e);return Response.json({error:e instanceof Error&& !/D1_|SQLITE|binding|R2|ER_|ECONN|mysql|MariaDB|ETIMEDOUT|Access denied/i.test(e.message)?e.message:'Uložení dat momentálně není dostupné. Zkus to prosím znovu.'},{status:400,headers:{'Cache-Control':'no-store'}})}
