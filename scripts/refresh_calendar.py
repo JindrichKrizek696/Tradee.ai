@@ -187,3 +187,48 @@ def computed(today, holidays):
             out.append(event('cboe', 'opex', datetime.combine(r, time(16, 0), ET), title='USA • měsíční expirace opcí', category='exchange', markets=['INDEX', 'STOCKS'], url='https://www.cboe.com/about/hours/'))
     return out
 
+
+
+SOURCES = {
+    'bls': (BLS_URL, parse_bls),
+    'bea': (BEA_URL, parse_bea),
+    'fed': (FED_URL, parse_fed),
+    'ecb': (ECB_URL, parse_ecb),
+    'nyse': (NYSE_URL, parse_nyse),
+}
+
+
+def build(previous, fetcher, now):
+    prev_events = previous.get('events', [])
+    prev_sources = previous.get('sources', {})
+    sources, events = {}, []
+    for name, (url, parser) in SOURCES.items():
+        try:
+            got = parser(fetcher(url))
+            if not got:
+                raise ValueError('zdroj nevrátil žádné události')
+            events += got
+            sources[name] = {'ok': True, 'lastSuccess': utc_iso(now), 'url': url, 'error': None}
+        except Exception as e:  # noqa: BLE001 – jeden spadlý zdroj nesmí shodit ostatní
+            events += [x for x in prev_events if x.get('origin') == name]
+            sources[name] = {'ok': False, 'lastSuccess': prev_sources.get(name, {}).get('lastSuccess'), 'url': url, 'error': f'{type(e).__name__}: {e}'[:300]}
+            print(f'!! kalendář: zdroj {name} selhal: {e}', file=sys.stderr)
+    holidays = {parse_utc(x['at']).astimezone(ET).date() for x in events if x.get('kind') == 'nyse-holiday'}
+    events += computed(now.astimezone(ET).date(), holidays)
+    start, end = now - timedelta(days=PAST_DAYS), now + timedelta(days=HORIZON_DAYS)
+    unique = {e['id']: e for e in events if start <= parse_utc(e['at']) <= end}
+    return {'generatedAt': utc_iso(now), 'sources': sources, 'events': sorted(unique.values(), key=lambda e: (e['at'], e['id']))}
+
+
+def main():
+    previous = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
+    data = build(previous, fetch, datetime.now(timezone.utc))
+    OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    status = ', '.join(f"{k}={'ok' if v['ok'] else 'CHYBA'}" for k, v in data['sources'].items())
+    print(f"kalendář ok: {len(data['events'])} událostí · {status}")
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
+

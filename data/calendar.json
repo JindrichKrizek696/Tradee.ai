@@ -1,0 +1,690 @@
+{
+ "generatedAt": "2026-10-01T22:43:11Z",
+ "sources": {
+  "bls": {
+   "ok": true,
+   "lastSuccess": "2026-10-01T22:43:11Z",
+   "url": "https://www.bls.gov/schedule/news_release/bls.ics",
+   "error": null
+  },
+  "bea": {
+   "ok": true,
+   "lastSuccess": "2026-10-01T22:43:11Z",
+   "url": "https://apps.bea.gov/API/signup/release_dates.json",
+   "error": null
+  },
+  "fed": {
+   "ok": true,
+   "lastSuccess": "2026-10-01T22:43:11Z",
+   "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+   "error": null
+  },
+  "ecb": {
+   "ok": true,
+   "lastSuccess": "2026-10-01T22:43:11Z",
+   "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+   "error": null
+  },
+  "nyse": {
+   "ok": true,
+   "lastSuccess": "2026-10-01T22:43:11Z",
+   "url": "https://www.nyse.com/markets/hours-calendars",
+   "error": null
+  }
+ },
+ "events": [
+  {
+   "id": "rig-count-2026-09-25",
+   "at": "2026-09-25T17:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "us-jolts-2026-09-29",
+   "at": "2026-09-29T14:00:00Z",
+   "timeKnown": true,
+   "title": "USA • JOLTS",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-jolts",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "us-gdp-2026-09-30",
+   "at": "2026-09-30T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • HDP",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-gdp",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "us-pce-2026-09-30",
+   "at": "2026-09-30T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • osobní příjmy a PCE",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-pce",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "eia-oil-2026-09-30",
+   "at": "2026-09-30T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "eia-gas-2026-10-01",
+   "at": "2026-10-01T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "us-nfp-2026-10-02",
+   "at": "2026-10-02T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • zaměstnanost (NFP)",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-nfp",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "rig-count-2026-10-02",
+   "at": "2026-10-02T17:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "us-trade-2026-10-06",
+   "at": "2026-10-06T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • obchodní bilance",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-trade",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "eia-oil-2026-10-07",
+   "at": "2026-10-07T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "eia-gas-2026-10-08",
+   "at": "2026-10-08T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "rig-count-2026-10-09",
+   "at": "2026-10-09T17:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "us-cpi-2026-10-14",
+   "at": "2026-10-14T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • CPI",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-cpi",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "eia-oil-2026-10-14",
+   "at": "2026-10-14T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "us-ppi-2026-10-15",
+   "at": "2026-10-15T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • PPI",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-ppi",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "eia-gas-2026-10-15",
+   "at": "2026-10-15T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "rig-count-2026-10-16",
+   "at": "2026-10-16T17:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "opex-2026-10-16",
+   "at": "2026-10-16T20:00:00Z",
+   "timeKnown": true,
+   "title": "USA • měsíční expirace opcí",
+   "category": "exchange",
+   "markets": [
+    "INDEX",
+    "STOCKS"
+   ],
+   "kind": "opex",
+   "source": "https://www.cboe.com/about/hours/",
+   "origin": "cboe"
+  },
+  {
+   "id": "eia-oil-2026-10-21",
+   "at": "2026-10-21T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "eia-gas-2026-10-22",
+   "at": "2026-10-22T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "rig-count-2026-10-23",
+   "at": "2026-10-23T17:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "eia-oil-2026-10-28",
+   "at": "2026-10-28T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "fomc-2026-10-28",
+   "at": "2026-10-28T18:00:00Z",
+   "timeKnown": false,
+   "title": "FOMC • rozhodnutí o sazbách",
+   "category": "central-bank",
+   "markets": [
+    "USD"
+   ],
+   "kind": "fomc",
+   "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+   "origin": "fed"
+  },
+  {
+   "id": "us-gdp-2026-10-29",
+   "at": "2026-10-29T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • HDP",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-gdp",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "us-pce-2026-10-29",
+   "at": "2026-10-29T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • osobní příjmy a PCE",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-pce",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "ecb-rates-2026-10-29",
+   "at": "2026-10-29T13:15:00Z",
+   "timeKnown": false,
+   "title": "ECB • sazby a tisková konference",
+   "category": "central-bank",
+   "markets": [
+    "EUR"
+   ],
+   "kind": "ecb-rates",
+   "source": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+   "origin": "ecb"
+  },
+  {
+   "id": "eia-gas-2026-10-29",
+   "at": "2026-10-29T14:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "us-eci-2026-10-30",
+   "at": "2026-10-30T12:30:00Z",
+   "timeKnown": true,
+   "title": "USA • index nákladů práce (ECI)",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-eci",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "rig-count-2026-10-30",
+   "at": "2026-10-30T17:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "us-jolts-2026-11-03",
+   "at": "2026-11-03T15:00:00Z",
+   "timeKnown": true,
+   "title": "USA • JOLTS",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-jolts",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "us-trade-2026-11-04",
+   "at": "2026-11-04T13:30:00Z",
+   "timeKnown": true,
+   "title": "USA • obchodní bilance",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-trade",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "eia-oil-2026-11-04",
+   "at": "2026-11-04T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "eia-gas-2026-11-05",
+   "at": "2026-11-05T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "us-nfp-2026-11-06",
+   "at": "2026-11-06T13:30:00Z",
+   "timeKnown": true,
+   "title": "USA • zaměstnanost (NFP)",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-nfp",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "rig-count-2026-11-06",
+   "at": "2026-11-06T18:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "us-cpi-2026-11-10",
+   "at": "2026-11-10T13:30:00Z",
+   "timeKnown": true,
+   "title": "USA • CPI",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-cpi",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "eia-oil-2026-11-11",
+   "at": "2026-11-11T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "eia-gas-2026-11-12",
+   "at": "2026-11-12T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "us-ppi-2026-11-13",
+   "at": "2026-11-13T13:30:00Z",
+   "timeKnown": true,
+   "title": "USA • PPI",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-ppi",
+   "source": "https://www.bls.gov/schedule/news_release/",
+   "origin": "bls"
+  },
+  {
+   "id": "rig-count-2026-11-13",
+   "at": "2026-11-13T18:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "eia-oil-2026-11-18",
+   "at": "2026-11-18T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "eia-gas-2026-11-19",
+   "at": "2026-11-19T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "rig-count-2026-11-20",
+   "at": "2026-11-20T18:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  },
+  {
+   "id": "opex-2026-11-20",
+   "at": "2026-11-20T21:00:00Z",
+   "timeKnown": true,
+   "title": "USA • měsíční expirace opcí",
+   "category": "exchange",
+   "markets": [
+    "INDEX",
+    "STOCKS"
+   ],
+   "kind": "opex",
+   "source": "https://www.cboe.com/about/hours/",
+   "origin": "cboe"
+  },
+  {
+   "id": "us-gdp-2026-11-25",
+   "at": "2026-11-25T13:30:00Z",
+   "timeKnown": true,
+   "title": "USA • HDP",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-gdp",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "us-pce-2026-11-25",
+   "at": "2026-11-25T13:30:00Z",
+   "timeKnown": true,
+   "title": "USA • osobní příjmy a PCE",
+   "category": "macro",
+   "markets": [
+    "USD"
+   ],
+   "kind": "us-pce",
+   "source": "https://www.bea.gov/news/schedule",
+   "origin": "bea"
+  },
+  {
+   "id": "eia-oil-2026-11-25",
+   "at": "2026-11-25T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • týdenní zásoby ropy",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "eia-oil",
+   "source": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+   "origin": "eia"
+  },
+  {
+   "id": "nyse-holiday-2026-11-26",
+   "at": "2026-11-26T14:30:00Z",
+   "timeKnown": false,
+   "title": "USA • burza zavřená (Thanksgiving Day)",
+   "category": "exchange",
+   "markets": [
+    "INDEX",
+    "STOCKS"
+   ],
+   "kind": "nyse-holiday",
+   "source": "https://www.nyse.com/markets/hours-calendars",
+   "origin": "nyse"
+  },
+  {
+   "id": "eia-gas-2026-11-27",
+   "at": "2026-11-27T15:30:00Z",
+   "timeKnown": true,
+   "title": "EIA • zásoby zemního plynu",
+   "category": "commodity",
+   "markets": [
+    "GAS"
+   ],
+   "kind": "eia-gas",
+   "source": "https://ir.eia.gov/ngs/schedule.html",
+   "origin": "eia"
+  },
+  {
+   "id": "rig-count-2026-11-27",
+   "at": "2026-11-27T18:00:00Z",
+   "timeKnown": true,
+   "title": "Baker Hughes • počet vrtných souprav",
+   "category": "commodity",
+   "markets": [
+    "OIL"
+   ],
+   "kind": "rig-count",
+   "source": "https://rigcount.bakerhughes.com/",
+   "origin": "bakerhughes"
+  }
+ ]
+}

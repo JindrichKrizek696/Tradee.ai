@@ -96,5 +96,48 @@ class Computed(unittest.TestCase):
         oil = next(e for e in events if e['id'] == 'eia-oil-2026-10-07')
         self.assertEqual(oil['at'], '2026-10-07T14:30:00Z')
 
+NOW = datetime(2026, 10, 2, 8, 0, tzinfo=timezone.utc)
+FILES = {rc.BLS_URL: 'bls.ics', rc.BEA_URL: 'bea.json', rc.FED_URL: 'fed.html', rc.ECB_URL: 'ecb.html', rc.NYSE_URL: 'nyse.html'}
+
+
+def fake_fetch(broken=()):
+    def fetch(url):
+        if url in broken:
+            raise OSError('HTTP Error 403: Forbidden')
+        return fixture(FILES[url])
+    return fetch
+
+
+class Build(unittest.TestCase):
+    def test_window_sorted_unique(self):
+        out = rc.build({}, fake_fetch(), NOW)
+        at = [e['at'] for e in out['events']]
+        self.assertEqual(at, sorted(at))
+        self.assertEqual(len(ids(out['events'])), len(set(ids(out['events']))))
+        self.assertGreaterEqual(at[0], '2026-09-25T08:00:00Z')
+        self.assertLessEqual(at[-1], '2026-12-01T08:00:00Z')
+        self.assertEqual(out['generatedAt'], '2026-10-02T08:00:00Z')
+        self.assertTrue(all(s['ok'] for s in out['sources'].values()))
+        self.assertIn('fomc-2026-10-28', ids(out['events']))
+
+    def test_failed_source_keeps_previous_events(self):
+        first = rc.build({}, fake_fetch(), NOW)
+        second = rc.build(first, fake_fetch(broken={rc.BLS_URL}), NOW)
+        self.assertFalse(second['sources']['bls']['ok'])
+        self.assertIn('403', second['sources']['bls']['error'])
+        self.assertEqual(second['sources']['bls']['lastSuccess'], '2026-10-02T08:00:00Z')
+        self.assertIn('us-cpi-2026-10-14', ids(second['events']))
+        self.assertTrue(second['sources']['fed']['ok'])
+
+    def test_failed_source_without_history(self):
+        out = rc.build({}, fake_fetch(broken={rc.BLS_URL}), NOW)
+        self.assertIsNone(out['sources']['bls']['lastSuccess'])
+        self.assertNotIn('us-cpi-2026-10-14', ids(out['events']))
+        self.assertIn('us-gdp-2026-10-29', ids(out['events']))
+
+    def test_empty_source_is_failure(self):
+        out = rc.build({}, lambda url: '' if url == rc.ECB_URL else fixture(FILES[url]), NOW)
+        self.assertFalse(out['sources']['ecb']['ok'])
+
 if __name__ == '__main__':
     unittest.main()
