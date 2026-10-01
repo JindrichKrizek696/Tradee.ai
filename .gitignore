@@ -53,3 +53,4 @@ tsconfig.tsbuildinfo
 
 # brainstorming mockupy
 .superpowers/
+__pycache__/
