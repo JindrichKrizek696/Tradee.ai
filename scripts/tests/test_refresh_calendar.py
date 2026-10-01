@@ -46,5 +46,55 @@ class Bea(unittest.TestCase):
         self.assertEqual(by_id['us-trade-2026-10-06']['markets'], ['USD'])
 
 
+class Fed(unittest.TestCase):
+    def test_meetings(self):
+        events = rc.parse_fed(fixture('fed.html'))
+        self.assertEqual(len(events), 16)  # 8 schůzí 2026 + 8 schůzí 2027
+        by_id = {e['id']: e for e in events}
+        self.assertIn('fomc-2026-10-28', by_id)
+        self.assertEqual(by_id['fomc-2026-12-09']['title'], 'FOMC • rozhodnutí o sazbách + projekce')
+        self.assertEqual(by_id['fomc-2026-10-28']['title'], 'FOMC • rozhodnutí o sazbách')
+        self.assertFalse(by_id['fomc-2026-10-28']['timeKnown'])
+        self.assertIn('fomc-2027-03-17', by_id)
+
+
+class Ecb(unittest.TestCase):
+    def test_only_policy_days_with_press_conference(self):
+        events = rc.parse_ecb(fixture('ecb.html'))
+        self.assertEqual(ids(events)[:3], ['ecb-rates-2026-10-29', 'ecb-rates-2026-12-17', 'ecb-rates-2027-02-04'])
+        self.assertNotIn('ecb-rates-2026-10-28', ids(events))  # den 1 bez tiskovky
+        self.assertNotIn('ecb-rates-2026-11-25', ids(events))  # non-monetary
+        self.assertEqual(events[0]['markets'], ['EUR'])
+
+
+class Nyse(unittest.TestCase):
+    def test_holidays(self):
+        events = rc.parse_nyse(fixture('nyse.html'))
+        by_id = {e['id']: e for e in events}
+        self.assertEqual(len(events), 29)
+        self.assertIn('nyse-holiday-2026-11-26', by_id)
+        self.assertEqual(by_id['nyse-holiday-2026-12-25']['title'], 'USA • burza zavřená (Christmas Day)')
+        self.assertNotIn('nyse-holiday-2028-01-01', by_id)  # „—*“ = bez svátku
+        self.assertEqual(by_id['nyse-holiday-2026-11-26']['category'], 'exchange')
+
+
+class Computed(unittest.TestCase):
+    def test_third_friday(self):
+        self.assertEqual(rc.third_friday(2026, 10), date(2026, 10, 16))
+        self.assertEqual(rc.third_friday(2026, 11), date(2026, 11, 20))
+
+    def test_weekly_and_holiday_shift(self):
+        events = rc.computed(date(2026, 10, 2), {date(2026, 11, 26)})
+        got = set(ids(events))
+        self.assertIn('eia-oil-2026-10-07', got)
+        self.assertIn('eia-gas-2026-10-08', got)
+        self.assertIn('rig-count-2026-10-09', got)
+        self.assertIn('opex-2026-10-16', got)
+        self.assertIn('eia-gas-2026-11-27', got)       # Díkůvzdání 26. 11. → plyn o den později
+        self.assertNotIn('eia-gas-2026-11-26', got)
+        self.assertIn('eia-oil-2026-11-25', got)       # ropa ve středu před svátkem beze změny
+        oil = next(e for e in events if e['id'] == 'eia-oil-2026-10-07')
+        self.assertEqual(oil['at'], '2026-10-07T14:30:00Z')
+
 if __name__ == '__main__':
     unittest.main()
