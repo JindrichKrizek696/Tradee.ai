@@ -4,10 +4,11 @@ import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
 import {flagLabels} from '@/lib/markets';
 import {TradeCalendar} from './trade-calendar';
+import {EventRow} from './calendar';
+import {upcomingCalendar,flaggedMarkets,type CalendarEvent} from '@/lib/calendar';
 import type {View} from './shell';
-import {greeting,vocative,kpis,bullishTrail,bearishTrail,dataHealth,recentChanges,upcomingEvents,importanceLabel,type Row,type HistoryLike} from '@/lib/dashboard';
+import {greeting,vocative,kpis,bullishTrail,bearishTrail,dataHealth,recentChanges,type Row,type HistoryLike} from '@/lib/dashboard';
 const fmt=(n:number|null,d=1)=>n===null?'—':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:d});
-const time=(s:string)=>new Date(s).toLocaleTimeString('cs-CZ',{timeZone:'Europe/Prague',hour:'2-digit',minute:'2-digit'});
 const day=(s:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'short'});
 
 function Spark({values,color='#245bff'}:{values:number[];color?:string}){
@@ -20,9 +21,9 @@ function Ring({pct,color='#245bff'}:{pct:number;color?:string}){const r=15,c=2*M
 function Bars({values,colors}:{values:number[];colors:string[]}){const max=Math.max(...values,1);return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true">{values.map((v,i)=><rect key={i} x={10+i*16} y={36-v/max*30} width="10" height={v/max*30+1} rx="3" fill={colors[i]} opacity={v?1:.25}/>)}</svg>}
 
 
-export function Dashboard({rows,flags,history,data,market,now,userName,open,setView}:{rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void}){
+export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar}:{calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void}){
  const k=kpis(rows,flags),flagged=rows.filter(r=>flags[r.id]&&flags[r.id]!=='none');
- const health=dataHealth(data,market,now),changes=recentChanges(history,5),events=upcomingEvents(data,now,5);
+ const health=dataHealth(data,market,now),changes=recentChanges(history,5),events=upcomingCalendar(calendar,now,5),mine=flaggedMarkets(flags);
  const trend=(r:Row):[string,string]=>{const t=r.r.parts.find(p=>p.id==='trend')?.signal;const v=r.r.price?.trend??0;return t===null||t===undefined?['','Neověřen']:v>0?['up','Bullish']:v<0?['down','Bearish']:['','Neutrální']};
  const strongestUp=!!k.strongest&&(k.strongest.r.score as number)>0;
  const today=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',day:'numeric',month:'short',year:'numeric'});
@@ -51,7 +52,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
   <section className="t-row3">
    <div className="t-card"><div className="t-card-head"><h2>Stav podkladů</h2><span className="t-val">kontrola každé 4 h</span></div><div className="t-list">{health.map(h=><div key={h.label}><span className={'t-check'+(h.ok?'':' warn')}>{h.ok?<Check size={14}/>:<AlertTriangle size={14}/>}</span><div><b>{h.label}</b><small>{h.detail}</small></div><div className="t-right"><span className="t-bar"><i className={h.ok?'':'warn'} style={{width:h.usage+'%'}}/></span><span className="t-val">{h.usage} %</span></div></div>)}</div></div>
    <div className="t-card"><div className="t-card-head"><h2>Poslední změny</h2><span className="t-val">{history.snapshots.length} snímků</span></div><div className="t-list">{changes.length?changes.map(c=><div key={c.instrument}><span className={'t-check'+(c.delta>0?'':c.delta<0?' warn':' muted')}><Activity size={14}/></span><div><b>{rows.find(r=>r.id===c.instrument)?.name||c.instrument}</b><small>{fmt(c.from)} → {fmt(c.to)} · {day(c.at)}</small></div><span className={'t-val '+(c.delta>0?'up':c.delta<0?'down':'')}>{fmt(c.delta)}</span></div>):<div className="t-empty">Skóre se od posledního snímku nezměnilo.</div>}{data.changes.slice(-2).reverse().map(c=><div key={c.at}><span className="t-check muted"><Clock size={14}/></span><div><b>{c.title}</b><small>{day(c.at)} · {c.body}</small></div><span/></div>)}</div></div>
-   <div className="t-card"><div className="t-card-head"><h2>Kalendář</h2><button className="t-link" onClick={()=>setView('calendar')}>Zobrazit vše <ChevronRight size={14}/></button></div><div className="t-list">{events.length?events.map(e=>{const [cls,label]=importanceLabel(e.importance??'');return <div key={e.id}><span className="t-time">{e.timeKnown?time(e.at):'—'}<small>{day(e.at)}</small></span><div><b>{e.title}<span className="t-ccy">{e.currency}</span></b><small>{e.watch}</small></div><span className={'t-badge '+cls}>{label}</span></div>}):<div className="t-empty">Žádné nadcházející události.</div>}</div></div>
+   <div className="t-card"><div className="t-card-head"><h2>Kalendář</h2><button className="t-link" onClick={()=>setView('calendar')}>Zobrazit vše <ChevronRight size={14}/></button></div><div className="c-list c-compact">{events.length?events.map(e=><EventRow key={e.id} e={e} now={now} mine={mine} compact/>):<div className="t-empty">Žádné nadcházející události.</div>}</div></div>
   </section>
  </div>;
 }

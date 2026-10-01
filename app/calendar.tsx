@@ -14,7 +14,7 @@ export function SignalBars({signal}:{signal:Signal}){return <span className={'c-
 export function EventRow({e,now,mine,open,onToggle,compact}:{e:CalendarEvent;now:number;mine:Set<string>;open?:boolean;onToggle?:()=>void;compact?:boolean}){
  const past=Date.parse(e.at)<now,watched=e.markets.some(m=>mine.has(m));
  return <div className={'c-row'+(past?' c-past':'')+(open?' c-open':'')+(compact?' c-compact':'')} role={onToggle?'button':undefined} tabIndex={onToggle?0:undefined} aria-expanded={onToggle?!!open:undefined} onClick={onToggle} onKeyDown={k=>{if(onToggle&&(k.key==='Enter'||k.key===' ')){k.preventDefault();onToggle()}}}>
-  <span className="c-strength"><SignalBars signal={e.signal}/>{signalLabels[e.signal]}</span>
+  <span className="c-strength" title={signalLabels[e.signal]}><SignalBars signal={e.signal}/>{!compact&&signalLabels[e.signal]}</span>
   <span className="c-when"><b>{e.timeKnown?time(e.at):'—'}</b><small>{compact?new Date(e.at).toLocaleDateString('cs-CZ',{timeZone:TZ,day:'numeric',month:'numeric'})+' · ':''}{relative(e.at,now)}</small></span>
   <span className="c-title">{e.title}</span>
   {!compact&&<span className="c-tags">{e.global&&<span className="c-tag c-all">VŠE</span>}{e.markets.map(m=><span key={m} className="c-tag">{marketLabels[m]??m}</span>)}{watched&&<span className="c-tag c-mine">sleduješ</span>}</span>}
@@ -33,8 +33,8 @@ function EventDetail({e,flags,now}:{e:CalendarEvent;flags:Record<string,string>;
 }
 
 export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEvent[];now:number;flags:Record<string,string>;generatedAt:string}){
- const [f,setF]=useState<Filters>(defaultFilters),[open,setOpen]=useState<string|null>(null),[panel,setPanel]=useState(false),nowLine=useRef<HTMLDivElement>(null),scrolled=useRef(false);
- useEffect(()=>{let raw:string|null=null;try{raw=localStorage.getItem(KEY)}catch{}setF(readFilters(raw))},[]);
+ // Kalendář se vykreslí až po přepnutí pohledu v prohlížeči, localStorage je tedy dostupné hned.
+ const [f,setF]=useState<Filters>(()=>{let raw:string|null=null;try{raw=localStorage.getItem(KEY)}catch{}return readFilters(raw)}),[open,setOpen]=useState<string|null>(null),[panel,setPanel]=useState(false),nowLine=useRef<HTMLDivElement>(null),scrolled=useRef(false);
  const update=(next:Filters)=>{setF(next);try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}};
  const mine=useMemo(()=>flaggedMarkets(flags),[flags]);
  const shown=useMemo(()=>filterEvents(events,f,now),[events,f,now]);
