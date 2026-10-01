@@ -35,3 +35,19 @@ Po všech ověřeních spusť node --experimental-strip-types scripts/capture-sc
 Nové GBP/CHF ověř přes BoE/SNB, ONS/švýcarský statistický úřad. Reporty rozděluj na banky/instituce a očekávání obchodníků. Konsensus musí mít datovaný dohledatelný zdroj; očekávání zachycené až zpětně označ. Zachovej vlaječky watch_flags v D1, vždy jen pro přihlášeného uživatele. Nezapisuj osobní vlaječky v automatické aktualizaci.
 
 Validace: node --experimental-strip-types scripts/check-score.mjs, TypeScript, Sites build. Aktuální grafy a tooltipy historie udržuj funkční. Stav ukládání odděl od obnovování tržních dat. Publikuj soukromě až po kontrolách. Při souběžné práci uživatele v tomto úkolu nepřepisuj rozpracované UI; zapracuj kontrolu do probíhající práce.
+
+## Kalendář událostí
+
+Kostru kalendáře generuje `scripts/refresh_calendar.py` do `data/calendar.json` (BLS, BEA, Fed, ECB, svátky NYSE, EIA, Baker Hughes, expirace opcí). Tento soubor ručně neupravuj.
+
+Do `data/fundamentals.json → events` zapisuj jen to, co přidává hodnotu:
+- **doplnění** události ze skriptu – použij její `id` z `calendar.json` (např. `us-cpi-2026-10-14`) a vyplň `signal`, `watch`, `consensus`, `previous`, `actual`, `verifiedAt`, případně přesný čas (`at`, `timeKnown:true`) z oficiálního zdroje;
+- **nové události**, které skript neumí: krypto (upgrady sítí, SEC/ETF, velké unlocky – jen BTC/ETH/SOL), komodity (OPEC+, zlato), výsledky sledovaných a velkých technologických firem, politika (volby, G7/G20, cla), projevy guvernérů a zápisy ze zasedání, ostatní centrální banky a statistiky mimo USA, dokud je nepokrývá skript. ID ve tvaru `{kind}-{YYYY-MM-DD}`.
+
+Pole události: `id, at (ISO UTC), timeKnown, title („Země • co“, česky), category (macro | central-bank | exchange | commodity | crypto | equity | politics), markets (USD EUR GBP JPY CHF AUD NZD CAD BTC ETH SOL OIL GOLD GAS INDEX nebo ticker), kind, signal, global, source (URL oficiálního zdroje), watch, consensus, previous, actual, verifiedAt`.
+
+**Síla `signal`:** 3 = sazby centrálních bank G8, NFP/CPI/HDP/PCE USA, CPI a HDP velkých ekonomik, OPEC+, výsledky Nvidia/Apple/Microsoft; 2 = PMI, maloobchod, PPI, JOLTS, obchodní bilance, zásoby ropy, projevy guvernérů, výsledky ostatních sledovaných firem; 1 = ostatní.
+
+**Štítek VŠE (`global:true`):** automaticky FOMC, NFP USA, CPI USA, HDP USA, sazby ECB, OPEC+. Ručně jen pro mimořádné události s dopadem na všechny trhy (válka, volby v USA, plošná cla) a vždy s odůvodněním ve `watch`.
+
+Nevyplňuj neověřený konsensus ani výsledek; neznámé = `null`.

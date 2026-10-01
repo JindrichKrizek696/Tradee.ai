@@ -19,6 +19,8 @@ Soukromý přehled trhů s dohledatelným skóre, COT, sezonalitou, reporty a os
 - `scripts/refresh-expanded-data.py` — CFTC Legacy a denní ceny ostatních trhů.
 - `scripts/capture-score-history.mjs` — skutečné časované záznamy skóre.
 - `FUNDAMENTALS.md` — postup průběžného ověřování podkladů.
+- `app/calendar.tsx` + `lib/calendar.ts` — kalendář událostí (sloučení skriptu a agenta, filtry).
+- `scripts/refresh_calendar.py` — kostra kalendáře z oficiálních zdrojů do `data/calendar.json`; testy `python3 -m unittest discover -s scripts/tests`.
 
 ## Lokální spuštění
 Vyžaduje Node.js 22.13+ a Python 3. Instalace: `npm ci`, náhled: `npm run dev`.
