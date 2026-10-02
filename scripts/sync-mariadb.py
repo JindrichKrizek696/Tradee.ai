@@ -2,7 +2,7 @@
 """Zrcadlení dat Tradee.ai do MariaDB (db.dejny.eu).
 
 Aplikace běží dál nad D1 (SQLite). Tento skript pravidelně:
-- zrcadlí tabulky members, watch_flags a trades (a každou změnu zapíše do change_log),
+- (zrcadlení members/watch_flags/trades z D1 je vypnuté – aplikace zapisuje přímo do MariaDB),
 - archivuje každou novou verzi datových souborů v data/ (gzip, deduplikace přes SHA-256),
 - rozepíše historii skóre a pozorování ukazatelů do dotazovatelných tabulek.
 Přihlašovací údaje čte z .mariadb.env v kořeni projektu (mimo Git).
@@ -157,12 +157,8 @@ def main():
         with conn.cursor() as cur:
             for ddl in DDL:
                 cur.execute(ddl)
-            lite = sqlite3.connect(f"file:{sqlite_path()}?mode=ro", uri=True)
-            try:
-                for table, cols in MIRROR.items():
-                    mirror_table(cur, lite, table, cols, now, log)
-            finally:
-                lite.close()
+            # Zrcadlení members/watch_flags/trades z D1 vypnuto 2. 10. 2026: aplikace od přechodu na MariaDB
+            # zapisuje přímo sem a zamrzlé D1 by nové řádky každou hodinu mazalo.
             archive_files(cur, now, log)
             flatten_history(cur, log)
             cur.execute("INSERT INTO sync_runs(at,status,details) VALUES(%s,%s,%s)", (now, 'ok', '; '.join(log)))
