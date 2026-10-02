@@ -6,6 +6,8 @@ const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '
 const it=(id,group,score,coverage=80,name=id)=>({id,name,group,score,trend:null,coverage,bias:''});
 const items=[it('EUR/USD','fx',42),it('GBP/USD','fx',-71),it('USD/JPY','fx',null),it('AUD/USD','fx',12),it('USD','currency',-5),it('BTC-USD','crypto',88),it('AAPL','stock',0),it('NZD/USD','fx',-30),it('^NDX','index',55,80,'Nasdaq 100'),it('MSFT','stock',-12),it('TSLA','stock',-90)];
 
+const row=(signal,trend)=>({id:'EUR/USD',name:'EUR/USD',group:'fx',r:{score:12,coverage:90,bias:'Bullish',parts:[{id:'trend',signal}],price:{trend}}});
+check('toItem: trend z ceny, null když signál trendu chybí',toItem(row(0.5,0.3)).trend===1&&toItem(row(-1,-0.2)).trend===-1&&toItem(row(0,0)).trend===0&&toItem(row(null,0.4)).trend===null&&toItem(row(0.5,0.3)).score===12,[toItem(row(0.5,0.3)).trend,toItem(row(null,0.4)).trend]);
 const t=topSignals(items);
 check('top bullish: jen kladné, sestupně',t.bull.map(i=>i.id).join()==='BTC-USD,^NDX,EUR/USD,AUD/USD',t.bull.map(i=>i.id));
 check('top bearish: jen záporné, od nejsilnějšího',t.bear.map(i=>i.id).join()==='TSLA,GBP/USD,NZD/USD,MSFT,USD',t.bear.map(i=>i.id));
