@@ -38,6 +38,8 @@
 .m-tile.m-empty{color:#6b7280}
 .m-dim{opacity:.18}
 .m-tile .m-flag{position:absolute;top:2px;right:2px}
+/* dlaždice s otevřeným menu nad sousedy, jinak by menu překryly a klik by otevřel detail */
+.m-tile:has(.m-flag-menu){z-index:30;transform:none}
 /* vlaječka */
 .m-flag{position:relative;display:inline-flex}
 .m-dot{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;background:none;cursor:pointer}
@@ -46,6 +48,7 @@
 .m-tile .m-dot i{box-shadow:0 0 0 1.5px #fff}
 .m-tile .m-dot.flag-none i{opacity:.55}
 .m-dot:disabled{cursor:default;opacity:.5}
+.m-flag-menu.flip{right:auto;left:0}
 .m-flag-menu{position:absolute;right:0;top:26px;z-index:20;display:grid;min-width:210px;padding:6px;background:#fff;border:1px solid #e3e8f2;border-radius:12px;box-shadow:0 12px 32px -12px #1b2a5a40}
 .m-flag-menu button{display:flex;align-items:center;gap:8px;padding:7px 8px;border:0;border-radius:8px;background:none;font-size:13px;color:#141518;text-align:left;cursor:pointer}
 .m-flag-menu button:hover,.m-flag-menu button.on{background:#f1f4fb}

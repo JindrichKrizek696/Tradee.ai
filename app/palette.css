@@ -9,6 +9,15 @@
 .down,.t-cal-d.down b,.t-cal-w.down b{color:var(--bear-text)}
 .t-chip.up{background:color-mix(in srgb,var(--bull) 12%,#fff);color:var(--bull-text)}
 .t-chip.down{background:color-mix(in srgb,var(--bear) 12%,#fff);color:var(--bear-text)}
+/* COT long/short (legenda koláče, poměrový pruh) a P&L v kalendáři obchodů */
+:root .n-donut-caption .long{background:var(--bull)}
+:root .n-donut-caption .short{background:var(--bear)}
+:root .s-position-bar{background:var(--bear)}
+:root .s-position-bar span{background:var(--bull)}
+:root .t-cal-d.up{background:color-mix(in srgb,var(--bull) 10%,#fff);border-color:color-mix(in srgb,var(--bull) 25%,#fff)}
+:root .t-cal-d.down{background:color-mix(in srgb,var(--bear) 10%,#fff);border-color:color-mix(in srgb,var(--bear) 25%,#fff)}
+:root .t-cal-w.up{background:color-mix(in srgb,var(--bull) 10%,#fff)}
+:root .t-cal-w.down{background:color-mix(in srgb,var(--bear) 10%,#fff)}
 /* výběr předvolby u avataru */
 .t-avatar-wrap{position:relative}
 .t-avatar{cursor:pointer;border:0}
@@ -19,3 +28,4 @@
 .p-picker button.on{border-color:#245bff55;background:#eef3ff}
 .p-picker small{margin-left:auto;font-size:11px;color:#8b93a3}
 .p-swatch{display:flex;border-radius:5px;overflow:hidden}.p-swatch i{width:14px;height:14px}
+.p-error{margin:6px 6px 0;font-size:12px;color:#b91c1c}
