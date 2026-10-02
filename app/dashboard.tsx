@@ -15,9 +15,9 @@ function Spark({values,color='#245bff'}:{values:number[];color?:string}){
  if(values.length<2)return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true"/>;
  const max=Math.max(...values,1),min=Math.min(...values,0),pts=values.map((v,i)=>[4+i/(values.length-1)*56,34-(v-min)/(max-min||1)*28] as const);
  const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
- return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true"><path d={`${d} L${pts[pts.length-1][0].toFixed(1)} 38 L4 38 Z`} fill={color} opacity=".12"/><path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+ return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true"><path d={`${d} L${pts[pts.length-1][0].toFixed(1)} 38 L4 38 Z`} style={{fill:color}} opacity=".12"/><path d={d} fill="none" style={{stroke:color}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
-function Ring({pct,color='#245bff'}:{pct:number;color?:string}){const r=15,c=2*Math.PI*r;return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true"><circle cx="32" cy="20" r={r} fill="none" stroke="#eef1f7" strokeWidth="6"/><circle cx="32" cy="20" r={r} fill="none" stroke={color} strokeWidth="6" strokeDasharray={`${c*Math.max(0,Math.min(100,pct))/100} ${c}`} strokeLinecap="round" transform="rotate(-90 32 20)"/></svg>}
+function Ring({pct,color='#245bff'}:{pct:number;color?:string}){const r=15,c=2*Math.PI*r;return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true"><circle cx="32" cy="20" r={r} fill="none" stroke="#eef1f7" strokeWidth="6"/><circle cx="32" cy="20" r={r} fill="none" style={{stroke:color}} strokeWidth="6" strokeDasharray={`${c*Math.max(0,Math.min(100,pct))/100} ${c}`} strokeLinecap="round" transform="rotate(-90 32 20)"/></svg>}
 function Bars({values,colors}:{values:number[];colors:string[]}){const max=Math.max(...values,1);return <svg className="t-viz" viewBox="0 0 64 40" aria-hidden="true">{values.map((v,i)=><rect key={i} x={10+i*16} y={36-v/max*30} width="10" height={v/max*30+1} rx="3" fill={colors[i]} opacity={v?1:.25}/>)}</svg>}
 
 
@@ -35,9 +35,9 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
    <div className="t-date"><CalendarDays size={20}/><div><small>Dnes</small><b>{today}</b></div></div>
   </section>
   <section className="t-kpis">
-   <div className="t-kpi"><div className="t-kpi-icon"><TrendingUp size={18}/></div><div><span>Bullish trhy</span><b>{k.bullish}</b><small className="up">z {k.scored} se skóre</small></div><Spark values={bullishTrail(history)} color="#16a34a"/></div>
-   <div className="t-kpi"><div className="t-kpi-icon"><TrendingDown size={18}/></div><div><span>Bearish trhy</span><b>{k.bearish}</b><small className="down">z {k.scored} se skóre</small></div><Spark values={bearishTrail(history)} color="#dc2626"/></div>
-   <button className="t-kpi" onClick={()=>k.strongest&&open(k.strongest.id)} disabled={!k.strongest}><div className="t-kpi-icon"><Target size={18}/></div><div><span>Nejsilnější signál</span><b className={strongestUp?'up':'down'}>{k.strongest?fmt(k.strongest.r.score):'—'}</b><small>{k.strongest?.name||'Bez dat'}</small></div><Ring pct={k.strongest?Math.abs(k.strongest.r.score as number):0} color={strongestUp?'#16a34a':'#dc2626'}/></button>
+   <div className="t-kpi"><div className="t-kpi-icon"><TrendingUp size={18}/></div><div><span>Bullish trhy</span><b>{k.bullish}</b><small className="up">z {k.scored} se skóre</small></div><Spark values={bullishTrail(history)} color="var(--bull)"/></div>
+   <div className="t-kpi"><div className="t-kpi-icon"><TrendingDown size={18}/></div><div><span>Bearish trhy</span><b>{k.bearish}</b><small className="down">z {k.scored} se skóre</small></div><Spark values={bearishTrail(history)} color="var(--bear)"/></div>
+   <button className="t-kpi" onClick={()=>k.strongest&&open(k.strongest.id)} disabled={!k.strongest}><div className="t-kpi-icon"><Target size={18}/></div><div><span>Nejsilnější signál</span><b className={strongestUp?'up':'down'}>{k.strongest?fmt(k.strongest.r.score):'—'}</b><small>{k.strongest?.name||'Bez dat'}</small></div><Ring pct={k.strongest?Math.abs(k.strongest.r.score as number):0} color={strongestUp?'var(--bull)':'var(--bear)'}/></button>
    <div className="t-kpi"><div className="t-kpi-icon"><Gauge size={18}/></div><div><span>Čerstvost podkladů</span><b>{k.freshness} %</b><small>trhů s plným pokrytím</small></div><Ring pct={k.freshness}/></div>
    <button className="t-kpi" onClick={()=>setView('analyzer')}><div className="t-kpi-icon"><Flag size={18}/></div><div><span>Moje vlaječky</span><b>{k.flagged}</b><small className="up">{k.inTrade} v tradu</small></div><Bars values={[k.waiting,k.looking,k.inTrade]} colors={['#d23e4e','#d38a19','#188557']}/></button>
   </section>

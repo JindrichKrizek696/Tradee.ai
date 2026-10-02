@@ -1,0 +1,21 @@
+/* Barvy signálu – výchozí zelená/červená, přepisuje usePalette() na <html>. Barva značky #245bff se nemění.
+   :root zvyšuje specifičnost – soubor se importuje na začátku globals.css a pozdější pravidla by ho jinak přebila. */
+:root{--bull:#16a34a;--bear:#dc2626;--bull-text:#15803d;--bear-text:#b91c1c}
+:root .score-v2{--good:var(--bull);--bad:var(--bear)}
+:root .positive,:root .score-v2 .positive{color:var(--bull-text)!important}
+:root .negative,:root .score-v2 .negative{color:var(--bear-text)!important}
+:root .s-scale{background:linear-gradient(90deg,var(--bear),#bfc3cc 50%,var(--bull))}
+.up,.t-cal-d.up b,.t-cal-w.up b{color:var(--bull-text)}
+.down,.t-cal-d.down b,.t-cal-w.down b{color:var(--bear-text)}
+.t-chip.up{background:color-mix(in srgb,var(--bull) 12%,#fff);color:var(--bull-text)}
+.t-chip.down{background:color-mix(in srgb,var(--bear) 12%,#fff);color:var(--bear-text)}
+/* výběr předvolby u avataru */
+.t-avatar-wrap{position:relative}
+.t-avatar{cursor:pointer;border:0}
+.p-picker{position:absolute;right:0;top:46px;z-index:30;width:250px;display:grid;gap:2px;padding:10px;background:#fff;border:1px solid #e3e8f2;border-radius:14px;box-shadow:0 12px 32px -12px #1b2a5a40}
+.p-picker b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#8b93a3;margin:2px 6px 6px}
+.p-picker button{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;border:1px solid transparent;background:none;font-size:13px;color:#141518;text-align:left;cursor:pointer}
+.p-picker button:hover{background:#f1f4fb}
+.p-picker button.on{border-color:#245bff55;background:#eef3ff}
+.p-picker small{margin-left:auto;font-size:11px;color:#8b93a3}
+.p-swatch{display:flex;border-radius:5px;overflow:hidden}.p-swatch i{width:14px;height:14px}
