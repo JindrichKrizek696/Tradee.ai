@@ -1,5 +1,5 @@
 import {sqliteTable,text,integer,real,index} from 'drizzle-orm/sqlite-core';
-export const members=sqliteTable('members',{id:text('id').primaryKey(),email:text('email').notNull(),name:text('name').notNull(),role:text('role').notNull().default('member')});
+export const members=sqliteTable('members',{id:text('id').primaryKey(),email:text('email').notNull(),name:text('name').notNull(),role:text('role').notNull().default('member'),palette:text('palette')});
 export const content=sqliteTable('content',{id:text('id').primaryKey(),kind:text('kind').notNull(),title:text('title').notNull(),body:text('body').notNull().default(''),media:text('media').notNull().default(''),published:integer('published').notNull().default(0),updated:text('updated').notNull()},t=>[index('content_kind').on(t.kind)]);
 export const messages=sqliteTable('messages',{id:text('id').primaryKey(),userId:text('user_id').notNull(),name:text('name').notNull(),channel:text('channel').notNull(),body:text('body').notNull(),created:text('created').notNull()},t=>[index('messages_channel_created').on(t.channel,t.created)]);
 export const snapshots=sqliteTable('snapshots',{id:text('id').primaryKey(),data:text('data').notNull(),source:text('source').notNull(),created:text('created').notNull()});
