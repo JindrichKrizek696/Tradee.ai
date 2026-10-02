@@ -34,7 +34,7 @@ Každá předvolba má navíc **textový odstín** pro čísla na bílém pozad�
 
 - `lib/palettes.ts` definuje předvolby (`id`, `label`, `bull`, `bear`, `bullText`, `bearText`) a výchozí `green-red`.
 - Aplikace nastaví na `<html>` CSS proměnné `--bull`, `--bear`, `--bull-text`, `--bear-text`; přepnutí je okamžité bez přenačtení.
-- **Na proměnné přejdou jen barvy s významem směru signálu** (skóre, pruhy, grafy skóre/příspěvků, COT net, síla v kalendáři). Modrá `#245bff` jako **barva značky** (navigace, odkazy, tlačítka) zůstává.
+- **Na proměnné přejdou jen barvy s významem směru signálu** (skóre, pruhy, příspěvky, sezonalita, COT long/short, mini grafy dashboardu, P&L v kalendáři obchodů). Síla v kalendáři událostí (silná/střední/slabá) **není směr**, zůstává červená/oranžová/šedá. Modrá `#245bff` jako **barva značky** (navigace, odkazy, tlačítka) zůstává.
 - Výběr: klik na avatar → panel „Barvy signálu“ s pěti předvolbami a mini náhledem (pruh + dlaždice).
 
 ### Uložení
@@ -53,12 +53,13 @@ Dva sloupce: **top 5 bullish** a **top 5 bearish** z vybrané skupiny, jen trhy 
 
 ### Heatmapa
 - Skupiny v pořadí FX páry, Měnové indexy, Indexy, Krypto, Akcie; uvnitř seřazeno od nejvyššího skóre po nejnižší, trhy bez skóre na konci.
-- Dlaždice ~84×44 px: název + skóre. Barva = `--bull`/`--bear` s průhledností `0.15 + 0.85 × min(1, |skóre| / 70)`; bez skóre šedá. Text na dlaždici bílý nebo `#141518` podle světlosti výsledné barvy.
+- Dlaždice ~94×46 px: název + skóre (u měnových indexů bez „· měnový index“). Skupiny s málo trhy (Měnové indexy, Akciové indexy, Krypto) stojí vedle sebe v jedné řadě, aby se vešlo všech 51. Barva = `--bull`/`--bear` s průhledností `0.15 + 0.85 × min(1, |skóre| / 70)`; bez skóre šedá. Text na dlaždici bílý nebo `#141518` podle světlosti výsledné barvy.
 - Tečka vlaječky v pravém horním rohu (viz Vlaječky).
 - Najetí myší (title/tooltip): směr, trend, pokrytí dat. Klik → detail. Enter na zaměřené dlaždici → detail.
 - Hledání **ztlumí** nevyhovující dlaždice (opacity), neskryje je.
 
 ### Tabulka
+- V tabulkovém zobrazení se nejsilnější signály skryjí (tabulka je řazená podle skóre, nejsilnější jsou nahoře) a filtry skóre/vlaječek jsou v řádku se skupinami – jinak by se nevešlo ~20 řádků.
 - Řádek 32 px; sloupce **Trh · Skóre · pruh −100…+100 od středu · Trend (▲▼■) · Pokrytí % · Vlaječka**.
 - Řazení klikem na hlavičku (Trh, Skóre, Pokrytí; opakovaný klik obrací). Zůstávají filtry skóre a vlaječek a hledání (zde filtruje).
 
