@@ -40306,6 +40306,1783 @@
         "NFP +29 000 / HICP 3,8 %",
         "Japonský trh práce a očekávání před NFP"
       ]
+    },
+    {
+      "at": "2026-10-03T13:43:12.829Z",
+      "scores": {
+        "EUR/USD": {
+          "score": -22.1,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / USD: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / USD: Medián SEP je nad současným středem pásma."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / USD: Solidní ekonomická expanze."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / USD: Nezaměstnanost se výrazně nezměnila."
+            },
+            "cot": {
+              "value": -1.7674985017640228,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.152681, GMA200 1.16112"
+            },
+            "seasonality": {
+              "value": -0.2997451025412085,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP/USD": {
+          "score": -32.9,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -7.5,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / USD: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / USD: Medián SEP je nad současným středem pásma."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / USD: Solidní ekonomická expanze."
+            },
+            "labor": {
+              "value": -5,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / USD: Nezaměstnanost se výrazně nezměnila."
+            },
+            "cot": {
+              "value": -5.341320409946771,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.345337, GMA200 1.344604"
+            },
+            "seasonality": {
+              "value": -0.09812751186743068,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "USD/JPY": {
+          "score": -14.5,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "USD: Zvýšení sazby. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "USD: Medián SEP je nad současným středem pásma. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "USD: Solidní ekonomická expanze. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": -5,
+              "label": "Pracovní trh",
+              "reason": "USD: Nezaměstnanost se výrazně nezměnila. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": -4.586726546906188,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 158.090647, GMA200 158.437836"
+            },
+            "seasonality": {
+              "value": 2.5420778429895776,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "USD/CHF": {
+          "score": 43.4,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "USD: Zvýšení sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 10,
+              "label": "Výhled sazeb",
+              "reason": "USD: Medián SEP je nad současným středem pásma. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "USD: Solidní ekonomická expanze. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "USD: Nezaměstnanost se výrazně nezměnila. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 5.524530836280933,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.814325, GMA200 0.795785"
+            },
+            "seasonality": {
+              "value": 0.3749852756951208,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "USD/CAD": {
+          "score": 44.8,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "USD: Zvýšení sazby. / CAD: Poslední rozhodnutí beze změny."
+            },
+            "guidance": {
+              "value": 10,
+              "label": "Výhled sazeb",
+              "reason": "USD: Medián SEP je nad současným středem pásma. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "USD: Solidní ekonomická expanze. / CAD: Širší oživení spotřeby a aktivity."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "USD: Nezaměstnanost se výrazně nezměnila. / CAD: Poptávka po práci je stále utlumená."
+            },
+            "cot": {
+              "value": 6.931513686227497,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.396148, GMA200 1.385309"
+            },
+            "seasonality": {
+              "value": 0.3758816303481164,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "AUD/USD": {
+          "score": -9.7,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / USD: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / USD: Medián SEP je nad současným středem pásma."
+            },
+            "activity": {
+              "value": -15,
+              "label": "Ekonomická aktivita",
+              "reason": "AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / USD: Solidní ekonomická expanze."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / USD: Nezaměstnanost se výrazně nezměnila."
+            },
+            "cot": {
+              "value": 11.168512188001651,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.709195, GMA200 0.702239"
+            },
+            "seasonality": {
+              "value": -0.8876286965651892,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "NZD/USD": {
+          "score": -22.1,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "NZD: Zvýšení OCR. / USD: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "NZD: RBNZ připouští další zvyšování při naplnění výhledu. / USD: Medián SEP je nad současným středem pásma."
+            },
+            "activity": {
+              "value": -7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "NZD: Oživení doprovází slabost domácností. / USD: Solidní ekonomická expanze."
+            },
+            "labor": {
+              "value": -5,
+              "label": "Pracovní trh",
+              "reason": "NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / USD: Nezaměstnanost se výrazně nezměnila."
+            },
+            "cot": {
+              "value": 5.6656472986748225,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.5824, GMA200 0.584659"
+            },
+            "seasonality": {
+              "value": -0.26230927514714036,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR/CAD": {
+          "score": 15.1,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / CAD: Poslední rozhodnutí beze změny."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / CAD: Širší oživení spotřeby a aktivity."
+            },
+            "labor": {
+              "value": 10,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / CAD: Poptávka po práci je stále utlumená."
+            },
+            "cot": {
+              "value": 2.582007592231737,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.609313, GMA200 1.608511"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR/GBP": {
+          "score": 4.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / GBP: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / GBP: Růst odolnější než očekávání."
+            },
+            "labor": {
+              "value": 10,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / GBP: Volná kapacita a slabá poptávka po práci."
+            },
+            "cot": {
+              "value": 1.7869109540913741,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.856797, GMA200 0.863541"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR/JPY": {
+          "score": -19.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": -3.1771125243351053,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 182.228017, GMA200 183.965408"
+            },
+            "seasonality": {
+              "value": 1.3272077171409356,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR/CHF": {
+          "score": 24.5,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 10,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 1.878516167258455,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.938657, GMA200 0.924002"
+            },
+            "seasonality": {
+              "value": 0.12403017789323742,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR/AUD": {
+          "score": -11.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli."
+            },
+            "activity": {
+              "value": 15,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení."
+            },
+            "cot": {
+              "value": -6.468005344882838,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.625335, GMA200 1.653456"
+            },
+            "seasonality": {
+              "value": 0.12526900587130466,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR/NZD": {
+          "score": 9.1,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností."
+            },
+            "labor": {
+              "value": 10,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku."
+            },
+            "cot": {
+              "value": -3.7165729002194223,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.979192, GMA200 1.985979"
+            },
+            "seasonality": {
+              "value": 0.30370917411521553,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP/JPY": {
+          "score": -39.5,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -7.5,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": -10,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": -4.964023478426479,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 212.68519, GMA200 213.036143"
+            },
+            "seasonality": {
+              "value": 0.4977820204315496,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP/CHF": {
+          "score": 5.1,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 0.09160521316708109,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.095542, GMA200 1.070016"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP/CAD": {
+          "score": 15.8,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / CAD: Poslední rozhodnutí beze změny."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / CAD: Širší oživení spotřeby a aktivity."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / CAD: Poptávka po práci je stále utlumená."
+            },
+            "cot": {
+              "value": 0.7950966381403632,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.878289, GMA200 1.862692"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP/AUD": {
+          "score": -20.6,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -7.5,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli."
+            },
+            "activity": {
+              "value": 15,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku."
+            },
+            "labor": {
+              "value": -5,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení."
+            },
+            "cot": {
+              "value": -8.254916298974212,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.89699, GMA200 1.91474"
+            },
+            "seasonality": {
+              "value": 0.1370010998874223,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP/NZD": {
+          "score": -0.5,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -7.5,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / NZD: Zvýšení OCR."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / NZD: RBNZ připouští další zvyšování při naplnění výhledu."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / NZD: Oživení doprovází slabost domácností."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku."
+            },
+            "cot": {
+              "value": -5.5034838543107965,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 2.30999, GMA200 2.299809"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "CHF/JPY": {
+          "score": -39,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -7.5,
+              "label": "Krok centrální banky",
+              "reason": "CHF: Ponechání sazby. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "CHF: Bez směrového závazku; připravenost k devizovým intervencím. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "CHF: Široce založený růst i bez farmaceutického efektu. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": -10,
+              "label": "Pracovní trh",
+              "reason": "CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": -5.0556286915935615,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 194.137028, GMA200 199.096287"
+            },
+            "seasonality": {
+              "value": 1.0102860770283035,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "CAD/JPY": {
+          "score": -40.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -7.5,
+              "label": "Krok centrální banky",
+              "reason": "CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": -10,
+              "label": "Výhled sazeb",
+              "reason": "CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": 7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": -10,
+              "label": "Pracovní trh",
+              "reason": "CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": -5.7591201165668435,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 113.233446, GMA200 114.370029"
+            },
+            "seasonality": {
+              "value": 0.4566473381862919,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "CAD/CHF": {
+          "score": 4.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "CAD: Poslední rozhodnutí beze změny. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "CAD: Širší oživení spotřeby a aktivity. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "CAD: Poptávka po práci je stále utlumená. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": -0.7034914249732821,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.583266, GMA200 0.574446"
+            },
+            "seasonality": {
+              "value": -0.031375143959337014,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "AUD/JPY": {
+          "score": -13.8,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": -7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": -5,
+              "label": "Pracovní trh",
+              "reason": "AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": 3.290892820547732,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 112.117174, GMA200 111.261152"
+            },
+            "seasonality": {
+              "value": 0.43684941901562546,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "AUD/CAD": {
+          "score": 21.6,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny."
+            },
+            "guidance": {
+              "value": 10,
+              "label": "Výhled sazeb",
+              "reason": "AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr."
+            },
+            "activity": {
+              "value": -15,
+              "label": "Ekonomická aktivita",
+              "reason": "AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená."
+            },
+            "cot": {
+              "value": 9.050012937114575,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.990142, GMA200 0.972817"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "AUD/CHF": {
+          "score": 20.8,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 10,
+              "label": "Výhled sazeb",
+              "reason": "AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": -15,
+              "label": "Ekonomická aktivita",
+              "reason": "AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 8.346521512141292,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.577516, GMA200 0.558831"
+            },
+            "seasonality": {
+              "value": -0.03406126842971116,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "AUD/NZD": {
+          "score": 15.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / NZD: Zvýšení OCR."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / NZD: RBNZ připouští další zvyšování při naplnění výhledu."
+            },
+            "activity": {
+              "value": -7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / NZD: Oživení doprovází slabost domácností."
+            },
+            "labor": {
+              "value": 5,
+              "label": "Pracovní trh",
+              "reason": "AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku."
+            },
+            "cot": {
+              "value": 2.751432444663415,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.217713, GMA200 1.201108"
+            },
+            "seasonality": {
+              "value": 0.05861202439305979,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "NZD/CHF": {
+          "score": 10.6,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "NZD: Zvýšení OCR. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 10,
+              "label": "Výhled sazeb",
+              "reason": "NZD: RBNZ připouští další zvyšování při naplnění výhledu. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": -7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "NZD: Oživení doprovází slabost domácností. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 5.595089067477878,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.474263, GMA200 0.465263"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "NZD/JPY": {
+          "score": -23.8,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 0,
+              "label": "Krok centrální banky",
+              "reason": "NZD: Zvýšení OCR. / JPY: Zvýšení sazby."
+            },
+            "guidance": {
+              "value": 0,
+              "label": "Výhled sazeb",
+              "reason": "NZD: RBNZ připouští další zvyšování při naplnění výhledu. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji."
+            },
+            "activity": {
+              "value": 0,
+              "label": "Ekonomická aktivita",
+              "reason": "NZD: Oživení doprovází slabost domácností. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení."
+            },
+            "labor": {
+              "value": -10,
+              "label": "Pracovní trh",
+              "reason": "NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / JPY: Napjatý pracovní trh."
+            },
+            "cot": {
+              "value": 0.539460375884317,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 92.071926, GMA200 92.632094"
+            },
+            "seasonality": {
+              "value": 0.6795009061446129,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "NZD/CAD": {
+          "score": 11.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 7.5,
+              "label": "Krok centrální banky",
+              "reason": "NZD: Zvýšení OCR. / CAD: Poslední rozhodnutí beze změny."
+            },
+            "guidance": {
+              "value": 10,
+              "label": "Výhled sazeb",
+              "reason": "NZD: RBNZ připouští další zvyšování při naplnění výhledu. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr."
+            },
+            "activity": {
+              "value": -7.5,
+              "label": "Ekonomická aktivita",
+              "reason": "NZD: Oživení doprovází slabost domácností. / CAD: Širší oživení spotřeby a aktivity."
+            },
+            "labor": {
+              "value": 0,
+              "label": "Pracovní trh",
+              "reason": "NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / CAD: Poptávka po práci je stále utlumená."
+            },
+            "cot": {
+              "value": 6.29858049245116,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.813116, GMA200 0.809933"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "USD": {
+          "score": 29.8,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 3.2142857142857144,
+              "label": "Krok centrální banky",
+              "reason": "USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby. / GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 1.4285714285714284,
+              "label": "Pracovní trh",
+              "reason": "USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh. / GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": -0.26514608562334824,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 2.237329, GMA200 2.227953"
+            },
+            "seasonality": {
+              "value": 0.4159260940891344,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "EUR": {
+          "score": -7.1,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 3.2142857142857144,
+              "label": "Krok centrální banky",
+              "reason": "EUR: Zvýšení depozitní sazby. / USD: Zvýšení sazby. / NZD: Zvýšení OCR. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby. / GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": -5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "EUR: Rozhodování zasedání od zasedání bez závazku. / USD: Medián SEP je nad současným středem pásma. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "EUR: Ekonomika je podle ECB odolnější, než čekala. / USD: Solidní ekonomická expanze. / NZD: Oživení doprovází slabost domácností. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 7.142857142857143,
+              "label": "Pracovní trh",
+              "reason": "EUR: ECB hodnotí pracovní trh jako robustní. / USD: Nezaměstnanost se výrazně nezměnila. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh. / GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": -1.2688220796599743,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 2.631809, GMA200 2.642722"
+            },
+            "seasonality": {
+              "value": 0.2460884414996348,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "GBP": {
+          "score": -9.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -5.357142857142858,
+              "label": "Krok centrální banky",
+              "reason": "GBP: Ponechání sazby. / USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": -5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "GBP: Růst odolnější než očekávání. / USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": -4.2857142857142865,
+              "label": "Pracovní trh",
+              "reason": "GBP: Volná kapacita a slabá poptávka po práci. / USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": -3.5662790206345982,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 3.140258, GMA200 3.125152"
+            },
+            "seasonality": {
+              "value": 0.35465337185188106,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "CHF": {
+          "score": -19.7,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -5.357142857142858,
+              "label": "Krok centrální banky",
+              "reason": "CHF: Ponechání sazby. / USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby. / GBP: Ponechání sazby."
+            },
+            "guidance": {
+              "value": -5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "CHF: Bez směrového závazku; připravenost k devizovým intervencím. / USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit."
+            },
+            "activity": {
+              "value": 4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "CHF: Široce založený růst i bez farmaceutického efektu. / USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / GBP: Růst odolnější než očekávání."
+            },
+            "labor": {
+              "value": -4.2857142857142865,
+              "label": "Pracovní trh",
+              "reason": "CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti. / USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh. / GBP: Volná kapacita a slabá poptávka po práci."
+            },
+            "cot": {
+              "value": -3.6840571518494167,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 2.829275, GMA200 2.89256"
+            },
+            "seasonality": {
+              "value": 0.021058139756978785,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "JPY": {
+          "score": 29,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 3.2142857142857144,
+              "label": "Krok centrální banky",
+              "reason": "JPY: Zvýšení sazby. / USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny. / GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": -4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity. / GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 7.142857142857143,
+              "label": "Pracovní trh",
+              "reason": "JPY: Napjatý pracovní trh. / USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená. / GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 2.816036880199447,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 0.006866, GMA200 0.00682"
+            },
+            "seasonality": {
+              "value": -0.631047689224377,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "CAD": {
+          "score": -30.7,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": -5.357142857142858,
+              "label": "Krok centrální banky",
+              "reason": "CAD: Poslední rozhodnutí beze změny. / USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / JPY: Zvýšení sazby. / GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": -5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": 4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "CAD: Širší oživení spotřeby a aktivity. / USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": -4.2857142857142865,
+              "label": "Pracovní trh",
+              "reason": "CAD: Poptávka po práci je stále utlumená. / USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / JPY: Napjatý pracovní trh. / GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": -4.588546126815066,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.527896, GMA200 1.535106"
+            },
+            "seasonality": {
+              "value": -0.05229254170222633,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "AUD": {
+          "score": 9.5,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 3.2142857142857144,
+              "label": "Krok centrální banky",
+              "reason": "AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / NZD: Zvýšení OCR. / CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby. / GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / NZD: RBNZ připouští další zvyšování při naplnění výhledu. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": -12.857142857142858,
+              "label": "Ekonomická aktivita",
+              "reason": "AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / NZD: Oživení doprovází slabost domácností. / CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": 1.4285714285714284,
+              "label": "Pracovní trh",
+              "reason": "AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh. / GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 7.047184792332246,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": 5,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.510694, GMA200 1.48751"
+            },
+            "seasonality": {
+              "value": -0.022935575124841213,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "NZD": {
+          "score": -11.3,
+          "coverage": 100,
+          "method": "score-v2.2",
+          "parts": {
+            "decision": {
+              "value": 3.2142857142857144,
+              "label": "Krok centrální banky",
+              "reason": "NZD: Zvýšení OCR. / USD: Zvýšení sazby. / EUR: Zvýšení depozitní sazby. / AUD: RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září. / CAD: Poslední rozhodnutí beze změny. / JPY: Zvýšení sazby. / GBP: Ponechání sazby. / CHF: Ponechání sazby."
+            },
+            "guidance": {
+              "value": 5.7142857142857135,
+              "label": "Výhled sazeb",
+              "reason": "NZD: RBNZ připouští další zvyšování při naplnění výhledu. / USD: Medián SEP je nad současným středem pásma. / EUR: Rozhodování zasedání od zasedání bez závazku. / AUD: RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli. / CAD: BoC je připravena reagovat, neslibuje konkrétní směr. / JPY: BoJ uvádí pokračování zvyšování při odpovídajícím vývoji. / GBP: Podmíněná reakce, výbor bez jednotného závazku zvýšit. / CHF: Bez směrového závazku; připravenost k devizovým intervencím."
+            },
+            "activity": {
+              "value": -4.285714285714286,
+              "label": "Ekonomická aktivita",
+              "reason": "NZD: Oživení doprovází slabost domácností. / USD: Solidní ekonomická expanze. / EUR: Ekonomika je podle ECB odolnější, než čekala. / AUD: Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku. / CAD: Širší oživení spotřeby a aktivity. / JPY: Mírné oživení, ale i dílčí slabost a zpomalení. / GBP: Růst odolnější než očekávání. / CHF: Široce založený růst i bez farmaceutického efektu."
+            },
+            "labor": {
+              "value": -4.2857142857142865,
+              "label": "Pracovní trh",
+              "reason": "NZD: Nejistota zaměstnání a volná kapacita tlumí poptávku. / USD: Nezaměstnanost se výrazně nezměnila. / EUR: ECB hodnotí pracovní trh jako robustní. / AUD: Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení. / CAD: Poptávka po práci je stále utlumená. / JPY: Napjatý pracovní trh. / GBP: Volná kapacita a slabá poptávka po práci. / CHF: Podprůměrné využití kapacit a mírný růst nezaměstnanosti."
+            },
+            "cot": {
+              "value": 3.509628792050711,
+              "label": "Pozice fondů · COT",
+              "reason": "Nový dostupný stav a čtyřtýdenní změna leveraged funds podle CFTC."
+            },
+            "trend": {
+              "value": -15,
+              "label": "Cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 1.206177, GMA200 1.206449"
+            },
+            "seasonality": {
+              "value": -0.15200789003655613,
+              "label": "Sezónní kontext",
+              "reason": "Průměr / odchylka log výnosů × konzistence směru × zmenšení vlivu malého vzorku."
+            }
+          }
+        },
+        "BTC-USD": {
+          "score": 79,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 77883.173487, GMA200 70983.339496"
+            },
+            "seasonality": {
+              "value": 9,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "ETH-USD": {
+          "score": 71.1,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 2456.750775, GMA200 2090.803097"
+            },
+            "seasonality": {
+              "value": 1.1163013282446987,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "SOL-USD": {
+          "score": 70,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 102.043384, GMA200 84.683785"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "^NDX": {
+          "score": 70,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 29447.766562, GMA200 27386.133248"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "^GSPC": {
+          "score": 70,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 7656.915742, GMA200 7215.718521"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "AAPL": {
+          "score": 71.4,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 322.118111, GMA200 287.435593"
+            },
+            "seasonality": {
+              "value": 1.4421247171811764,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "MSFT": {
+          "score": 70,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 486.227929, GMA200 428.966792"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "NVDA": {
+          "score": 71.6,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 70,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 217.883631, GMA200 199.655284"
+            },
+            "seasonality": {
+              "value": 1.5907220055966853,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "AMZN": {
+          "score": 23.1,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 256.247818, GMA200 240.435931"
+            },
+            "seasonality": {
+              "value": -0.22079186382616184,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "GOOGL": {
+          "score": 25.8,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 344.088758, GMA200 337.415054"
+            },
+            "seasonality": {
+              "value": 2.4570462379996854,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "META": {
+          "score": 23.3,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 621.259804, GMA200 625.637384"
+            },
+            "seasonality": {
+              "value": 0,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "TSLA": {
+          "score": -22.8,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": -23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 346.911925, GMA200 391.193535"
+            },
+            "seasonality": {
+              "value": 0.49425204395237265,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "BRK-B": {
+          "score": 23.3,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 507.326767, GMA200 492.593704"
+            },
+            "seasonality": {
+              "value": -0.01793634546775879,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "JPM": {
+          "score": 27.2,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": 23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 352.129622, GMA200 319.298149"
+            },
+            "seasonality": {
+              "value": 3.910416201868683,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        },
+        "AVGO": {
+          "score": -22.2,
+          "coverage": 100,
+          "method": "technical-v1.1",
+          "parts": {
+            "trend": {
+              "value": -23.333333333333332,
+              "label": "Denní cenový trend",
+              "reason": "Denní reference 2026-10-02, GMA50 371.923149, GMA200 364.346728"
+            },
+            "seasonality": {
+              "value": 1.1104250220017537,
+              "label": "Sezonalita",
+              "reason": "Konzistence měsíčních výnosů, minimálně 5 dokončených let. Stejná normalizace jako u FX."
+            }
+          }
+        }
+      },
+      "context": [
+        "Nový COT report a doplnění švýcarských ukazatelů",
+        "NFP +29 000 / HICP 3,8 %",
+        "Japonský trh práce a očekávání před NFP"
+      ]
     }
   ],
   "observations": [
