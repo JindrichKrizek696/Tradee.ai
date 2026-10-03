@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+  "checkedAt": "2026-10-03T09:19:42.024Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,13 +11,13 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-09-27T13:36:55.499682+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
@@ -29,31 +29,31 @@
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
       "publishedAt": "2026-08-11",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-09-29T01:09:37.809975+00:00"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,37 +65,37 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-09-29T05:10:52.801492+00:00"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
       "url": "https://www.abs.gov.au/release-calendar/future-releases/202609/rcc_economy",
       "publishedAt": null,
-      "checkedAt": "2026-09-27T09:15:33.902810+00:00"
+      "checkedAt": "2026-09-28T21:07:57.052690+00:00"
     },
     "bea-cal": {
       "label": "BEA — kalendář zveřejnění",
       "url": "https://www.bea.gov/news/schedule",
       "publishedAt": null,
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-09-28T21:07:57.052690+00:00"
     },
     "bls-cal": {
       "label": "BLS — říjnový kalendář",
       "url": "https://www.bls.gov/schedule/2026/10_sched.htm",
       "publishedAt": null,
-      "checkedAt": "2026-09-27T09:15:33.902810+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "fed-cal": {
       "label": "Fed — kalendář FOMC",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "publishedAt": null,
-      "checkedAt": "2026-09-24T19:18:11.666939+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "ecb-cal": {
       "label": "ECB — kalendář zasedání",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.de.html",
       "publishedAt": null,
-      "checkedAt": "2026-09-24T19:18:11.666939+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "rbnz-cal": {
       "label": "RBNZ — kalendář rozhodnutí",
@@ -131,19 +131,19 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
       "url": "https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/",
       "publishedAt": "2026-09-25",
-      "checkedAt": "2026-09-27T17:19:11.722656+00:00"
+      "checkedAt": "2026-09-29T01:09:37.809975+00:00"
     },
     "mof-us-sep25": {
       "label": "Japonské ministerstvo financí",
@@ -161,7 +161,151 @@
       "label": "BLS — zářijový kalendář",
       "url": "https://www.bls.gov/schedule/2026/09_sched.htm",
       "publishedAt": null,
-      "checkedAt": "2026-09-27T09:15:33.902810+00:00"
+      "checkedAt": "2026-09-28T08:44:03.162087+00:00"
+    },
+    "nz-jobs-aug26": {
+      "label": "Stats NZ — Employment indicators",
+      "url": "https://www.stats.govt.nz/information-releases/employment-indicators-august-2026/",
+      "publishedAt": "2026-09-28",
+      "checkedAt": "2026-09-28T21:07:57.052690+00:00"
+    },
+    "rba-sep29": {
+      "label": "RBA — rozhodnutí 29. září",
+      "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
+      "publishedAt": "2026-09-29",
+      "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "abs-mhsi-aug26": {
+      "label": "ABS — srpnový MHSI",
+      "url": "https://www.abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/latest-release",
+      "publishedAt": "2026-09-29",
+      "checkedAt": "2026-09-29T05:10:52.801492+00:00"
+    },
+    "jolts-aug26": {
+      "label": "BLS — JOLTS za srpen",
+      "url": "https://www.bls.gov/news.release/jolts.nr0.htm",
+      "publishedAt": "2026-09-29",
+      "checkedAt": "2026-09-29T17:20:21.869960+00:00"
+    },
+    "abs-cpi-aug26": {
+      "label": "ABS — CPI za srpen",
+      "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release",
+      "publishedAt": "2026-09-30",
+      "checkedAt": "2026-10-01T06:58:06.638992+00:00"
+    },
+    "bea-gdp-q2-third": {
+      "label": "BEA — HDP Q2, třetí odhad",
+      "url": "https://bea.gov/news/2026/gdp-third-estimate-industries-corporate-profits-state-gdp-and-state-personal-income-2nd",
+      "publishedAt": "2026-09-30",
+      "checkedAt": "2026-10-01T06:58:06.638992+00:00"
+    },
+    "ons-gdp-q2-final": {
+      "label": "ONS — HDP Q2, národní účty",
+      "url": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/quarterlynationalaccounts/apriltojune2026",
+      "publishedAt": "2026-09-30",
+      "checkedAt": "2026-10-01T06:58:06.638992+00:00"
+    },
+    "ca-gdp-jul26": {
+      "label": "Statistics Canada — měsíční HDP",
+      "url": "https://www150.statcan.gc.ca/n1/daily-quotidien/260929/dq260929a-eng.htm",
+      "publishedAt": "2026-09-29",
+      "checkedAt": "2026-10-01T06:58:06.638992+00:00"
+    },
+    "bea-pce-aug26": {
+      "label": "BEA — příjmy a PCE za srpen",
+      "url": "https://www.bea.gov/news/2026/personal-income-and-outlays-august-2026",
+      "publishedAt": "2026-09-30",
+      "checkedAt": "2026-10-01T06:58:06.638992+00:00"
+    },
+    "ism-mfg-sep26": {
+      "label": "ISM — výrobní PMI za září",
+      "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/september/",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-01T15:15:56.340307+00:00"
+    },
+    "eur-jobs-aug26": {
+      "label": "Eurostat — nezaměstnanost za srpen",
+      "url": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/3-01102026-ap",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-01T15:15:56.340307+00:00"
+    },
+    "abn-fx-oct1": {
+      "label": "ABN AMRO — FX Weekly 1. října",
+      "url": "https://www.abnamro.com/research/en/our-research/fx-weekly-higher-rates-support-the-dollar",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-01T15:15:56.340307+00:00"
+    },
+    "jp-jobs-aug26": {
+      "label": "Statistics Bureau Japan — zaměstnanost za srpen",
+      "url": "https://www.stat.go.jp/data/roudou/sokuhou/tsuki/",
+      "publishedAt": "2026-10-02",
+      "checkedAt": "2026-10-02T06:42:11.452497+00:00"
+    },
+    "boj-tankan-sep26": {
+      "label": "BoJ — Tankan za září",
+      "url": "https://www.boj.or.jp/en/statistics/tk/gaiyo/2026/tka2609.pdf",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-02T06:42:11.452497+00:00"
+    },
+    "mufg-nfp-oct1": {
+      "label": "MUFG — NFP Preview",
+      "url": "https://www.mufgresearch.com/macro/us-labor-update-october-1-2026/",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-02T06:42:11.452497+00:00"
+    },
+    "mufg-eur-sep30": {
+      "label": "MUFG — evropská inflace a ECB",
+      "url": "https://www.mufgresearch.com/macro/european-macro-30-september-2026/",
+      "publishedAt": "2026-09-30",
+      "checkedAt": "2026-10-02T06:42:11.452497+00:00"
+    },
+    "bls-jobs-sep26": {
+      "label": "BLS - September employment",
+      "url": "https://www.bls.gov/news.release/empsit.htm",
+      "publishedAt": "2026-10-02",
+      "checkedAt": "2026-10-02T15:47:27.805860+00:00"
+    },
+    "eur-hicp-sep26": {
+      "label": "Eurostat - September HICP flash",
+      "url": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-02102026-ap",
+      "publishedAt": "2026-10-02",
+      "checkedAt": "2026-10-02T15:47:27.805860+00:00"
+    },
+    "chf-cpi-sep26": {
+      "label": "FSO — švýcarská CPI za září",
+      "url": "https://www.efd.admin.ch/en/newnsb/wNfni1DvzKuQ",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "chf-gdp-q2-26": {
+      "label": "SECO — HDP Q2 2026",
+      "url": "https://www.bar.admin.ch/en/newnsb/xrrzuLVT1pbC",
+      "publishedAt": "2026-09-03",
+      "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "jp-gdp-q2-second": {
+      "label": "Cabinet Office — HDP Q2, druhý odhad",
+      "url": "https://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2026/qe262_2/gdemenuea.html",
+      "publishedAt": "2026-09-08",
+      "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "chf-mpmi-sep26": {
+      "label": "procure.ch — výrobní PMI za září",
+      "url": "https://www.procure.ch/",
+      "publishedAt": null,
+      "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "mufg-fx-oct2": {
+      "label": "MUFG — FX Weekly 2. října",
+      "url": "https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/",
+      "publishedAt": "2026-10-02",
+      "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "ism-services-calendar": {
+      "label": "ISM — termín zářijových služeb",
+      "url": "https://www.prnewswire.com/news-releases/services-pmi-at-55-4-august-2026-ism-services-pmi-report-302868046.html",
+      "publishedAt": null,
+      "checkedAt": "2026-10-03T09:19:42.024Z"
     }
   },
   "currencies": {
@@ -272,38 +416,38 @@
     },
     "AUD": {
       "bank": "Reserve Bank of Australia",
-      "rate": "4,35 %",
-      "decisionDate": "2026-08-11",
+      "rate": "4,60 % od 30. 9.",
+      "decisionDate": "2026-09-29",
       "factors": {
         "decision": {
-          "value": 0,
-          "reason": "Poslední rozhodnutí bez změny.",
-          "source": "rba"
+          "value": 1,
+          "reason": "RBA zvýšila sazbu o 25 bb na 4,60 %, účinné 30. září.",
+          "source": "rba-sep29"
         },
         "guidance": {
-          "value": 0,
-          "reason": "Pozastavení změn samo o sobě neurčuje další směr.",
-          "source": "rba"
+          "value": 1,
+          "reason": "RBA připouští další zvýšení sazby, bude-li nutné pro návrat inflace k cíli.",
+          "source": "rba-sep29"
         },
         "activity": {
           "value": -1,
-          "reason": "Poptávka zpomaluje; výhled růstu je pod potenciálem.",
-          "source": "rba"
+          "reason": "Růst zpomaluje a spotřeba slábne; RBA potřebuje utlumenou poptávku.",
+          "source": "rba-sep29"
         },
         "labor": {
-          "value": 1,
-          "reason": "Přes uvolnění zůstává pracovní trh mírně napjatý.",
-          "source": "rba"
+          "value": 0,
+          "reason": "Trh práce se uvolnil podle očekávání, předstihové ukazatele jsou stabilní; smíšené hodnocení.",
+          "source": "rba-sep29"
         }
       },
       "facts": [
-        "RBA ponechala sazbu beze změny.",
-        "Poptávka zpomaluje; pracovní trh zůstává mírně napjatý.",
-        "Rozhodnutí 29. září může dosavadní obraz změnit."
+        "Jednomyslné zvýšení o 25 bb na 4,60 %, účinné 30. září.",
+        "Inflační rizika zesílila; banka připouští další zvýšení sazeb.",
+        "Růst i trh práce zpomalují."
       ],
-      "scenario": "Vyčkávání RBA dává větší význam příštímu zasedání a inflaci.",
-      "risk": "Poslední měnové hodnocení je starší; nové statistiky nejsou plně zahrnuté.",
-      "source": "rba"
+      "scenario": "Zpřísnění sazeb podporuje AUD v modelu; slabší aktivita tento příspěvek tlumí.",
+      "risk": "Další zvýšení je podmíněné daty, nikoli jisté. Skóre není pravděpodobnost výnosu.",
+      "source": "rba-sep29"
     },
     "CAD": {
       "bank": "Bank of Canada",
@@ -452,48 +596,48 @@
       "currency": "AUD",
       "at": "2026-09-29T04:30:00Z",
       "title": "RBA • rozhodnutí o sazbách",
-      "source": "rba-cal",
-      "watch": "MUFG FX Weekly z 25. 9. očekává zvýšení o 25 bazických bodů; uvádí tehdejší OIS implikaci 90 %. Jde o datovaný tržní odhad popsaný MUFG, nikoli dnešní pravděpodobnost ani jistý výsledek. Zdroj: https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/ . Sledovat skutečné rozhodnutí a následnou guidance.",
+      "source": "rba-sep29",
+      "watch": "MUFG FX Weekly z 25. 9. očekává zvýšení o 25 bazických bodů; uvádí tehdejší OIS implikaci 90 %. Jde o datovaný tržní odhad popsaný MUFG, nikoli dnešní pravděpodobnost ani jistý výsledek. Zdroj: https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/ . Sledovat skutečné rozhodnutí a následnou guidance. Výsledek: zvýšení potvrzeno; další kroky podmíněné daty.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
-      "actual": null
+      "actual": "Zvýšení o 25 bb na 4,60 %, účinné 30. září"
     },
     {
       "id": "au-cpi-aug",
       "currency": "AUD",
       "at": "2026-09-30T01:30:00Z",
       "title": "Austrálie • CPI za srpen",
-      "source": "abs-cal",
+      "source": "abs-cpi-aug26",
       "watch": "Rozlišit jádrovou inflaci a energie; chybí ověřený tržní konsensus.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
-      "actual": null
+      "actual": "CPI 4,0 % meziročně; trimmed mean 3,6 %"
     },
     {
       "id": "us-gdp-q2",
       "currency": "USD",
       "at": "2026-09-30T12:30:00Z",
       "title": "USA • HDP Q2, třetí odhad",
-      "source": "bea-cal",
+      "source": "bea-gdp-q2-third",
       "watch": "Revize složení a síly růstu; čas podle oficiálního kalendáře BEA.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
-      "actual": null
+      "actual": "+2,2 % anualizovaně; revize z +1,5 %"
     },
     {
       "id": "us-pce-aug",
       "currency": "USD",
       "at": "2026-09-30T12:30:00Z",
       "title": "USA • osobní příjmy a PCE za srpen",
-      "source": "bea-cal",
-      "watch": "Jádrová PCE, spotřeba a případné revize; výsledek zatím neznáme.",
+      "source": "bea-pce-aug26",
+      "watch": "Zveřejněno: porovnat jádrovou inflaci, spotřebu a revize. Předem ověřený konsensus chybí.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
-      "actual": null
+      "actual": "PCE 3,4 % meziročně; core 3,0 %"
     },
     {
       "id": "us-jobs-sep",
@@ -501,11 +645,11 @@
       "at": "2026-10-02T12:30:00Z",
       "title": "USA • zaměstnanost za září",
       "source": "bls-cal",
-      "watch": "NFP, nezaměstnanost a mzdy. Očekávání +100 tisíc je uvedeno v MUFG FX Weekly 25. 9.: https://www.mufgresearch.com/fx/fx-weekly-25-september-2026/ ; skutečnost dosud nevyšla.",
+      "watch": "Skutečnost BLS: +29 tisíc, nezaměstnanost 4,2 %. Předem uložený medián Bloomberg citovaný MUFG 1. 10.: +85 tisíc / 4,1 %, vlastní odhad MUFG +90 tisíc. Rozdíl −56 tisíc vůči mediánu; revize července a srpna celkem −60 tisíc. Nejde o předpověď směru ceny.",
       "timeKnown": true,
       "importance": "vysoká",
-      "consensus": "+100 000 pracovních míst podle reportu MUFG z 25. 9. 2026; průběžně se může měnit",
-      "actual": null
+      "consensus": "+85 000; nezaměstnanost 4,1 % — medián Bloomberg citovaný MUFG 1. 10. 2026",
+      "actual": "NFP +29 000; nezaměstnanost 4,2 %"
     },
     {
       "id": "us-cpi-sep",
@@ -561,7 +705,7 @@
       "at": "2026-10-29T12:00:00Z",
       "title": "ECB • sazby a tisková konference",
       "source": "ecb-cal",
-      "watch": "Dopad energií na inflaci a růst; přesný čas dosud neověřen.",
+      "watch": "Sazby a reakce na inflaci i dluhopisové podmínky. MUFG 2. 10. již neočekává říjnové zvýšení; názor jedné banky, nikoli konsensus. https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/",
       "timeKnown": false,
       "importance": "vysoká",
       "consensus": null,
@@ -584,12 +728,12 @@
       "currency": "USD",
       "at": "2026-09-29T14:00:00Z",
       "title": "USA • JOLTS za srpen",
-      "source": "bls-sep-cal",
-      "watch": "Volná pracovní místa a fluktuace pracovníků. Výsledek ani konsensus dosud nepotvrzeny.",
+      "source": "jolts-aug26",
+      "watch": "BLS hodnotí měsíční změny jako malé. Červencová volná místa revidována na 7,3 mil. Neověřený konsensus zůstává prázdný.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
-      "actual": null
+      "actual": "Volná místa 7,1 mil.; nábory 5,2 mil."
     },
     {
       "id": "gbp-next-policy",
@@ -620,15 +764,65 @@
       "currency": "AUD",
       "at": "2026-09-29T01:30:00Z",
       "title": "Austrálie • výdaje domácností za srpen (MHSI)",
-      "source": "abs-cal",
+      "source": "abs-mhsi-aug26",
       "watch": "Nominální výdaje domácností; MHSI není původní Retail Trade. Porovnat složení růstu. Konsensus dosud neověřen.",
       "timeKnown": true,
       "importance": "střední",
       "consensus": null,
+      "actual": "0,0 % m/m; +6,8 % y/y"
+    },
+    {
+      "id": "rba-nov26",
+      "currency": "AUD",
+      "at": "2026-11-03T03:30:00Z",
+      "title": "RBA • rozhodnutí o sazbách",
+      "source": "rba-cal",
+      "watch": "14:30 Sydney (AEDT). Další krok podmíněný daty, konsensus neověřen.",
+      "timeKnown": true,
+      "importance": "vysoká",
+      "consensus": null,
+      "actual": null
+    },
+    {
+      "id": "us-ism-mfg-sep26",
+      "currency": "USD",
+      "at": "2026-10-01T14:00:00Z",
+      "title": "USA • ISM výroba za září",
+      "source": "ism-mfg-sep26",
+      "watch": "Odlišit od S&P Global PMI; cenový subindex 77,9. Ověřený předběžný konsensus chybí.",
+      "timeKnown": true,
+      "importance": "vysoká",
+      "consensus": null,
+      "actual": "54,5; předchozí 54,6"
+    },
+    {
+      "id": "us-ism-services-sep26",
+      "currency": "USD",
+      "at": "2026-10-05T14:00:00Z",
+      "title": "USA • ISM služby za září",
+      "source": "ism-services-calendar",
+      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/",
+      "timeKnown": true,
+      "importance": "vysoká",
+      "consensus": "55,0 — Bloomberg citovaný MUFG 2. 10. 2026",
       "actual": null
     }
   ],
   "institutions": [
+    {
+      "name": "MUFG",
+      "date": "2026-10-02",
+      "source": "mufg-fx-oct2",
+      "currencies": [
+        "EUR",
+        "CHF",
+        "JPY",
+        "USD",
+        "GBP"
+      ],
+      "view": "MUFG vidí tlak na euro kvůli napětí na dluhopisovém trhu a podporu CHF a JPY při averzi k riziku. Říjnové zvýšení sazeb ECB již neočekává; u BoE očekává první zvýšení v listopadu.",
+      "caveat": "Názor jedné banky z 2. října, nikoli konsensus nebo pravděpodobnost vývoje ceny. Banka uvádí pokles trhem započítávaného růstu sazeb ECB do poloviny 2027 o 30 bb proti vrcholu 23. září; jde o historický snímek."
+    },
     {
       "name": "MUFG",
       "date": "2026-09-18",
@@ -693,9 +887,195 @@
       ],
       "view": "V srpnu rostly upravené úvěry podnikům meziročně o 4,2 % oproti 4,4 % v červenci. Úvěry domácnostem zůstaly na 3,1 %. Růst M3 vzrostl z 3,4 % na 3,5 %.",
       "caveat": "Statistické údaje ECB zveřejněné 25. září; kontext, nikoli nové rozhodnutí o sazbách. Samostatně nemění skóre."
+    },
+    {
+      "name": "Stats NZ",
+      "date": "2026-09-28",
+      "source": "nz-jobs-aug26",
+      "currencies": [
+        "NZD"
+      ],
+      "view": "Počet obsazených pracovních míst v srpnu sezónně očištěně vzrostl o 0,2 % (+5 391) na 2,36 milionu. Jde o administrativní měsíční ukazatel.",
+      "caveat": "Předběžná data podléhají revizím. Nejde o míru nezaměstnanosti; samotný údaj nemění hodnocení trhu práce RBNZ ani váhy skóre."
+    },
+    {
+      "name": "BLS — JOLTS",
+      "date": "2026-09-29",
+      "source": "jolts-aug26",
+      "currencies": [
+        "USD"
+      ],
+      "view": "Srpen: 7,1 mil. volných míst a 5,2 mil. náborů. Dobrovolné odchody 3,1 mil., propouštění 1,6 mil. BLS popisuje změny jako malé. Červenec revidován na 7,3 mil. volných míst.",
+      "caveat": "Statistické vydání, ne názor banky či konsensus. JOLTS nenahrazuje NFP; dosavadní neutrální signál trhu práce ponechán."
+    },
+    {
+      "name": "ABS — CPI za srpen",
+      "date": "2026-09-30",
+      "source": "abs-cpi-aug26",
+      "currencies": [
+        "AUD"
+      ],
+      "view": "CPI +4,0 % meziročně; trimmed mean +3,6 %; CPI +0,4 % meziměsíčně (neočištěno). Celková inflace zrychlila z 3,5 %, trimmed mean beze změny. Samostatně nepřidává body nad rámec stávajícího modelu.",
+      "caveat": "Statistické vydání, nikoli konsensus nebo pravděpodobnost budoucího vývoje."
+    },
+    {
+      "name": "BEA — HDP Q2, třetí odhad",
+      "date": "2026-09-30",
+      "source": "bea-gdp-q2-third",
+      "currencies": [
+        "USD"
+      ],
+      "view": "+2,2 % anualizovaně; +0,6 % mezikvartálně. Revize z 1,5 % na 2,2 % anualizovaně. Aktivita zůstává ve stávající klasifikaci; žádné dvojí započtení HDP.",
+      "caveat": "Statistické vydání, nikoli konsensus nebo pravděpodobnost budoucího vývoje."
+    },
+    {
+      "name": "ONS — HDP Q2, národní účty",
+      "date": "2026-09-30",
+      "source": "ons-gdp-q2-final",
+      "currencies": [
+        "GBP"
+      ],
+      "view": "+0,5 % mezikvartálně. Revize z +0,4 %; Q1 +0,6 % beze změny. Doplňkový údaj.",
+      "caveat": "Statistické vydání, nikoli konsensus nebo pravděpodobnost budoucího vývoje."
+    },
+    {
+      "name": "Statistics Canada — měsíční HDP",
+      "date": "2026-09-29",
+      "source": "ca-gdp-jul26",
+      "currencies": [
+        "CAD"
+      ],
+      "view": "0,0 % meziměsíčně; předběžný srpen +0,2 %. Sezónně očištěný reálný měsíční HDP podle odvětví, odlišný od kvartálních výdajových účtů. Srpen je předběžný odhad; další vydání 30. října.",
+      "caveat": "Statistické vydání, nikoli konsensus nebo pravděpodobnost budoucího vývoje."
+    },
+    {
+      "name": "BEA — srpnové PCE",
+      "date": "2026-09-30",
+      "source": "bea-pce-aug26",
+      "currencies": [
+        "USD"
+      ],
+      "view": "PCE inflace +3,4 % meziročně / +0,3 % meziměsíčně; jádrová +3,0 % / +0,2 %. Reálná spotřeba +0,6 % meziměsíčně.",
+      "caveat": "PCE a CPI jsou různé indexy; původní CPI ponechán. Statistický výsledek, nikoli tržní konsensus."
+    },
+    {
+      "name": "ISM — výrobní průzkum",
+      "date": "2026-10-01",
+      "source": "ism-mfg-sep26",
+      "currencies": [
+        "USD"
+      ],
+      "view": "Zářijový výrobní PMI 54,5 proti 54,6 v srpnu. Nové zakázky rostou rychleji, cenový index vzrostl na 77,9. Výroba zůstává v expanzi.",
+      "caveat": "Výsledek průzkumu, nikoli konsensus. ISM není stejná řada jako S&P Global; skóre neměníme dvojím započítáním aktivity."
+    },
+    {
+      "name": "ABN AMRO — FX Weekly",
+      "date": "2026-10-01",
+      "source": "abn-fx-oct1",
+      "currencies": [
+        "USD",
+        "EUR"
+      ],
+      "view": "ABN AMRO upozorňuje, že agresivní započtení růstu sazeb Fedu omezuje prostor pro trvalé posilování dolaru. Drahé energie a politická nejistota v Evropě zároveň brzdí zotavení eura.",
+      "caveat": "Názor jedné banky ověřený z veřejného indexovaného shrnutí. Plný text nebyl dostupný; nepřidáváme cílový kurz, konsensus ani pravděpodobnost."
+    },
+    {
+      "name": "BoJ — Tankan",
+      "date": "2026-10-01",
+      "source": "boj-tankan-sep26",
+      "currencies": [
+        "JPY"
+      ],
+      "view": "Zářijový DI podmínek velkých výrobců +24 proti +22 v červnu; velké nevýrobní podniky +35 proti +37. Výhled těchto skupin +21 a +30.",
+      "caveat": "Bilance odpovědí v procentních bodech, nikoli PMI či HDP. Výhled respondentů není tržní konsensus."
+    },
+    {
+      "name": "MUFG — NFP Preview",
+      "date": "2026-10-01",
+      "source": "mufg-nfp-oct1",
+      "currencies": [
+        "USD"
+      ],
+      "view": "MUFG očekává zářijový NFP +90 tisíc a nezaměstnanost 4,1 %. Report cituje medián přispěvatelů Bloomberg +85 tisíc a 4,1 %.",
+      "caveat": "Odhad jedné banky a jí citovaný konsensus zachycené před výsledkem. Rozmezí 70–110 tisíc je scénář MUFG, nikoli interval spolehlivosti."
+    },
+    {
+      "name": "MUFG — evropská inflace",
+      "date": "2026-09-30",
+      "source": "mufg-eur-sep30",
+      "currencies": [
+        "EUR"
+      ],
+      "view": "MUFG zvýšila svůj odhad zářijového HICP na 3,8 %, zejména kvůli energiím. Podle banky vzrostla možnost říjnové pauzy ECB.",
+      "caveat": "Předběžný odhad banky, ne výsledek inflace. Uváděná tržní pravděpodobnost zvýšení sazby pod 30 % je historický stav k 30. září, nikoli živá pravděpodobnost."
+    },
+    {
+      "name": "BLS",
+      "date": "2026-10-02",
+      "source": "bls-jobs-sep26",
+      "currencies": [
+        "USD"
+      ],
+      "view": "NFP +29 000; nezaměstnanost 4,2 %. BLS 2. 10.: mzdy +0,1 % meziměsíčně / +3,0 % meziročně. Červenec revidován +21 → −10 tisíc, srpen +162 → +133 tisíc (celkem −60 tisíc). Výsledek o 56 tisíc pod předem uloženým mediánem Bloomberg 85 tisíc citovaným MUFG. BLS hodnotí měsíční změnu jako malou; faktor práce modelu zůstává podle odděleného hodnocení Fedu.",
+      "caveat": "Oficialni statistika; nikoli investicni prognoza."
+    },
+    {
+      "name": "Eurostat",
+      "date": "2026-10-02",
+      "source": "eur-hicp-sep26",
+      "currencies": [
+        "EUR"
+      ],
+      "view": "HICP 3,8 % meziročně; jádrová 2,5 %. Předběžný odhad Eurostatu 2. 10.; srpen 3,2 %. Energie 18,8 %, služby 3,2 %. Celková inflace meziměsíčně +0,6 %. Plná data plánována na 16. 10. Výhled MUFG 3,8 % byl odhad jedné banky, nikoli konsensus. Ověřeno v indexovaném obsahu primárního vydání.",
+      "caveat": "Oficialni statistika; nikoli investicni prognoza."
     }
   ],
   "changes": [
+    {
+      "at": "2026-10-03T09:19:42.024Z",
+      "title": "Nový COT report a doplnění švýcarských ukazatelů",
+      "body": "TFF i Legacy nyní uvádějí pozice k 29. září; ceny do 2. října. Švýcarská CPI za září 1,0 % y/y; doplněn výrobní PMI 55,3 a číselné HDP CHF/JPY. Přidán MUFG 2. října a očekávání před ISM službami. Historie trendu a sezónnosti sladěna s aktivním GMA modelem. Makro klasifikace a váhy beze změny."
+    },
+    {
+      "at": "2026-10-02T15:47:27.805860+00:00",
+      "title": "NFP +29 000 / HICP 3,8 %",
+      "body": "Skutečnost BLS: +29 tisíc, nezaměstnanost 4,2 %. Předem uložený medián Bloomberg citovaný MUFG 1. 10.: +85 tisíc / 4,1 %, vlastní odhad MUFG +90 tisíc. Rozdíl −56 tisíc vůči mediánu; revize července a srpna celkem −60 tisíc. Nejde o předpověď směru ceny. HICP 3,8 % meziročně; jádrová 2,5 % (flash)."
+    },
+    {
+      "at": "2026-10-02T06:42:11.452497+00:00",
+      "title": "Japonský trh práce a očekávání před NFP",
+      "body": "Japonská nezaměstnanost za srpen 2,5 %, proti červenci +0,1 bodu. Tankan a předběžný NFP: MUFG +90 tisíc, bankou citovaný medián Bloomberg +85 tisíc. Výsledek NFP dosud nevyšel."
+    },
+    {
+      "at": "2026-10-01T15:15:56.340307+00:00",
+      "title": "Zářijový ISM a srpnový trh práce eurozóny",
+      "body": "ISM výroba 54,5; nezaměstnanost eurozóny 6,4 % i v srpnu. EUR/USD retail Myfxbook 81 % long / 19 % short. Doplněn datovaný pohled ABN AMRO. Makro klasifikace a váhy beze změny."
+    },
+    {
+      "at": "2026-10-01T06:58:06.638992+00:00",
+      "title": "Nová inflace a revize HDP",
+      "body": "Australská CPI 4,0 %, HDP USA revidován na 2,2 % anualizovaně a Británie na 0,5 % mezikvartálně. Kanadský červencový HDP stagnoval; doplněny srpnové PCE a EUR/USD retail 79/21. Sezonalita nyní používá říjnový vzorek podle stávající metodiky."
+    },
+    {
+      "at": "2026-09-29T17:20:21.869960+00:00",
+      "title": "Zveřejněn srpnový JOLTS",
+      "body": "Doplněno 7,1 mil. volných míst, 5,2 mil. náborů a revize července. Bez změny makro hodnocení USD."
+    },
+    {
+      "at": "2026-09-29T13:43:41.245790+00:00",
+      "title": "EUR/USD: změna veřejných retail pozic",
+      "body": "Myfxbook uvádí 77 % long a 23 % short oproti předchozím 73/27. Jde o vzorek objemu poskytovatele, nikoli celý trh nebo nový vstup skóre."
+    },
+    {
+      "at": "2026-09-29T05:10:52.801492+00:00",
+      "title": "RBA zvýšila sazbu na 4,60 %",
+      "body": "Nový krok +25 bb a podmíněně jestřábí výhled nahrazují srpnové vyčkávání. Pracovní trh hodnocen jako smíšený. ABS MHSI za srpen 0,0 % m/m a +6,8 % y/y."
+    },
+    {
+      "at": "2026-09-28T21:07:57.052690+00:00",
+      "title": "Nový srpnový ukazatel pracovních míst NZ",
+      "body": "Stats NZ zveřejnil růst obsazených pracovních míst o 0,2 %. Doplněno do reportů odděleně od čtvrtletní nezaměstnanosti; makro signál beze změny."
+    },
     {
       "at": "2026-09-27T09:15:57.815309+00:00",
       "title": "Doplnění japonské nezaměstnanosti a kalendáře ABS",
@@ -808,7 +1188,7 @@
     {
       "id": "trend",
       "label": "Trend",
-      "description": "Trend z denních referenčních kurzů ECB: porovnání poslední hodnoty se SMA50 a SMA200.",
+      "description": "Denní reference ECB: tři směrové hlasy vůči GMA50/GMA200 a jejich vzájemnému pořadí; geometrické průměry.",
       "sourceUrl": ""
     },
     {
@@ -857,37 +1237,37 @@
   "observations": {
     "USD": {
       "cot": {
-        "value": "Leveraged funds: long 12,977 / short 17,472 · netto -4,495 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 15,622 / short 15,261 · netto 361 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 098662. USD Index je pouze kontext."
+        "note": "CFTC TFF futures only, kontrakt 098662. Legacy je samostatný report. USD Index futures je pouze kontext, nevstupuje přímo do skóre."
       },
       "gdp": {
-        "value": "+1,5 % anualizovaně; +0,4 % mezikvartálně",
-        "period": "2026 Q2 · druhý odhad",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.bea.gov/news/2026/gdp-second-estimate-and-corporate-profits-2nd-quarter-2026",
-        "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
+        "value": "+2,2 % anualizovaně; +0,6 % mezikvartálně",
+        "period": "2026 Q2 · třetí odhad",
+        "checkedAt": "2026-10-01T06:58:06.638992+00:00",
+        "sourceUrl": "https://bea.gov/news/2026/gdp-third-estimate-industries-corporate-profits-state-gdp-and-state-personal-income-2nd",
+        "note": "Revize z 1,5 % na 2,2 % anualizovaně. Aktivita zůstává ve stávající klasifikaci; žádné dvojí započtení HDP."
       },
       "seasonality": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.bea.gov/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Měsíc 10: průměr log výnosů 0.87 % · růst 6/10 let · odchylka 2.09 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "trend": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.bea.gov/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Bullish · reference 2.28137 · GMA50 2.23733 · GMA200 2.22795",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
         "value": "Tržby +1,2 % meziměsíčně; +6,0 % meziročně",
         "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
         "sourceUrl": "https://www.census.gov/retail/sales.html",
         "note": "Retail + food services; běžné ceny, sezónní očištění. Nejde o reálný objem."
       },
@@ -899,11 +1279,11 @@
         "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
       },
       "mpmi": {
-        "value": "Výroba roste; přesná hodnota výrobního PMI v ověřeném komentáři chybí.",
-        "period": "2026-09 · flash",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/us-flash-pmi-signals-fastest-growth-for-over-five-years-in-september",
-        "note": "Kvalitativní zpráva S&P Global. Kompozitní PMI nenahrazujeme za výrobní ani za služby. Bez samostatného bodového skóre."
+        "value": "ISM Manufacturing PMI 54,5; srpen 54,6",
+        "period": "2026-09 · ISM",
+        "checkedAt": "2026-10-01T15:15:56.340307+00:00",
+        "sourceUrl": "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/september/",
+        "note": "ISM, nikoli S&P Global: odlišná řada, nelze spojovat jejich úrovně. Nové zakázky 55,3, výroba 56,7, zaměstnanost 52,7, ceny 77,9. Doplňková informace bez samostatného příspěvku ke skóre."
       },
       "spmi": {
         "value": "Aktivita služeb roste; přesná hodnota indexu služeb v ověřeném komentáři chybí.",
@@ -915,32 +1295,32 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
         "value": "CPI +3,4 % meziročně; jádrová +2,4 %; CPI +0,4 % meziměsíčně SA",
         "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
         "sourceUrl": "https://www.bls.gov/news.release/archives/cpi_09112026.htm",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "employment": {
-        "value": "Nefarmářská pracovní místa +162 000",
-        "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "value": "NFP +29 000; nezaměstnanost 4,2 %",
+        "period": "2026-09",
         "sourceUrl": "https://www.bls.gov/news.release/empsit.htm",
-        "note": "Statistika BLS. Skóre pracovního trhu zatím vychází z odděleně uvedeného hodnocení centrální banky."
+        "note": "BLS 2. 10.: mzdy +0,1 % meziměsíčně / +3,0 % meziročně. Červenec revidován +21 → −10 tisíc, srpen +162 → +133 tisíc (celkem −60 tisíc). Výsledek o 56 tisíc pod předem uloženým mediánem Bloomberg 85 tisíc citovaným MUFG. BLS hodnotí měsíční změnu jako malou; faktor práce modelu zůstává podle odděleného hodnocení Fedu.",
+        "checkedAt": "2026-10-02T15:47:27.805860+00:00"
       }
     },
     "EUR": {
       "cot": {
-        "value": "Leveraged funds: long 114,151 / short 140,845 · netto -26,694 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 124,857 / short 164,122 · netto -39,265 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 099741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 099741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "gdp": {
         "value": "+0,6 % mezikvartálně, sezónně očištěno",
@@ -950,18 +1330,18 @@
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "seasonality": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://ec.europa.eu/eurostat/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Měsíc 10: průměr log výnosů 0.27 % · růst 6/10 let · odchylka 1.09 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "trend": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://ec.europa.eu/eurostat/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Bearish · reference 2.60346 · GMA50 2.63181 · GMA200 2.64272",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
         "value": "Reálný objem −0,6 % meziměsíčně, sezónně očištěno",
@@ -994,32 +1374,32 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
-        "value": "HICP +3,2 % meziročně (červenec +2,9 %)",
-        "period": "2026-08 · konečné vydání 17. září",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-17092026-ap",
-        "note": "Konečná hodnota 3,2 % nahrazuje předběžných 3,3 %. Samostatně nemění čtyřpilířové skóre."
+        "value": "HICP 3,8 % meziročně; jádrová 2,5 %",
+        "period": "2026-09 (flash)",
+        "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-02102026-ap",
+        "note": "Předběžný odhad Eurostatu 2. 10.; srpen 3,2 %. Energie 18,8 %, služby 3,2 %. Celková inflace meziměsíčně +0,6 %. Plná data plánována na 16. 10. Výhled MUFG 3,8 % byl odhad jedné banky, nikoli konsensus. Ověřeno v indexovaném obsahu primárního vydání.",
+        "checkedAt": "2026-10-02T15:47:27.805860+00:00"
       },
       "employment": {
         "value": "Nezaměstnanost eurozóny 6,4 %",
-        "period": "2026-07",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/3-01092026-bp",
-        "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
+        "period": "2026-08",
+        "checkedAt": "2026-10-01T15:15:56.340307+00:00",
+        "sourceUrl": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/3-01102026-ap",
+        "note": "Sezónně očištěno; proti červenci beze změny. Ověřeno v indexovaném primárním vydání Eurostatu; přímé načtení stránky nebylo dostupné. Makro klasifikace beze změny."
       }
     },
     "NZD": {
       "cot": {
-        "value": "Leveraged funds: long 17,339 / short 22,126 · netto -4,787 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 23,076 / short 24,142 · netto -1,066 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 112741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 112741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "gdp": {
         "value": "+0,2 % mezikvartálně; předchozí čtvrtletí revidováno na +0,9 %",
@@ -1029,18 +1409,18 @@
         "note": "Stats NZ, souhrn 24. 9. 2026. Údaj ověřen v indexovaném textu oficiálního vydání; přímá stránka neposkytla čitelný obsah. Slabý růst a pokles maloobchodního objemu ponechávají smíšený obraz aktivity."
       },
       "seasonality": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.stats.govt.nz/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Měsíc 10: průměr log výnosů -0.16 % · růst 7/10 let · odchylka 2.11 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "trend": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.stats.govt.nz/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Bearish · reference 1.17887 · GMA50 1.20618 · GMA200 1.20645",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
         "value": "Objem −0,5 % mezikvartálně; hodnota +0,9 % mezikvartálně",
@@ -1059,21 +1439,21 @@
       "mpmi": {
         "value": "53,1 · změna −1,2 bodu",
         "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
         "sourceUrl": "https://businessnz.org.nz/pmi/expansion-endures",
         "note": "BNZ–BusinessNZ. Nad 50 expanze, ale meziměsíčně slabší tempo; nikoli automatický měnový signál."
       },
       "spmi": {
         "value": "PSI 51,2 · změna +0,6 bodu",
         "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
         "sourceUrl": "https://businessnz.org.nz/psi/three-on-the-trot",
         "note": "BNZ–BusinessNZ Performance of Services Index. Nejde o totožný průzkum jako S&P Global."
       },
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1094,39 +1474,39 @@
     },
     "AUD": {
       "cot": {
-        "value": "Leveraged funds: long 87,095 / short 28,369 · netto +58,726 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 92,560 / short 31,968 · netto 60,592 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 232741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 232741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "gdp": {
         "value": "+0,4 % mezikvartálně; +2,1 % meziročně",
         "period": "2026 Q2",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-10-01T15:15:56.340307+00:00",
         "sourceUrl": "https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/jun-2026",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "seasonality": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.abs.gov.au/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Měsíc 10: průměr log výnosů -0.04 % · růst 4/10 let · odchylka 1.67 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "trend": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.abs.gov.au/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Bullish · reference 1.50259 · GMA50 1.51069 · GMA200 1.48751",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
-        "value": "Výdaje domácností +1,1 % meziměsíčně; +7,0 % meziročně",
-        "period": "2026-07",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/jul-2026",
-        "note": "Náhradní ukazatel MHSI, běžné ceny a sezónní očištění. Retail Trade skončil po červnu 2025; série nejsou totožné."
+        "value": "MHSI 0,0 % meziměsíčně; +6,8 % meziročně",
+        "period": "2026-08",
+        "checkedAt": "2026-09-29T05:10:52.801492+00:00",
+        "sourceUrl": "https://www.abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/latest-release",
+        "note": "Běžné ceny, sezónně očištěno. Výdaje domácností, nikoli zrušená statistika Retail Trade. Srpnové období potvrzeno souhrnem a časovou řadou ABS."
       },
       "retailPositions": {
         "value": null,
@@ -1150,55 +1530,55 @@
         "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
       },
       "rates": {
-        "value": "4,35 %",
-        "period": "2026-08-11",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
-        "sourceUrl": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
-        "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
+        "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
+        "period": "Rozhodnutí 2026-09-29",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
+        "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
       "inflation": {
-        "value": "CPI +3,5 % meziročně; trimmed mean +3,6 %",
-        "period": "2026-07",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/jul-2026",
-        "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
+        "value": "CPI +4,0 % meziročně; trimmed mean +3,6 %; CPI +0,4 % meziměsíčně (neočištěno)",
+        "period": "2026-08",
+        "checkedAt": "2026-10-01T06:58:06.638992+00:00",
+        "sourceUrl": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release",
+        "note": "Celková inflace zrychlila z 3,5 %, trimmed mean beze změny. Samostatně nepřidává body nad rámec stávajícího modelu."
       },
       "employment": {
         "value": "Nezaměstnanost 4,6 %; zaměstnanost +39 000; participace 67,1 %",
         "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
         "sourceUrl": "https://www.abs.gov.au/media-centre/media-releases/unemployment-rate-rises-46-august",
         "note": "Nové vydání 24. září. Slabší údaj než starší hodnocení RBA v jádrovém modelu; důležitý rozpor pro další zasedání."
       }
     },
     "CAD": {
       "cot": {
-        "value": "Leveraged funds: long 32,415 / short 79,276 · netto -46,861 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 34,581 / short 104,225 · netto -69,644 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 090741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 090741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "gdp": {
-        "value": "+0,8 % mezikvartálně; +3,3 % anualizovaně",
-        "period": "2026 Q2",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260828/dq260828a-eng.htm",
-        "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
+        "value": "0,0 % meziměsíčně; předběžný srpen +0,2 %",
+        "period": "2026-07 · HDP podle odvětví",
+        "checkedAt": "2026-10-01T06:58:06.638992+00:00",
+        "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260929/dq260929a-eng.htm",
+        "note": "Sezónně očištěný reálný měsíční HDP podle odvětví, odlišný od kvartálních výdajových účtů. Srpen je předběžný odhad; další vydání 30. října."
       },
       "seasonality": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.statcan.gc.ca/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Měsíc 10: průměr log výnosů -0.03 % · růst 7/10 let · odchylka 1.19 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "trend": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.statcan.gc.ca/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Bearish · reference 1.52324 · GMA50 1.52790 · GMA200 1.53511",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
         "value": "−0,7 % meziměsíčně; +5,1 % meziročně; 73,697 mld. CAD",
@@ -1231,7 +1611,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1245,39 +1625,39 @@
       "employment": {
         "value": "Zaměstnanost −42 000; nezaměstnanost 6,4 %",
         "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
         "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260904/dq260904a-eng.htm",
         "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       }
     },
     "JPY": {
       "cot": {
-        "value": "Leveraged funds: long 92,923 / short 85,500 · netto +7,423 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 77,429 / short 91,590 · netto -14,161 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 097741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 097741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "gdp": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.stat.go.jp/english/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "+0,4 % q/q · reálný, sezónně očištěný HDP",
+        "period": "2. čtvrtletí 2026 · druhý odhad",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "sourceUrl": "https://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2026/qe262_2/gdemenuea.html",
+        "note": "Ověřeno v oficiální tabulce Real, Seasonally Adjusted Series (Quarter-to-Quarter Percent Change), ritu-jk2622.csv; předchozí čtvrtletí +0,5 %. Doplnění dříve chybějícího údaje, nikoli nové vydání."
       },
       "seasonality": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.stat.go.jp/english/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Měsíc 10: průměr log výnosů -1.41 % · růst 4/10 let · odchylka 2.23 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "trend": {
-        "value": null,
-        "period": null,
-        "checkedAt": null,
-        "sourceUrl": "https://www.stat.go.jp/english/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "value": "Bullish · reference 0.00702 · GMA50 0.00687 · GMA200 0.00682",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
         "value": null,
@@ -1310,7 +1690,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1322,48 +1702,48 @@
         "note": "Statistics Bureau of Japan, publikováno 18. 9. 2026, základ 2025 = 100. Skutečná spotřebitelská inflace; nezaměňovat s cenovými tlaky průzkumu PMI."
       },
       "employment": {
-        "value": "Nezaměstnanost 2,4 % · sezónně očištěno",
-        "period": "2026-07",
-        "checkedAt": "2026-09-27T09:15:57.815309+00:00",
-        "sourceUrl": "https://www.stat.go.jp/english/",
-        "note": "Oficiální Statistics Bureau, měsíční Labour Force Survey, vydáno 28. 8. 2026. Nově doplněná statistika, nikoli nové zářijové vydání. Pracovní signál v makro jádru nadále vychází z odděleně uvedeného hodnocení BoJ."
+        "value": "Nezaměstnanost 2,5 %; zaměstnaných 68,49 mil.",
+        "period": "2026-08",
+        "sourceUrl": "https://www.stat.go.jp/data/roudou/sokuhou/tsuki/",
+        "note": "Nezaměstnanost sezónně očištěná, +0,1 procentního bodu proti červenci. Zaměstnaných +140 tisíc meziročně (jiná časová báze). Doplňkový údaj; sám neobrací klasifikaci BoJ.",
+        "checkedAt": "2026-10-02T06:42:11.452497+00:00"
       }
     },
     "GBP": {
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "inflation": {
         "value": "3,1 % y/y",
         "period": "srpen 2026",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "gdp": {
-        "value": "+0,4 % q/q",
-        "period": "2. čtvrtletí 2026",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
-        "note": ""
+        "value": "+0,5 % mezikvartálně",
+        "period": "2026 Q2 · revidovaný odhad",
+        "checkedAt": "2026-10-01T06:58:06.638992+00:00",
+        "sourceUrl": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/quarterlynationalaccounts/apriltojune2026",
+        "note": "Revize z +0,4 %; Q1 +0,6 % beze změny. Doplňkový údaj."
       },
       "employment": {
         "value": "4,9 % nezaměstnanost",
         "period": "3 měsíce do července 2026",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "cot": {
-        "value": "Leveraged funds: long 65,094 / short 51,855 · netto +13,239 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 53,713 / short 49,107 · netto 4,606 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 096742. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 096742. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "retailSales": {
         "value": "Reálný objem +0,5 % meziměsíčně; +0,9 % za tři měsíce",
@@ -1385,84 +1765,147 @@
         "checkedAt": "2026-09-26T07:53:45.796000+00:00",
         "sourceUrl": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/uk-flash-pmi-signals-slower-growth-and-rising-inflation-in-september",
         "note": "Veřejný komentář S&P Global z 23. 9. Přesné dílčí indexy nejsou v čitelném textu potvrzeny; kompozit 51,7 není náhrada výrobního ani službového indexu."
+      },
+      "trend": {
+        "value": "Bullish · reference 3.13344 · GMA50 3.14026 · GMA200 3.12515",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.47 % · růst 7/10 let · odchylka 2.65 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      },
+      "retailPositions": {
+        "value": null,
+        "period": "Neověřeno",
+        "checkedAt": null,
+        "sourceUrl": "https://www.myfxbook.com/community/outlook",
+        "note": "Párový vzorek nelze bez metodiky převést na měnový agregát."
       }
     },
     "CHF": {
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-09-27T17:19:11.722656+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
       "inflation": {
-        "value": "0,8 % y/y",
-        "period": "srpen 2026",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
-        "note": ""
+        "value": "1,0 % y/y · 0,0 % m/m",
+        "period": "září 2026",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "sourceUrl": "https://www.efd.admin.ch/en/newnsb/wNfni1DvzKuQ",
+        "note": "CPI 101,5 (prosinec 2025 = 100). Oficiální vydání FSO zveřejněné na portálu federální vlády; srpen 0,8 % y/y."
       },
       "gdp": {
-        "value": "Solidní široce založený růst",
+        "value": "+1,5 % q/q · reálný, sezónně a sportovně očištěný HDP",
         "period": "2. čtvrtletí 2026",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
-        "note": ""
+        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "sourceUrl": "https://www.bar.admin.ch/en/newnsb/xrrzuLVT1pbC",
+        "note": "Bez očištění o sportovní události +1,9 % q/q. Nejde o novou publikaci; doplněno číslo namísto kvalitativního popisu."
       },
       "employment": {
         "value": "Nezaměstnanost mírně vzrostla",
         "period": "léto 2026",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
       "cot": {
-        "value": "Leveraged funds: long 8,727 / short 25,184 · netto -16,457 kontraktů",
-        "period": "2026-09-22",
-        "checkedAt": "2026-09-27T17:18:25.150134+00:00",
+        "value": "Leveraged funds: long 9,541 / short 23,536 · netto -13,995 kontraktů",
+        "period": "2026-09-29",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
-        "note": "CFTC TFF futures only, kontrakt 092741. Kategorie leveraged funds; Legacy je zobrazena odděleně."
+        "note": "CFTC TFF futures only, kontrakt 092741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
+      },
+      "mpmi": {
+        "value": "55,3 · meziměsíčně −1,8 bodu",
+        "period": "září 2026",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "sourceUrl": "https://www.procure.ch/",
+        "note": "Veřejná anotace vydavatele „PMI September 2026: Schweiz weiterhin deutlich über 50“. Výrobní index; sedmý měsíc nad 50. Přesný den vydání ani služby nejsou z této anotace ověřeny."
+      },
+      "trend": {
+        "value": "Bearish · reference 2.83591 · GMA50 2.82927 · GMA200 2.89256",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.03 % · růst 6/10 let · odchylka 1.54 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      },
+      "retailSales": {
+        "value": null,
+        "period": "Neověřeno",
+        "checkedAt": null,
+        "sourceUrl": "",
+        "note": "Ověřená aktuální číselná hodnota chybí; nenahrazuje se nulou."
+      },
+      "retailPositions": {
+        "value": null,
+        "period": "Neověřeno",
+        "checkedAt": null,
+        "sourceUrl": "https://www.myfxbook.com/community/outlook",
+        "note": "Párový vzorek nelze bez metodiky převést na měnový agregát."
+      },
+      "spmi": {
+        "value": null,
+        "period": "Neověřeno",
+        "checkedAt": null,
+        "sourceUrl": "https://pmi.spglobal.com/Public/Release/ReleaseDates?language=en&os=0",
+        "note": "Ověřená aktuální číselná hodnota chybí; nenahrazuje se nulou."
       }
     }
   },
   "pairObservations": {
     "EUR/USD": {
       "trend": {
-        "value": "Bearish · reference 1.13670 · SMA50 1.15362 · SMA200 1.16241",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 1.12250 · GMA50 1.15268 · GMA200 1.16112",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.93 % · růst 3/10 let · odchylka 1.34 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.53 % · růst 4/10 let · odchylka 1.76 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
-        "value": "Long 73 % / short 27 %",
-        "period": "Veřejný snapshot 26. 9. 2026; čas podkladových pozic neuveden",
-        "checkedAt": "2026-09-27T13:36:55.499682+00:00",
+        "value": "Long 87 % / short 13 %",
+        "period": "Snapshot 2026-10-03",
+        "checkedAt": "2026-10-03T09:19:42.024Z",
         "sourceUrl": "https://www.myfxbook.com/community/outlook/EURUSD",
         "note": "Vzorek Myfxbook, procenta poskytovatele podle objemu; ne celý FX trh. Možné zpoždění. Kontext mimo skóre."
       }
     },
     "AUD/USD": {
       "trend": {
-        "value": "Smíšený · reference 0.70266 · SMA50 0.70935 · SMA200 0.70136",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 0.69393 · GMA50 0.70920 · GMA200 0.70224",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.65 % · růst 5/10 let · odchylka 2.33 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.80 % · růst 2/10 let · odchylka 2.69 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 72 % · short 28 %",
@@ -1474,18 +1917,18 @@
     },
     "NZD/USD": {
       "trend": {
-        "value": "Bearish · reference 0.56696 · SMA50 0.58459 · SMA200 0.58519",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 0.56119 · GMA50 0.58240 · GMA200 0.58466",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -1.08 % · růst 4/10 let · odchylka 2.66 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.90 % · růst 4/10 let · odchylka 3.44 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 91 % · short 9 %",
@@ -1497,18 +1940,18 @@
     },
     "USD/CAD": {
       "trend": {
-        "value": "Bullish · reference 1.41172 · SMA50 1.39465 · SMA200 1.38418",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 1.42396 · GMA50 1.39615 · GMA200 1.38531",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.75 % · růst 6/10 let · odchylka 1.86 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.79 % · růst 6/10 let · odchylka 2.10 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 19 % · short 81 %",
@@ -1520,18 +1963,18 @@
     },
     "USD/JPY": {
       "trend": {
-        "value": "Bullish · reference 158.85458 · SMA50 158.78063 · SMA200 158.39866",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 157.67483 · GMA50 158.09065 · GMA200 158.43784",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +1.08 % · růst 7/10 let · odchylka 1.95 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 2.00 % · růst 8/10 let · odchylka 2.35 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 46 % · short 54 %",
@@ -1543,18 +1986,18 @@
     },
     "EUR/AUD": {
       "trend": {
-        "value": "Bearish · reference 1.61770 · SMA50 1.62637 · SMA200 1.65825",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 1.61760 · GMA50 1.62533 · GMA200 1.65346",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.25 % · růst 3/10 let · odchylka 1.66 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.27 % · růst 6/10 let · odchylka 2.14 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 79 % · short 21 %",
@@ -1566,18 +2009,18 @@
     },
     "EUR/NZD": {
       "trend": {
-        "value": "Smíšený · reference 2.00490 · SMA50 1.97353 · SMA200 1.98665",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 2.00020 · GMA50 1.97919 · GMA200 1.98598",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.20 % · růst 5/10 let · odchylka 2.34 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.37 % · růst 3/10 let · odchylka 2.47 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 18 % · short 82 %",
@@ -1589,146 +2032,146 @@
     },
     "EUR/CAD": {
       "trend": {
-        "value": "Smíšený · reference 1.60470 · SMA50 1.60879 · SMA200 1.60879",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 1.59840 · GMA50 1.60931 · GMA200 1.60851",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.20 % · růst 5/10 let · odchylka 1.82 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.26 % · růst 5/10 let · odchylka 1.79 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "EUR/JPY": {
       "trend": {
-        "value": "Bearish · reference 180.57000 · SMA50 183.15720 · SMA200 184.09855",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 176.99000 · GMA50 182.22802 · GMA200 183.96541",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.12 % · růst 5/10 let · odchylka 1.39 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 1.47 % · růst 7/10 let · odchylka 2.21 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "AUD/NZD": {
       "trend": {
-        "value": "Bullish · reference 1.23935 · SMA50 1.21355 · SMA200 1.19862",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 1.23652 · GMA50 1.21771 · GMA200 1.20111",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.45 % · růst 7/10 let · odchylka 1.41 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.11 % · růst 6/10 let · odchylka 1.83 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "AUD/CAD": {
       "trend": {
-        "value": "Bullish · reference 0.99196 · SMA50 0.98922 · SMA200 0.97075",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.98813 · GMA50 0.99014 · GMA200 0.97282",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.06 % · růst 4/10 let · odchylka 1.57 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.01 % · růst 5/10 let · odchylka 1.58 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "AUD/JPY": {
       "trend": {
-        "value": "Smíšený · reference 111.62144 · SMA50 112.61557 · SMA200 111.09391",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 109.41518 · GMA50 112.11717 · GMA200 111.26115",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.39 % · růst 6/10 let · odchylka 1.91 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 1.20 % · růst 6/10 let · odchylka 2.75 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "NZD/CAD": {
       "trend": {
-        "value": "Smíšený · reference 0.80039 · SMA50 0.81525 · SMA200 0.80988",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 0.79912 · GMA50 0.81312 · GMA200 0.80993",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.38 % · růst 4/10 let · odchylka 1.28 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.11 % · růst 5/10 let · odchylka 1.57 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "NZD/JPY": {
       "trend": {
-        "value": "Smíšený · reference 90.06434 · SMA50 92.82282 · SMA200 92.68092",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 88.48615 · GMA50 92.07193 · GMA200 92.63209",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.04 % · růst 4/10 let · odchylka 2.34 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 1.09 % · růst 7/10 let · odchylka 3.22 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "CAD/JPY": {
       "trend": {
-        "value": "Bearish · reference 112.52571 · SMA50 113.84795 · SMA200 114.43759",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 110.72948 · GMA50 113.23345 · GMA200 114.37003",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.35 % · růst 5/10 let · odchylka 2.35 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 1.21 % · růst 6/10 let · odchylka 2.64 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "USD/EUR": {
       "trend": {
-        "value": "Bullish · reference 0.87974 · SMA50 0.86690 · SMA200 0.86040",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.89087 · GMA50 0.86754 · GMA200 0.86124",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.96 % · růst 7/10 let · odchylka 1.36 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.53 % · růst 6/10 let · odchylka 1.76 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 25 % / short 75 %",
@@ -1740,18 +2183,18 @@
     },
     "USD/AUD": {
       "trend": {
-        "value": "Smíšený · reference 1.42315 · SMA50 1.40991 · SMA200 1.42657",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 1.44107 · GMA50 1.41005 · GMA200 1.42402",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.71 % · růst 5/10 let · odchylka 2.42 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.80 % · růst 8/10 let · odchylka 2.69 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 28 % · short 72 %",
@@ -1763,18 +2206,18 @@
     },
     "USD/NZD": {
       "trend": {
-        "value": "Bullish · reference 1.76379 · SMA50 1.71086 · SMA200 1.70932",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 1.78191 · GMA50 1.71703 · GMA200 1.71040",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +1.16 % · růst 6/10 let · odchylka 2.82 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.90 % · růst 6/10 let · odchylka 3.44 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 9 % · short 91 %",
@@ -1786,18 +2229,18 @@
     },
     "CAD/USD": {
       "trend": {
-        "value": "Bearish · reference 0.70836 · SMA50 0.71707 · SMA200 0.72256",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 0.70227 · GMA50 0.71626 · GMA200 0.72186",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.71 % · růst 4/10 let · odchylka 1.81 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.79 % · růst 4/10 let · odchylka 2.10 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 81 % · short 19 %",
@@ -1809,18 +2252,18 @@
     },
     "JPY/USD": {
       "trend": {
-        "value": "Bearish · reference 0.00630 · SMA50 0.00630 · SMA200 0.00631",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.00634 · GMA50 0.00632 · GMA200 0.00631",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -1.03 % · růst 3/10 let · odchylka 1.92 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -2.00 % · růst 2/10 let · odchylka 2.35 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 54 % · short 46 %",
@@ -1832,18 +2275,18 @@
     },
     "AUD/EUR": {
       "trend": {
-        "value": "Bullish · reference 0.61816 · SMA50 0.61489 · SMA200 0.60344",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.61820 · GMA50 0.61526 · GMA200 0.60479",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.28 % · růst 7/10 let · odchylka 1.65 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.27 % · růst 4/10 let · odchylka 2.14 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 21 % · short 79 %",
@@ -1855,18 +2298,18 @@
     },
     "NZD/EUR": {
       "trend": {
-        "value": "Smíšený · reference 0.49878 · SMA50 0.50674 · SMA200 0.50342",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 0.49995 · GMA50 0.50526 · GMA200 0.50353",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.15 % · růst 5/10 let · odchylka 2.30 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.37 % · růst 7/10 let · odchylka 2.47 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailPositions": {
         "value": "Long 82 % · short 18 %",
@@ -1878,226 +2321,674 @@
     },
     "CAD/EUR": {
       "trend": {
-        "value": "Smíšený · reference 0.62317 · SMA50 0.62159 · SMA200 0.62162",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.62563 · GMA50 0.62138 · GMA200 0.62169",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.23 % · růst 5/10 let · odchylka 1.83 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.26 % · růst 5/10 let · odchylka 1.79 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "JPY/EUR": {
       "trend": {
-        "value": "Bullish · reference 0.00554 · SMA50 0.00546 · SMA200 0.00543",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.00565 · GMA50 0.00549 · GMA200 0.00544",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.10 % · růst 5/10 let · odchylka 1.40 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -1.47 % · růst 3/10 let · odchylka 2.21 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "NZD/AUD": {
       "trend": {
-        "value": "Bearish · reference 0.80687 · SMA50 0.82418 · SMA200 0.83465",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 0.80872 · GMA50 0.82121 · GMA200 0.83256",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.43 % · růst 3/10 let · odchylka 1.40 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.11 % · růst 4/10 let · odchylka 1.83 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "CAD/AUD": {
       "trend": {
-        "value": "Bearish · reference 1.00810 · SMA50 1.01093 · SMA200 1.03073",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 1.01201 · GMA50 1.00996 · GMA200 1.02794",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.04 % · růst 6/10 let · odchylka 1.56 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.01 % · růst 5/10 let · odchylka 1.58 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "JPY/AUD": {
       "trend": {
-        "value": "Smíšený · reference 0.00896 · SMA50 0.00888 · SMA200 0.00901",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.00914 · GMA50 0.00892 · GMA200 0.00899",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.36 % · růst 4/10 let · odchylka 1.93 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -1.20 % · růst 4/10 let · odchylka 2.75 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "CAD/NZD": {
       "trend": {
-        "value": "Smíšený · reference 1.24939 · SMA50 1.22674 · SMA200 1.23490",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 1.25138 · GMA50 1.22984 · GMA200 1.23467",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.40 % · růst 6/10 let · odchylka 1.29 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.11 % · růst 5/10 let · odchylka 1.57 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "JPY/NZD": {
       "trend": {
-        "value": "Smíšený · reference 0.01110 · SMA50 0.01078 · SMA200 0.01079",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.01130 · GMA50 0.01086 · GMA200 0.01080",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.09 % · růst 6/10 let · odchylka 2.34 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -1.09 % · růst 3/10 let · odchylka 3.22 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "JPY/CAD": {
       "trend": {
-        "value": "Bullish · reference 0.00889 · SMA50 0.00879 · SMA200 0.00874",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.00903 · GMA50 0.00883 · GMA200 0.00874",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.30 % · růst 5/10 let · odchylka 2.34 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -1.21 % · růst 4/10 let · odchylka 2.64 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "USD": {
       "trend": {
-        "value": "Bullish · reference 3.45908 · SMA50 3.41282 · SMA200 3.40819",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 2.28137 · GMA50 2.23733 · GMA200 2.22795",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.93 % · růst 7/10 let · odchylka 1.78 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.87 % · růst 6/10 let · odchylka 2.09 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "EUR": {
       "trend": {
-        "value": "Bearish · reference 4.03399 · SMA50 4.05092 · SMA200 4.08230",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 2.60346 · GMA50 2.63181 · GMA200 2.64272",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.22 % · růst 3/10 let · odchylka 1.18 p. b.",
+        "value": "Měsíc 10: průměr log výnosů 0.27 % · růst 6/10 let · odchylka 1.09 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "NZD": {
       "trend": {
-        "value": "Smíšený · reference 1.75075 · SMA50 1.79189 · SMA200 1.79143",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 1.17887 · GMA50 1.20618 · GMA200 1.20645",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.43 % · růst 4/10 let · odchylka 1.72 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.16 % · růst 7/10 let · odchylka 2.11 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "AUD": {
       "trend": {
-        "value": "Bullish · reference 2.26494 · SMA50 2.25999 · SMA200 2.22637",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 1.50259 · GMA50 1.51069 · GMA200 1.48751",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.10 % · růst 6/10 let · odchylka 1.30 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.04 % · růst 4/10 let · odchylka 1.67 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "CAD": {
       "trend": {
-        "value": "Bearish · reference 2.28698 · SMA50 2.28958 · SMA200 2.30738",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bearish · reference 1.52324 · GMA50 1.52790 · GMA200 1.53511",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr +0.04 % · růst 5/10 let · odchylka 1.29 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -0.03 % · růst 7/10 let · odchylka 1.19 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     },
     "JPY": {
       "trend": {
-        "value": "Smíšený · reference 0.00790 · SMA50 0.00780 · SMA200 0.00781",
-        "period": "2026-09-24",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "value": "Bullish · reference 0.00702 · GMA50 0.00687 · GMA200 0.00682",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Denní referenční kurzy ECB, nikoli závěrečné obchodovatelné ceny. Index = geometrický průměr kurzů vůči pěti ostatním měnám. SMA používá posledních 50/200 dostupných dnů."
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "seasonality": {
-        "value": "Měsíc 9: průměr -0.35 % · růst 3/10 let · odchylka 1.62 p. b.",
+        "value": "Měsíc 10: průměr log výnosů -1.41 % · růst 4/10 let · odchylka 2.23 p. b.",
         "period": "2016–2025",
-        "checkedAt": "2026-09-25T10:32:32.227930+00:00",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
         "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
-        "note": "Výnos od poslední reference předchozího měsíce do poslední reference daného měsíce. Pouze dokončené minulé roky; četnost není předpověď ani pravděpodobnost budoucího zisku."
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "USD/GBP": {
+      "trend": {
+        "value": "Bullish · reference 0.75753 · GMA50 0.74331 · GMA200 0.74371",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.35 % · růst 6/10 let · odchylka 3.58 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "USD/CHF": {
+      "trend": {
+        "value": "Bullish · reference 0.82664 · GMA50 0.81432 · GMA200 0.79578",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.73 % · růst 6/10 let · odchylka 1.96 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "EUR/GBP": {
+      "trend": {
+        "value": "Bearish · reference 0.85033 · GMA50 0.85680 · GMA200 0.86354",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.18 % · růst 5/10 let · odchylka 2.13 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "EUR/CHF": {
+      "trend": {
+        "value": "Bullish · reference 0.92790 · GMA50 0.93866 · GMA200 0.92400",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.21 % · růst 4/10 let · odchylka 1.66 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "NZD/GBP": {
+      "trend": {
+        "value": "Bearish · reference 0.42512 · GMA50 0.43290 · GMA200 0.43482",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.55 % · růst 5/10 let · odchylka 2.84 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "NZD/CHF": {
+      "trend": {
+        "value": "Bearish · reference 0.46390 · GMA50 0.47426 · GMA200 0.46526",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.17 % · růst 5/10 let · odchylka 2.66 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "AUD/GBP": {
+      "trend": {
+        "value": "Bullish · reference 0.52567 · GMA50 0.52715 · GMA200 0.52226",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.44 % · růst 4/10 let · odchylka 3.24 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "AUD/CHF": {
+      "trend": {
+        "value": "Bullish · reference 0.57363 · GMA50 0.57752 · GMA200 0.55883",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.06 % · růst 6/10 let · odchylka 1.82 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CAD/GBP": {
+      "trend": {
+        "value": "Bearish · reference 0.53199 · GMA50 0.53240 · GMA200 0.53686",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.44 % · růst 5/10 let · odchylka 2.81 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CAD/CHF": {
+      "trend": {
+        "value": "Bullish · reference 0.58052 · GMA50 0.58327 · GMA200 0.57445",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.06 % · růst 4/10 let · odchylka 1.77 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "JPY/GBP": {
+      "trend": {
+        "value": "Bullish · reference 0.00480 · GMA50 0.00470 · GMA200 0.00469",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -1.64 % · růst 4/10 let · odchylka 3.30 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "JPY/CHF": {
+      "trend": {
+        "value": "Bullish · reference 0.00524 · GMA50 0.00515 · GMA200 0.00502",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -1.26 % · růst 3/10 let · odchylka 2.50 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/USD": {
+      "trend": {
+        "value": "Bearish · reference 1.32008 · GMA50 1.34534 · GMA200 1.34460",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.35 % · růst 4/10 let · odchylka 3.58 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/EUR": {
+      "trend": {
+        "value": "Bullish · reference 1.17601 · GMA50 1.16714 · GMA200 1.15802",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.18 % · růst 5/10 let · odchylka 2.13 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/NZD": {
+      "trend": {
+        "value": "Bullish · reference 2.35226 · GMA50 2.30999 · GMA200 2.29981",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.55 % · růst 5/10 let · odchylka 2.84 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/AUD": {
+      "trend": {
+        "value": "Bearish · reference 1.90232 · GMA50 1.89699 · GMA200 1.91474",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.44 % · růst 6/10 let · odchylka 3.24 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/CAD": {
+      "trend": {
+        "value": "Bullish · reference 1.87974 · GMA50 1.87829 · GMA200 1.86269",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.44 % · růst 5/10 let · odchylka 2.81 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/JPY": {
+      "trend": {
+        "value": "Bearish · reference 208.14272 · GMA50 212.68519 · GMA200 213.03614",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 1.64 % · růst 6/10 let · odchylka 3.30 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP/CHF": {
+      "trend": {
+        "value": "Bullish · reference 1.09122 · GMA50 1.09554 · GMA200 1.07002",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.38 % · růst 5/10 let · odchylka 3.17 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/USD": {
+      "trend": {
+        "value": "Bearish · reference 1.20972 · GMA50 1.22801 · GMA200 1.25662",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.73 % · růst 4/10 let · odchylka 1.96 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/EUR": {
+      "trend": {
+        "value": "Bearish · reference 1.07770 · GMA50 1.06535 · GMA200 1.08225",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.21 % · růst 6/10 let · odchylka 1.66 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/NZD": {
+      "trend": {
+        "value": "Bullish · reference 2.15562 · GMA50 2.10854 · GMA200 2.14932",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.17 % · růst 5/10 let · odchylka 2.66 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/AUD": {
+      "trend": {
+        "value": "Bearish · reference 1.74329 · GMA50 1.73155 · GMA200 1.78945",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.06 % · růst 4/10 let · odchylka 1.82 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/CAD": {
+      "trend": {
+        "value": "Bearish · reference 1.72260 · GMA50 1.71449 · GMA200 1.74081",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.06 % · růst 6/10 let · odchylka 1.77 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/JPY": {
+      "trend": {
+        "value": "Bearish · reference 190.74254 · GMA50 194.13703 · GMA200 199.09629",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 1.26 % · růst 7/10 let · odchylka 2.50 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF/GBP": {
+      "trend": {
+        "value": "Bearish · reference 0.91640 · GMA50 0.91279 · GMA200 0.93457",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů -0.38 % · růst 5/10 let · odchylka 3.17 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "GBP": {
+      "trend": {
+        "value": "Bullish · reference 3.13344 · GMA50 3.14026 · GMA200 3.12515",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.47 % · růst 7/10 let · odchylka 2.65 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
+      }
+    },
+    "CHF": {
+      "trend": {
+        "value": "Bearish · reference 2.83591 · GMA50 2.82927 · GMA200 2.89256",
+        "period": "2026-10-02",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
+      },
+      "seasonality": {
+        "value": "Měsíc 10: průměr log výnosů 0.03 % · růst 6/10 let · odchylka 1.54 p. b.",
+        "period": "2016–2025",
+        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "sourceUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml",
+        "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       }
     }
   },
@@ -2108,11 +2999,10 @@
     ]
   },
   "reviewStatus": {
-    "at": "2026-09-27T17:19:11.722656+00:00",
+    "at": "2026-10-03T09:19:42.024Z",
     "notes": [
-      "ECB, TFF, Legacy COT a denní ceny obnoveny bez chyb. Nejnovější období zůstává 25. září pro FX/akcie a 26. září pro krypto. Žádná potvrzená změna makro signálů.",
-      "Ověřeny měnové podklady osmi bank, kalendáře BEA/RBA a datovaný MUFG report. U ostatních statistik zachovány předchozí skutečné časy kontroly; vyhledávání neodhalilo nové relevantní nedělní vydání. Nejde o úplnou novou verifikaci všech 11 samostatných statistik.",
-      "BLS oznámil přerušovanou údržbu webu a API do 27. 9. 18:00 Eastern (22:00 UTC): https://www.bls.gov/bls/maintenance09232026.htm . Dříve ověřené BLS hodnoty i časy zachovány; nedostupnost není nahrazena odhadem."
+      "Obnoveny ceny všech trhů, TFF a Legacy; znovu přečteny zdroje všech osmi centrálních bank a SEP. Nové údaje CHF, číselný HDP JPY, MUFG a ISM kalendář mají vlastní zdroje.",
+      "Částečná makro kontrola: všechny oblasti nemají nově ověřenou číselnou publikaci. Ostatní statistiky zachovávají předchozí časy kontroly; nedostupná PMI a měnové retail agregáty nejsou doplněny odhadem."
     ]
   }
 }
