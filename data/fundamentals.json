@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-05T10:32:00Z",
+  "checkedAt": "2026-10-05T10:44:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -35,7 +35,7 @@
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:44:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání",
@@ -813,7 +813,7 @@
       "at": "2026-10-05T14:00:00Z",
       "title": "USA • ISM služby za září",
       "source": "ism-services-calendar",
-      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/ . Při kontrole 5. 10. v 10:32 UTC ještě nevyšlo (vydání ve 14:00 UTC); výsledek doplnit až z oficiálního vydání.",
+      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/ . Při kontrole 5. 10. v 10:44 UTC ještě nevyšlo (vydání ve 14:00 UTC; poslední tisková zpráva ISM na PR Newswire je výrobní PMI z 1. 10.); neoficiální hodnoty ze sekundárních webů nepřebírat, výsledek doplnit až z oficiálního vydání.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": "55,0 — Bloomberg citovaný MUFG 2. 10. 2026",
@@ -1043,6 +1043,11 @@
     }
   ],
   "changes": [
+    {
+      "at": "2026-10-05T10:44:00Z",
+      "title": "RBNZ znovu ověřena přes oficiální RSS",
+      "body": "Oficiální RSS RBNZ (https://www.rbnz.govt.nz/feeds/news) neobsahuje od rozhodnutí 2. 9. žádné nové rozhodnutí OCR ani MPS; poslední položky jsou jmenování člena MPC (25. 9.) a konzultace k hotovosti (1. 10.). Poslední rozhodnutí OCR 2,75 % platí za ověřené. ISM služby za září do 10:44 UTC nevyšly. Makro vstupy a váhy beze změny."
+    },
     {
       "at": "2026-10-05T10:21:22Z",
       "title": "Opětovné ověření bank a čas rozhodnutí BoC",
