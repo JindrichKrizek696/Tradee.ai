@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-03T09:19:42.024Z",
+  "checkedAt": "2026-10-05T10:21:22Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,13 +11,13 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
@@ -29,7 +29,7 @@
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
@@ -47,13 +47,13 @@
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -83,7 +83,7 @@
       "label": "BLS — říjnový kalendář",
       "url": "https://www.bls.gov/schedule/2026/10_sched.htm",
       "publishedAt": null,
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "fed-cal": {
       "label": "Fed — kalendář FOMC",
@@ -95,7 +95,7 @@
       "label": "ECB — kalendář zasedání",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.de.html",
       "publishedAt": null,
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "rbnz-cal": {
       "label": "RBNZ — kalendář rozhodnutí",
@@ -131,13 +131,13 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
@@ -173,7 +173,7 @@
       "label": "RBA — rozhodnutí 29. září",
       "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
       "publishedAt": "2026-09-29",
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:21:22Z"
     },
     "abs-mhsi-aug26": {
       "label": "ABS — srpnový MHSI",
@@ -306,6 +306,18 @@
       "url": "https://www.prnewswire.com/news-releases/services-pmi-at-55-4-august-2026-ism-services-pmi-report-302868046.html",
       "publishedAt": null,
       "checkedAt": "2026-10-03T09:19:42.024Z"
+    },
+    "boc-cal": {
+      "label": "Bank of Canada — nadcházející události",
+      "url": "https://www.bankofcanada.ca/press/upcoming-events/",
+      "publishedAt": null,
+      "checkedAt": "2026-10-05T10:21:22Z"
+    },
+    "boe-cal": {
+      "label": "Bank of England — termíny MPC 2026",
+      "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
+      "publishedAt": null,
+      "checkedAt": "2026-10-05T10:21:22Z"
     }
   },
   "currencies": {
@@ -678,11 +690,11 @@
     {
       "id": "boc-oct",
       "currency": "CAD",
-      "at": "2026-10-28T12:00:00Z",
+      "at": "2026-10-28T13:45:00Z",
       "title": "BoC • sazby a Monetary Policy Report",
-      "source": "boc",
-      "watch": "Reakce na cla, růst a inflaci; čas oznámení dosud neověřen.",
-      "timeKnown": false,
+      "source": "boc-cal",
+      "watch": "Reakce na cla, růst a inflaci. Čas 09:45 ET (EDT, UTC−4) potvrzen kalendářem BoC 5. 10.; konsensus neověřen.",
+      "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
       "actual": null
@@ -740,8 +752,8 @@
       "currency": "GBP",
       "at": "2026-11-05T12:00:00Z",
       "title": "Bank of England · rozhodnutí o sazbě",
-      "source": "gbp-policy-sep26",
-      "watch": "Sazba, hlasování a nový výhled inflace.",
+      "source": "boe-cal",
+      "watch": "Sazba, hlasování a nový výhled inflace. Datum 5. 11. potvrzeno oficiálním seznamem termínů MPC; čas oznámení stránka neuvádí.",
       "timeKnown": false,
       "importance": "Vysoká",
       "consensus": null,
@@ -801,7 +813,7 @@
       "at": "2026-10-05T14:00:00Z",
       "title": "USA • ISM služby za září",
       "source": "ism-services-calendar",
-      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/",
+      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/ . Při kontrole 5. 10. v 10:21 UTC ještě nevyšlo; výsledek doplnit až z oficiálního vydání.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": "55,0 — Bloomberg citovaný MUFG 2. 10. 2026",
@@ -1031,6 +1043,11 @@
     }
   ],
   "changes": [
+    {
+      "at": "2026-10-05T10:21:22Z",
+      "title": "Opětovné ověření bank a čas rozhodnutí BoC",
+      "body": "Znovu ověřena poslední rozhodnutí Fedu, ECB, RBA, BoC, BoJ, BoE a SNB; žádné nové rozhodnutí. Oznámení BoC 28. 10. potvrzeno na 09:45 ET (13:45 UTC), termín BoE 5. 11. potvrzen. ISM služby za září do 10:21 UTC nevyšly; finální PMI S&P Global nebyla veřejně přístupná (HTTP 403). Stránky RBNZ vrátily 403, jejich ověření nebylo obnoveno. Makro vstupy a váhy beze změny."
+    },
     {
       "at": "2026-10-03T09:19:42.024Z",
       "title": "Nový COT report a doplnění švýcarských ukazatelů",
@@ -1295,7 +1312,7 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1374,7 +1391,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1532,7 +1549,7 @@
       "rates": {
         "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
         "period": "Rozhodnutí 2026-09-29",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
         "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
@@ -1611,7 +1628,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1690,7 +1707,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1713,14 +1730,14 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
       "inflation": {
         "value": "3,1 % y/y",
         "period": "srpen 2026",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -1734,7 +1751,7 @@
       "employment": {
         "value": "4,9 % nezaměstnanost",
         "period": "3 měsíce do července 2026",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -1792,7 +1809,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
@@ -1813,7 +1830,7 @@
       "employment": {
         "value": "Nezaměstnanost mírně vzrostla",
         "period": "léto 2026",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
+        "checkedAt": "2026-10-05T10:21:22Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
