@@ -53,3 +53,7 @@ Pole události: `id, at (ISO UTC), timeKnown, title („Země • co“, česky)
 Jedna událost = jeden záznam na typ a den (žádné zvláštní záznamy pro tiskovou konferenci). Přesný čas (`at`) zapisuj jen s `timeKnown:true`; bez něj zůstává čas ze skriptu.
 
 Nevyplňuj neověřený konsensus ani výsledek; neznámé = `null`.
+
+## Automatický běh na VPS
+
+Tento postup 2× denně (06:30 a 18:30 UTC) provádí Claude Code na VPS (`scripts/fundamentals_agent.py`) nad kopií `data/fundamentals.json`. Výstup ověřuje `scripts/check_fundamentals.py` – neměň `schemaVersion`, `methodVersion`, `staleAfterHours`, `reviewCadenceHours`, nemaž ani nepřepisuj starší záznamy `history`, `checkedAt` nastav na skutečný čas kontroly. Ruční aktualizace dál fungují: před prací si stáhni `main`; když VPS narazí na tvou novější verzi, ponechá ji.

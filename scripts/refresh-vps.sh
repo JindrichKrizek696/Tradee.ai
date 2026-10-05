@@ -7,6 +7,9 @@ export WRANGLER_SEND_METRICS=false
 export PYTHONUNBUFFERED=1
 # shellcheck disable=SC1091
 source "$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null
+# Sdílený zámek s agentem fundamentů (scripts/fundamentals_agent.py) – build a restart nesmí běžet dvakrát.
+exec 9>/tmp/tradee-build.lock
+flock -w 1800 9 || { echo "!! $(date -Is) zámek obsazen, refresh přeskočen"; exit 1; }
 echo "== $(date -Is) refresh start"
 python3 scripts/refresh-score-data.py || echo "!! refresh-score-data selhal"
 python3 scripts/refresh-expanded-data.py || echo "!! refresh-expanded-data selhal"

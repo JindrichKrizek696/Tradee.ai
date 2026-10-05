@@ -21,6 +21,7 @@ Soukromý přehled trhů s dohledatelným skóre, COT, sezonalitou, reporty a os
 - `FUNDAMENTALS.md` — postup průběžného ověřování podkladů.
 - `app/calendar.tsx` + `lib/calendar.ts` — kalendář událostí (sloučení skriptu a agenta, filtry).
 - `scripts/refresh_calendar.py` — kostra kalendáře z oficiálních zdrojů do `data/calendar.json`; testy `python3 -m unittest discover -s scripts/tests`.
+- `scripts/fundamentals_agent.py` — agent fundamentů na VPS (cron 06:30/18:30 UTC): `claude -p` podle FUNDAMENTALS.md, kontrola `scripts/check_fundamentals.py`, nasazení a push přes deploy key; log `fundamentals-agent.log`.
 
 ## Lokální spuštění
 Vyžaduje Node.js 22.13+ a Python 3. Instalace: `npm ci`, náhled: `npm run dev`.
