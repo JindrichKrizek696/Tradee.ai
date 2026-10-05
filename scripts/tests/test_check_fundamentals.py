@@ -103,5 +103,19 @@ class Validate(unittest.TestCase):
             self.assertEqual(r.returncode, 1)
 
 
+    def test_wrong_type_of_key(self):
+        n = good(); n['sources'] = None
+        ok, msg = check(n)
+        self.assertFalse(ok); self.assertIn('sources', msg)
+
+    def test_observations_list(self):
+        n = good(); n['observations'] = []
+        self.assertFalse(check(n)[0])
+
+    def test_event_not_object_has_reason(self):
+        n = good(); n['events'] = n['events'] + ['x']
+        ok, msg = check(n)
+        self.assertFalse(ok); self.assertTrue(msg)
+
 if __name__ == '__main__':
     unittest.main()

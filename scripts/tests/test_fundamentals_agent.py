@@ -16,6 +16,8 @@ REPO = HERE.parents[1]
 FAKE = '''#!/usr/bin/env python3
 import json, os, sys, time, subprocess
 mode = os.environ['FAKE_MODE']
+if os.environ.get('FAKE_ARGV'): json.dump(sys.argv[1:], open(os.environ['FAKE_ARGV'], 'w'))
+if mode == 'error': print(json.dumps({'is_error': True, 'result': 'Usage limit reached'})); sys.exit(0)
 p = 'fundamentals.json'
 d = json.load(open(p, encoding='utf-8'))
 if mode == 'sleep': time.sleep(5)
@@ -145,6 +147,58 @@ class Agent(unittest.TestCase):
         self.assertEqual((self.root / 'data' / 'score-market.json').read_text(), '{"cron": "vps"}')
         self.assertEqual(self.local()['checkedAt'], NOW)
         self.assertEqual(run(['git', 'stash', 'list'], self.root), '')
+
+    def test_claude_tools_scoped_to_workdir(self):
+        argv_file = self.tmp / 'argv.json'
+        self.agent('same', FAKE_ARGV=str(argv_file))
+        argv = json.loads(argv_file.read_text())
+        allowed = argv[argv.index('--allowedTools') + 1:argv.index('--disallowedTools')]
+        denied = argv[argv.index('--disallowedTools') + 1:argv.index('--permission-mode')]
+        work = str(self.tmp / 'work')
+        self.assertIn(f'Read(/{work}/**)', allowed)
+        self.assertIn(f'Edit(/{work}/fundamentals.json)', allowed)
+        self.assertNotIn('Read', allowed)
+        self.assertNotIn('Edit', allowed)
+        for rule in ('Bash', 'Write', 'Read(~/**)', 'Edit(~/**)', 'Read(//home/**)', 'Edit(//home/**)'):
+            self.assertIn(rule, denied)
+
+    def test_claude_is_error_is_failure(self):
+        code, out = self.agent('error')
+        self.assertEqual(code, 1)
+        self.assertIn('claude selhal · Usage limit reached', out)
+
+    def test_claude_missing_logged(self):
+        code, out = self.agent('valid', TRADEE_CLAUDE_CMD=str(self.tmp / 'neni'))
+        self.assertEqual(code, 1)
+        self.assertIn('claude selhal', out)
+        self.assertIn(out, (self.root / 'fundamentals-agent.log').read_text())
+        self.assertEqual(run(['git', 'status', '--porcelain', '--', 'data/fundamentals.json'], self.root), '')
+
+    def test_build_timeout_restores(self):
+        before = self.local()
+        code, out = self.agent('valid', TRADEE_BUILD_CMD='sleep 5', TRADEE_DEPLOY_TIMEOUT='1')
+        self.assertIn('build selhal', out)
+        self.assertEqual(self.local(), before)
+        self.assertEqual(run(['git', 'status', '--porcelain', '--', 'data/fundamentals.json'], self.root), '')
+
+    def test_other_dirty_file_reported(self):
+        (self.root / 'FUNDAMENTALS.md').write_text('rozepsáno')
+        code, out = self.agent('valid')
+        self.assertIn('git pull selhal · fail: necommitnuté změny: FUNDAMENTALS.md', out)
+
+    def test_unpushed_commit_then_manual_upstream(self):
+        nokey = {'TRADEE_PUSH_REMOTE': 'git@github.com:x/y.git', 'TRADEE_DEPLOY_KEY': str(self.tmp / 'nokey')}
+        self.assertIn('push přeskočen', self.agent('valid', **nokey)[1])
+        other = self.tmp / 'other3'
+        run(['git', 'clone', '-q', str(self.remote), str(other)], self.tmp)
+        script = (f"python3 -c \"import json;p='data/fundamentals.json';d=json.load(open(p));d['checkedAt']='{MANUAL}';"
+                  f"json.dump(d,open(p,'w'),ensure_ascii=False)\" && git -c user.name=J -c user.email=j@j commit -qam rucni && git push -q origin main")
+        run(script, other)
+        code, out = self.agent('valid', **nokey)
+        self.assertEqual(code, 0, out)
+        self.assertIn('push přeskočen', out)
+        self.assertIn('rucni', run(['git', 'log', '--format=%s', '-3'], self.root))
+        self.assertEqual(run(['git', 'rev-list', '--count', 'origin/main..HEAD'], self.root).strip(), '1')
 
 if __name__ == '__main__':
     unittest.main()

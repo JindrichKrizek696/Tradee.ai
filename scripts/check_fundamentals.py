@@ -15,7 +15,22 @@ def parse_time(s):
 
 
 def validate(old, new_text, now):
-    """Vrátí (True, shrnutí) nebo (False, důvod)."""
+    """Vrátí (True, shrnutí) nebo (False, důvod). Neočekávaný tvar dat = odmítnutí s důvodem, nikdy pád."""
+    try:
+        return _validate(old, new_text, now)
+    except Exception as e:  # noqa: BLE001
+        return False, f'neočekávaný tvar dat: {type(e).__name__}: {e}'[:300]
+
+
+def same_kind(a, b):
+    """Stejný typ JSON hodnoty (int a float se berou jako číslo)."""
+    num = (int, float)
+    if isinstance(a, bool) or isinstance(b, bool):
+        return type(a) is type(b)
+    return (isinstance(a, num) and isinstance(b, num)) or type(a) is type(b)
+
+
+def _validate(old, new_text, now):
     try:
         new = json.loads(new_text)
     except ValueError as e:
@@ -25,6 +40,9 @@ def validate(old, new_text, now):
     missing = [k for k in old if k not in new]
     if missing:
         return False, 'chybí klíče: ' + ', '.join(missing)
+    wrong = [k for k in old if old[k] is not None and not same_kind(old[k], new[k])]
+    if wrong:
+        return False, 'změněný typ klíčů: ' + ', '.join(wrong)
     cur = new.get('currencies')
     if not isinstance(cur, dict) or set(cur) != CURRENCIES:
         return False, 'currencies musí mít přesně 8 měn ' + ' '.join(sorted(CURRENCIES))
@@ -51,6 +69,8 @@ def validate(old, new_text, now):
     if nc > now + timedelta(minutes=10):
         return False, 'checkedAt je v budoucnosti'
     for e in new.get('events', []):
+        if not isinstance(e, dict):
+            return False, 'událost není objekt'
         if not all(e.get(k) for k in ('id', 'at', 'title', 'source')):
             return False, f"událost {e.get('id', '?')} nemá id/at/title/source"
         try:
