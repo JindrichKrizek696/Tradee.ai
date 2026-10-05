@@ -123,6 +123,19 @@ class Agent(unittest.TestCase):
         self.assertIn('push přeskočen – chybí deploy key', out)
         self.assertEqual(self.local()['checkedAt'], NOW)
 
+    def test_rejected_deploy_key_skips_push(self):
+        key = self.tmp / 'key'
+        key.write_text('k')
+        fake_ssh = self.tmp / 'bin' / 'ssh'
+        fake_ssh.parent.mkdir()
+        fake_ssh.write_text('#!/bin/sh\necho "git@github.com: Permission denied (publickey)." >&2\nexit 255\n')
+        fake_ssh.chmod(0o755)
+        code, out = self.agent('valid', TRADEE_PUSH_REMOTE='git@github.com:x/y.git', TRADEE_DEPLOY_KEY=str(key),
+                               PATH=f"{fake_ssh.parent}:{os.environ['PATH']}")
+        self.assertEqual(code, 0, out)
+        self.assertIn('push přeskočen – deploy key není přidaný v repu', out)
+        self.assertEqual(self.local()['checkedAt'], NOW)
+
     def test_conflict_keeps_manual_version(self):
         other = self.tmp / 'other'
         run(['git', 'clone', '-q', str(self.remote), str(other)], self.tmp)

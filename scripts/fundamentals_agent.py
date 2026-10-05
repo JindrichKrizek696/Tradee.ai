@@ -137,6 +137,10 @@ def push(root, stamp):
     commit = git(root, 'rev-parse', '--short', 'HEAD').stdout.strip()
     if remote.startswith('git@') and not key.exists():
         return 'push přeskočen – chybí deploy key', commit
+    # Klíč na VPS je, ale v repu ještě není přidaný (GitHub ho odmítne) → stejné jako chybějící klíč, ne chyba.
+    probe = git(root, 'ls-remote', remote, 'main', extra_env=ssh_env)
+    if probe.returncode and 'Permission denied' in probe.stderr:
+        return 'push přeskočen – deploy key není přidaný v repu', commit
     status = sync(root, remote, 'main', extra_env=ssh_env)
     if status.startswith('fail'):
         return 'push selhal: ' + status[6:], commit
@@ -256,7 +260,7 @@ def main():
     with open(ROOT / 'fundamentals-agent.log', 'a', encoding='utf-8') as f:
         f.write(line + '\n')
     print(line)
-    return 0 if res in ('ok', 'bez změny', 'push přeskočen – chybí deploy key') else 1
+    return 0 if res in ('ok', 'bez změny') or res.startswith('push přeskočen') else 1
 
 
 if __name__ == '__main__':
