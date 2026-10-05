@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-05T10:21:22Z",
+  "checkedAt": "2026-10-05T10:32:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -23,7 +23,7 @@
       "label": "ECB — měnové rozhodnutí",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-09-24T15:07:00.382134+00:00"
+      "checkedAt": "2026-10-05T10:32:00Z"
     },
     "ecb-report": {
       "label": "ECB — tisková konference",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-09-29T05:10:52.801492+00:00"
+      "checkedAt": "2026-10-05T10:32:00Z"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -89,7 +89,7 @@
       "label": "Fed — kalendář FOMC",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "publishedAt": null,
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "checkedAt": "2026-10-05T10:32:00Z"
     },
     "ecb-cal": {
       "label": "ECB — kalendář zasedání",
@@ -107,7 +107,7 @@
       "label": "BoJ — termín dalšího zasedání",
       "url": "https://www.boj.or.jp/en/",
       "publishedAt": null,
-      "checkedAt": "2026-09-24T19:18:11.666939+00:00"
+      "checkedAt": "2026-10-05T10:32:00Z"
     },
     "boc-trade": {
       "label": "Bank of Canada — dopady změn světového obchodu",
@@ -813,7 +813,7 @@
       "at": "2026-10-05T14:00:00Z",
       "title": "USA • ISM služby za září",
       "source": "ism-services-calendar",
-      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/ . Při kontrole 5. 10. v 10:21 UTC ještě nevyšlo; výsledek doplnit až z oficiálního vydání.",
+      "watch": "10:00 New York (EDT), potvrzeno oznámením ISM. Předchozí ISM 55,4; odlišit od S&P Global. Zdroj očekávání: https://www.mufgresearch.com/fx/fx-weekly-2-october-2026/ . Při kontrole 5. 10. v 10:32 UTC ještě nevyšlo (vydání ve 14:00 UTC); výsledek doplnit až z oficiálního vydání.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": "55,0 — Bloomberg citovaný MUFG 2. 10. 2026",
