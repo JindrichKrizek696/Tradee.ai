@@ -30,7 +30,7 @@ Proto se **celá aplikace včetně `/assets` schová za `auth_request`** a veře
 
 ```
 prohlížeč ─▶ nginx tradee.eu
-              ├─ /auth/*, /api/waitlist, /landing/*, /favicon.svg ─▶ app (veřejné)
+              ├─ /auth/*, /api/waitlist, /landing/*, /soukromi, /favicon.svg ─▶ veřejné
               └─ vše ostatní ─ auth_request /auth/check ─▶ app
                     ├─ 204 ─▶ proxy na app (+ hlavičky identity z /auth/check)
                     └─ 401 ─▶ cesta "/" → statická homepage (landing.html)
@@ -98,8 +98,9 @@ Skript `scripts/migrate-legacy-user.py <nové_id>` v jedné transakci přepíše
 
 - Tajné údaje v `~/tradee/.auth.env` na VPS (mimo git, `chmod 600`): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32 B náhodně, base64), `OWNER_EMAIL=d.slaby06@gmail.com`, `PUBLIC_URL=https://tradee.eu`.
 - `tradee.service`: `cat .mariadb.env .auth.env > dist/server/.dev.vars`. `--var OWNER_EMAIL:jindra@…` se odstraní. `runtime()` v `lib/server.ts` dostane nové proměnné do typu.
-- `.env.example` doplnit o nové klíče (bez hodnot).
-- **Google Cloud (udělá Daniel):** OAuth consent screen (External, název Tradee, režim Testing nebo Published), OAuth client typu Web application, Authorized redirect URI `https://tradee.eu/auth/callback`. Client ID a Secret přijdou do `.auth.env`.
+- `.env.example` doplnit o nové klíče (bez hodnot); `.auth.env` přidat do `.gitignore`.
+- **Google Cloud (hotovo 6. 10. 2026):** projekt `tradee-510816` (účet d.slaby06@gmail.com), consent screen External „Tradee“, OAuth client `tradee.eu` (Web application, redirect `https://tradee.eu/auth/callback`). Hodnoty jsou v `~/tradee/.auth.env` na VPS (600, v `.git/info/exclude`).
+- **Režim Testing → Published:** v režimu Testing se přihlásí jen ručně přidaní test users (teď jen d.slaby06@gmail.com). Aby šel přihlásit kdokoli z waitlistu, musí se aplikace publikovat. Scope `openid email profile` jsou nesenzitivní, takže to obejde verifikaci, ale Branding chce odkaz na homepage a **zásady ochrany osobních údajů**. Proto přibude statická stránka `public/landing/soukromi.html` (`/soukromi`, veřejná): jaká data se ukládají (e-mail, jméno, Google ID), k čemu, jak požádat o smazání. Publikuje se až po nasazení.
 - **Nginx** (`/etc/nginx/sites-available/tradee.eu`): odstranit `auth_basic` a `oai-*` hlavičky, přidat `auth_request` s výjimkami viz Tok požadavku, `limit_req_zone` pro `/api/waitlist`, `error_page 401` → named location, který podle cesty vrátí landing, 302 nebo 401 JSON. Šablona configu bude v repu (`deploy/nginx-tradee.eu.conf`) kvůli dohledatelnosti.
 - **Pořadí nasazení:**
   1. merge do `main`, na VPS `git pull --ff-only`, migrace `0003`, build, restart;
