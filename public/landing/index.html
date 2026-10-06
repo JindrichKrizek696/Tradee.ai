@@ -43,10 +43,12 @@ p{margin:0}
 .lead{color:var(--muted);font-size:17px;line-height:1.6;max-width:540px}
 .small{color:var(--soft);font-size:14px}
 /* tlačítka à la dreamrental */
-.btn{display:inline-flex;align-items:center;gap:14px;height:48px;padding:0 8px 0 22px;border-radius:9999px;background:var(--ink);color:#fdfdfd;font:500 16px Inter,sans-serif;text-decoration:none;border:0;cursor:pointer;white-space:nowrap;transition:transform .15s}
-.btn:hover{transform:translateY(-1px)}
+.btn{display:inline-flex;align-items:center;gap:14px;height:48px;padding:0 8px 0 22px;border-radius:9999px;background:var(--ink);color:#fdfdfd;font:500 16px Inter,sans-serif;text-decoration:none;border:0;cursor:pointer;white-space:nowrap}
 .btn .arr{width:32px;height:32px;border-radius:9999px;background:#fff;display:grid;place-items:center}
-.btn .arr svg{width:16px;height:16px;stroke:var(--ink)}
+.btn .arr{overflow:hidden}
+.btn .arr svg{width:16px;height:16px;stroke:var(--ink);transition:transform .25s ease}
+.btn:hover .arr svg,.btn:focus-visible .arr svg{transform:translateX(3px)}
+.btn[disabled] .arr svg{transform:none}
 .btn-light{background:#fff;color:var(--ink);border:1px solid var(--line);padding:0 20px}
 /* nav */
 nav{position:sticky;top:0;z-index:10;background:#ffffffd9;backdrop-filter:blur(10px)}
@@ -130,7 +132,7 @@ details p{color:var(--muted);margin-top:10px;max-width:680px}
 .msg{min-height:22px;margin:0 0 4px;font-size:15px}
 .msg.ok{color:#15803d}.msg.err{color:#b91c1c}
 .final .msg{text-align:center}
-.btn[disabled]{opacity:.6;cursor:default;transform:none}
+.btn[disabled]{opacity:.6;cursor:default}
 footer{background:var(--ink);color:#bdbdbd;padding:40px 0;font-size:14px}
 footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
 footer a{color:#fff;text-decoration:none}
