@@ -213,5 +213,19 @@ class Agent(unittest.TestCase):
         self.assertIn('rucni', run(['git', 'log', '--format=%s', '-3'], self.root))
         self.assertEqual(run(['git', 'rev-list', '--count', 'origin/main..HEAD'], self.root).strip(), '1')
 
+    def test_unpushed_commit_then_upstream_other_file(self):
+        # Někdo pushne změnu jiného souboru (kód, FUNDAMENTALS.md), zatímco commit agenta čeká na push → běh nesmí spadnout.
+        nokey = {'TRADEE_PUSH_REMOTE': 'git@github.com:x/y.git', 'TRADEE_DEPLOY_KEY': str(self.tmp / 'nokey')}
+        self.assertIn('push přeskočen', self.agent('valid', **nokey)[1])
+        other = self.tmp / 'other4'
+        run(['git', 'clone', '-q', str(self.remote), str(other)], self.tmp)
+        run("echo 'nové pravidlo' >> FUNDAMENTALS.md && git -c user.name=J -c user.email=j@j commit -qam pravidla && git push -q origin main", other)
+        code, out = self.agent('valid', **nokey)
+        self.assertEqual(code, 0, out)
+        self.assertNotIn('git pull selhal', out)
+        self.assertIn('nové pravidlo', (self.root / 'FUNDAMENTALS.md').read_text(encoding='utf-8'))
+        self.assertEqual(run(['git', 'status', '--porcelain', '--', 'FUNDAMENTALS.md'], self.root), '')
+        self.assertEqual(run(['git', 'rev-list', '--count', 'origin/main..HEAD'], self.root).strip(), '1')
+
 if __name__ == '__main__':
     unittest.main()

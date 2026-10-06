@@ -102,10 +102,14 @@ def drop_local_commits(root, ref):
     """Zahodí nepushnuté commity agenta nad `ref` (smí měnit jen fundamentals.json). Vrací True, když je strom čistý."""
     if not git(root, 'rev-list', f'{ref}..HEAD').stdout.strip():
         return True
-    files = set(git(root, 'diff', '--name-only', ref, 'HEAD').stdout.split())
+    # Jen vlastní commity agenta: od společného předka, ne rozdíl proti upstreamu (ten mezitím mohl pohnout i jinými soubory).
+    base = git(root, 'merge-base', ref, 'HEAD').stdout.strip()
+    if not base:
+        return False
+    files = set(git(root, 'diff', '--name-only', base, 'HEAD').stdout.split())
     if files - {str(DATA)}:
         return False
-    git(root, 'reset', '-q', '--soft', ref)
+    git(root, 'reset', '-q', '--soft', base)
     git(root, 'restore', '--staged', '--worktree', str(DATA))
     return True
 
