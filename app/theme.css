@@ -1,0 +1,14 @@
+/* Světlý a tmavý motiv. Komponenty používají tokeny --t-*; motiv přepíná data-theme na <html> (app/theme.tsx).
+   :root zvyšuje specifičnost – soubor se importuje na začátku globals.css a pozdější pravidla by ho jinak přebila. */
+:root{--t-canvas:linear-gradient(180deg,#f3f6fc,#e9eef8);--t-surface:#fff;--t-surface-2:#f6f8fc;--t-surface-3:#f1f4fb;--t-border:#e3e8f2;--t-border-strong:#d2d4da;--t-fg:#141518;--t-fg-2:#4b5563;--t-muted:#6b7280;--t-muted-2:#8b93a3;--t-accent-soft:#e8efff;--t-brand:#245bff;--t-brand-fg:#245bff;--t-ok-soft:#e7f7ec;--t-bad-soft:#fdeaea;--t-warn-soft:#fff3df;--t-notice-bg:#fff8e8;--t-notice-border:#f3dfae;--t-inverse:#141518;--t-on-inverse:#fff;--t-chart-line:#17191e;--t-shadow:0 1px 2px #1018280a,0 8px 28px -20px #1b2a5a40}
+:root[data-theme=dark]{color-scheme:dark;--t-canvas:#0b0d12;--t-surface:#12151c;--t-surface-2:#161a22;--t-surface-3:#1c212b;--t-border:#242a35;--t-border-strong:#323a48;--t-fg:#e8ebf1;--t-fg-2:#c2c8d3;--t-muted:#8f98a8;--t-muted-2:#6c7588;--t-accent-soft:#172344;--t-brand:#3d6dff;--t-brand-fg:#86a3ff;--t-ok-soft:#0f2a1b;--t-bad-soft:#2d1518;--t-warn-soft:#2c2212;--t-notice-bg:#211b0e;--t-notice-border:#4b3b16;--t-inverse:#e8ebf1;--t-on-inverse:#0b0d12;--t-chart-line:#c9ced8;--t-shadow:0 1px 2px #0006,0 10px 30px -18px #000c;
+ --background:#0b0d12;--foreground:#e8ebf1;--card:#12151c;--card-foreground:#e8ebf1;--popover:#12151c;--popover-foreground:#e8ebf1;--secondary:#1c212b;--secondary-foreground:#e8ebf1;--muted:#1c212b;--muted-foreground:#8f98a8;--accent:#172344;--accent-foreground:#86a3ff;--border:#242a35;--input:#323a48;
+ /* Barvy signálu nastavuje palette.tsx inline; na tmavém pozadí potřebují světlejší text. */
+ --bull-text:color-mix(in srgb,var(--bull) 70%,#fff)!important;--bear-text:color-mix(in srgb,var(--bear) 70%,#fff)!important}
+:root body{background:var(--t-canvas);background-attachment:fixed;color:var(--t-fg)}
+:root .c-tag.c-all{background:var(--t-inverse);color:var(--t-on-inverse)}
+/* Grafy kreslené SVG atributy (tradee.tsx, score-analyzer.tsx) */
+:root[data-theme=dark] svg [fill="#737985"],:root[data-theme=dark] svg [fill="#707580"],:root[data-theme=dark] svg [fill="#7b8290"]{fill:var(--t-muted)}
+:root[data-theme=dark] svg [stroke="#d5d8df"],:root[data-theme=dark] svg [stroke="#eef1f7"]{stroke:var(--t-border-strong)}
+:root[data-theme=dark] svg [stroke="#9aa3b2"]{stroke:var(--t-muted-2)}
+:root[data-theme=dark] svg [stroke="#17191e"]{stroke:var(--t-chart-line)}

@@ -52,9 +52,11 @@ const rgb=(hex:string)=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
 const lin=(c:number)=>{const s=c/255;return s<=0.03928?s/12.92:((s+0.055)/1.055)**2.4};
 export const luminance=([r,g,b]:number[])=>0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
 export const contrast=(a:number[],b:number[])=>{const [x,y]=[luminance(a),luminance(b)].sort((m,n)=>n-m);return (x+0.05)/(y+0.05)};
-// Barva smíchaná s bílou podle sytosti (stejně jako rgba přes bílé pozadí).
-export const blend=(hex:string,alpha:number)=>rgb(hex).map(c=>Math.round(255+(c-255)*alpha));
-export const tileBackground=(hex:string,alpha:number)=>{const [r,g,b]=blend(hex,alpha);return `rgb(${r},${g},${b})`};
+// Barva smíchaná s podkladem podle sytosti (stejně jako rgba přes pozadí); světlý motiv bílá, tmavý povrch karty.
+const WHITE=[255,255,255];
+export const DARK_BASE=[18,21,28];
+export const blend=(hex:string,alpha:number,base=WHITE)=>rgb(hex).map((c,i)=>Math.round(base[i]+(c-base[i])*alpha));
+export const tileBackground=(hex:string,alpha:number,base=WHITE)=>{const [r,g,b]=blend(hex,alpha,base);return `rgb(${r},${g},${b})`};
 // Text na dlaždici (tučný): bílý, dokud má vůči pozadí kontrast aspoň 3:1, jinak tmavý.
-export const textOn=(hex:string,alpha:number)=>contrast(blend(hex,alpha),[255,255,255])>=3?'#fff':'#141518';
+export const textOn=(hex:string,alpha:number,base=WHITE)=>contrast(blend(hex,alpha,base),WHITE)>=3?'#fff':'#141518';
 export const hexContrastOnWhite=(hex:string)=>contrast(rgb(hex),[255,255,255]);
