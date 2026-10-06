@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = Path('data/fundamentals.json')
 PROMPT = ('Jsi ověřovatel fundamentů Tradee.ai. Přečti FUNDAMENTALS.md a lib/fundamentals.ts a aktualizuj '
           'fundamentals.json v tomto adresáři přesně podle FUNDAMENTALS.md. Používej jen veřejné primární zdroje. '
+          'Nejdřív obnov checkedAt zdrojů rozhodnutí bank od nejstaršího (oficiální RSS jako záloha, viz FUNDAMENTALS.md), až potom nová data. '
           'Měň jen soubor fundamentals.json. Na konci napiš jednu větu shrnutí česky.')
 # Read/Edit jen v pracovní složce ('//' = absolutní cesta); domov, /home, /etc a /root výslovně zakázané.
 # Bez těchto omezení by podvržená webová stránka mohla agenta přimět přečíst deploy key nebo upravit ~/.bashrc
