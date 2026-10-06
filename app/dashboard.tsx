@@ -69,7 +69,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
  return <div className="d-dash">
   <header className="d-pagehead">
-   <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}, {vocative(userName)}</h1></div>
+   <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{userName?', '+vocative(userName):''}</h1></div>
    <div className="d-status">
     <span className={'d-chip'+(sess.fxOpen?' live':'')}><i/>{sess.fxOpen?<>FX otevřeno{live.length?<span> · {live.map(x=>x.city).join(', ')}</span>:null}</>:'FX zavřeno · víkend'}</span>
     {next&&<button type="button" className="d-chip" onClick={()=>setView('calendar')}><CalendarDays size={14}/><b>{next.title}</b><span>{time(next.at)} · {until(next.at,now)}</span></button>}
