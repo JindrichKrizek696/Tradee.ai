@@ -5,7 +5,9 @@ const KEY='tradee.theme';
 type Theme='light'|'dark';
 // Vkládá se do <head>: motiv se nastaví před prvním vykreslením, takže tmavý režim neprobliká světlým.
 export const themeScript=`try{document.documentElement.dataset.theme=localStorage.getItem('${KEY}')==='dark'?'dark':'light'}catch(e){document.documentElement.dataset.theme='light'}`;
-const subscribe=(cb:()=>void)=>{const o=new MutationObserver(cb);o.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});return()=>o.disconnect()};
+const stored=():Theme=>{try{return localStorage.getItem(KEY)==='dark'?'dark':'light'}catch{return 'light'}};
+// Když React po nesouladu hydratace přegeneruje stránku, smaže z <html> i data-theme – tady se hned vrátí.
+const subscribe=(cb:()=>void)=>{const el=document.documentElement,fix=()=>{if(!el.dataset.theme)el.dataset.theme=stored()};fix();const o=new MutationObserver(()=>{fix();cb()});o.observe(el,{attributes:true,attributeFilter:['data-theme']});return()=>o.disconnect()};
 const read=():Theme=>document.documentElement.dataset.theme==='dark'?'dark':'light';
 export function useTheme(){
  const theme=useSyncExternalStore(subscribe,read,():Theme=>'light');

@@ -1,13 +1,13 @@
 'use client';
 import {useId,useRef,useState} from 'react';
-import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,ArrowUpRight,ArrowDownRight} from 'lucide-react';
+import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,ArrowUpRight,ArrowDownRight,RotateCcw,Plus} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
 import {groups} from '@/lib/markets';
 import {TradeCalendar,useTrades,months,todayIso,plural} from './trade-calendar';
 import {EventRow} from './calendar';
 import {upcomingCalendar,flaggedMarkets,relative as until,type CalendarEvent} from '@/lib/calendar';
-import {monthStats,monthCurve,fmtUsd} from '@/lib/trades';
+import {monthStats,fmtUsd,periodStats,type Period,type Bucket} from '@/lib/trades';
 import type {View} from './shell';
 import {greeting,vocative,breadth,topSignals,sessions,dataHealth,recentChanges,scoreSeries,bullishTrail,bearishTrail,type Row,type HistoryLike} from '@/lib/dashboard';
 const fmt=(n:number|null,d=1)=>n===null?'—':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:d});
@@ -33,18 +33,40 @@ function Spark({values,color}:{values:number[];color:string}){
  const d=values.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
  return <svg className="d-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{stopColor:color,stopOpacity:.25}}/><stop offset="1" style={{stopColor:color,stopOpacity:0}}/></linearGradient></defs><path d={`${d} L${w} ${h} L0 ${h} Z`} fill={`url(#${id})`}/><path d={d} fill="none" style={{stroke:color}} strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round"/></svg>;
 }
-// Plošný graf s přechodem; zero = vykreslit a zahrnout nulovou osu (P&L).
-function Area({series,height,zero}:{series:{values:number[];color:string}[];height:number;zero?:boolean}){
- const id=useId(),all=series.flatMap(s=>s.values);
- if(series.every(s=>s.values.length<2))return null;
- const w=400,hi=Math.max(...all,...(zero?[0]:[])),lo=Math.min(...all,...(zero?[0]:[])),pad=(hi-lo)*.12||1,top=hi+pad,bot=zero?lo:lo-pad,y=(v:number)=>(top-v)/((top-bot)||1)*height;
- return <svg className="d-area" viewBox={`0 0 ${w} ${height}`} style={{height}} preserveAspectRatio="none" aria-hidden="true">
-  <defs>{series.map((s,k)=><linearGradient key={k} id={id+k} x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{stopColor:s.color,stopOpacity:.3}}/><stop offset="1" style={{stopColor:s.color,stopOpacity:0}}/></linearGradient>)}</defs>
-  {zero&&<line x1="0" x2={w} y1={y(0)} y2={y(0)} className="d-zero" vectorEffect="non-scaling-stroke"/>}
-  {series.map((s,k)=>{if(s.values.length<2)return null;const d=s.values.map((v,i)=>(i?'L':'M')+(i/(s.values.length-1)*w).toFixed(1)+' '+y(v).toFixed(1)).join(' ');return <g key={k}><path d={`${d} L${w} ${height} L0 ${height} Z`} fill={`url(#${id+k})`}/><path d={d} fill="none" style={{stroke:s.color}} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round"/></g>})}
+function Ring({pct}:{pct:number}){const r=34,c=2*Math.PI*r;return <svg className="d-ring" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r={r} className="d-ring-track"/><circle cx="42" cy="42" r={r} className="d-ring-fill" strokeDasharray={`${c*Math.max(0,Math.min(100,pct))/100} ${c}`} transform="rotate(-90 42 42)"/></svg>}
+// Půlkruhový ukazatel indexu −100…+100 (medvědi vlevo, býci vpravo).
+function Gauge({value}:{value:number}){
+ const id=useId(),cx=120,cy=118,r=96,ang=(v:number)=>Math.PI*(1-(Math.max(-100,Math.min(100,v))+100)/200),pt=(v:number,rr:number)=>[cx+rr*Math.cos(ang(v)),cy-rr*Math.sin(ang(v))];
+ const [kx,ky]=pt(value,r),arc=`M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}`;
+ return <svg className="d-gauge" viewBox="0 0 240 132" aria-hidden="true">
+  <defs><linearGradient id={id} x1="0" x2="1" y1="0" y2="0"><stop offset="0" style={{stopColor:'var(--bear)'}}/><stop offset=".5" style={{stopColor:'var(--t-border-strong)'}}/><stop offset="1" style={{stopColor:'var(--bull)'}}/></linearGradient></defs>
+  <path d={arc} fill="none" className="d-gauge-track"/>
+  <path d={arc} fill="none" stroke={`url(#${id})`} className="d-gauge-arc"/>
+  {[-100,-50,0,50,100].map(t=>{const [x1,y1]=pt(t,r-16),[x2,y2]=pt(t,r-22);return <line key={t} x1={x1} y1={y1} x2={x2} y2={y2} className="d-gauge-tick"/>})}
+  <circle cx={kx} cy={ky} r="10" className="d-gauge-knob"/>
  </svg>;
 }
-function Ring({pct}:{pct:number}){const r=34,c=2*Math.PI*r;return <svg className="d-ring" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r={r} className="d-ring-track"/><circle cx="42" cy="42" r={r} className="d-ring-fill" strokeDasharray={`${c*Math.max(0,Math.min(100,pct))/100} ${c}`} transform="rotate(-90 42 42)"/></svg>}
+// Čistá převaha (bullish − bearish) v jednotlivých snímcích.
+function NetBars({values}:{values:number[]}){
+ const max=Math.max(1,...values.map(Math.abs));
+ return <div className="d-netbars" aria-hidden="true">{values.map((v,i)=><span key={i} className={v>0?'pos':v<0?'neg':'zero'} style={{'--h':Math.abs(v)/max*50+'%'} as React.CSSProperties}/>)}</div>;
+}
+const GHOST:Bucket[]=[14,-6,22,9,-12,18,26,-4,12,30,-9,16,24,8].map((pnl,i,a)=>({label:'',pnl,future:false,cum:a.slice(0,i+1).reduce((s,x)=>s+x,0)}));
+// Denní (u roku měsíční) výsledek jako sloupce od nuly + kumulativní křivka; ghost = zástupný graf pro prázdný stav.
+function PnlChart({buckets,ghost}:{buckets:Bucket[];ghost?:boolean}){
+ const id=useId(),w=600,h=150,n=buckets.length,step=w/n,bw=Math.max(3,Math.min(22,step*.56));
+ const cums=buckets.filter(b=>b.cum!==null).map(b=>b.cum as number),hi=Math.max(0,...cums),lo=Math.min(0,...cums),span=(hi-lo)||1,yl=(v:number)=>14+(hi-v)/span*(h-28),y0=yl(0);
+ const k=(h*.42)/Math.max(1,...buckets.map(b=>Math.abs(b.pnl)));
+ const pts=buckets.flatMap((b,i)=>b.cum===null?[]:[[i*step+step/2,yl(b.cum)] as [number,number]]);
+ const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' '),last=pts.at(-1);
+ return <svg className={'d-pnlchart'+(ghost?' ghost':'')} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+  <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{stopColor:'var(--t-fg)',stopOpacity:.1}}/><stop offset="1" style={{stopColor:'var(--t-fg)',stopOpacity:0}}/></linearGradient></defs>
+  <line x1="0" x2={w} y1={y0} y2={y0} className="d-zero" vectorEffect="non-scaling-stroke"/>
+  {buckets.map((b,i)=>{const x=i*step+(step-bw)/2;if(b.future||!b.pnl)return <rect key={i} x={x+bw/2-1.5} y={y0-1.5} width="3" height="3" rx="1.5" className="d-pnl-dot"/>;const hh=Math.max(2,b.pnl>0?Math.min(b.pnl*k,y0-4):Math.min(-b.pnl*k,h-y0-4));return <rect key={i} x={x} y={b.pnl>0?y0-hh:y0} width={bw} height={hh} rx={Math.min(4,bw/3)} className={b.pnl>0?'d-pnl-up':'d-pnl-down'}/>})}
+  {pts.length>1&&<><path d={`${line} L${pts[pts.length-1][0]} ${h} L${pts[0][0]} ${h} Z`} fill={`url(#${id})`}/><path d={line} fill="none" className="d-pnl-line" vectorEffect="non-scaling-stroke"/></>}
+  {last&&!ghost&&<circle cx={last[0]} cy={last[1]} r="4" className="d-pnl-end"/>}
+ </svg>;
+}
 
 // Lišta zapuštěná do okraje okna: v klidu vystupuje jen úzký pruh s ikonami, po najetí se roztáhne.
 function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail:React.ReactNode;children:React.ReactNode}){
@@ -56,10 +78,13 @@ function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail
 
 export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady}:{calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
- const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all');
+ const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[period,setPeriod]=useState<Period>('month');
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
  const events=upcomingCalendar(calendar,now,6),next=events.find(e=>Date.parse(e.at)>=now&&(e.signal===3||e.global))||events.find(e=>Date.parse(e.at)>=now);
- const today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7)),stats=monthStats(trades,y,mo),curve=monthCurve(trades,y,mo,today),month=months[mo-1].toLowerCase();
+ const today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7)),stats=monthStats(trades,y,mo),month=months[mo-1].toLowerCase(),ps=periodStats(trades,period,today);
+ const bullT=bullishTrail(history,24),bearT=bearishTrail(history,24),net=bullT.map((v,i)=>v-(bearT[i]??0)),index=b.scored?Math.round(100*(b.bull-b.bear)/b.scored):0;
+ const delta=(t:number[])=>t.length>1?t[t.length-1]-t[t.length-2]:0,signed=(n:number)=>n>0?'+'+n:n<0?'−'+-n:'0';
+ const periodLabel=period==='week'?'tento týden':period==='month'?months[mo-1]+' '+y:String(y);
  const signalGroups=SIGNAL_GROUPS.filter(g=>rows.some(r=>r.group===g&&r.r.score)),list=topSignals(group==='all'?rows:rows.filter(r=>r.group===group),6)[side];
  const ccy=rows.filter(r=>r.group==='currency'&&r.r.score!==null).sort((a,c)=>(c.r.score as number)-(a.r.score as number)),ccyScale=Math.max(10,...ccy.map(r=>Math.abs(r.r.score as number)))*1.15;
  const watched=rows.filter(r=>FLAGS.includes(flags[r.id])).sort((a,c)=>FLAGS.indexOf(flags[a.id])-FLAGS.indexOf(flags[c.id])||a.name.localeCompare(c.name)),count=(f:string)=>watched.filter(r=>flags[r.id]===f).length;
@@ -79,23 +104,39 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
 
   <div className="d-bento">
    <section className="d-card d-pulse" style={tile(0)}>
-    <div className="d-head"><h2>Šíře trhu</h2><span className="d-meta">{b.scored} trhů se skóre</span></div>
-    <div className="d-pulse-stats">
-     <div><span className="d-lbl"><img src="/brand/bull.png" alt=""/>Bullish</span><b className="up">{b.bull}</b></div>
-     <div><span className="d-lbl"><img src="/brand/bear.png" alt=""/>Bearish</span><b className="down">{b.bear}</b></div>
-     <div><span className="d-lbl">Neutrální</span><b className="d-flat">{b.flat}</b></div>
-     <p className="d-verdict">{b.summary}</p>
+    <div className="d-head"><h2>Šíře trhu</h2><span className="d-meta">{b.scored?b.scored+' trhů se skóre':'Podklady jsou starší než limit'}{trail.length?' · snímek '+day(trail[trail.length-1].at):''}</span></div>
+    <div className="d-pulse-body">
+     <div className="d-gaugebox">
+      <Gauge value={index}/>
+      <div className="d-gauge-center">{b.scored?<><b className={tone(index)}>{signed(index)}</b><span>{b.summary}</span></>:<><b className="d-na">—</b><span>Skóre je pozastavené</span></>}</div>
+      <div className="d-gauge-scale"><span>Bearish</span><span>Bullish</span></div>
+     </div>
+     <ul className="d-brows">
+      {([['bull','Bullish',b.bull,bullT],['bear','Bearish',b.bear,bearT]] as const).map(([k,label,n,t])=><li key={k}><button type="button" onClick={()=>{setSide(k);document.querySelector('.d-watch')?.scrollIntoView({behavior:'smooth',block:'center'})}}>
+       <span className="d-badge"><i className="d-mascot"><img src={`/brand/${k}.png`} alt=""/></i></span>
+       <span className="d-name"><b>{label}</b><small>{delta(t)?signed(delta(t))+' proti minulému snímku':'beze změny'}</small></span>
+       <Spark values={[...t]} color={k==='bull'?'var(--bull)':'var(--bear)'}/>
+       <em className={'d-score '+(k==='bull'?'up':'down')}>{n}</em>
+      </button></li>)}
+      <li><div className="d-brow-flat"><span className="d-badge"><i>=</i></span><span className="d-name"><b>Neutrální</b><small>skóre přesně 0</small></span><span/><em className="d-score">{b.flat}</em></div></li>
+     </ul>
     </div>
-    <div className="d-stack" role="img" aria-label={`Bullish ${b.bull}, neutrální ${b.flat}, bearish ${b.bear}`}><i className="bull" style={{width:pct(b.bull)}}/><i className="flat" style={{width:pct(b.flat)}}/><i className="bear" style={{width:pct(b.bear)}}/></div>
-    <div className="d-bleed"><Area height={110} series={[{values:bullishTrail(history,24),color:'var(--bull)'},{values:bearishTrail(history,24),color:'var(--bear)'}]}/>{trail.length>1&&<div className="d-axis"><span>{day(trail[0].at)}</span><span>Vývoj počtu bullish a bearish trhů</span><span>{day(trail.at(-1)!.at)}</span></div>}</div>
+    {net.length>1&&<div className="d-bleed d-netwrap"><NetBars values={net}/><div className="d-axis"><span>{day(trail[0].at)}</span><span>Čistá převaha bullish − bearish · {net.length} snímků</span><span>{day(trail[trail.length-1].at)}</span></div></div>}
    </section>
 
    <section className="d-card d-pnl" style={tile(1)}>
-    <div className="d-head"><h2>P&amp;L · {month}</h2><span className="d-meta">{stats.count} {plural(stats.count)}</span></div>
-    {tradeError?<p className="d-empty">Deník obchodů se nepodařilo načíst.</p>:!tradesReady?<p className="d-empty">Načítám obchody…</p>:<>
-     <div className="d-big"><b className={tone(stats.total)}>{fmtUsd(stats.total)}</b>{stats.count>0&&<span className={'d-delta '+tone(stats.total)}>{stats.total>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{Math.round(stats.winRate)} % úspěšnost</span>}</div>
-     {stats.count?<div className="d-bleed"><Area height={130} zero series={[{values:curve,color:stats.total>=0?'var(--bull)':'var(--bear)'}]}/><div className="d-axis"><span>1. {month}</span><span>Kumulativní výsledek</span><span>dnes</span></div></div>:<p className="d-empty">Tento měsíc zatím bez obchodů. Zapiš první v kalendáři níže.</p>}
-    </>}
+    <div className="d-head"><h2>P&amp;L</h2><div className="d-seg sm" role="tablist" aria-label="Období">{([['week','Týden'],['month','Měsíc'],['year','Rok']] as const).map(([p,l])=><button key={p} type="button" role="tab" aria-selected={period===p} className={period===p?'on':''} onClick={()=>setPeriod(p)}>{l}</button>)}</div></div>
+    <div className="d-big"><b className={tradesReady&&!tradeError?tone(ps.total):''}>{tradesReady&&!tradeError?fmtUsd(ps.total):'—'}</b>{ps.count>0&&<span className={'d-delta '+tone(ps.total)}>{ps.total>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{Math.round(ps.winRate)} % úspěšnost</span>}<span className="d-meta">{periodLabel}</span></div>
+    <div className="d-bleed d-pnlwrap">
+     {tradesReady&&!tradeError&&ps.count?<PnlChart buckets={ps.buckets}/>:<><PnlChart buckets={GHOST} ghost/><div className="d-ghostmsg">{tradeError?<><span>Deník obchodů se nepodařilo načíst.</span><button type="button" className="d-btn" onClick={()=>reloadTrades()}><RotateCcw size={14}/>Zkusit znovu</button></>:!tradesReady?<span>Načítám obchody…</span>:<><span>V tomto období zatím žádné obchody.</span><button type="button" className="d-btn" onClick={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}><Plus size={14}/>Zapsat obchod</button></>}</div></>}
+     <div className="d-axis d-ticks">{ps.buckets.map((x,i)=><span key={i}>{period!=='month'||i===0||(i+1)%5===0||(i===ps.buckets.length-1&&(i+1)%5>=3)?x.label:''}</span>)}</div>
+    </div>
+    <dl className="d-kv">
+     <div><dt>Obchody</dt><dd>{ps.count||'—'}</dd></div>
+     <div><dt>Profit factor</dt><dd>{ps.profitFactor===null?(ps.wins?'∞':'—'):ps.profitFactor.toLocaleString('cs-CZ',{maximumFractionDigits:2})}</dd></div>
+     <div><dt>Ø zisk</dt><dd className={ps.avgWin===null?'':'up'}>{ps.avgWin===null?'—':fmtUsd(ps.avgWin)}</dd></div>
+     <div><dt>Ø ztráta</dt><dd className={ps.avgLoss===null?'':'down'}>{ps.avgLoss===null?'—':fmtUsd(ps.avgLoss)}</dd></div>
+    </dl>
    </section>
 
    <section className="d-card d-watch" style={tile(2)}>

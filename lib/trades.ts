@@ -32,3 +32,20 @@ export function monthCurve(trades:Trade[],year:number,month:number,todayIso:stri
  for(let d=1;d<=end;d++){const day=prefix+String(d).padStart(2,'0');for(const t of trades)if(t.date===day)sum+=t.pnl;out.push(Math.round(sum*100)/100)}
  return out;
 }
+export type Period='week'|'month'|'year';
+export type Bucket={label:string;pnl:number;cum:number|null;future:boolean};
+const MONTHS_SHORT=['led','úno','bře','dub','kvě','čvn','čvc','srp','zář','říj','lis','pro'];
+/** P&L za běžící týden (po–ne), měsíc nebo rok: denní / měsíční součty, kumulace do dneška a poměrové ukazatele. */
+export function periodStats(trades:Trade[],period:Period,todayIso:string){
+ const [y,m,d]=todayIso.split('-').map(Number),pad=(n:number)=>String(n).padStart(2,'0');
+ let keys:string[],labels:string[];
+ if(period==='year'){keys=MONTHS_SHORT.map((_,i)=>`${y}-${pad(i+1)}`);labels=MONTHS_SHORT}
+ else if(period==='month'){const last=new Date(Date.UTC(y,m,0)).getUTCDate();keys=Array.from({length:last},(_,i)=>`${y}-${pad(m)}-${pad(i+1)}`);labels=keys.map(k=>String(Number(k.slice(8))))}
+ else{const start=new Date(Date.UTC(y,m-1,d));start.setUTCDate(d-(start.getUTCDay()+6)%7);keys=Array.from({length:7},(_,i)=>{const x=new Date(start);x.setUTCDate(start.getUTCDate()+i);return iso(x)});labels=['Po','Út','St','Čt','Pá','So','Ne']}
+ const key=(t:Trade)=>period==='year'?t.date.slice(0,7):t.date,range=new Set(keys),list=trades.filter(t=>range.has(key(t)));
+ const sums=new Map<string,number>();for(const t of list)sums.set(key(t),(sums.get(key(t))||0)+t.pnl);
+ const nowKey=period==='year'?todayIso.slice(0,7):todayIso,r2=(n:number)=>Math.round(n*100)/100;
+ let cum=0;const buckets:Bucket[]=keys.map((k,i)=>{const pnl=r2(sums.get(k)||0),future=k>nowKey;if(!future)cum+=pnl;return {label:labels[i],pnl,future,cum:future?null:r2(cum)}});
+ const wins=list.filter(t=>t.pnl>0),losses=list.filter(t=>t.pnl<0),gw=wins.reduce((s,t)=>s+t.pnl,0),gl=-losses.reduce((s,t)=>s+t.pnl,0);
+ return {total:r2(gw-gl),count:list.length,wins:wins.length,winRate:list.length?100*wins.length/list.length:0,profitFactor:gl?gw/gl:null,avgWin:wins.length?r2(gw/wins.length):null,avgLoss:losses.length?r2(-gl/losses.length):null,buckets};
+}
