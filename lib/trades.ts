@@ -22,13 +22,5 @@ export function monthStats(trades:Trade[],year:number,month:number){
  const total=Math.round(list.reduce((s,t)=>s+t.pnl,0)*100)/100,wins=list.filter(t=>t.pnl>0).length;
  const byDay=new Map<string,number>();for(const t of list)byDay.set(t.date,(byDay.get(t.date)||0)+t.pnl);
  const best=byDay.size?Math.max(...byDay.values()):0,worst=byDay.size?Math.min(...byDay.values()):0;
- return {total,count:list.length,wins,winRate:list.length?100*wins/list.length:0,best:Math.round(best*100)/100,worst:Math.round(worst*100)/100,days:byDay.size,greenDays:[...byDay.values()].filter(v=>v>0).length};
-}
-/** Kumulativní P&L po dnech měsíce; u běžícího měsíce končí dneškem. */
-export function monthCurve(trades:Trade[],year:number,month:number,todayIso:string){
- const prefix=`${year}-${String(month).padStart(2,'0')}-`,last=new Date(Date.UTC(year,month,0)).getUTCDate();
- const end=todayIso.startsWith(prefix)?Number(todayIso.slice(8,10)):todayIso<prefix?0:last;
- const out:number[]=[];let sum=0;
- for(let d=1;d<=end;d++){const day=prefix+String(d).padStart(2,'0');for(const t of trades)if(t.date===day)sum+=t.pnl;out.push(Math.round(sum*100)/100)}
- return out;
+ return {total,count:list.length,wins,winRate:list.length?100*wins/list.length:0,best:Math.round(best*100)/100,worst:Math.round(worst*100)/100,days:byDay.size};
 }
