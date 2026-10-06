@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tradee · fundamentální a technická analýza měn</title>
+<meta name="description" content="Síla měn, COT pozice, sezonalita a transparentní skórování. Zapiš se na waitlist.">
+<link rel="icon" href="/favicon.svg">
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--text:#141518;--muted:#5d6676;--line:#e3e8f2;--accent:#2f5bea;--ok:#127a4a;--err:#b42318}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px 28px;box-shadow:0 12px 32px -16px #1b2a5a33}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;margin-bottom:20px}
+.brand img{width:32px;height:32px}
+h1{font-size:24px;line-height:1.25;margin:0 0 8px}
+p{color:var(--muted);margin:0 0 20px}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input[type=email]{flex:1 1 200px;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
+button{padding:11px 16px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.hp{position:absolute;left:-9999px}
+#msg{min-height:24px;margin:12px 0 0;font-size:14px}
+#msg.ok{color:var(--ok)}#msg.err{color:var(--err)}
+.login{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+a{color:var(--accent)}
+footer{margin-top:16px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+ <div class="brand"><img src="/favicon.svg" alt=""><span>Tradee</span></div>
+ <h1>Fundamentální a technická analýza měn na jednom místě</h1>
+ <p>Tradee je zatím v uzavřeném provozu. Zapiš se a ozveme se, až tě pustíme dovnitř.</p>
+ <form id="f" method="post" action="/api/waitlist">
+  <input type="email" name="email" required maxlength="254" placeholder="Tvůj e-mail" aria-label="Tvůj e-mail" autocomplete="email">
+  <input class="hp" type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <button type="submit">Chci přístup</button>
+ </form>
+ <p id="msg" role="status" aria-live="polite"></p>
+ <div class="login">Už máš přístup? <a href="/auth/google">Přihlásit přes Google</a></div>
+ <footer><a href="/soukromi">Zásady ochrany osobních údajů</a></footer>
+</main>
+<script>
+(function(){
+ var M={zapsano:['ok','Díky, jsi na seznamu. Ozveme se.'],cekas:['ok','Tvůj účet čeká na schválení. Ozveme se.'],chyba:['err','Přihlášení se nepovedlo, zkus to znovu.'],neplatny:['err','Zadej platný e-mail.']};
+ var msg=document.getElementById('msg'),f=document.getElementById('f');
+ function show(k){var m=M[k];if(!m)return;msg.className=m[0];msg.textContent=m[1]}
+ show(new URLSearchParams(location.search).get('stav'));
+ f.addEventListener('submit',function(e){
+  e.preventDefault();var b=f.querySelector('button');b.disabled=true;
+  fetch('/api/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:f.email.value,web:f.web.value})})
+   .then(function(r){return r.json().then(function(j){if(!r.ok)throw j;show('zapsano');f.reset()})})
+   .catch(function(j){msg.className='err';msg.textContent=(j&&j.error)||'Zápis se nepovedl, zkus to znovu.'})
+   .then(function(){b.disabled=false});
+ });
+})();
+</script>
+</body>
+</html>
