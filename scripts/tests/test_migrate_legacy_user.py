@@ -14,8 +14,13 @@ class StatementsTest(unittest.TestCase):
         # duplicitní vlaječky nového účtu pryč dřív, než se přejmenují staré (PK id = user:instrument)
         self.assertLess(next(i for i, s in enumerate(sqls) if s.startswith('DELETE FROM watch_flags')),
                         next(i for i, s in enumerate(sqls) if s.startswith('UPDATE watch_flags')))
+        # totéž pro progress (PK id = user:lesson)
+        self.assertLess(next(i for i, s in enumerate(sqls) if s.startswith('DELETE FROM progress')),
+                        next(i for i, s in enumerate(sqls) if s.startswith('UPDATE progress')))
+        self.assertNotIn(('UPDATE progress SET user_id=%s WHERE user_id=%s', ('g:42', 'jindra')), st)
+        self.assertIn(("UPDATE progress SET id=CONCAT(%s,':',lesson_id), user_id=%s WHERE user_id=%s", ('g:42', 'g:42', 'jindra')), st)
         self.assertTrue(sqls[-1].startswith('DELETE FROM members'))
-        for table in ('trades', 'progress', 'messages'):
+        for table in ('trades', 'messages'):
             self.assertIn((f'UPDATE {table} SET user_id=%s WHERE user_id=%s', ('g:42', 'jindra')), st)
         self.assertIn(('DELETE FROM members WHERE id=%s', ('jindra',)), st)
 

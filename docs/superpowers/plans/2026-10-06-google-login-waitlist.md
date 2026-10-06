@@ -27,6 +27,8 @@
 
 - `identity()` ověřuje cookie sama a hlavičky `X-Tradee-*` se nepoužívají. Spec je zmiňoval jako kanál z `/auth/check`; čtení cookie přímo v aplikaci je jednodušší a bezpečnější (podvržená hlavička nemá kam vstoupit).
 - Výsledek kontroly přístupu se v procesu cachuje **30 s** (jinak by `/auth/check` u každého assetu otevíral nové spojení do DB). Odebrání přístupu tedy platí do 30 s, ne okamžitě.
+- Chybějící `GOOGLE_*`/`SESSION_SECRET` → `/auth/*` přesměruje na `/?stav=chyba` (a zaloguje) místo HTTP 500; lepší UX.
+- Rate limit waitlistu v nginxu je `rate=1r/m burst=4` (≈ 5 požadavků naráz, pak 1 za minutu).
 - Statické stránky obsluhuje wrangler assets (`html_handling: auto-trailing-slash`): `/landing/` → `landing/index.html`, `/landing/soukromi` → `landing/soukromi.html`.
 
 ## Review Focus
@@ -878,8 +880,10 @@ Expected: migrace vypíše `0003_waitlist.sql`, build bez chyby.
 V `/etc/systemd/system/tradee.service` změň `ExecStart` na:
 
 ```
-ExecStart=/bin/bash -lc 'source /home/ubuntu/.nvm/nvm.sh && nvm use 22 >/dev/null && cat .mariadb.env .auth.env > dist/server/.dev.vars && exec npm start -- --port 8787 --upstream-protocol https'
+ExecStart=/bin/bash -lc 'source /home/ubuntu/.nvm/nvm.sh && nvm use 22 >/dev/null && awk 1 .mariadb.env .auth.env > dist/server/.dev.vars && exec npm start -- --port 8787 --upstream-protocol https'
 ```
+
+Přidej do `~/tradee/.auth.env` na VPS řádek `LEGACY_HEADER_AUTH=1` (`echo LEGACY_HEADER_AUTH=1 >> ~/tradee/.auth.env`). Starý nginx totiž až do přepnutí v Step 5 stále posílá hlavičky `oai-*` a bez tohoto přepínače by aplikace nepoznala uživatele. (`awk 1` v `ExecStart` doplní chybějící koncový newline, takže se poslední řádek `.mariadb.env` nespojí s prvním řádkem `.auth.env`.)
 
 Pak `sudo systemctl daemon-reload && sudo systemctl restart tradee` a počkej, až `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/landing/` vrátí 200.
 
@@ -893,7 +897,7 @@ curl -s -o /dev/null -w "check bez cookie %{http_code}\n" $b/auth/check
 curl -s -o /dev/null -w "check s nesmyslem %{http_code}\n" -H "Cookie: tradee_session=a.b" $b/auth/check
 curl -s -D- -o /dev/null $b/auth/google | grep -iE "^(HTTP|location|set-cookie)"
 curl -s -D- -o /dev/null "$b/auth/callback?error=access_denied" | grep -iE "^(HTTP|location)"
-curl -s -H "Origin: https://tradee.eu" -H "Content-Type: application/json" -d "{\"email\":\"neplatny\"}" $b/api/waitlist; echo
+curl -s -H "Host: tradee.eu" -H "Origin: https://tradee.eu" -H "Content-Type: application/json" -d "{\"email\":\"neplatny\"}" $b/api/waitlist; echo
 curl -s -H "Content-Type: application/json" -d "{\"email\":\"x@y.cz\",\"web\":\"bot\"}" $b/api/waitlist; echo
 curl -s -H "Content-Type: application/json" -d "{\"email\":\"Test.Tradee@Example.com\"}" $b/api/waitlist; echo
 curl -s -H "Content-Type: application/json" -d "{\"email\":\"test.tradee@example.com\"}" $b/api/waitlist; echo
@@ -905,6 +909,16 @@ Expected: landing 200, soukromi 200, oba checky 401; `/auth/google` → 302 na `
 Pokud `/landing/` nebo `/landing/soukromi` nevrací 200 (jiné `html_handling` wrangleru), uprav cesty v `deploy/nginx-tradee.eu.conf` podle skutečného chování a commitni opravu.
 
 - [ ] **Step 5: Přepnutí nginxu**
+
+Nejdřív zkontroluj, že žádný jiný vhost neproxuje na aplikaci:
+
+```bash
+ssh ubuntu@130.61.122.142 'grep -rn "tradee.dejny.eu\|8787" /etc/nginx/sites-enabled'
+```
+
+Expected: soubor `tradee.dejny.eu` obsahuje jen `return 301 https://tradee.eu$request_uri` a jediné řádky s proxy na `:8787` jsou v `tradee.eu`.
+
+Potom zkopíruj konfigurace:
 
 ```bash
 scp deploy/nginx-tradee-proxy.conf ubuntu@130.61.122.142:/tmp/ && scp deploy/nginx-tradee.eu.conf ubuntu@130.61.122.142:/tmp/
@@ -926,21 +940,43 @@ curl -s $r -o /dev/null -w "spoof %{http_code}\n" -H "oai-authenticated-user-id:
 curl -s $r -o /dev/null -w "soukromi %{http_code}\n" https://tradee.eu/soukromi
 curl -s $r -o /dev/null -w "check zvenku %{http_code}\n" https://tradee.eu/auth/check
 curl -s $r -o /dev/null -w "neexistujici %{http_code} %{redirect_url}\n" https://tradee.eu/neco
+curl -s $r --path-as-is -o /dev/null -w "traversal %{http_code}\n" "https://tradee.eu/landing/..%2fassets/$asset"
 ```
 
-Expected: `/` 200 a grep `1`; asset `302 https://tradee.eu/`; api 401; spoof 401; soukromi 200; check zvenku 404; neexistující 302 na `/`.
+Expected: `/` 200 a grep `1`; asset `302 https://tradee.eu/`; api 401; spoof 401; soukromi 200; check zvenku 404; neexistující 302 na `/`; traversal ne 200 s JS (404 nebo 302).
 
-- [ ] **Step 7: Přihlášení Daniela a migrace dat**
+- [ ] **Step 7: Vypnout dočasný legacy přepínač**
+
+Nginx už oai-* hlavičky nastavuje jen prázdné, přepínač není potřeba:
+
+```bash
+ssh ubuntu@130.61.122.142 "sed -i '/^LEGACY_HEADER_AUTH=/d' ~/tradee/.auth.env && sudo systemctl restart tradee"
+```
+
+Počkej na `/landing/` 200 a znovu spusť spoof curl ze Step 6 (`spoof`): expected 401.
+
+- [ ] **Step 8: Přihlášení Daniela a migrace dat**
 
 Daniel otevře `https://tradee.eu`, klikne „Přihlásit přes Google“ (účet d.slaby06@gmail.com) → musí skončit v aplikaci. Pak:
 
 ```bash
-ssh ubuntu@130.61.122.142 'cd ~/tradee && bash scripts/backup.sh && set -a && . ./.mariadb.env && set +a && sub=$(mysql -N -h"$MARIADB_HOST" -P"$MARIADB_PORT" -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DB" -e "SELECT google_sub FROM waitlist WHERE email=\"d.slaby06@gmail.com\"") && python3 scripts/migrate-legacy-user.py "g:$sub" && python3 scripts/migrate-legacy-user.py "g:$sub" --apply'
+ssh ubuntu@130.61.122.142 'cd ~/tradee && bash scripts/backup.sh && sub=$(python3 - <<PY
+import sys
+sys.path.insert(0, "scripts")
+from importlib import import_module
+import pymysql
+c = import_module("mariadb-migrate").load_env("./.mariadb.env")
+db = pymysql.connect(host=c["MARIADB_HOST"], port=int(c.get("MARIADB_PORT", 3306)), user=c["MARIADB_USER"], password=c["MARIADB_PASSWORD"], database=c["MARIADB_DB"])
+cur = db.cursor()
+cur.execute("SELECT google_sub FROM waitlist WHERE email=%s", ("d.slaby06@gmail.com",))
+print(cur.fetchone()[0])
+PY
+) && python3 scripts/migrate-legacy-user.py "g:$sub" && python3 scripts/migrate-legacy-user.py "g:$sub" --apply'
 ```
 
 Expected: nanečisto `trades: 2`, `watch_flags: 4`, pak `Hotovo.`; po obnovení stránky jsou v aplikaci vidět 2 obchody, 4 vlaječky a uložená paleta. Odhlásit v menu avatara → landing.
 
-- [ ] **Step 8: Úklid hesla**
+- [ ] **Step 9: Úklid hesla**
 
 ```bash
 ssh ubuntu@130.61.122.142 'sudo rm /etc/nginx/auth/tradee.htpasswd && sudo nginx -t && sudo systemctl reload nginx'
@@ -957,7 +993,7 @@ ssh ubuntu@130.61.122.142 'sudo rm /etc/nginx/auth/tradee.htpasswd && sudo nginx
 
 - [ ] **Step 1: Smaž fallback**
 
-V `lib/server.ts` odstraň funkci `legacyIdentity` a `identity` změň na:
+V `lib/server.ts` odstraň funkci `legacyIdentity`, řádek `LEGACY_HEADER_AUTH` z `.env.example` a `LEGACY_HEADER_AUTH?:string` z typu `runtime()` v `lib/server.ts`; `identity` změň na:
 
 ```ts
 export async function identity(req:Request):Promise<User>{const u=await currentUser(req);if(!u)throw new Error('Pro tuto akci se přihlas.');return u}
