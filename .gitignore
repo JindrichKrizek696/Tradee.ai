@@ -46,6 +46,7 @@ next-env.d.ts
 /work/
 !.env.example
 .mariadb.env
+.auth.env
 tsconfig.tsbuildinfo
 
 # logy cronů na VPS
