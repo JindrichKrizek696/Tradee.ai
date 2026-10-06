@@ -3,56 +3,313 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tradee · fundamentální a technická analýza měn</title>
-<meta name="description" content="Síla měn, COT pozice, sezonalita a transparentní skórování. Zapiš se na waitlist.">
+<title>Tradee · síla měn, akcií a krypta s dohledatelným skóre</title>
+<meta name="description" content="Tradee každý den spočítá, které měny, indexy a krypto jsou silné a které slabé – z fundamentů, pozic velkých hráčů a ceny. Zapiš se na waitlist.">
+<meta property="og:title" content="Tradee · Býk, nebo medvěd? Ukážeme ti data, ne pocity.">
+<meta property="og:description" content="Skóre měn, indexů a krypta z fundamentů, COT pozic a ceny. Každé číslo s důvodem.">
+<meta property="og:image" content="https://tradee.eu/landing/img/mascots-pair.webp">
+<meta name="theme-color" content="#dfe9fb">
 <link rel="icon" href="/favicon.svg">
+<link rel="preload" href="/landing/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/landing/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-:root{--bg:#f6f8fc;--card:#fff;--text:#141518;--muted:#5d6676;--line:#e3e8f2;--accent:#2f5bea;--ok:#127a4a;--err:#b42318}
+@font-face{font-family:Inter;font-style:normal;font-weight:400 600;font-display:swap;src:url(/landing/fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:Inter;font-style:normal;font-weight:400 600;font-display:swap;src:url(/landing/fonts/inter-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:Outfit;font-style:normal;font-weight:400 600;font-display:swap;src:url(/landing/fonts/outfit-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:Outfit;font-style:normal;font-weight:400 600;font-display:swap;src:url(/landing/fonts/outfit-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+:root{--ink:#212121;--text:#212121;--muted:#585858;--soft:#8a8a8a;--line:#e9e9e9;--gray:#f7f7f7;--bull:#16a34a;--bear:#dc2626;--beige:#f6ead9;--beige-ink:#b0763a}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px 28px;box-shadow:0 12px 32px -16px #1b2a5a33}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;margin-bottom:20px}
-.brand img{width:32px;height:32px}
-h1{font-size:24px;line-height:1.25;margin:0 0 8px}
-p{color:var(--muted);margin:0 0 20px}
-form{display:flex;gap:8px;flex-wrap:wrap}
-input[type=email]{flex:1 1 200px;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
-button{padding:11px 16px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
-button:disabled{opacity:.6;cursor:default}
-.hp{position:absolute;left:-9999px}
-#msg{min-height:24px;margin:12px 0 0;font-size:14px}
-#msg.ok{color:var(--ok)}#msg.err{color:var(--err)}
-.login{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
-a{color:var(--accent)}
-footer{margin-top:16px;font-size:12px;color:var(--muted)}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;color:var(--text);font:16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit}
+h1,h2,h3,.brand{font-family:Outfit,Inter,system-ui,sans-serif;font-weight:500;color:var(--ink)}
+h1{font-size:clamp(40px,5.2vw,64px);line-height:1.2;letter-spacing:-.01em;margin:0 0 22px}
+h2{font-size:clamp(32px,3.8vw,48px);line-height:1.25;margin:0 0 16px}
+h3{font-size:20px;line-height:1.3;margin:0 0 6px}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.kicker{display:block;color:var(--soft);font-size:15px;margin-bottom:14px}
+.lead{color:var(--muted);font-size:17px;line-height:1.6;max-width:540px}
+.small{color:var(--soft);font-size:14px}
+/* tlačítka à la dreamrental */
+.btn{display:inline-flex;align-items:center;gap:14px;height:48px;padding:0 8px 0 22px;border-radius:9999px;background:var(--ink);color:#fdfdfd;font:500 16px Inter,sans-serif;text-decoration:none;border:0;cursor:pointer;white-space:nowrap;transition:transform .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn .arr{width:32px;height:32px;border-radius:9999px;background:#fff;display:grid;place-items:center}
+.btn .arr svg{width:16px;height:16px;stroke:var(--ink)}
+.btn-light{background:#fff;color:var(--ink);border:1px solid var(--line);padding:0 20px}
+/* nav */
+nav{position:sticky;top:0;z-index:10;background:#ffffffd9;backdrop-filter:blur(10px)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:76px}
+.brand{display:flex;align-items:center;gap:10px;font-size:20px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;text-decoration:none}
+.brand img{width:30px;height:38px;object-fit:contain}
+.links{display:flex;gap:28px;font-size:15px}
+.links a{text-decoration:none;color:var(--ink)}
+.links a.on{border-bottom:2px solid var(--ink);padding-bottom:3px}
+/* hero */
+.hero{position:relative;overflow:hidden;background:linear-gradient(180deg,#dfe9fb 0%,#eef3fc 45%,#fff 100%);padding:40px 0 70px}
+.hero::before{content:"";position:absolute;right:6%;top:40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,#fff 0%,#fff7 35%,transparent 70%)}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center}
+.cloud{position:absolute;border-radius:999px;background:radial-gradient(ellipse at 40% 35%,#fff 0%,#f4f6fb 55%,#e6ebf5 100%);filter:drop-shadow(0 18px 24px #9fb2d433)}
+.hero-art{position:relative;min-height:470px}
+.hero-art img{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);width:min(440px,92%);z-index:2;filter:drop-shadow(0 24px 30px #4b5d8633)}
+.hero-art .c1{width:min(420px,90%);height:150px;left:6%;bottom:20px;z-index:1}
+.hero-art .c2{width:260px;height:120px;right:-4%;bottom:60px;z-index:3}
+.hero-art .c3{width:180px;height:80px;left:0;top:30px;opacity:.9}
+.form{display:flex;gap:10px;flex-wrap:wrap;margin:28px 0 14px;max-width:520px}
+.form input{flex:1 1 240px;min-width:0;height:48px;padding:0 20px;border:1px solid var(--line);border-radius:9999px;font:16px Inter,sans-serif;background:#fff}
+.rating{margin-top:18px;font-size:14px;color:var(--muted);line-height:1.8}
+.rating b{color:var(--ink)}
+/* sekce */
+section{padding:100px 0}
+.gray{background:var(--gray)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.art{position:relative;min-height:380px;display:grid;place-items:center}
+.split>*{min-width:0}
+.art img{position:relative;z-index:2;max-height:360px;max-width:100%;height:auto;filter:drop-shadow(0 20px 26px #0002)}
+.art .cloud{width:80%;height:130px;bottom:10px;left:10%;z-index:1}
+.checks{list-style:none;padding:0;margin:22px 0 28px;display:grid;gap:12px}
+.checks li{display:flex;gap:12px;align-items:center;color:var(--ink)}
+.checks li::before{content:"";flex:0 0 22px;height:22px;border-radius:50%;background:var(--beige) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b0763a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/12px no-repeat}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:9999px;padding:6px 14px;font-size:14px}
+.chip.bad{color:#a3412a}
+/* karty */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px}
+.card{border-radius:24px;overflow:hidden;background:#fff}
+.card .top{background:var(--gray);height:170px;display:grid;place-items:center;position:relative;font-size:56px}
+.card .tag{position:absolute;left:14px;top:14px;background:#fff;border-radius:9999px;padding:3px 12px;font-size:13px}
+.card .body{padding:22px 20px}
+.card .meta{display:flex;justify-content:space-between;color:var(--soft);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.card p{color:var(--muted);font-size:15px}
+.specs{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:18px;padding:12px 0;text-align:center}
+.specs small{display:block;color:var(--soft);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.specs b{font-weight:600;font-size:15px}
+.score-line{margin-top:16px;font-size:15px}
+.score-line b{font-family:Outfit;font-size:22px;font-weight:600}
+/* ukázka */
+.tabs{display:inline-flex;gap:4px;background:var(--gray);padding:4px;border-radius:9999px;margin:8px 0 34px}
+.tabs button{border:0;background:none;border-radius:9999px;padding:8px 18px;font:500 14px Inter,sans-serif;cursor:pointer;color:var(--muted)}
+.tabs button.on{background:var(--ink);color:#fff}
+.frame{position:relative;max-width:1020px;margin:0 auto}
+.frame .shot{width:100%;display:block;border-radius:24px;border:1px solid var(--line);box-shadow:0 40px 80px -40px #1b2a5a55}
+.frame .peek{position:absolute;right:-56px;bottom:-40px;width:170px;z-index:2;filter:drop-shadow(0 16px 20px #0003)}
+/* funkce */
+.feat{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:40px}
+.feat div{padding:6px 0}
+.feat .ic{width:48px;height:48px;border-radius:9999px;background:var(--beige);display:grid;place-items:center;font-size:22px;margin-bottom:14px}
+.feat p{color:var(--muted);font-size:15px}
+/* kroky */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px}
+.step{background:#fff;border-radius:24px;padding:28px}
+.step .n{font-family:Outfit;font-size:44px;color:#d9d9d9;line-height:1;margin-bottom:14px}
+.step p{color:var(--muted);font-size:15px}
+/* faq */
+.faq{max-width:820px;margin:34px auto 0}
+details{border-bottom:1px solid var(--line);padding:22px 0}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font:500 19px Outfit,sans-serif}
+summary::after{content:"+";width:32px;height:32px;border-radius:9999px;background:var(--gray);display:grid;place-items:center;font:400 20px Inter}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin-top:10px;max-width:680px}
+/* závěr */
+.final{text-align:center;background:linear-gradient(180deg,#fff 0%,#eef3fc 55%,#dfe9fb 100%);padding-bottom:0;overflow:hidden}
+.final .lead{margin:0 auto}
+.final .form{justify-content:center;margin:28px auto 0}
+.final .art{min-height:340px;margin-top:20px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.msg{min-height:22px;margin:0 0 4px;font-size:15px}
+.msg.ok{color:#15803d}.msg.err{color:#b91c1c}
+.final .msg{text-align:center}
+.btn[disabled]{opacity:.6;cursor:default;transform:none}
+footer{background:var(--ink);color:#bdbdbd;padding:40px 0;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+footer a{color:#fff;text-decoration:none}
+
+.viz{position:relative;height:196px;display:grid;place-items:center;padding:50px 22px 18px}
+.v1{background:linear-gradient(160deg,#eef3fd,#f8faff)}
+.v2{background:linear-gradient(160deg,#fbf3e9,#fffaf4)}
+.v3{background:linear-gradient(160deg,#ecf8f0,#f8fdf9)}
+.viz .tag{position:absolute;left:14px;top:14px;background:#fff;border-radius:9999px;padding:3px 12px;font-size:13px;box-shadow:0 1px 2px #0000000d}
+.banks{display:grid;gap:8px;width:100%}
+.banks div{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:12px;padding:7px 12px;font-size:14px;box-shadow:0 1px 2px #0000000d}
+.pill{border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:500}
+.hawk{background:#e9f9ef;color:#15803d}.neu{background:#f1f1f1;color:#585858}.dove{background:#fdecec;color:#b91c1c}
+.cot{width:100%;display:grid;gap:10px}
+.cot .row{display:grid;grid-template-columns:44px 1fr 40px;align-items:center;gap:10px;font-size:13px}
+.cot .row i{height:12px;border-radius:9999px;display:block}
+.cot .row b{font-weight:600;text-align:right}
+.cot .cap{color:var(--soft);font-size:12px;text-align:center}
+.spark{width:100%;height:100%}
+.card{box-shadow:0 1px 2px #0000000a}
+.result{margin-top:40px;background:#fff;border-radius:24px;padding:26px 30px;display:grid;grid-template-columns:110px 1fr 110px;gap:26px;align-items:center}
+.result img{width:100%;max-height:150px;object-fit:contain;filter:drop-shadow(0 10px 14px #0002)}
+.rhead{display:flex;justify-content:space-between;align-items:baseline}
+.rhead .pair{font:500 22px Outfit}.rhead .val{font:600 30px Outfit}
+.scale{height:12px;border-radius:9999px;background:linear-gradient(90deg,#dc2626,#f1f1f1 50%,#16a34a);position:relative;margin:12px 0 8px}
+.scale i{position:absolute;left:78%;top:-7px;width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--ink);transform:translateX(-50%)}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--soft)}
+.why{list-style:none;padding:0;margin:14px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.why li{background:var(--gray);border-radius:9999px;padding:5px 12px;font-size:13px}
+@media (max-width:900px){
+ .result{grid-template-columns:1fr 1fr;gap:14px 12px;padding:20px}
+ .result img{max-height:120px}
+ .result img:last-child{justify-self:end}
+ .result .mid{grid-column:1/-1;order:3}
+ .rhead .val{font-size:26px}
+ .tabs button{padding:8px 12px;font-size:13px;white-space:nowrap}
+ .frame .peek{width:72px;right:-6px;bottom:-22px}
+}
+@media (max-width:900px){
+ .hero .wrap,.split{grid-template-columns:1fr}
+ .cards,.steps{grid-template-columns:1fr}
+ .feat{grid-template-columns:1fr 1fr}
+ .links a.m{display:none}
+ .hero-art{min-height:360px}
+ .frame .peek{right:-8px;width:100px;bottom:-24px}
+ section{padding:70px 0}
+}
 </style>
 </head>
 <body>
-<main>
- <div class="brand"><img src="/favicon.svg" alt=""><span>Tradee</span></div>
- <h1>Fundamentální a technická analýza měn na jednom místě</h1>
- <p>Tradee je zatím v uzavřeném provozu. Zapiš se a ozveme se, až tě pustíme dovnitř.</p>
- <form id="f" method="post" action="/api/waitlist">
-  <input type="email" name="email" required maxlength="254" placeholder="Tvůj e-mail" aria-label="Tvůj e-mail" autocomplete="email">
-  <input class="hp" type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true">
-  <button type="submit">Chci přístup</button>
- </form>
- <p id="msg" role="status" aria-live="polite"></p>
- <div class="login">Už máš přístup? <a href="/auth/google">Přihlásit přes Google</a></div>
- <footer><a href="/soukromi">Zásady ochrany osobních údajů</a></footer>
-</main>
+<nav><div class="wrap">
+ <a class="brand" href="/"><img src="/landing/img/bull.webp" alt="">Tradee</a>
+ <div class="links"><a class="on m" href="/">Úvod</a><a class="m" href="#jak">Jak to funguje</a><a class="m" href="#ukazka">Ukázka</a><a class="m" href="#faq">FAQ</a></div>
+ <a class="btn" href="/auth/google">Přihlásit <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+ <div>
+  <h1>Býk, nebo medvěd? Ukážeme ti data, ne pocity.</h1>
+  <p class="lead">Tradee každý den spočítá, které měny, indexy a krypto jsou silné a které slabé. U každého čísla uvidíš proč – fundamenty, pozice velkých hráčů i cenu.</p>
+  <form class="form wl" id="prihlaska" method="post" action="/api/waitlist"><input type="email" name="email" required maxlength="254" placeholder="Tvůj e-mail" aria-label="Tvůj e-mail" autocomplete="email"><input class="hp" type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" type="submit">Chci přístup <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button></form>
+  <p class="msg" role="status" aria-live="polite"></p>
+  <div class="small">Zatím v uzavřeném provozu. Už máš přístup? <a href="/auth/google">Přihlas se přes Google</a></div>
+  <div class="rating"><b>28</b> FX párů · <b>8</b> měnových indexů · <b>15</b> akcií a indexů · <b>3</b> krypta</div>
+ </div>
+ <div class="hero-art">
+  <span class="cloud c3"></span>
+  <img src="/landing/img/mascots-pair.webp" alt="Býk a medvěd, maskoti Tradee">
+  <span class="cloud c1"></span><span class="cloud c2"></span>
+ </div>
+</div></header>
+
+<section><div class="wrap split">
+ <div class="art"><img src="/landing/img/bear.webp" alt=""><span class="cloud"></span></div>
+ <div>
+  <span class="kicker">Znáš to?</span>
+  <h2>Sto zdrojů, tisíc názorů – a pořád nevíš, kam to jde.</h2>
+  <p class="lead">Zprávy si protiřečí, grafy ukazují obojí a „signály“ na sítích jsou spíš loterie. Než si poskládáš, co dělá Fed, ECB a velcí hráči, trh je jinde.</p>
+  <div class="chips"><span class="chip bad">„EUR padá!“</span><span class="chip bad">„Fed snad sníží…“</span><span class="chip bad">RSI 70?!</span><span class="chip bad">„tohle je dno“</span><span class="chip bad">COT report?</span></div>
+ </div>
+</div></section>
+
+<section id="jak" class="gray"><div class="wrap">
+ <span class="kicker">Jak Tradee funguje</span>
+ <h2>Tři pilíře, jedno skóre.</h2>
+ <p class="lead">Každý trh dostane skóre od −100 do +100. Skládá se ze tří věcí, které sledují profesionálové – a ty je uvidíš rozepsané.</p>
+ <div class="cards">
+  <div class="card"><div class="viz v1"><span class="tag">Pilíř 1</span>
+   <div class="banks"><div><b>Fed</b><span class="pill hawk">Jestřábí</span></div><div><b>ECB</b><span class="pill neu">Neutrální</span></div><div><b>BoJ</b><span class="pill dove">Holubičí</span></div></div>
+  </div><div class="body"><div class="meta"><span>Fundament</span><span>2× denně</span></div><h3>Centrální banky a data</h3><p>Sazby, výhled, inflace, trh práce. Ověřené z oficiálních zdrojů.</p><div class="specs"><div><small>Banky</small><b>8</b></div><div><small>Ukazatele</small><b>4</b></div><div><small>Váha</small><b>60 %</b></div></div></div></div>
+  <div class="card"><div class="viz v2"><span class="tag">Pilíř 2</span>
+   <div class="cot"><div class="row"><small>Long</small><i style="width:72%;background:var(--bull)"></i><b>72 %</b></div><div class="row"><small>Short</small><i style="width:28%;background:var(--bear)"></i><b>28 %</b></div><div class="cap">Spekulanti · EUR · tento týden</div></div>
+  </div><div class="body"><div class="meta"><span>Pozice</span><span>týdně</span></div><h3>Co dělají velcí hráči</h3><p>Fondy, banky a spekulanti podle CFTC COT reportu.</p><div class="specs"><div><small>Zdroj</small><b>CFTC</b></div><div><small>Skupiny</small><b>3</b></div><div><small>Historie</small><b>26 t.</b></div></div></div></div>
+  <div class="card"><div class="viz v3"><span class="tag">Pilíř 3</span>
+   <svg viewBox="0 0 220 90" class="spark"><defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#16a34a" stop-opacity=".25"/><stop offset="1" stop-color="#16a34a" stop-opacity="0"/></linearGradient></defs><path d="M0 70 L20 64 L40 68 L60 52 L80 56 L100 40 L120 44 L140 30 L160 34 L180 20 L200 24 L220 12 L220 90 L0 90Z" fill="url(#g)"/><path d="M0 70 L20 64 L40 68 L60 52 L80 56 L100 40 L120 44 L140 30 L160 34 L180 20 L200 24 L220 12" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round"/></svg>
+  </div><div class="body"><div class="meta"><span>Cena</span><span>denně</span></div><h3>Trend a sezonalita</h3><p>Jestli trh potvrzuje, co říkají fundamenty – a jak se choval v minulých letech.</p><div class="specs"><div><small>Trend</small><b>✓</b></div><div><small>Momentum</small><b>✓</b></div><div><small>Sezona</small><b>✓</b></div></div></div></div>
+ </div>
+ <div class="result">
+  <img src="/landing/img/bear.webp" alt="">
+  <div class="mid">
+   <div class="rhead"><span class="kicker" style="margin:0">Výsledek</span><span><b class="pair">EUR/CHF</b> <b style="color:var(--bull)" class="val">+56</b></span></div>
+   <div class="scale"><i></i></div>
+   <div class="ends"><span style="color:var(--bear)">−100 · medvědí</span><span>0</span><span style="color:var(--bull)">býčí · +100</span></div>
+   <ul class="why"><li>ECB drží sazby, SNB snižuje</li><li>Spekulanti přidávají long EUR</li><li>Cena nad 50denním průměrem</li></ul>
+  </div>
+  <img src="/landing/img/bull.webp" alt="">
+ </div>
+</div></section>
+
+<section id="ukazka"><div class="wrap" style="text-align:center">
+ <span class="kicker">Ukázka aplikace</span>
+ <h2>Tohle uvidíš po přihlášení.</h2>
+ <div class="tabs"><button class="on" data-s="analyza">Analýza trhů</button><button data-s="reporty">Reporty bank</button><button data-s="kalendar">Kalendář</button></div>
+ <div class="frame"><img class="shot" id="shot" src="/landing/img/shot-analyza.webp" alt="Analýza trhů v Tradee"><img class="peek" src="/landing/img/bull.webp" alt=""></div>
+</div></section>
+
+<section class="gray"><div class="wrap">
+ <span class="kicker">Co v Tradee najdeš</span>
+ <h2>Všechno na jednom místě.</h2>
+ <div class="feat">
+  <div><div class="ic">💪</div><h3>Síla měn</h3><p>Heatmapa 28 párů a 8 indexů.</p></div>
+  <div><div class="ic">🐋</div><h3>COT pozice</h3><p>Co drží velcí hráči, týden po týdnu.</p></div>
+  <div><div class="ic">🗓️</div><h3>Sezonalita</h3><p>Jak se trh choval v tomhle období dřív.</p></div>
+  <div><div class="ic">🏦</div><h3>Reporty bank</h3><p>Nálada a výhled každé centrální banky.</p></div>
+  <div><div class="ic">⏰</div><h3>Makro kalendář</h3><p>Zasedání, CPI, NFP – nic tě nepřekvapí.</p></div>
+  <div><div class="ic">🔍</div><h3>Audit skóre</h3><p>Kdy a proč se skóre změnilo.</p></div>
+  <div><div class="ic">🚩</div><h3>Watchlist</h3><p>Vlastní vlaječky: sleduji, v tradu, čekám.</p></div>
+  <div><div class="ic">🔄</div><h3>2× denně</h3><p>Data se ověřují ráno a večer.</p></div>
+ </div>
+</div></section>
+
+<section><div class="wrap split">
+ <div>
+  <span class="kicker">Žádná černá skříňka</span>
+  <h2>Každé číslo má zdroj a historii.</h2>
+  <p class="lead">Žádné „věř mi, bro“. Tradee bere data z oficiálních zdrojů a u každého skóre ukáže, z čeho vzniklo a kdy se změnilo.</p>
+  <ul class="checks"><li>Oficiální zdroje: ECB, Fed, CFTC, BLS, BEA a další centrální banky</li><li>Chybějící data označí, nic si nedomýšlí</li><li>Historie každé změny skóre</li></ul>
+  <a class="btn" href="#prihlaska">Chci přístup <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+ </div>
+ <div class="art"><img src="/landing/img/mascots-pair.webp" alt=""><span class="cloud"></span></div>
+</div></section>
+
+<section class="gray"><div class="wrap">
+ <span class="kicker">Jak získat přístup</span>
+ <h2>Tři kroky a jsi uvnitř.</h2>
+ <div class="steps">
+  <div class="step"><div class="n">01</div><h3>Zapiš se</h3><p>Nech nám e-mail. Žádná platební karta.</p></div>
+  <div class="step"><div class="n">02</div><h3>Pustíme tě</h3><p>Přístupy otevíráme postupně. Ozveme se, až budeš na řadě.</p></div>
+  <div class="step"><div class="n">03</div><h3>Přihlas se Googlem</h3><p>Jedno kliknutí, žádné nové heslo.</p></div>
+ </div>
+</div></section>
+
+<section id="faq"><div class="wrap">
+ <div style="text-align:center"><span class="kicker">FAQ</span><h2>Na co se lidi ptají</h2></div>
+ <div class="faq">
+  <details><summary>Kolik to stojí?</summary><p>Během uzavřeného testování je Tradee zdarma. Kdyby se to později měnilo, dozvíš se to s předstihem.</p></details>
+  <details><summary>Pro koho je Tradee?</summary><p>Pro každého, kdo obchoduje měny, indexy nebo krypto a chce rozhodovat podle dat – od začátečníků po zkušené tradery.</p></details>
+  <details><summary>Je to investiční doporučení?</summary><p>Ne. Tradee ukazuje přehled a důvody. Kdy a co obchodovat, rozhoduješ ty.</p></details>
+  <details><summary>Proč waitlist?</summary><p>Pouštíme lidi postupně, abychom mohli aplikaci ladit podle zpětné vazby.</p></details>
+  <details><summary>Jak často se data aktualizují?</summary><p>Ceny a skóre několikrát denně, fundamenty se ověřují 2× denně, COT jednou týdně podle CFTC.</p></details>
+ </div>
+</div></section>
+
+<section class="final"><div class="wrap">
+ <span class="kicker">Připraven?</span>
+ <h2>Přidej se k býkům i medvědům.</h2>
+ <p class="lead">Zapiš se a buď mezi prvními, kdo Tradee vyzkouší.</p>
+ <form class="form wl" id="prihlaska2" method="post" action="/api/waitlist"><input type="email" name="email" required maxlength="254" placeholder="Tvůj e-mail" aria-label="Tvůj e-mail" autocomplete="email"><input class="hp" type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" type="submit">Chci přístup <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button></form>
+  <p class="msg" role="status" aria-live="polite"></p>
+ <div class="art"><img src="/landing/img/mascots-pair.webp" alt=""><span class="cloud"></span></div>
+</div></section>
+
+<footer><div class="wrap"><span>© 2026 Tradee · Nejde o investiční doporučení.</span><span><a href="/soukromi">Zásady ochrany osobních údajů</a> · <a href="/auth/google">Přihlásit</a></span></div></footer>
 <script>
+document.querySelectorAll('.tabs button[data-s]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('shot').src='/landing/img/shot-'+b.dataset.s+'.webp'});
+
 (function(){
- var M={zapsano:['ok','Díky, jsi na seznamu. Ozveme se.'],cekas:['ok','Tvůj účet čeká na schválení. Ozveme se.'],chyba:['err','Přihlášení se nepovedlo, zkus to znovu.'],neplatny:['err','Zadej platný e-mail.']};
- var msg=document.getElementById('msg'),f=document.getElementById('f');
- function show(k){var m=M[k];if(!m)return;msg.className=m[0];msg.textContent=m[1]}
- show(new URLSearchParams(location.search).get('stav'));
- f.addEventListener('submit',function(e){
-  e.preventDefault();var b=f.querySelector('button');b.disabled=true;
-  fetch('/api/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:f.email.value,web:f.web.value})})
-   .then(function(r){return r.json().then(function(j){if(!r.ok)throw j;show('zapsano');f.reset()})})
-   .catch(function(j){msg.className='err';msg.textContent=(j&&j.error)||'Zápis se nepovedl, zkus to znovu.'})
-   .then(function(){b.disabled=false});
+ var M={zapsano:['ok','Díky, jsi na seznamu. Ozveme se, až tě pustíme dovnitř.'],cekas:['ok','Tvůj účet čeká na schválení. Ozveme se.'],chyba:['err','Přihlášení se nepovedlo, zkus to prosím znovu.'],neplatny:['err','Zadej prosím platný e-mail.']};
+ function show(el,k,text){if(!el)return;var m=Object.prototype.hasOwnProperty.call(M,k)?M[k]:null;el.className='msg '+(m?m[0]:'err');el.textContent=text||(m?m[1]:'')}
+ var stav=new URLSearchParams(location.search).get('stav');
+ if(stav&&Object.prototype.hasOwnProperty.call(M,stav)){var first=document.querySelector('#prihlaska + .msg');show(first,stav)}
+ document.querySelectorAll('form.wl').forEach(function(f){
+  var msg=f.nextElementSibling;
+  f.addEventListener('submit',function(e){
+   e.preventDefault();var b=f.querySelector('button');b.disabled=true;
+   fetch('/api/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:f.email.value,web:f.web.value})})
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw j;show(msg,'zapsano');f.reset()})})
+    .catch(function(j){show(msg,null,(j&&j.error)||'Zápis se nepovedl, zkus to prosím znovu.')})
+    .then(function(){b.disabled=false});
+  });
  });
 })();
 </script>
