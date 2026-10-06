@@ -54,7 +54,7 @@ export const luminance=([r,g,b]:number[])=>0.2126*lin(r)+0.7152*lin(g)+0.0722*li
 export const contrast=(a:number[],b:number[])=>{const [x,y]=[luminance(a),luminance(b)].sort((m,n)=>n-m);return (x+0.05)/(y+0.05)};
 // Barva smíchaná s podkladem podle sytosti (stejně jako rgba přes pozadí); světlý motiv bílá, tmavý povrch karty.
 const WHITE=[255,255,255];
-export const DARK_BASE=[18,21,28];
+export const DARK_BASE=[10,10,11];
 export const blend=(hex:string,alpha:number,base=WHITE)=>rgb(hex).map((c,i)=>Math.round(base[i]+(c-base[i])*alpha));
 export const tileBackground=(hex:string,alpha:number,base=WHITE)=>{const [r,g,b]=blend(hex,alpha,base);return `rgb(${r},${g},${b})`};
 // Text na dlaždici (tučný): bílý, dokud má vůči pozadí kontrast aspoň 3:1, jinak tmavý.
