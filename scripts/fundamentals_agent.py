@@ -46,7 +46,7 @@ def sh(cmd, cwd, timeout=None, extra_env=None):
 
 
 def git(root, *args, extra_env=None):
-    return sh(['git', '-c', 'user.name=tradee-bot', '-c', 'user.email=bot@tradee.dejny.eu', *args], root, extra_env=extra_env)
+    return sh(['git', '-c', 'user.name=tradee-bot', '-c', 'user.email=bot@tradee.eu', *args], root, extra_env=extra_env)
 
 
 def sync(root, *args, extra_env=None):

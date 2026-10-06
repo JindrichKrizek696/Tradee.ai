@@ -17,12 +17,13 @@ export function usePalette(){
  return {palette:getPalette(id),choose,error};
 }
 
-export function PalettePicker({value,onChoose,error}:{value:string;onChoose:(id:string)=>void;error?:string}){
+export function PalettePicker({value,onChoose,error,children}:{value:string;onChoose:(id:string)=>void;error?:string;children?:React.ReactNode}){
  return <div className="p-picker" role="radiogroup" aria-label="Barvy signálu">
   <b>Barvy signálu</b>
   {palettes.map(p=><button key={p.id} type="button" role="radio" aria-checked={p.id===value} className={p.id===value?'on':''} onClick={()=>onChoose(p.id)}>
    <span className="p-swatch"><i style={{background:p.bull}}/><i style={{background:p.bear}}/></span>{p.label}{p.id===DEFAULT_PALETTE&&<small>výchozí</small>}
   </button>)}
   {error&&<p className="p-error" role="alert">{error}</p>}
+  {children}
  </div>;
 }

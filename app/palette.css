@@ -29,3 +29,5 @@
 .p-picker small{margin-left:auto;font-size:11px;color:#8b93a3}
 .p-swatch{display:flex;border-radius:5px;overflow:hidden}.p-swatch i{width:14px;height:14px}
 .p-error{margin:6px 6px 0;font-size:12px;color:#b91c1c}
+.p-logout{margin:6px 0 0;padding-top:6px;border-top:1px solid #e3e8f2}
+.p-logout button{width:100%;color:#b42318;font-weight:600}

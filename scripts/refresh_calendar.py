@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'data' / 'calendar.json'
-UA = 'Mozilla/5.0 (compatible; TradeeCalendar/1.0; +https://tradee.dejny.eu)'
+UA = 'Mozilla/5.0 (compatible; TradeeCalendar/1.0; +https://tradee.eu)'
 ET = ZoneInfo('America/New_York')
 CET = ZoneInfo('Europe/Berlin')
 HORIZON_DAYS = 60
