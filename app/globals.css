@@ -3,6 +3,7 @@
 @import "../vendor/shadcn-tailwind-4.13.0.css";
 @import "./dashboard.css";
 @import "./trades.css";
+@import "./desk.css";
 @import "./calendar.css";
 @import "./markets.css";
 @import "./reports.css";
