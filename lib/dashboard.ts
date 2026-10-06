@@ -6,7 +6,7 @@ export type SnapshotLike={at:string;scores:Record<string,{score:number|null;meth
 export type HistoryLike={snapshots:SnapshotLike[]};
 export type Range='1w'|'1m'|'3m'|'all';
 export function greeting(now:Date){const h=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Prague',hour:'numeric',hour12:false}).format(now));return h>=5&&h<11?'Dobré ráno':h>=11&&h<18?'Dobré odpoledne':'Dobrý večer'}
-export function vocative(name:string){const n=name.trim().split(/\s+/)[0]||'Jindro';if(/^Jind[rř]ich$/i.test(n)||/^Jindra$/i.test(n))return 'Jindro';if(/a$/i.test(n))return n.slice(0,-1)+'o';if(/[^aeiouy]$/i.test(n)&&!/(ch|k|h|g)$/i.test(n))return n+'e';if(/(k|h|g|ch)$/i.test(n))return n+'u';return n}
+export function vocative(name:string){const n=name.trim().split(/\s+/)[0]||'tradere';if(/^Jind[rř]ich$/i.test(n)||/^Jindra$/i.test(n))return 'Jindro';if(/a$/i.test(n))return n.slice(0,-1)+'o';if(/[^aeiouy]$/i.test(n)&&!/(ch|k|h|g)$/i.test(n))return n+'e';if(/(k|h|g|ch)$/i.test(n))return n+'u';return n}
 export function kpis(rows:Row[],flags:Record<string,string>){
  const scored=rows.filter(r=>r.r.score!==null);
  const bullish=scored.filter(r=>(r.r.score as number)>0).length,bearish=scored.filter(r=>(r.r.score as number)<0).length;

@@ -17,6 +17,6 @@ export function Shell({view,setView,busy,onRefresh,userName,palette,onPalette,pa
    </div>
   </header>
   <main className="t-main">{children}</main>
-  <footer className="t-footer">TRADEE.AI · Veřejná data. Dohledatelné výpočty. Vlastní rozhodnutí.</footer>
+  <footer className="t-footer">TRADEE.EU · Veřejná data. Dohledatelné výpočty. Vlastní rozhodnutí.</footer>
  </div>;
 }
