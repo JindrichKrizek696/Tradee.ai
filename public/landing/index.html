@@ -180,6 +180,24 @@ footer a{color:#fff;text-decoration:none}
  .frame .peek{right:-8px;width:100px;bottom:-24px}
  section{padding:70px 0}
 }
+/* mobil: maskoti v toku stránky (ne přes sebe), text před obrázkem, menší mezery */
+@media (max-width:640px){
+ .hero{padding:24px 0 40px}
+ .hero .wrap{gap:10px}
+ .hero-art{min-height:0;padding:10px 0 34px}
+ .hero-art img{position:relative;left:auto;bottom:auto;transform:none;display:block;margin:0 auto;width:min(340px,88%)}
+ .hero-art .c2,.hero-art .c3{display:none}
+ .hero-art .c1{width:86%;height:90px;left:7%;bottom:12px}
+ .split{gap:24px}
+ .split>.art{order:2}
+ .art{min-height:0;padding-bottom:24px}
+ .art img{max-height:250px}
+ .art .cloud{height:80px;bottom:0}
+ .final .art{min-height:0;margin-top:30px}
+ .final .art img{max-height:280px}
+ .frame .peek{width:64px;right:-4px;bottom:-26px}
+ section{padding:56px 0}
+}
 </style>
 </head>
 <body>
