@@ -22,6 +22,8 @@ export async function currentUser(req:Request):Promise<User|null>{
  const role=await accessRole(s.sub,s.email);
  return role?{id:s.sub,email:s.email,name:s.name,role,owner:isOwner(s.email)}:null;
 }
+// Přístup podle ID člena (pro požadavky z EA, které nemají session cookie).
+export async function hasAccessById(id:string){const m=await db().prepare('SELECT email FROM members WHERE id=?').bind(id).first<{email:string}>();return !!m&&!!await accessRole(id,m.email)}
 // Zapíše přihlášení na waitlist; schválenému (nebo ownerovi) založí/aktualizuje člena. Vrací, zda smí dovnitř.
 export async function recordLogin(u:{sub:string;email:string;name:string}){
  await db().prepare("INSERT INTO waitlist(email,name,google_sub,source,approved,created) VALUES(?,?,?,'google',0,NOW()) ON DUPLICATE KEY UPDATE name=VALUES(name),google_sub=VALUES(google_sub)").bind(u.email,u.name,u.sub.slice(2)).run();
