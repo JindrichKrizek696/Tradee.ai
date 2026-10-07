@@ -35,7 +35,7 @@ export function cleanNote(v:unknown,max:number):string{
 export function parseJournalId(raw:string):{kind:'mt'|'man';id:string}|null{
  let s=raw;try{if(s.includes('%'))s=decodeURIComponent(s)}catch{return null}
  const m=s.match(/^(mt|man):(.+)$/);if(!m)return null;
- if(m[1]==='mt'&&/^[\w:.-]{1,90}$/.test(m[2]))return {kind:'mt',id:m[2]};
+ if(m[1]==='mt'&&/^[\w:.#-]{1,90}$/.test(m[2]))return {kind:'mt',id:m[2]};
  if(m[1]==='man'&&/^[\w-]{1,64}$/.test(m[2]))return {kind:'man',id:m[2]};
  return null;
 }

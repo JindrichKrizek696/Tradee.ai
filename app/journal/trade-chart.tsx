@@ -25,6 +25,6 @@ export function TradeChart({bars,position:p,changes}:{bars:Bar[];position:Journa
   // přepnutí světlý/tmavý režim
   const obs=new MutationObserver(()=>chart.applyOptions(theme()));obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class']});
   return()=>{obs.disconnect();chart.remove()};
- },[bars,p,changes]);
+ },[bars,changes,p.id,p.side,p.open_ts,p.close_ts,p.open_price,p.sl_initial,p.tp_initial,p.mfe_price,p.mae_price,p.symbol]);
  return <div ref={el} className="j-chart" role="img" aria-label={`Graf obchodu ${p.symbol}: svíčky, vstup, výstupy, stop loss a take profit`}/>;
 }

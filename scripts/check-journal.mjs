@@ -43,6 +43,7 @@ check('poznámka: moc dlouhá',throws(()=>cleanNote('x'.repeat(501),500),/500/))
 check('poznámka: ne text',throws(()=>cleanNote(5,500),/text/));
 check('id: mt',JSON.stringify(parseJournalId('mt:mta_1:10'))==='{"kind":"mt","id":"mta_1:10"}');
 check('id: mt zakódované',parseJournalId('mt%3Amta_1%3A10:r2')?.id==='mta_1:10:r2');
+check('id: mt s # (ticket protokolu)',parseJournalId('mt:a:1#2')?.id==='a:1#2');
 check('id: ruční',JSON.stringify(parseJournalId('man:6f1c-22'))==='{"kind":"man","id":"6f1c-22"}');
 check('id: nesmysl',parseJournalId('x:1')===null&&parseJournalId('mt:')===null&&parseJournalId('mt:a b')===null);
 check('upload: ok',checkUpload({type:'image/png',size:1000},0)===null);
@@ -103,7 +104,8 @@ check('filtr: tag, účet, pár, zdroj',filterTrades(list,F({tag:'london'}),now)
 const san=sanitizeFilter(F({account:'gone',tag:'old',symbol:'XAUUSD',period:'30d'}),list,[{id:'a1',name:'Demo',platform:'mt5',currency:'USD'}]);
 check('filtr: neexistující účet/tag/pár se zruší',san.account==='all'&&san.tag==='all'&&san.symbol==='all'&&san.period==='30d',san);
 check('filtr: platné hodnoty zůstanou',JSON.stringify(sanitizeFilter(F({account:'a1',tag:'london'}),list,[{id:'a1',name:'Demo',platform:'mt5',currency:'USD'}]))===JSON.stringify(F({account:'a1',tag:'london'})));
-check('filtr: ruční účet zůstane',sanitizeFilter(F({account:'manual'}),list,[]).account==='manual');
+check('filtr: ruční účet zůstane',sanitizeFilter(F({account:'manual'}),[...list,{...list[0],source:'manual'}],[]).account==='manual');
+check('filtr: ruční účet bez ručních obchodů → all',sanitizeFilter(F({account:'manual'}),list.filter(t=>t.source!=='manual'),[]).account==='all');
 check('řazení: R, null na konci',sortTrades(list,'r',-1).map(x=>x.id).join()==='a,e,b,d,c'&&sortTrades(list,'r',1).map(x=>x.id).join()==='b,e,a,d,c',[sortTrades(list,'r',-1).map(x=>x.id),sortTrades(list,'r',1).map(x=>x.id)]);
 check('řazení: pár',sortTrades([C,A],'symbol',1)[0].id==='a');
 

@@ -23,6 +23,7 @@ export function filterTrades(trades:JournalTrade[],f:Filter,now:number){
 export function sanitizeFilter(f:Filter,trades:JournalTrade[],accounts:JournalAccount[]):Filter{
  const out={...DEFAULT_FILTER,...f};
  if(out.account!=='all'&&out.account!=='manual'&&!accounts.some(a=>a.id===out.account))out.account='all';
+ if(out.account==='manual'&&!trades.some(t=>t.source==='manual'))out.account='all';
  if(out.tag!=='all'&&!trades.some(t=>t.tags.includes(out.tag)))out.tag='all';
  if(out.symbol!=='all'&&!trades.some(t=>t.symbol===out.symbol))out.symbol='all';
  return out;
