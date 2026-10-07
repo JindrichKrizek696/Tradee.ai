@@ -39,5 +39,5 @@
 .t-icon-btn.small{width:28px;height:28px}
 .t-note{color:var(--t-muted);font-size:12px}
 @media(max-width:760px){.t-cal{gap:3px}.t-cal-d,.t-cal-w{min-height:50px;padding:4px 5px;border-radius:7px}.t-cal-d b,.t-cal-w b{font-size:10px}.t-cal-d small,.t-cal-w small{display:none}.t-cal-h{padding:2px 3px;font-size:10px}.t-tradeform{grid-template-columns:1fr 1fr}.t-monthnav b{min-width:96px;font-size:13px}.t-trades .t-card-head .t-right{width:100%;justify-content:space-between}}
-.t-src{display:inline-grid;place-items:center;min-width:28px;height:22px;padding:0 6px;border-radius:9999px;background:#e5ecff;color:#1747d9;font-size:11px;font-weight:700}
-.t-acc{font-weight:600;color:#6b7280}
+.t-src{display:inline-grid;place-items:center;min-width:28px;height:22px;padding:0 6px;border-radius:9999px;background:var(--t-accent-soft);color:var(--t-brand-fg, var(--t-brand));font-size:11px;font-weight:700}
+.t-acc{font-weight:600;color:var(--t-muted)}

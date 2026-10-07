@@ -11,11 +11,11 @@ function ago(s:string|null){if(!s)return 'nikdy';const m=Math.round((Date.now()-
 async function call(url:string,method:string,body?:unknown){const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const j=await r.json().catch(()=>({})) as {error?:string};if(!r.ok)throw Error(j.error||'Akce se nepovedla.');return j}
 export default function MtConnect(){
  const [keys,setKeys]=useState<Key[]>([]),[accounts,setAccounts]=useState<Account[]>([]),[currency,setCurrency]=useState('USD');
- const [fresh,setFresh]=useState<string|null>(null),[keyName,setKeyName]=useState(''),[error,setError]=useState(''),[ready,setReady]=useState(false),[copied,setCopied]=useState(false);
+ const [fresh,setFresh]=useState<string|null>(null),[keyName,setKeyName]=useState(''),[error,setError]=useState(''),[ready,setReady]=useState(false),[copied,setCopied]=useState(false),[busy,setBusy]=useState(false);
  async function load(){try{const [k,a,s]=await Promise.all(['/api/mt/keys','/api/mt/accounts','/api/settings'].map(u=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json()}))) as unknown[];setKeys((k as {keys:Key[]}).keys);setAccounts((a as {accounts:Account[]}).accounts);setCurrency((s as {currency?:string}).currency||'USD');setReady(true);setError('')}catch{setError('Data se nepodařilo načíst. Obnov stránku.')}}
  useEffect(()=>{load()},[]);
- const run=(fn:()=>Promise<unknown>)=>fn().then(()=>{setError('');return load()}).catch((e:Error)=>setError(e.message));
- async function createKey(){try{const j=await call('/api/mt/keys','POST',{name:keyName}) as {key:string};setFresh(j.key);setKeyName('');setCopied(false);await load()}catch(e){setError((e as Error).message)}}
+ const run=(fn:()=>Promise<unknown>)=>fn().then(()=>{setError('');return load()}).catch((e:Error)=>{setError(e.message);return load()});
+ async function createKey(){try{setBusy(true);const j=await call('/api/mt/keys','POST',{name:keyName}) as {key:string};setFresh(j.key);setKeyName('');setCopied(false);setError('');setBusy(false);await load()}catch(e){setError((e as Error).message);setBusy(false)}}
  return <div className="mt-page">
   <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
   <main className="mt-main">
@@ -33,8 +33,8 @@ export default function MtConnect(){
    </section>
    <section className="mt-card">
     <h2>Klíče</h2>
-    {fresh&&<div className="mt-fresh"><p><b>Nový klíč – zobrazí se jen teď.</b> Ulož si ho, po obnovení stránky už ho neuvidíš.</p><div className="mt-keybox"><code>{fresh}</code><button type="button" className="mt-btn" onClick={()=>{navigator.clipboard.writeText(fresh).then(()=>setCopied(true))}}><Copy size={14}/> {copied?'Zkopírováno':'Kopírovat'}</button></div></div>}
-    <div className="mt-row"><input placeholder="Název (např. Notebook, VPS)" maxLength={60} value={keyName} onChange={e=>setKeyName(e.target.value)}/><button type="button" className="mt-btn dark" onClick={createKey}>Vytvořit klíč</button></div>
+    {fresh&&<div className="mt-fresh"><p><b>Nový klíč – zobrazí se jen teď.</b> Ulož si ho, po obnovení stránky už ho neuvidíš.</p><div className="mt-keybox"><code>{fresh}</code><button type="button" className="mt-btn" onClick={()=>{navigator.clipboard.writeText(fresh).then(()=>setCopied(true)).catch(()=>setError('Klíč se nepodařilo zkopírovat – označ ho a zkopíruj ručně.'))}}><Copy size={14}/> {copied?'Zkopírováno':'Kopírovat'}</button></div></div>}
+    <form onSubmit={e=>{e.preventDefault();createKey()}}><div className="mt-row"><input aria-label="Název klíče" placeholder="Název (např. Notebook, VPS)" maxLength={60} value={keyName} onChange={e=>setKeyName(e.target.value)}/><button type="submit" className="mt-btn dark" disabled={busy}>Vytvořit klíč</button></div></form>
     {ready&&!keys.length&&<p className="mt-empty">Zatím nemáš žádný klíč.</p>}
     {keys.length>0&&<table className="mt-table"><thead><tr><th>Název</th><th>Klíč</th><th>Naposledy použit</th><th/></tr></thead><tbody>{keys.map(k=><tr key={k.id}><td>{k.name}</td><td><code>{k.prefix}…</code></td><td>{ago(k.last_used)}</td><td><button type="button" className="mt-icon" aria-label="Zrušit klíč" onClick={()=>{if(window.confirm('Zrušit klíč? EA, které ho používá, přestane posílat data.'))run(()=>call('/api/mt/keys','DELETE',{id:k.id}))}}><Trash2 size={14}/></button></td></tr>)}</tbody></table>}
    </section>
@@ -53,7 +53,7 @@ export default function MtConnect(){
    <section className="mt-card">
     <h2>Měna souhrnu</h2>
     <p className="mt-lead">Kalendář obchodů a P&L sčítají všechny účty v této měně (přepočet denním kurzem ECB). Ručně zapsané obchody se nepřepočítávají.</p>
-    <select value={currency} onChange={e=>{const c=e.target.value;setCurrency(c);run(()=>call('/api/settings','POST',{currency:c}))}}>{CURRENCIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+    <select aria-label="Měna souhrnu" value={currency} onChange={e=>{const c=e.target.value;setCurrency(c);run(()=>call('/api/settings','POST',{currency:c}))}}>{CURRENCIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
    </section>
   </main>
  </div>;
