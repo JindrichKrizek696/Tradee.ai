@@ -28,5 +28,12 @@ class ParseTest(unittest.TestCase):
             fx.parse_rates('<xml>nic</xml>')
 
 
+class BatchTest(unittest.TestCase):
+    def test_batches_of_5000(self):
+        parts = list(fx.batches(list(range(12001))))
+        self.assertEqual([len(p) for p in parts], [5000, 5000, 2001])
+        self.assertEqual(sum(parts, []), list(range(12001)))
+
+
 if __name__ == '__main__':
     unittest.main()

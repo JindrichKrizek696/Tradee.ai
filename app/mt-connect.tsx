@@ -26,8 +26,8 @@ export default function MtConnect(){
     <h2>Jak propojit</h2>
     <ol className="mt-steps">
      <li><b>Vytvoř si klíč</b> níže a zkopíruj ho.</li>
-     <li><b>Stáhni EA</b>: <a href="/downloads/TradeeSync.ex5">TradeeSync.ex5</a> (MT5) nebo <a href="/downloads/TradeeSync.ex4">TradeeSync.ex4</a> (MT4) a v MetaTraderu otevři Soubor → Otevřít složku dat → <code>MQL5/Experts</code> (MT4: <code>MQL4/Experts</code>) a soubor tam vlož. Zdrojový kód: <a href="/downloads/TradeeSync.mq5">.mq5</a> · <a href="/downloads/TradeeSync.mq4">.mq4</a>.</li>
-     <li><b>Povol připojení</b>: Nástroje → Možnosti → Experti → zaškrtni „Povolit WebRequest pro uvedené URL" a přidej <code>https://tradee.eu</code>. Zapni i „Algo trading" (MT4: „Automatické obchodování").</li>
+     <li><b>Stáhni EA</b>: <a href="/downloads/TradeeSync.ex5">TradeeSync.ex5</a> (MT5) nebo <a href="/downloads/TradeeSync.ex4">TradeeSync.ex4</a> (MT4) a v MetaTraderu otevři Soubor → Otevřít složku dat → <code>MQL5/Experts</code> (MT4: <code>MQL4/Experts</code>) a soubor tam vlož. Zdrojový kód: <a href="/downloads/TradeeSync.mq5">.mq5</a> · <a href="/downloads/TradeeSync.mq4">.mq4</a>. MT4: v záložce Historie účtu klikni pravým tlačítkem → Celá historie (jinak EA nevidí starší obchody).</li>
+     <li><b>Povol připojení</b>: Nástroje → Možnosti → Experti → zaškrtni „Povolit WebRequest pro uvedené URL“ a přidej <code>https://tradee.eu</code>. Zapni i „Algo trading“ (MT4: „Automatické obchodování“).</li>
      <li><b>Spusť EA</b>: přetáhni TradeeSync na libovolný graf, do pole <code>TradeeKey</code> vlož klíč a potvrď. Do minuty se účet objeví níže. Graf nech otevřený – EA běží, dokud běží MetaTrader.</li>
     </ol>
    </section>
@@ -47,7 +47,7 @@ export default function MtConnect(){
      <td>{a.currency}</td>
      <td>{a.positions}{a.open>0&&<small> · {a.open} otevř.</small>}</td>
      <td><span className={'mt-dot '+(live?'on':'')}/>{ago(a.last_seen)}</td>
-     <td className="mt-actions"><button type="button" className="mt-icon" aria-label="Přejmenovat" onClick={()=>{const n=window.prompt('Název účtu v Tradee',a.name);if(n!==null)run(()=>call('/api/mt/accounts','PATCH',{id:a.id,name:n}))}}><Pencil size={14}/></button><button type="button" className="mt-icon" aria-label="Odpojit a smazat data" onClick={()=>{if(window.confirm('Odpojit účet a smazat všechna jeho data v Tradee? Nejde vrátit.'))run(()=>call('/api/mt/accounts','DELETE',{id:a.id}))}}><Trash2 size={14}/></button></td>
+     <td className="mt-actions"><button type="button" className="mt-icon" aria-label="Přejmenovat" onClick={()=>{const n=window.prompt('Název účtu v Tradee',a.name);if(n!==null)run(()=>call('/api/mt/accounts','PATCH',{id:a.id,name:n}))}}><Pencil size={14}/></button><button type="button" className="mt-icon" aria-label="Odpojit a smazat data" onClick={()=>{if(window.confirm('Odpojit účet a smazat všechna jeho data v Tradee? Pokud na něm EA dál běží, účet se znovu vytvoří s novými obchody – zruš i klíč nebo EA odeber z grafu.'))run(()=>call('/api/mt/accounts','DELETE',{id:a.id}))}}><Trash2 size={14}/></button></td>
     </tr>})}</tbody></table>}
    </section>
    <section className="mt-card">
