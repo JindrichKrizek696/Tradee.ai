@@ -17,8 +17,9 @@ export async function POST(req:Request){
   const all:MtEvent[]=snapshot?[...events,...snapshotEvents(snapshot)]:events;
   const r=await insertEvents(d,accountId,all);
   await upsertOrders(d,accountId,r.fresh.filter((e):e is OrderEvent=>e.type==='order'));
-  if(snapshot)await insertSnapshot(d,accountId,snapshot);
+  // neúspěšné přepočty se logují a opraví je: node --experimental-strip-types scripts/mt-rebuild.mjs <account>
   await rebuildPositions(d,accountId,r.fresh.map(eventPosition));
+  if(snapshot)try{await insertSnapshot(d,accountId,snapshot)}catch(e){console.error('mt snapshot',accountId,e)}
   return mtJson({ok:true,accepted:r.accepted,duplicates:r.duplicates});
  }catch(e){console.error('mt ingest',e);return mtJson({error:'Server data teď neuložil, EA to zkusí znovu.'},503)}
 }
