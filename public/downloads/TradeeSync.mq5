@@ -11,9 +11,11 @@ input string TradeeKey   = "";                  // Klíč z tradee.eu → Propoj
 input string AccountName = "";                  // Název účtu v Tradee (volitelné)
 input string Endpoint    = "https://tradee.eu"; // Adresa Tradee
 
-#define EA_VERSION "1.0.0"
+#define EA_VERSION "1.1.0"
 #define MAX_BATCH  500
 #define FLUSH_MS   2000
+#define BARS_EVERY    300            // jak často (s) se ptát Tradee, ke kterým obchodům chybí svíčky
+#define BARS_PER_POST 10
 
 string   g_queue[];
 ulong    g_firstQueued=0,g_nextTry=0;
@@ -23,6 +25,7 @@ bool     g_connected=false;          // spojení s brokerem a úvodní dorovnán
 long     g_login=0;                  // účet, ke kterému patří fronta a sledovaný stav
 long     g_offset=0;                 // čas serveru brokera − UTC (s)
 datetime g_lastSnap=0;
+datetime g_lastBars=0;               // poslední dotaz na chybějící svíčky (TimeGMT)
 // sledované otevřené pozice (podle POSITION_IDENTIFIER)
 long     g_pos[];                    // POSITION_IDENTIFIER
 ulong    g_tk[];                     // POSITION_TICKET (pro PositionSelectByTicket)
@@ -224,6 +227,41 @@ void Reconcile(){
    for(int i=0;i<n;i++){if(tks[i]>0)Push(DealJson(tks[i],false));}
    SaveQueue();
 }
+//--- svíčky k uzavřeným obchodům (graf v deníku Tradee)
+ENUM_TIMEFRAMES TfOf(string s){if(s=="M1")return PERIOD_M1;if(s=="M5")return PERIOD_M5;if(s=="M15")return PERIOD_M15;if(s=="M30")return PERIOD_M30;if(s=="H1")return PERIOD_H1;if(s=="H4")return PERIOD_H4;if(s=="D1")return PERIOD_D1;return PERIOD_CURRENT;}
+// položka barsWanted "pozice|symbol|tf|od|do" (od/do v s UTC) → událost bars; "" = historie ještě není stažená, zkusí se příště
+string BarsJson(string item){
+   string p[];if(StringSplit(item,'|',p)!=5)return "";
+   ENUM_TIMEFRAMES tf=TfOf(p[2]);if(tf==PERIOD_CURRENT)return "";
+   SymbolSelect(p[1],true);
+   datetime from=(datetime)(StringToInteger(p[3])+g_offset),to=(datetime)(StringToInteger(p[4])+g_offset);
+   MqlRates r[];ResetLastError();
+   int n=CopyRates(p[1],tf,from,to,r);int err=GetLastError();
+   // neúplná/nesynchronizovaná historie by se uložila navždy → "" a server se zeptá znovu
+   if(n<0||err!=0||SeriesInfoInteger(p[1],tf,SERIES_SYNCHRONIZED)==0)return "";
+   int start=MathMax(0,n-1000);string bars="";
+   for(int i=start;i<n;i++)bars+=(i>start?",":"")+"["+I(((long)r[i].time-g_offset)*1000)+","+N(r[i].open)+","+N(r[i].high)+","+N(r[i].low)+","+N(r[i].close)+"]";
+   return "{\"id\":"+Q("b:"+p[0]+":"+p[2])+",\"type\":\"bars\",\"ts\":"+I(NowMs())+",\"position\":"+Q(p[0])+",\"symbol\":"+Q(p[1])+",\"tf\":"+Q(p[2])+",\"bars\":["+bars+"]}";
+}
+void PostBars(string ev){
+   string resp;int code=Http("POST","/api/mt/ingest","{\"v\":1,\"account\":"+AccountJson()+",\"events\":["+ev+"]}",resp);
+   if(code!=200)Print("TradeeSync: svíčky neodeslány (",code,"), Tradee o ně požádá znovu");
+}
+void SyncBars(){
+   g_lastBars=TimeGMT();
+   string resp,path="/api/mt/state?login="+I(g_login)+"&server="+UrlEnc(AccountInfoString(ACCOUNT_SERVER));
+   int code=Http("GET",path,"",resp);
+   if(code==401||code==403){g_stopped=true;Comment("TradeeSync zastaven: ",resp);return;}
+   if(code!=200)return;
+   string want[];int nw=JsonStrArr(resp,"barsWanted",want);
+   string ev="";int k=0;
+   for(int i=0;i<nw;i++){
+      string j=BarsJson(want[i]);if(j=="")continue;
+      ev+=(k>0?",":"")+j;k++;
+      if(k==BARS_PER_POST){PostBars(ev);ev="";k=0;}
+   }
+   if(k>0)PostBars(ev);
+}
 
 // volat jen při spojení: bez něj TimeTradeServer() neodpovídá serveru brokera
 void CalcOffset(){long off=(long)(TimeTradeServer()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;}
@@ -240,7 +278,7 @@ void InitOrders(){
 
 // vyčistit stav v paměti (start EA, přepnutí účtu); fronta je už uložená v souboru
 void ResetState(){
-   ArrayResize(g_queue,0);g_firstQueued=0;g_nextTry=0;g_backoff=2000;g_lastSnap=0;
+   ArrayResize(g_queue,0);g_firstQueued=0;g_nextTry=0;g_backoff=2000;g_lastSnap=0;g_lastBars=0;
    Resize(0);ArrayResize(g_ord,0);ArrayResize(g_ordSig,0);ArrayResize(g_pend,0);ArrayResize(g_pendTry,0);g_pendNext=0;
    g_login=0;g_connected=false;
 }
@@ -278,6 +316,7 @@ void OnTimer(){
    bool snap=(TimeGMT()-g_lastSnap)>=every;
    bool due=ArraySize(g_queue)>0&&now-g_firstQueued>=FLUSH_MS;
    if((due||snap)&&now>=g_nextTry){Flush(snap);if(snap)g_lastSnap=TimeGMT();}
+   if(!g_stopped&&TimeGMT()-g_lastBars>=BARS_EVERY)SyncBars();
 }
 void OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &request,const MqlTradeResult &result){
    if(g_stopped||!g_connected)return;   // co přijde před úvodním dorovnáním, dorovná Reconcile

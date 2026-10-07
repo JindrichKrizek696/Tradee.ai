@@ -8,13 +8,19 @@ export type OrderEvent={id:string;type:'order';ts:number;order:string;position:s
 export type AccountEvent={id:string;type:'account';ts:number;balance:number;equity:number;margin:number;leverage:number;currency:string};
 export type PositionSnap={position:string;symbol:string;side:Side;volume:number;priceOpen:number;priceCurrent:number;sl:number;tp:number;profit:number;swap:number;mfePrice:number;maePrice:number;mfeMoney:number;maeMoney:number;spread:number;openTs:number};
 export type StateEvent=PositionSnap&{id:string;type:'position_state';ts:number};
-export type MtEvent=DealEvent|ModifyEvent|OrderEvent|AccountEvent|StateEvent;
+export const TIMEFRAMES=['M1','M5','M15','M30','H1','H4','D1'] as const;
+export type Timeframe=typeof TIMEFRAMES[number];
+export type Bar=[number,number,number,number,number];   // [čas otevření svíčky ms UTC, open, high, low, close]
+export type BarsEvent={id:string;type:'bars';ts:number;position:string;symbol:string;tf:Timeframe;bars:Bar[]};
+export const MAX_BARS=1000;
+export type MtEvent=DealEvent|ModifyEvent|OrderEvent|AccountEvent|StateEvent|BarsEvent;
 export type Snapshot={ts:number;balance:number;equity:number;margin:number;positions:PositionSnap[]};
 export type Batch={v:1;account:AccountInfo;events:MtEvent[];snapshot?:Snapshot};
 
 // Druhy polí: id = ID (1–80 znaků [\w:.#-], číslo se převede na text), tk = ticket (1–40 znaků, stejný formát),
 // sym = symbol (0–32, bez ctrl chars), txt = text (0–64, bez ctrl chars), mag = magic (konečné číslo, -9e18…9e18, chybí → 0),
 // n = konečné číslo (chybí → 0), ts = čas v ms 2000–2100, a|b = výčet; '?' = nepovinné.
+// bars = pole ≤ 1000 svíček [t,o,h,l,c] (t celé ms 2000–2100, h ≥ max(o,c), l ≤ min(o,c)).
 // Údaje účtu (a měna v události account) dávku nikdy neodmítnou, jen se upraví: ncur = jen písmena, velká, max 8; ntxt = bez ctrl chars, max 64;
 // nn = nekonečné/nečíselné → 0; mode = neznámý → 'real'. Přísné zůstávají jen platform a login.
 type Spec=Record<string,string>;
@@ -26,8 +32,10 @@ const EVENTS:Record<string,Spec>={
  order:{order:'tk',position:'tk?',symbol:'sym',orderType:'txt',state:'placed|modified|canceled|expired|filled|rejected',volume:'n',priceOpen:'n',priceRequested:'n',sl:'n',tp:'n',expiration:'n',comment:'txt',magic:'mag'},
  account:{balance:'n',equity:'n',margin:'n',leverage:'n',currency:'ncur'},
  position_state:SNAP_POS,
+ bars:{position:'tk',symbol:'sym',tf:TIMEFRAMES.join('|'),bars:'bars'},
 };
 const MIN_TS=Date.UTC(2000,0,1),MAX_TS=Date.UTC(2100,0,1);
+const isBar=(b:unknown)=>Array.isArray(b)&&b.length===5&&b.every(x=>typeof x==='number'&&Number.isFinite(x)&&Math.abs(x)<1e15)&&Number.isInteger(b[0])&&b[0]>=MIN_TS&&b[0]<MAX_TS&&b[2]>=Math.max(b[1],b[4])-1e-9&&b[3]<=Math.min(b[1],b[4])+1e-9;
 
 function field(kind:string,v:unknown):[boolean,unknown]{
  const opt=kind.endsWith('?'),k=opt?kind.slice(0,-1):kind,missing=v===undefined||v===null||v==='';
@@ -42,6 +50,7 @@ function field(kind:string,v:unknown):[boolean,unknown]{
  if(k==='ntxt')return [true,typeof v==='string'?v.replace(/[\u0000-\u001f\u007f]/g,'').slice(0,64):typeof v==='number'&&Number.isFinite(v)?String(v).slice(0,64):''];
  if(k==='nn')return [true,typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<1e15?v:0];
  if(k==='mode')return [true,v==='demo'||v==='contest'?v:'real'];
+ if(k==='bars')return [Array.isArray(v)&&v.length<=MAX_BARS&&v.every(isBar),v];
  if(missing)return [opt,''];
  return [typeof v==='string'&&k.split('|').includes(v),v];
 }

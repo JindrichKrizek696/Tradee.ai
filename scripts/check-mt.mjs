@@ -1,9 +1,10 @@
 // Kontrola MetaTrader synchronizace: node --experimental-strip-types scripts/check-mt.mjs
 import {isKeyFormat,hashKey,generateKey} from '../lib/mt/keys.ts';
 import {parseBatch,snapshotEvents,MAX_EVENTS} from '../lib/mt/protocol.ts';
-import {buildPositions,extractTags} from '../lib/mt/build.ts';
+import {buildPositions,extractTags,carryTarget,mergeManual} from '../lib/mt/build.ts';
 import {makeRates,rateOn,convert} from '../lib/fx.ts';
 import {mtTradesToCalendar,pragueDate} from '../lib/mt/trades.ts';
+import {barsWindow,wantedLine} from '../lib/mt/bars.ts';
 import * as S from './fixtures/mt/sequences.mjs';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -146,4 +147,51 @@ check('kalendář: neznámá měna → původní hodnota, converted false',cal[1
 check('kalendář: centový účet USC → CZK (souhrn)',(()=>{const c=mtTradesToCalendar([{...mtRows[0],id:'acc3:1',net:500,acc_currency:'USC'}],'CZK',rates)[0];return c.pnl===100&&c.converted===true})(),mtTradesToCalendar([{...mtRows[0],net:500,acc_currency:'USC'}],'CZK',rates)[0]);
 check('kalendář: poznámka = tagy + note',cal[0].note==='#breakout'&&cal[1].note==='test',[cal[0].note,cal[1].note]);
 
+// --- svíčky (protokol)
+const bt=1791369960000;
+const barsEv={id:'b:5001:M1',type:'bars',ts:1791370000123,position:'5001',symbol:'EURUSD',tf:'M1',bars:[[bt,1.1,1.2,1.0,1.15],[bt+60000,1.15,1.16,1.14,1.14]]};
+const bOk=parseBatch({v:1,account,events:[barsEv]});
+check('bars: platná událost',bOk.ok&&bOk.batch.events[0].type==='bars'&&bOk.batch.events[0].bars.length===2,bOk);
+check('bars: prázdné pole je platné',parseBatch({v:1,account,events:[{...barsEv,bars:[]}]}).ok);
+check('bars: 1001 svíček neprojde',!parseBatch({v:1,account,events:[{...barsEv,bars:Array.from({length:1001},(_,i)=>[bt+i*60000,1,1,1,1])}]}).ok);
+check('bars: high pod open neprojde',!parseBatch({v:1,account,events:[{...barsEv,bars:[[bt,1.1,1.05,1.0,1.02]]}]}).ok);
+check('bars: low nad close neprojde',!parseBatch({v:1,account,events:[{...barsEv,bars:[[bt,1.1,1.2,1.12,1.11]]}]}).ok);
+check('bars: neznámý tf',!parseBatch({v:1,account,events:[{...barsEv,tf:'M2'}]}).ok);
+check('bars: svíčka se 4 čísly',!parseBatch({v:1,account,events:[{...barsEv,bars:[[bt,1,1,1]]}]}).ok);
+check('bars: neceločíselný čas',!parseBatch({v:1,account,events:[{...barsEv,bars:[[bt+0.5,1,1,1,1]]}]}).ok);
+check('bars: NaN cena',!parseBatch({v:1,account,events:[{...barsEv,bars:[[bt,Number.NaN,1,1,1]]}]}).ok);
+check('bars: záporné ceny projdou',parseBatch({v:1,account,events:[{...barsEv,bars:[[bt,-10,-5,-37.6,-20]]}]}).ok);
+check('bars: bars není pole',!parseBatch({v:1,account,events:[{...barsEv,bars:'x'}]}).ok);
+// stejný tvar, jaký skládá BarsJson v EA (čísla z N(): bez koncových nul)
+const eaJson='{"v":1,"account":'+JSON.stringify(account)+',"events":[{"id":"b:5001:M5","type":"bars","ts":1791370000123,"position":"5001","symbol":"EURUSD","tf":"M5","bars":[[1791369900000,1.1,1.10025,1.0998,1.1001]]}]}';
+check('bars: JSON ve tvaru z EA',parseBatch(JSON.parse(eaJson)).ok);
+
+// --- svíčky (okno a timeframe)
+const o=Date.UTC(2026,9,5,8,0),M=60000,H=3600000,D=86400000;
+const w10=barsWindow(o,o+10*M);
+check('okno: 10 min obchod → M1, ±30 min',w10.tf==='M1'&&w10.from===(o-30*M)/1000&&w10.to===(o+40*M)/1000,w10);
+check('okno: nulová délka → M1',barsWindow(o,o).tf==='M1');
+check('okno: 2 h → M1',barsWindow(o,o+2*H).tf==='M1');
+check('okno: 10 h → M5',barsWindow(o,o+10*H).tf==='M5');
+const w1d=barsWindow(o,o+D);
+check('okno: 1 den → M5, okraj 20 %',w1d.tf==='M5'&&w1d.from===(o-0.2*D)/1000&&w1d.to===(o+1.2*D)/1000,w1d);
+check('okno: 30 dní → H4',barsWindow(o,o+30*D).tf==='H4');
+check('okno: 5 let → D1',barsWindow(o,o+5*365*D).tf==='D1');
+const secs={M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400,D1:86400};
+check('okno: nikdy přes 600 svíček (mimo D1)',[1,7,33,90,200,500,1000,3000,9000,30000,90000].every(m=>{const w=barsWindow(o,o+m*M);return w.tf==='D1'||(w.to-w.from)/secs[w.tf]<=600}));
+check('barsWanted řádek',wantedLine('5001','EURUSD',o,o+10*M)===`5001|EURUSD|M1|${(o-30*M)/1000}|${(o+40*M)/1000}`,wantedLine('5001','EURUSD',o,o+10*M));
+check('barsWanted: symbol s | nebo ] se vynechá',wantedLine('1','EUR|USD',o,o+M)===null&&wantedLine('1','EUR]',o,o+M)===null&&wantedLine('1','EUR"',o,o+M)===null);
+
+// --- přenos ručních údajů při změně segmentů pozice
+const segs=[{id:'a:5:r1',open_ts:100},{id:'a:5:r2',open_ts:200}];
+check('carry: stejné otevření',carryTarget(200,segs)==='a:5:r2');
+check('carry: jinak první segment',carryTarget(150,segs)==='a:5:r1');
+check('carry: bez segmentů nikam',carryTarget(100,[])===null);
+const mm=mergeManual;
+check('merge: sjednocení a dedupe tagů',mm({tags_manual:'a,b',note:null},{tags_manual:'b,c',note:null}).tags_manual==='a,b,c');
+check('merge: max 10 tagů',mm({tags_manual:'1,2,3,4,5,6',note:null},{tags_manual:'7,8,9,10,11,12',note:null}).tags_manual==='1,2,3,4,5,6,7,8,9,10');
+check('merge: poznámka se připojí',mm({tags_manual:'',note:'A'},{tags_manual:'',note:'B'}).note==='A\n\nB');
+check('merge: poznámka se neduplikuje',mm({tags_manual:'',note:'A B'},{tags_manual:'',note:'B'}).note==='A B');
+check('merge: obě prázdné → null',mm({tags_manual:'',note:' '},{tags_manual:'',note:null}).note===null);
+check('merge: prázdný cíl vezme zdroj',(r=>r.note==='X'&&r.tags_manual==='t')(mm({tags_manual:'',note:null},{tags_manual:'t',note:'X'})));
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

@@ -12,9 +12,11 @@ input string TradeeKey   = "";                  // Klíč z tradee.eu → Propoj
 input string AccountName = "";                  // Název účtu v Tradee (volitelné)
 input string Endpoint    = "https://tradee.eu"; // Adresa Tradee
 
-#define EA_VERSION "1.0.0"
+#define EA_VERSION "1.1.0"
 #define MAX_BATCH  500
 #define FLUSH_MS   2000
+#define BARS_EVERY    300            // jak často (s) se ptát Tradee, ke kterým obchodům chybí svíčky
+#define BARS_PER_POST 10
 
 string   g_queue[];
 uint     g_firstQueued=0,g_failAt=0;
@@ -27,6 +29,7 @@ long     g_login=0;                  // účet, ke kterému patří fronta a sle
 long     g_offset=0;                 // čas serveru brokera − UTC (s)
 bool     g_offsetOk=false;           // offset z čerstvého ticku nebo uložený z dřívějška
 datetime g_lastSnap=0,g_lastTick=0,g_lastTickLocal=0;
+datetime g_lastBars=0;               // poslední dotaz na chybějící svíčky (TimeGMT)
 // minulý stav otevřených objednávek
 int      g_t[],g_type[],g_root[],g_miss[];   // g_miss = kolikrát se zmizelý ticket nenašel v historii
 double   g_lots[],g_sl[],g_tp[],g_price[],g_mfeP[],g_maeP[],g_mfeM[],g_maeM[];
@@ -211,6 +214,41 @@ void Reconcile(){
    }
    SaveQueue();
 }
+//--- svíčky k uzavřeným obchodům (graf v deníku Tradee)
+ENUM_TIMEFRAMES TfOf(string s){if(s=="M1")return PERIOD_M1;if(s=="M5")return PERIOD_M5;if(s=="M15")return PERIOD_M15;if(s=="M30")return PERIOD_M30;if(s=="H1")return PERIOD_H1;if(s=="H4")return PERIOD_H4;if(s=="D1")return PERIOD_D1;return PERIOD_CURRENT;}
+// položka barsWanted "pozice|symbol|tf|od|do" (od/do v s UTC) → událost bars; "" = historie ještě není stažená, zkusí se příště
+string BarsJson(string item){
+   string p[];if(StringSplit(item,'|',p)!=5)return "";
+   ENUM_TIMEFRAMES tf=TfOf(p[2]);if(tf==PERIOD_CURRENT)return "";
+   SymbolSelect(p[1],true);
+   datetime from=(datetime)(StringToInteger(p[3])+g_offset),to=(datetime)(StringToInteger(p[4])+g_offset);
+   MqlRates r[];ResetLastError();
+   int n=CopyRates(p[1],tf,from,to,r);int err=GetLastError();
+   // neúplná/nesynchronizovaná historie by se uložila navždy → "" a server se zeptá znovu
+   if(n<0||err!=0||SeriesInfoInteger(p[1],tf,SERIES_SYNCHRONIZED)==0)return "";
+   int start=MathMax(0,n-1000);string bars="";
+   for(int i=start;i<n;i++)bars+=(i>start?",":"")+"["+I(((long)r[i].time-g_offset)*1000)+","+N(r[i].open)+","+N(r[i].high)+","+N(r[i].low)+","+N(r[i].close)+"]";
+   return "{\"id\":"+Q("b:"+p[0]+":"+p[2])+",\"type\":\"bars\",\"ts\":"+I(NowMs())+",\"position\":"+Q(p[0])+",\"symbol\":"+Q(p[1])+",\"tf\":"+Q(p[2])+",\"bars\":["+bars+"]}";
+}
+void PostBars(string ev){
+   string resp;int code=Http("POST","/api/mt/ingest","{\"v\":1,\"account\":"+AccountJson()+",\"events\":["+ev+"]}",resp);
+   if(code!=200)Print("TradeeSync: svíčky neodeslány (",code,"), Tradee o ně požádá znovu");
+}
+void SyncBars(){
+   g_lastBars=TimeGMT();
+   string resp,path="/api/mt/state?login="+I(g_login)+"&server="+UrlEnc(AccountServer());
+   int code=Http("GET",path,"",resp);
+   if(code==401||code==403){g_stopped=true;Comment("TradeeSync zastaven: ",resp);return;}
+   if(code!=200)return;
+   string want[];int nw=JsonStrArr(resp,"barsWanted",want);
+   string ev="";int k=0;
+   for(int i=0;i<nw;i++){
+      string j=BarsJson(want[i]);if(j=="")continue;
+      ev+=(k>0?",":"")+j;k++;
+      if(k==BARS_PER_POST){PostBars(ev);ev="";k=0;}
+   }
+   if(k>0)PostBars(ev);
+}
 void InitState(){
    ResizeAll(0);
    for(int i=0;i<OrdersTotal();i++){if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))continue;AddCurrent(OrderType()<=OP_SELL?RootOf(OrderTicket(),OrderComment(),MODE_TRADES):OrderTicket());}
@@ -249,7 +287,7 @@ void TickWatch(){
 }
 // vyčistit stav v paměti (start EA, přepnutí účtu); fronta je už uložená v souboru
 void ResetState(){
-   ArrayResize(g_queue,0);g_firstQueued=0;g_failed=false;g_backoff=2000;g_lastSnap=0;
+   ArrayResize(g_queue,0);g_firstQueued=0;g_failed=false;g_backoff=2000;g_lastSnap=0;g_lastBars=0;
    ResizeAll(0);g_login=0;g_connected=false;g_needReconcile=false;
    g_offset=0;g_offsetOk=false;g_lastTick=0;g_lastTickLocal=0;
 }
@@ -290,5 +328,6 @@ void OnTimer(){
    bool due=ArraySize(g_queue)>0&&now-g_firstQueued>=FLUSH_MS;
    bool ready=!g_failed||now-g_failAt>=(uint)g_backoff;
    if((due||snap)&&ready){Flush(snap);if(snap)g_lastSnap=TimeGMT();}
+   if(!g_stopped&&TimeGMT()-g_lastBars>=BARS_EVERY)SyncBars();
 }
 //+------------------------------------------------------------------+
