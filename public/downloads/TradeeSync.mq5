@@ -19,6 +19,8 @@ string   g_queue[];
 ulong    g_firstQueued=0,g_nextTry=0;
 int      g_backoff=2000;
 bool     g_stopped=false;
+bool     g_connected=false;          // spojení s brokerem a úvodní dorovnání proběhlo
+long     g_login=0;                  // účet, ke kterému patří fronta a sledovaný stav
 long     g_offset=0;                 // čas serveru brokera − UTC (s)
 datetime g_lastSnap=0;
 // sledované otevřené pozice (podle POSITION_IDENTIFIER)
@@ -26,6 +28,11 @@ long     g_pos[];                    // POSITION_IDENTIFIER
 ulong    g_tk[];                     // POSITION_TICKET (pro PositionSelectByTicket)
 string   g_sym[];
 double   g_sl[],g_tp[],g_mfeP[],g_maeP[],g_mfeM[],g_maeM[];
+bool     g_out[];                    // od poslední kontroly přišel uzavírací deal (DEAL_ADD)
+// pozice zavřené bez DEAL_ADD (offline), jejichž uzavírací deal v historii ještě není
+long     g_pend[];
+int      g_pendTry[];
+ulong    g_pendNext=0;
 // sledované čekající pokyny (kvůli rozlišení skutečné úpravy)
 ulong    g_ord[];
 string   g_ordSig[];
@@ -37,12 +44,12 @@ string N(double v){if(!MathIsValidNumber(v))return "0";string s=DoubleToString(v
 string I(long v){return IntegerToString(v);}
 string Cut(string s,int n){return StringLen(s)>n?StringSubstr(s,0,n):s;}
 long   Utc(long serverMs){return serverMs-g_offset*1000;}
-long   NowMs(){return (long)TimeGMT()*1000+(long)(GetTickCount64()%1000);}
-string QueueFile(){return "TradeeSync\\"+I(AccountInfoInteger(ACCOUNT_LOGIN))+".queue";}
+long   NowMs(){static long last=0;long t=(long)TimeGMT()*1000+(long)(GetTickCount64()%1000);if(t<=last)t=last+1;last=t;return t;}
+string QueueFile(){return "TradeeSync\\"+I(g_login)+".queue";}
 
 //--- fronta (přežije restart terminálu)
-void SaveQueue(){int h=FileOpen(QueueFile(),FILE_WRITE|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;for(int i=0;i<ArraySize(g_queue);i++)FileWriteString(h,g_queue[i]+"\n");FileClose(h);}
-void LoadQueue(){ArrayResize(g_queue,0);if(!FileIsExist(QueueFile()))return;int h=FileOpen(QueueFile(),FILE_READ|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;while(!FileIsEnding(h)){string l=FileReadString(h);if(StringLen(l)>2){int n=ArraySize(g_queue);ArrayResize(g_queue,n+1);g_queue[n]=l;}}FileClose(h);if(ArraySize(g_queue)>0)g_firstQueued=GetTickCount64();}
+void SaveQueue(){if(g_login<=0)return;int h=FileOpen(QueueFile(),FILE_WRITE|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;for(int i=0;i<ArraySize(g_queue);i++)FileWriteString(h,g_queue[i]+"\n");FileClose(h);}
+void LoadQueue(){ArrayResize(g_queue,0);g_firstQueued=0;if(g_login<=0)return;if(!FileIsExist(QueueFile()))return;int h=FileOpen(QueueFile(),FILE_READ|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;while(!FileIsEnding(h)){string l=FileReadString(h);if(StringLen(l)>2){int n=ArraySize(g_queue);ArrayResize(g_queue,n+1);g_queue[n]=l;}}FileClose(h);if(ArraySize(g_queue)>0)g_firstQueued=GetTickCount64();}
 void Push(string ev){if(ev=="")return;int n=ArraySize(g_queue);ArrayResize(g_queue,n+1);g_queue[n]=ev;if(n==0)g_firstQueued=GetTickCount64();}
 void Enqueue(string ev){if(ev=="")return;Push(ev);SaveQueue();}
 void Drop(int n){int left=ArraySize(g_queue)-n;for(int i=0;i<left;i++)g_queue[i]=g_queue[i+n];ArrayResize(g_queue,MathMax(left,0));g_firstQueued=left>0?GetTickCount64():0;SaveQueue();}
@@ -60,11 +67,23 @@ int Http(string method,string path,string body,string &resp){
    return code;
 }
 long JsonLong(string s,string key){int p=StringFind(s,"\""+key+"\":");if(p<0)return 0;p+=StringLen(key)+3;string num="";while(p<StringLen(s)){ushort c=StringGetCharacter(s,p);if((c>='0'&&c<='9')||c=='-')num+=ShortToString(c);else break;p++;}return StringToInteger(num);}
+// pole řetězců "key":["a","b"] (tickety neobsahují uvozovky ani ])
+int JsonStrArr(string s,string key,string &out[]){
+   ArrayResize(out,0);
+   int p=StringFind(s,"\""+key+"\":[");if(p<0)return 0;p+=StringLen(key)+4;
+   int e=StringFind(s,"]",p);if(e<0)return 0;
+   while(p<e){
+      int a=StringFind(s,"\"",p);if(a<0||a>=e)break;
+      int b=StringFind(s,"\"",a+1);if(b<0||b>e)break;
+      int n=ArraySize(out);ArrayResize(out,n+1);out[n]=StringSubstr(s,a+1,b-a-1);p=b+1;
+   }
+   return ArraySize(out);
+}
 
 //--- účet a události
 string AccountJson(){
    long mode=AccountInfoInteger(ACCOUNT_TRADE_MODE);
-   return "{\"platform\":\"mt5\",\"login\":"+Q(I(AccountInfoInteger(ACCOUNT_LOGIN)))+",\"server\":"+Q(Cut(AccountInfoString(ACCOUNT_SERVER),64))+",\"company\":"+Q(Cut(AccountInfoString(ACCOUNT_COMPANY),64))+",\"currency\":"+Q(Cut(AccountInfoString(ACCOUNT_CURRENCY),8))+",\"leverage\":"+I(AccountInfoInteger(ACCOUNT_LEVERAGE))+",\"mode\":"+Q(mode==ACCOUNT_TRADE_MODE_DEMO?"demo":mode==ACCOUNT_TRADE_MODE_CONTEST?"contest":"real")+",\"name\":"+Q(Cut(AccountName,60))+",\"ea\":"+Q(EA_VERSION)+"}";
+   return "{\"platform\":\"mt5\",\"login\":"+Q(I(g_login))+",\"server\":"+Q(Cut(AccountInfoString(ACCOUNT_SERVER),64))+",\"company\":"+Q(Cut(AccountInfoString(ACCOUNT_COMPANY),64))+",\"currency\":"+Q(Cut(AccountInfoString(ACCOUNT_CURRENCY),8))+",\"leverage\":"+I(AccountInfoInteger(ACCOUNT_LEVERAGE))+",\"mode\":"+Q(mode==ACCOUNT_TRADE_MODE_DEMO?"demo":mode==ACCOUNT_TRADE_MODE_CONTEST?"contest":"real")+",\"name\":"+Q(Cut(AccountName,60))+",\"ea\":"+Q(EA_VERSION)+"}";
 }
 string ReasonStr(long r){switch((int)r){case DEAL_REASON_CLIENT:return "client";case DEAL_REASON_MOBILE:return "mobile";case DEAL_REASON_WEB:return "web";case DEAL_REASON_EXPERT:return "expert";case DEAL_REASON_SL:return "sl";case DEAL_REASON_TP:return "tp";case DEAL_REASON_SO:return "so";case DEAL_REASON_ROLLOVER:return "rollover";case DEAL_REASON_VMARGIN:return "vmargin";case DEAL_REASON_SPLIT:return "split";}return "other";}
 string DealJson(ulong t,bool live){
@@ -105,13 +124,47 @@ string OrderJson(const MqlTradeTransaction &t){
 
 //--- sledování pozic: SL/TP a MFE/MAE
 int PosIdx(long p){for(int i=0;i<ArraySize(g_pos);i++)if(g_pos[i]==p)return i;return -1;}
-void Resize(int n){ArrayResize(g_pos,n);ArrayResize(g_tk,n);ArrayResize(g_sym,n);ArrayResize(g_sl,n);ArrayResize(g_tp,n);ArrayResize(g_mfeP,n);ArrayResize(g_maeP,n);ArrayResize(g_mfeM,n);ArrayResize(g_maeM,n);}
-void AddPos(){int k=ArraySize(g_pos);Resize(k+1);g_pos[k]=PositionGetInteger(POSITION_IDENTIFIER);g_tk[k]=(ulong)PositionGetInteger(POSITION_TICKET);g_sym[k]=PositionGetString(POSITION_SYMBOL);g_sl[k]=PositionGetDouble(POSITION_SL);g_tp[k]=PositionGetDouble(POSITION_TP);double pr=PositionGetDouble(POSITION_PRICE_CURRENT),m=PositionGetDouble(POSITION_PROFIT);g_mfeP[k]=pr;g_maeP[k]=pr;g_mfeM[k]=m;g_maeM[k]=m;}
-void RemoveAt(int i){int l=ArraySize(g_pos)-1;g_pos[i]=g_pos[l];g_tk[i]=g_tk[l];g_sym[i]=g_sym[l];g_sl[i]=g_sl[l];g_tp[i]=g_tp[l];g_mfeP[i]=g_mfeP[l];g_maeP[i]=g_maeP[l];g_mfeM[i]=g_mfeM[l];g_maeM[i]=g_maeM[l];Resize(l);}
+void Resize(int n){ArrayResize(g_out,n);ArrayResize(g_pos,n);ArrayResize(g_tk,n);ArrayResize(g_sym,n);ArrayResize(g_sl,n);ArrayResize(g_tp,n);ArrayResize(g_mfeP,n);ArrayResize(g_maeP,n);ArrayResize(g_mfeM,n);ArrayResize(g_maeM,n);}
+void AddPos(){int k=ArraySize(g_pos);Resize(k+1);g_out[k]=false;g_pos[k]=PositionGetInteger(POSITION_IDENTIFIER);g_tk[k]=(ulong)PositionGetInteger(POSITION_TICKET);g_sym[k]=PositionGetString(POSITION_SYMBOL);g_sl[k]=PositionGetDouble(POSITION_SL);g_tp[k]=PositionGetDouble(POSITION_TP);double pr=PositionGetDouble(POSITION_PRICE_CURRENT),m=PositionGetDouble(POSITION_PROFIT);g_mfeP[k]=pr;g_maeP[k]=pr;g_mfeM[k]=m;g_maeM[k]=m;}
+void RemoveAt(int i){int l=ArraySize(g_pos)-1;g_out[i]=g_out[l];g_pos[i]=g_pos[l];g_tk[i]=g_tk[l];g_sym[i]=g_sym[l];g_sl[i]=g_sl[l];g_tp[i]=g_tp[l];g_mfeP[i]=g_mfeP[l];g_maeP[i]=g_maeP[l];g_mfeM[i]=g_mfeM[l];g_maeM[i]=g_maeM[l];Resize(l);}
+// Všechny dealy pozice z historie do fronty – jen když už historie obsahuje uzavření (duplicity server zahodí).
+bool PushPositionDeals(long pid){
+   if(pid<=0||!HistorySelectByPosition(pid))return false;
+   int n=HistoryDealsTotal();ulong tks[];ArrayResize(tks,n);bool closed=false;
+   for(int i=0;i<n;i++){
+      tks[i]=HistoryDealGetTicket(i);if(tks[i]==0)continue;
+      long e=HistoryDealGetInteger(tks[i],DEAL_ENTRY);
+      if(e==DEAL_ENTRY_OUT||e==DEAL_ENTRY_INOUT||e==DEAL_ENTRY_OUT_BY)closed=true;
+   }
+   if(!closed)return false;
+   // tickety zkopírované předem: HistoryDealSelect v DealJson přepisuje výběr
+   for(int i=0;i<n;i++)if(tks[i]>0)Push(DealJson(tks[i],false));
+   return true;
+}
+void AddPending(long pid){for(int i=0;i<ArraySize(g_pend);i++)if(g_pend[i]==pid)return;int n=ArraySize(g_pend);ArrayResize(g_pend,n+1);ArrayResize(g_pendTry,n+1);g_pend[n]=pid;g_pendTry[n]=0;}
+// pozice zmizela bez uzavíracího DEAL_ADD (zavřena offline / během výpadku) → dealy z historie, jinak zkusit později
+void Vanished(long pid){if(PushPositionDeals(pid))SaveQueue();else AddPending(pid);}
+void CheckPending(){
+   if(ArraySize(g_pend)==0||GetTickCount64()<g_pendNext)return;
+   g_pendNext=GetTickCount64()+10000;
+   bool pushed=false;
+   for(int i=ArraySize(g_pend)-1;i>=0;i--){
+      bool done=PosIdx(g_pend[i])>=0;              // znovu otevřená v terminálu = není co dohledávat
+      if(!done&&PushPositionDeals(g_pend[i])){done=true;pushed=true;}
+      if(!done&&++g_pendTry[i]>=30){Print("TradeeSync: uzavření pozice ",g_pend[i]," se v historii nenašlo, vzdávám to");done=true;}
+      if(done){int l=ArraySize(g_pend)-1;g_pend[i]=g_pend[l];g_pendTry[i]=g_pendTry[l];ArrayResize(g_pend,l);ArrayResize(g_pendTry,l);}
+   }
+   if(pushed)SaveQueue();
+}
 void TrackPositions(){
    int n=PositionsTotal();long cur[];ArrayResize(cur,n);
    for(int i=0;i<n;i++){ulong t=PositionGetTicket(i);cur[i]=t>0?PositionGetInteger(POSITION_IDENTIFIER):0;}
-   for(int i=ArraySize(g_pos)-1;i>=0;i--){bool f=false;for(int j=0;j<n;j++)if(cur[j]==g_pos[i]){f=true;break;}if(!f)RemoveAt(i);}
+   for(int i=ArraySize(g_pos)-1;i>=0;i--){
+      bool f=false;for(int j=0;j<n;j++)if(cur[j]==g_pos[i]){f=true;break;}
+      if(f){g_out[i]=false;continue;}             // dílčí uzavření: pozice trvá, příznak zpět
+      long pid=g_pos[i];bool seen=g_out[i];RemoveAt(i);
+      if(!seen)Vanished(pid);
+   }
    for(int j=0;j<n;j++)if(cur[j]>0&&PosIdx(cur[j])<0&&PositionSelectByTicket(PositionGetTicket(j)))AddPos();
 }
 string StateJson(int i,long ts,bool full){
@@ -151,11 +204,18 @@ void Flush(bool withSnapshot){
    g_backoff=MathMin(g_backoff*2,300000);g_nextTry=GetTickCount64()+(ulong)g_backoff;
 }
 void Reconcile(){
-   string resp,path="/api/mt/state?login="+I(AccountInfoInteger(ACCOUNT_LOGIN))+"&server="+UrlEnc(AccountInfoString(ACCOUNT_SERVER));
+   string resp,path="/api/mt/state?login="+I(g_login)+"&server="+UrlEnc(AccountInfoString(ACCOUNT_SERVER));
    int code=Http("GET",path,"",resp);
    if(code==401||code==403){g_stopped=true;Comment("TradeeSync zastaven: ",resp);return;}
    if(code!=200){Print("TradeeSync: stav účtu nezjištěn (",code,"), dorovnám po připojení celou historii");}
    long last=code==200?JsonLong(resp,"lastDealTs"):0;
+   // pozice, které Tradee vede jako otevřené, ale v terminálu už nejsou → uzavření z historie
+   string srv[];int no=code==200?JsonStrArr(resp,"openPositions",srv):0;
+   for(int i=0;i<no;i++){
+      string t=srv[i];int c=StringFind(t,":r");if(c>0)t=StringSubstr(t,0,c);
+      long pid=StringToInteger(t);
+      if(pid>0&&PosIdx(pid)<0)Vanished(pid);
+   }
    datetime from=last>0?(datetime)((last+g_offset*1000)/1000-60):0;
    if(!HistorySelect(from,TimeCurrent()+86400))return;
    // nejdřív zkopírovat všechny tickety: HistoryDealSelect uvnitř cyklu přepisuje výběr z HistorySelect
@@ -165,6 +225,7 @@ void Reconcile(){
    SaveQueue();
 }
 
+// volat jen při spojení: bez něj TimeTradeServer() neodpovídá serveru brokera
 void CalcOffset(){long off=(long)(TimeTradeServer()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;}
 // stávající čekající pokyny, aby pozdější úprava byla „modified“, ne „placed“
 void InitOrders(){
@@ -177,20 +238,41 @@ void InitOrders(){
    }
 }
 
+// vyčistit stav v paměti (start EA, přepnutí účtu); fronta je už uložená v souboru
+void ResetState(){
+   ArrayResize(g_queue,0);g_firstQueued=0;g_nextTry=0;g_backoff=2000;g_lastSnap=0;
+   Resize(0);ArrayResize(g_ord,0);ArrayResize(g_ordSig,0);ArrayResize(g_pend,0);ArrayResize(g_pendTry,0);g_pendNext=0;
+   g_login=0;g_connected=false;
+}
+// po připojení (i po každém obnovení spojení): offset, stav pozic a pokynů, dorovnání historie
+void ConnectedInit(){
+   long login=AccountInfoInteger(ACCOUNT_LOGIN);
+   if(login!=g_login){g_login=login;LoadQueue();}   // fronta jen jednou pro daný účet
+   CalcOffset();
+   TrackPositions();InitOrders();
+   g_connected=true;
+   Reconcile();
+}
+
 //--- události terminálu
 int OnInit(){
    if(StringLen(TradeeKey)<20){Alert("TradeeSync: vlož klíč z tradee.eu (Propojení s MetaTraderem)");return INIT_PARAMETERS_INCORRECT;}
-   CalcOffset();
    FolderCreate("TradeeSync");
-   LoadQueue();TrackPositions();InitOrders();Reconcile();
-   EventSetTimer(1);g_lastSnap=0;
+   g_stopped=false;ResetState();
+   EventSetTimer(1);
    return INIT_SUCCEEDED;
 }
-void OnDeinit(const int reason){EventKillTimer();SaveQueue();Comment("");}
+void OnDeinit(const int reason){EventKillTimer();Comment("");}   // fronta je uložená při každé změně
 void OnTimer(){
    if(g_stopped)return;
+   // bez spojení s brokerem (nebo bez přihlášení) se nic nedělá; historie a čas serveru nejsou spolehlivé
+   long login=AccountInfoInteger(ACCOUNT_LOGIN);
+   if(TerminalInfoInteger(TERMINAL_CONNECTED)==0||login==0){Comment("TradeeSync: čekám na spojení s brokerem…");g_connected=false;return;}
+   if(g_login!=0&&login!=g_login){Print("TradeeSync: přepnutý účet ",g_login," → ",login);SaveQueue();ResetState();}
+   if(!g_connected){ConnectedInit();if(g_stopped)return;}
    CalcOffset();
    TrackPositions();for(int i=0;i<ArraySize(g_pos);i++)CheckPos(i);
+   CheckPending();
    ulong now=GetTickCount64();
    int every=ArraySize(g_pos)>0?120:900;
    bool snap=(TimeGMT()-g_lastSnap)>=every;
@@ -198,13 +280,13 @@ void OnTimer(){
    if((due||snap)&&now>=g_nextTry){Flush(snap);if(snap)g_lastSnap=TimeGMT();}
 }
 void OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &request,const MqlTradeResult &result){
-   if(g_stopped)return;
+   if(g_stopped||!g_connected)return;   // co přijde před úvodním dorovnáním, dorovná Reconcile
    if(trans.type==TRADE_TRANSACTION_DEAL_ADD){
       if(HistoryDealSelect(trans.deal)){
          long entry=HistoryDealGetInteger(trans.deal,DEAL_ENTRY),pid=HistoryDealGetInteger(trans.deal,DEAL_POSITION_ID);
          int k=PosIdx(pid);
          // poslední MFE/MAE před uzavřením, ať se neztratí průběh od posledního snímku
-         if(k>=0&&(entry==DEAL_ENTRY_OUT||entry==DEAL_ENTRY_INOUT||entry==DEAL_ENTRY_OUT_BY)){long ts=Utc(HistoryDealGetInteger(trans.deal,DEAL_TIME_MSC))-1;Push("{\"id\":"+Q("p:"+I(pid)+":"+I(ts))+",\"type\":\"position_state\",\"ts\":"+I(ts)+","+StateJson(k,ts,false)+"}");}
+         if(k>=0&&(entry==DEAL_ENTRY_OUT||entry==DEAL_ENTRY_INOUT||entry==DEAL_ENTRY_OUT_BY)){g_out[k]=true;long ts=Utc(HistoryDealGetInteger(trans.deal,DEAL_TIME_MSC))-1;Push("{\"id\":"+Q("p:"+I(pid)+":"+I(ts))+",\"type\":\"position_state\",\"ts\":"+I(ts)+","+StateJson(k,ts,false)+"}");}
       }
       Enqueue(DealJson(trans.deal,true));TrackPositions();
    }
