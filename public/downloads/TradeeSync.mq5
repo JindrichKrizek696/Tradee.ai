@@ -22,7 +22,8 @@ bool     g_stopped=false;
 long     g_offset=0;                 // čas serveru brokera − UTC (s)
 datetime g_lastSnap=0;
 // sledované otevřené pozice (podle POSITION_IDENTIFIER)
-long     g_pos[];
+long     g_pos[];                    // POSITION_IDENTIFIER
+ulong    g_tk[];                     // POSITION_TICKET (pro PositionSelectByTicket)
 string   g_sym[];
 double   g_sl[],g_tp[],g_mfeP[],g_maeP[],g_mfeM[],g_maeM[];
 // sledované čekající pokyny (kvůli rozlišení skutečné úpravy)
@@ -49,7 +50,7 @@ void Drop(int n){int left=ArraySize(g_queue)-n;for(int i=0;i<left;i++)g_queue[i]
 //--- HTTP
 string UrlEnc(string s){uchar b[];StringToCharArray(s,b,0,WHOLE_ARRAY,CP_UTF8);string o="";for(int i=0;i<ArraySize(b)-1;i++){uchar c=b[i];if((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='-'||c=='_'||c=='.')o+=CharToString(c);else o+=StringFormat("%%%02X",c);}return o;}
 int Http(string method,string path,string body,string &resp){
-   uchar data[],res[];string rh;
+   char data[],res[];string rh;
    if(body!=""){StringToCharArray(body,data,0,WHOLE_ARRAY,CP_UTF8);ArrayResize(data,ArraySize(data)-1);}
    string hdr="Content-Type: application/json\r\nAuthorization: Bearer "+TradeeKey+"\r\n";
    ResetLastError();
@@ -104,9 +105,9 @@ string OrderJson(const MqlTradeTransaction &t){
 
 //--- sledování pozic: SL/TP a MFE/MAE
 int PosIdx(long p){for(int i=0;i<ArraySize(g_pos);i++)if(g_pos[i]==p)return i;return -1;}
-void Resize(int n){ArrayResize(g_pos,n);ArrayResize(g_sym,n);ArrayResize(g_sl,n);ArrayResize(g_tp,n);ArrayResize(g_mfeP,n);ArrayResize(g_maeP,n);ArrayResize(g_mfeM,n);ArrayResize(g_maeM,n);}
-void AddPos(){int k=ArraySize(g_pos);Resize(k+1);g_pos[k]=PositionGetInteger(POSITION_IDENTIFIER);g_sym[k]=PositionGetString(POSITION_SYMBOL);g_sl[k]=PositionGetDouble(POSITION_SL);g_tp[k]=PositionGetDouble(POSITION_TP);double pr=PositionGetDouble(POSITION_PRICE_CURRENT),m=PositionGetDouble(POSITION_PROFIT);g_mfeP[k]=pr;g_maeP[k]=pr;g_mfeM[k]=m;g_maeM[k]=m;}
-void RemoveAt(int i){int l=ArraySize(g_pos)-1;g_pos[i]=g_pos[l];g_sym[i]=g_sym[l];g_sl[i]=g_sl[l];g_tp[i]=g_tp[l];g_mfeP[i]=g_mfeP[l];g_maeP[i]=g_maeP[l];g_mfeM[i]=g_mfeM[l];g_maeM[i]=g_maeM[l];Resize(l);}
+void Resize(int n){ArrayResize(g_pos,n);ArrayResize(g_tk,n);ArrayResize(g_sym,n);ArrayResize(g_sl,n);ArrayResize(g_tp,n);ArrayResize(g_mfeP,n);ArrayResize(g_maeP,n);ArrayResize(g_mfeM,n);ArrayResize(g_maeM,n);}
+void AddPos(){int k=ArraySize(g_pos);Resize(k+1);g_pos[k]=PositionGetInteger(POSITION_IDENTIFIER);g_tk[k]=(ulong)PositionGetInteger(POSITION_TICKET);g_sym[k]=PositionGetString(POSITION_SYMBOL);g_sl[k]=PositionGetDouble(POSITION_SL);g_tp[k]=PositionGetDouble(POSITION_TP);double pr=PositionGetDouble(POSITION_PRICE_CURRENT),m=PositionGetDouble(POSITION_PROFIT);g_mfeP[k]=pr;g_maeP[k]=pr;g_mfeM[k]=m;g_maeM[k]=m;}
+void RemoveAt(int i){int l=ArraySize(g_pos)-1;g_pos[i]=g_pos[l];g_tk[i]=g_tk[l];g_sym[i]=g_sym[l];g_sl[i]=g_sl[l];g_tp[i]=g_tp[l];g_mfeP[i]=g_mfeP[l];g_maeP[i]=g_maeP[l];g_mfeM[i]=g_mfeM[l];g_maeM[i]=g_maeM[l];Resize(l);}
 void TrackPositions(){
    int n=PositionsTotal();long cur[];ArrayResize(cur,n);
    for(int i=0;i<n;i++){ulong t=PositionGetTicket(i);cur[i]=t>0?PositionGetInteger(POSITION_IDENTIFIER):0;}
@@ -120,7 +121,7 @@ string StateJson(int i,long ts,bool full){
      +",\"mfePrice\":"+N(g_mfeP[i])+",\"maePrice\":"+N(g_maeP[i])+",\"mfeMoney\":"+N(g_mfeM[i])+",\"maeMoney\":"+N(g_maeM[i])+",\"spread\":"+I(SymbolInfoInteger(g_sym[i],SYMBOL_SPREAD))+(ots>0?",\"openTs\":"+I(ots):"");
 }
 void CheckPos(int i){
-   if(!PositionSelectByTicket((ulong)g_pos[i]))return;
+   if(!PositionSelectByTicket(g_tk[i]))return;
    double sl=PositionGetDouble(POSITION_SL),tp=PositionGetDouble(POSITION_TP),pr=PositionGetDouble(POSITION_PRICE_CURRENT),m=PositionGetDouble(POSITION_PROFIT);
    if(MathAbs(sl-g_sl[i])>1e-10||MathAbs(tp-g_tp[i])>1e-10){
       long ts=NowMs();
@@ -132,7 +133,7 @@ void CheckPos(int i){
 }
 string SnapshotJson(){
    string ps="";
-   for(int i=0;i<ArraySize(g_pos);i++){if(!PositionSelectByTicket((ulong)g_pos[i]))continue;ps+=(ps==""?"":",")+"{"+StateJson(i,0,true)+"}";}
+   for(int i=0;i<ArraySize(g_pos);i++){if(!PositionSelectByTicket(g_tk[i]))continue;ps+=(ps==""?"":",")+"{"+StateJson(i,0,true)+"}";}
    return "{\"ts\":"+I(NowMs())+",\"balance\":"+N(AccountInfoDouble(ACCOUNT_BALANCE))+",\"equity\":"+N(AccountInfoDouble(ACCOUNT_EQUITY))+",\"margin\":"+N(AccountInfoDouble(ACCOUNT_MARGIN))+",\"positions\":["+ps+"]}";
 }
 
@@ -157,23 +158,38 @@ void Reconcile(){
    long last=code==200?JsonLong(resp,"lastDealTs"):0;
    datetime from=last>0?(datetime)((last+g_offset*1000)/1000-60):0;
    if(!HistorySelect(from,TimeCurrent()+86400))return;
-   int n=HistoryDealsTotal();
-   for(int i=0;i<n;i++){ulong t=HistoryDealGetTicket(i);if(t>0)Push(DealJson(t,false));}
+   // nejdřív zkopírovat všechny tickety: HistoryDealSelect uvnitř cyklu přepisuje výběr z HistorySelect
+   ulong tks[];int n=HistoryDealsTotal();ArrayResize(tks,n);
+   for(int i=0;i<n;i++)tks[i]=HistoryDealGetTicket(i);
+   for(int i=0;i<n;i++){if(tks[i]>0)Push(DealJson(tks[i],false));}
    SaveQueue();
+}
+
+void CalcOffset(){long off=(long)(TimeTradeServer()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;}
+// stávající čekající pokyny, aby pozdější úprava byla „modified“, ne „placed“
+void InitOrders(){
+   ArrayResize(g_ord,0);ArrayResize(g_ordSig,0);
+   for(int i=0;i<OrdersTotal();i++){
+      ulong t=OrderGetTicket(i);if(t==0)continue;
+      if(OrderTypeStr((ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE))=="")continue;
+      int k=ArraySize(g_ord);ArrayResize(g_ord,k+1);ArrayResize(g_ordSig,k+1);
+      g_ord[k]=t;g_ordSig[k]=N(OrderGetDouble(ORDER_PRICE_OPEN))+"|"+N(OrderGetDouble(ORDER_SL))+"|"+N(OrderGetDouble(ORDER_TP))+"|"+N(OrderGetDouble(ORDER_VOLUME_CURRENT));
+   }
 }
 
 //--- události terminálu
 int OnInit(){
    if(StringLen(TradeeKey)<20){Alert("TradeeSync: vlož klíč z tradee.eu (Propojení s MetaTraderem)");return INIT_PARAMETERS_INCORRECT;}
-   long off=(long)(TimeTradeServer()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;
+   CalcOffset();
    FolderCreate("TradeeSync");
-   LoadQueue();TrackPositions();Reconcile();
+   LoadQueue();TrackPositions();InitOrders();Reconcile();
    EventSetTimer(1);g_lastSnap=0;
    return INIT_SUCCEEDED;
 }
 void OnDeinit(const int reason){EventKillTimer();SaveQueue();Comment("");}
 void OnTimer(){
    if(g_stopped)return;
+   CalcOffset();
    TrackPositions();for(int i=0;i<ArraySize(g_pos);i++)CheckPos(i);
    ulong now=GetTickCount64();
    int every=ArraySize(g_pos)>0?120:900;
