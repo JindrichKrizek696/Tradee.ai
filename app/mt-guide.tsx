@@ -30,13 +30,13 @@ export function MtGuide({status}:{status:GuideStatus}){
     <li>V {name} klikni nahoře na <b>Soubor → Otevřít složku dat</b> (File → Open Data Folder). {mac?'Otevře se Finder.':'Otevře se okno Průzkumníka.'}</li>
     <li>Otevři složku <C>{mql}</C> a v ní <C>Experts</C>.</li>
     <li>Stažený soubor <C>TradeeSync.{ex}</C> do ní přetáhni{mac?' ze Stažených souborů':''}.</li>
-    <li>Vrať se do MetaTraderu. V okně <b>Navigátor</b> (Zobrazit → Navigátor) klikni pravým tlačítkem na <b>Expert Advisors</b> a vyber <b>Obnovit</b> (Refresh). TradeeSync se objeví v seznamu.</li>
+    <li>Vrať se do MetaTraderu. V okně <b>Navigátor</b> (Zobrazit → Navigátor) klikni pravým tlačítkem na <b>Experti</b> (Expert Advisors) a vyber <b>Obnovit</b> (Refresh). TradeeSync se objeví v seznamu.</li>
    </ol>
    {mac&&<p className="mt-tip">MetaTrader na Macu běží v kompatibilní vrstvě, postup je ale stejný. Když se Finder neotevře: ve Finderu dej <b>Přejít → Přejít na složku</b> (⇧⌘G) a vlož <C>{`~/Library/Application Support/net.metaquotes.wine.metatrader${n}/drive_c/Program Files/MetaTrader ${n}/${mql}/Experts`}</C> (u verze od brokera se název složky může lišit).</p>}
    {p==='mt4'&&<p className="mt-tip">Jen pro MT4: dole v okně <b>Terminál</b> otevři záložku <b>Historie účtu</b> (Account History), klikni do ní pravým tlačítkem a vyber <b>Celá historie</b> (All History). Jinak EA neuvidí starší obchody.</p>}
    <p className="mt-tip">Stahuješ <C>.{ex}</C> – hotový program. Soubor <a href={`/downloads/TradeeSync.mq${n}`}>.mq{n}</a> je zdrojový kód; ten MetaTrader nespustí, slouží jen ke kontrole, co EA dělá.</p></>},
   {title:'Povol připojení k Tradee',body:<ol>
-   <li>Nahoře klikni na <b>Nástroje → Možnosti</b> (Tools → Options) a otevři záložku <b>Expert Advisors</b>.</li>
+   <li>Nahoře klikni na <b>Nástroje → Možnosti</b> (Tools → Options) a otevři záložku <b>Experti</b> (Expert Advisors).</li>
    <li>Zaškrtni <b>{p==='mt5'?'Povolit algoritmické obchodování':'Povolit automatické obchodování'}</b> ({p==='mt5'?'Allow algorithmic trading':'Allow automated trading'}). TradeeSync přesto nic neobchoduje – bez toho by se vůbec nespustil.</li>
    <li>Zaškrtni <b>Povolit WebRequest pro uvedené URL</b> (Allow WebRequest for listed URL), dvakrát klikni na prázdný řádek pod ním a napiš <C>https://tradee.eu</C> (bez lomítka na konci). Potvrď <b>OK</b>.</li>
    <li>V horní liště zapni tlačítko <b>{algo}</b> – musí svítit zeleně.</li>
@@ -44,7 +44,7 @@ export function MtGuide({status}:{status:GuideStatus}){
   {title:'Spusť EA na grafu',body:<><ol>
    <li>Otevři libovolný graf (třeba EURUSD). Na symbolu nezáleží – EA posílá obchody ze všech párů na účtu.</li>
    <li>V Navigátoru chyť <b>TradeeSync</b> myší a přetáhni ho na graf.</li>
-   <li>Otevře se okno nastavení. Na záložce <b>Obecné</b> (Common) nech zaškrtnuté {p==='mt5'?<b>Povolit algoritmické obchodování</b>:<b>Allow live trading</b>}.</li>
+   <li>Otevře se okno nastavení. Na záložce <b>Obecné</b> (Common) nech zaškrtnuté {p==='mt5'?<b>Povolit algoritmické obchodování</b>:<>{' '}<b>Povolit obchodování naživo</b> (Allow live trading)</>}.</li>
    <li>Na záložce <b>Vstupy</b> (Inputs) dvakrát klikni na hodnotu u <C>TradeeKey</C>, vlož svůj klíč ({paste}) a dej <b>OK</b>.</li>
   </ol>
   <p>Hotovo, když vpravo nahoře v grafu svítí ikona EA ({p==='mt5'?'modrá čepička':'usměvavý obličej'}) a vlevo nahoře je text <b>„TradeeSync 1.1.0: synchronizováno“</b>. Šedá ikona {p==='mt4'?'nebo smutný obličej ':''}znamená vypnuté {algo}. Graf nech otevřený – po dalším spuštění MetaTraderu EA naběhne samo.</p></>},
@@ -54,11 +54,11 @@ export function MtGuide({status}:{status:GuideStatus}){
    {!(status.live&&status.hasTrade)&&<li className="mt-tip">Stránka se sama obnovuje každých 15 s.</li>}
   </ul>}];
  const trouble:[string,React.ReactNode][]=[
-  ['TradeeSync není v Navigátoru',<>Klikni pravým na <b>Expert Advisors → Obnovit</b>. Zkontroluj, že soubor je ve složce <C>{mql}/Experts</C> té instalace MetaTraderu, kterou používáš (každý broker má vlastní složku dat), a že je to <C>.{ex}</C>, ne <C>.mq{n}</C>.</>],
+  ['TradeeSync není v Navigátoru',<>Klikni pravým na <b>Experti</b> (Expert Advisors) <b>→ Obnovit</b>. Zkontroluj, že soubor je ve složce <C>{mql}/Experts</C> té instalace MetaTraderu, kterou používáš (každý broker má vlastní složku dat), a že je to <C>.{ex}</C>, ne <C>.mq{n}</C>.</>],
   ['V grafu svítí „povol adresu https://tradee.eu…“',<>MetaTrader blokuje připojení. Projdi krok 4 – adresa musí být přesně <C>https://tradee.eu</C>.</>],
   ['„TradeeSync zastaven: Klíč neexistuje nebo byl zrušen“',<>Vytvoř nový klíč, v grafu otevři vlastnosti EA (klávesa F7) a na záložce Vstupy ho vlož do <C>TradeeKey</C>.</>],
   ['„…nemá schválený přístup“',<>Tvůj účet Tradee ještě čeká na schválení. Jakmile ho schválíme, EA začne posílat data samo.</>],
-  ['Ikona EA je šedá (nebo smutný obličej)',<>Zapni <b>{algo}</b> v horní liště a ve vlastnostech EA (F7) na záložce Obecné povol {p==='mt5'?'algoritmické obchodování':'live trading'}.</>],
+  ['Ikona EA je šedá (nebo smutný obličej)',<>Zapni <b>{algo}</b> v horní liště a ve vlastnostech EA (F7) na záložce Obecné povol {p==='mt5'?'algoritmické obchodování':'obchodování naživo (Allow live trading)'}.</>],
   ['Nevidím starší obchody (MT4)',<>V záložce Historie účtu nastav <b>Celá historie</b>, pak EA z grafu odeber a znovu přetáhni – obchody se doplní.</>],
   ['Účet se v Tradee neobjevuje',<>Zkontroluj internet. V MetaTraderu otevři okno <b>Nástroje</b> (Toolbox, {mac?'⌘T':'Ctrl+T'}) → záložka <b>Experti</b> (Experts) a najdi řádky začínající „TradeeSync“. Text chyby nám pošli, poradíme.</>]];
  return <section className="mt-card mt-guide">
