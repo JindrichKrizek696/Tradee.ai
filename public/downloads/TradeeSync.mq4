@@ -17,11 +17,12 @@ input string Endpoint    = "https://tradee.eu"; // Adresa Tradee
 #define FLUSH_MS   2000
 
 string   g_queue[];
-uint     g_firstQueued=0,g_nextTry=0;
+uint     g_firstQueued=0,g_failAt=0;
+bool     g_failed=false;
 int      g_backoff=2000;
 bool     g_stopped=false;
 long     g_offset=0;
-datetime g_lastSnap=0;
+datetime g_lastSnap=0,g_lastTick=0;
 // minulý stav otevřených objednávek
 int      g_t[],g_type[],g_root[];
 double   g_lots[],g_sl[],g_tp[],g_price[],g_mfeP[],g_maeP[],g_mfeM[],g_maeM[];
@@ -50,7 +51,7 @@ int Http(string method,string path,string body,string &resp){
    ResetLastError();
    int code=WebRequest(method,Endpoint+path,hdr,10000,data,res,rh);
    resp=CharArrayToString(res,0,WHOLE_ARRAY,CP_UTF8);
-   if(code==-1){int err=GetLastError();if(err==4060||err==5203)Comment("TradeeSync: povol adresu ",Endpoint," v Nástroje → Možnosti → Experti → Povolit WebRequest.");else Print("TradeeSync: WebRequest chyba ",err);}
+   if(code==-1){int err=GetLastError();if(err==4060)Comment("TradeeSync: povol adresu ",Endpoint," v Nástroje → Možnosti → Experti → Povolit WebRequest.");else Print("TradeeSync: WebRequest chyba ",err);}
    return code;
 }
 long JsonLong(string s,string key){int p=StringFind(s,"\""+key+"\":");if(p<0)return 0;p+=StringLen(key)+3;string num="";while(p<StringLen(s)){ushort c=StringGetCharacter(s,p);if((c>='0'&&c<='9')||c=='-')num+=ShortToString(c);else break;p++;}return StringToInteger(num);}
@@ -61,15 +62,18 @@ string AccountJson(){
 // Kořen řetězce dílčích uzavření: komentář „from #N“ odkazuje na předchozí ticket.
 int ParseFrom(string c){int p=StringFind(c,"from #");if(p<0)return 0;return (int)StringToInteger(StringSubstr(c,p+6));}
 int Idx(int t){for(int i=0;i<ArraySize(g_t);i++)if(g_t[i]==t)return i;return -1;}
-int RootOf(int ticket,string comment){
+// pool = MODE_TRADES / MODE_HISTORY, ve kterém volající ticket našel; po výpočtu se ticket znovu vybere
+int RootOf(int ticket,string comment,int pool){
    int parent=ParseFrom(comment),guard=0;if(parent<=0)return ticket;
-   int root=parent;
+   int root=parent,res=-1;
    while(guard++<30){
-      int k=Idx(root);if(k>=0)return g_root[k];
+      int k=Idx(root);if(k>=0){res=g_root[k];break;}
       if(!OrderSelect(root,SELECT_BY_TICKET,MODE_HISTORY))break;
       int up=ParseFrom(OrderComment());if(up<=0)break;root=up;
    }
-   return root;
+   if(res<0)res=root;
+   OrderSelect(ticket,SELECT_BY_TICKET,pool);
+   return res;
 }
 string Reason4(string c){if(StringFind(c,"[sl]")>=0)return "sl";if(StringFind(c,"[tp]")>=0)return "tp";if(StringFind(c,"so:")>=0)return "so";return "client";}
 // Deal z právě vybrané objednávky (OrderSelect). volume = objem této části.
@@ -116,7 +120,7 @@ void Poll(){
       int m=ArraySize(cur);ArrayResize(cur,m+1);cur[m]=t;
       bool market=type<=OP_SELL;
       if(k<0){
-         if(market){int root=RootOf(t,OrderComment());if(root==t)Enqueue(DealJson4("in",root,OrderLots(),true));AddCurrent(root);}
+         if(market){int root=RootOf(t,OrderComment(),MODE_TRADES);if(root==t)Enqueue(DealJson4("in",root,OrderLots(),true));AddCurrent(root);}
          else{Enqueue(OrderJson4("placed"));AddCurrent(t);}
          continue;
       }
@@ -161,7 +165,8 @@ void Reconcile(){
          if(!OrderSelect(i,SELECT_BY_POS,pass==0?MODE_HISTORY:MODE_TRADES))continue;
          if(OrderType()>OP_SELL)continue;
          ArrayResize(tk,cnt+1);ArrayResize(rt,cnt+1);ArrayResize(lots,cnt+1);ArrayResize(open,cnt+1);
-         tk[cnt]=OrderTicket();rt[cnt]=RootOf(OrderTicket(),OrderComment());lots[cnt]=OrderLots();open[cnt]=pass==1;cnt++;
+         int ot=OrderTicket();double ol=OrderLots();string oc=OrderComment();
+         tk[cnt]=ot;rt[cnt]=RootOf(ot,oc,pass==0?MODE_HISTORY:MODE_TRADES);lots[cnt]=ol;open[cnt]=pass==1;cnt++;
       }
    }
    for(int i=0;i<cnt;i++){
@@ -176,7 +181,7 @@ void Reconcile(){
 }
 void InitState(){
    ResizeAll(0);
-   for(int i=0;i<OrdersTotal();i++){if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))continue;AddCurrent(OrderType()<=OP_SELL?RootOf(OrderTicket(),OrderComment()):OrderTicket());}
+   for(int i=0;i<OrdersTotal();i++){if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))continue;AddCurrent(OrderType()<=OP_SELL?RootOf(OrderTicket(),OrderComment(),MODE_TRADES):OrderTicket());}
 }
 string SnapshotJson(){
    string ps="";
@@ -191,15 +196,16 @@ void Flush(bool withSnapshot){
    string ev="";for(int i=0;i<n;i++)ev+=(i>0?",":"")+g_queue[i];
    string body="{\"v\":1,\"account\":"+AccountJson()+",\"events\":["+ev+"]"+(withSnapshot?",\"snapshot\":"+SnapshotJson():"")+"}";
    string resp;int code=Http("POST","/api/mt/ingest",body,resp);
-   if(code==200){if(n>0)Drop(n);g_backoff=2000;g_nextTry=0;Comment("TradeeSync ",EA_VERSION,": synchronizováno ",TimeToString(TimeLocal(),TIME_SECONDS));return;}
+   if(code==200){if(n>0)Drop(n);g_backoff=2000;g_failed=false;Comment("TradeeSync ",EA_VERSION,": synchronizováno ",TimeToString(TimeLocal(),TIME_SECONDS));return;}
    if(code==401||code==403){g_stopped=true;Comment("TradeeSync zastaven: ",resp);Print("TradeeSync: ",code," ",resp);return;}
    if(code==400||code==413){Print("TradeeSync: server odmítl dávku (",code,"): ",resp);if(n>0)Drop(n);return;}
-   g_backoff=MathMin(g_backoff*2,300000);g_nextTry=GetTickCount()+(uint)g_backoff;
+   g_backoff=MathMin(g_backoff*2,300000);g_failAt=GetTickCount();g_failed=true;
 }
 
+void CalcOffset(){long off=(long)(TimeCurrent()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;}
 int OnInit(){
    if(StringLen(TradeeKey)<20){Alert("TradeeSync: vlož klíč z tradee.eu (Propojení s MetaTraderem)");return INIT_PARAMETERS_INCORRECT;}
-   long off=(long)(TimeCurrent()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;
+   CalcOffset();
    FolderCreate("TradeeSync");
    LoadQueue();InitState();Reconcile();
    EventSetTimer(1);g_lastSnap=0;
@@ -208,11 +214,14 @@ int OnInit(){
 void OnDeinit(const int reason){EventKillTimer();SaveQueue();Comment("");}
 void OnTimer(){
    if(g_stopped)return;
+   // TimeCurrent() je čas posledního ticku: offset se přepočítá jen při čerstvém ticku
+   datetime tc=TimeCurrent();if(tc!=g_lastTick){g_lastTick=tc;CalcOffset();}
    Poll();
    uint now=GetTickCount();
    int every=OpenMarket()>0?120:900;
    bool snap=(TimeGMT()-g_lastSnap)>=every;
    bool due=ArraySize(g_queue)>0&&now-g_firstQueued>=FLUSH_MS;
-   if((due||snap)&&now>=g_nextTry){Flush(snap);if(snap)g_lastSnap=TimeGMT();}
+   bool ready=!g_failed||now-g_failAt>=(uint)g_backoff;
+   if((due||snap)&&ready){Flush(snap);if(snap)g_lastSnap=TimeGMT();}
 }
 //+------------------------------------------------------------------+
