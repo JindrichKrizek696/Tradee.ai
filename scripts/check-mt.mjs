@@ -1,7 +1,7 @@
 // Kontrola MetaTrader synchronizace: node --experimental-strip-types scripts/check-mt.mjs
 import {isKeyFormat,hashKey,generateKey} from '../lib/mt/keys.ts';
 import {parseBatch,snapshotEvents,MAX_EVENTS} from '../lib/mt/protocol.ts';
-import {buildPositions,extractTags} from '../lib/mt/build.ts';
+import {buildPositions,extractTags,carryTarget} from '../lib/mt/build.ts';
 import {makeRates,rateOn,convert} from '../lib/fx.ts';
 import {mtTradesToCalendar,pragueDate} from '../lib/mt/trades.ts';
 import {barsWindow,wantedLine} from '../lib/mt/bars.ts';
@@ -182,4 +182,9 @@ check('okno: nikdy přes 600 svíček (mimo D1)',[1,7,33,90,200,500,1000,3000,90
 check('barsWanted řádek',wantedLine('5001','EURUSD',o,o+10*M)===`5001|EURUSD|M1|${(o-30*M)/1000}|${(o+40*M)/1000}`,wantedLine('5001','EURUSD',o,o+10*M));
 check('barsWanted: symbol s | nebo ] se vynechá',wantedLine('1','EUR|USD',o,o+M)===null&&wantedLine('1','EUR]',o,o+M)===null&&wantedLine('1','EUR"',o,o+M)===null);
 
+// --- přenos ručních údajů při změně segmentů pozice
+const segs=[{id:'a:5:r1',open_ts:100},{id:'a:5:r2',open_ts:200}];
+check('carry: stejné otevření',carryTarget(200,segs)==='a:5:r2');
+check('carry: jinak první segment',carryTarget(150,segs)==='a:5:r1');
+check('carry: bez segmentů nikam',carryTarget(100,[])===null);
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

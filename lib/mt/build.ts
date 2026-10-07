@@ -8,6 +8,11 @@ const EPS=1e-9,GAP=600_000,INITIAL_SL_WINDOW=10_000;
 const r2=(n:number)=>Math.round(n*100)/100;
 const lvl=(n:number)=>n>0?n:null; // MT: SL/TP 0 = nenastaveno
 export function extractTags(comment:string){return [...new Set((comment.match(/#[0-9A-Za-z_\u00C0-\u024F-]{2,30}/g)||[]).map(t=>t.slice(1).toLowerCase()))]}
+// Ruční údaje (tagy, poznámka, screenshoty) zaniklého segmentu pozice → segment se stejným otevřením, jinak první segment.
+export function carryTarget(oldOpenTs:number,built:{id:string;open_ts:number}[]):string|null{
+ if(!built.length)return null;
+ return (built.find(b=>b.open_ts===oldOpenTs)||built[0]).id;
+}
 
 type Seg={row:PositionRow;changes:ChangeRow[];volume:number;inVol:number;inValue:number;outVol:number;outValue:number;first:DealEvent;initVol:number;lastStateTs:number|null};
 function start(accountId:string,ticket:string,d:DealEvent,side:Side,volume:number):Seg{
