@@ -33,3 +33,33 @@
 .mt-actions{white-space:nowrap;display:flex;gap:6px}
 .mt-empty{color:var(--t-muted);margin:4px 0}
 @media (max-width:700px){.mt-table thead{display:none}.mt-table tr{display:grid;grid-template-columns:1fr auto;gap:4px;padding:10px 0;border-bottom:1px solid var(--t-border)}.mt-table td{border:0;padding:2px 0}}
+
+.mt-guide h3{font-size:16px;margin:0}
+.mt-choose{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.mt-chips{display:inline-flex;background:var(--t-surface-2);border:1px solid var(--t-border);border-radius:999px;padding:3px;gap:2px}
+.mt-chips button{border:0;background:transparent;color:var(--t-fg-2);padding:6px 13px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
+.mt-chips button.active{background:var(--t-inverse);color:var(--t-on-inverse)}
+.mt-gsteps{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.mt-gsteps>li{border:1px solid var(--t-border);border-radius:14px;padding:14px 16px}
+.mt-gsteps>li.done{border-color:color-mix(in srgb,var(--bull) 45%,var(--t-border))}
+.mt-ghead{display:flex;align-items:center;gap:10px}
+.mt-num{width:26px;height:26px;border-radius:999px;display:grid;place-items:center;background:var(--t-surface-3);font-size:13px;font-weight:700;flex:none}
+li.done .mt-num{background:var(--bull);color:#fff}
+.mt-gbody{padding-left:36px;line-height:1.6;font-size:15px}
+.mt-gbody ol,.mt-gbody ul{padding-left:20px;display:grid;gap:6px;margin:8px 0}
+.mt-gbody p{margin:8px 0}
+.mt-gbody img{max-width:100%;border-radius:10px;border:1px solid var(--t-border);margin-top:8px}
+.mt-gbody code{background:var(--t-surface-3);border-radius:6px;padding:1px 6px;font-size:13px;color:var(--t-fg-2);word-break:break-all}
+.mt-tip{font-size:14px;color:var(--t-muted)}
+.mt-tag.ok{background:color-mix(in srgb,var(--bull) 16%,transparent);color:var(--bull-text)}
+.mt-checks{list-style:none;padding-left:0!important}
+.mt-checks li{display:flex;gap:8px;align-items:center}
+.mt-checks li.ok{color:var(--bull-text)}
+.mt-checks .spin{animation:mt-spin 1.2s linear infinite}
+@keyframes mt-spin{to{transform:rotate(360deg)}}
+.mt-trouble-h{margin:20px 0 8px}
+.mt-trouble details{border-top:1px solid var(--t-border);padding:10px 0}
+.mt-trouble summary{cursor:pointer;font-weight:600}
+.mt-trouble p{margin:8px 0 0;line-height:1.6;font-size:15px}
+.mt-btn{text-decoration:none}
+@media (max-width:640px){.mt-gbody{padding-left:0}}
