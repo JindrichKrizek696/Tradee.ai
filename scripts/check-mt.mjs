@@ -1,6 +1,8 @@
 // Kontrola MetaTrader synchronizace: node --experimental-strip-types scripts/check-mt.mjs
 import {isKeyFormat,hashKey,generateKey} from '../lib/mt/keys.ts';
 import {parseBatch,snapshotEvents,MAX_EVENTS} from '../lib/mt/protocol.ts';
+import {buildPositions,extractTags} from '../lib/mt/build.ts';
+import * as S from './fixtures/mt/sequences.mjs';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 
@@ -38,5 +40,45 @@ const ws=parseBatch({v:1,account,events:[],snapshot:snap});
 check('protokol: snapshot projde',ws.ok&&ws.batch.snapshot.positions.length===1,ws);
 const se=snapshotEvents(snap);
 check('protokol: snapshotEvents → position_state',se.length===1&&se[0].type==='position_state'&&se[0].id==='p:5001:1791370120000'&&se[0].ts===snap.ts&&se[0].mfeMoney===25,se);
+
+// --- skládání pozic
+const one=(ev)=>{const b=buildPositions('acc1',ev);return b.length===1?b[0]:null};
+const near=(a,b,e=1e-9)=>a!==null&&Math.abs(a-b)<e;
+let b=one(S.buyTp);
+check('build: buy TP – uzavřená, čistý výsledek',b&&b.position.status==='closed'&&b.position.net===993&&b.position.close_reason==='tp'&&b.position.id==='acc1:100',b?.position);
+check('build: buy TP – riziko, R:R, R',b&&b.position.risk_money===500&&b.position.risk_pct===5&&b.position.rr_planned===2&&near(b.position.r_result,1.99),b?.position);
+check('build: buy TP – spread a slippage',b&&b.position.spread_entry===8&&b.position.slippage_points===2,b?.position);
+check('build: buy TP – tagy z komentáře',b&&b.position.tags==='breakout,london',b?.position.tags);
+check('build: buy TP – časová osa open/close',b&&b.changes.map(c=>c.kind).join()==='open,close',b?.changes);
+b=one(S.sellSl);
+check('build: sell SL',b&&b.position.side==='sell'&&b.position.net===-250&&b.position.close_reason==='sl'&&b.position.r_result===-1,b?.position);
+b=one(S.trailing);
+check('build: trailing – 3× SL a 1× TP v ose',b&&b.changes.map(c=>c.kind).join()==='open,sl,sl,sl,tp,close',b?.changes.map(c=>c.kind));
+check('build: trailing – počáteční a poslední SL/TP',b&&b.position.sl_initial===1.095&&b.position.sl_last===1.102&&b.position.tp_initial===null&&b.position.tp_last===1.12,b?.position);
+check('build: trailing – hodnoty v ose',b&&b.changes[1].old_value===1.095&&b.changes[1].new_value===1.098&&b.changes[4].old_value===null&&b.changes[4].new_value===1.12,b?.changes);
+b=one(S.partial);
+check('build: částečné uzavření',b&&b.changes.map(c=>c.kind).join()==='open,partial_close,close'&&b.position.volume_max===2&&near(b.position.close_price_avg,1.1075)&&b.position.net===1500,b?.position);
+b=one(S.scaleIn);
+check('build: přidání – vážený vstup a add',b&&near(b.position.open_price,1.15)&&b.position.volume_max===2&&b.changes[1].kind==='add',b?.position);
+const rev=buildPositions('acc1',S.reversal);
+check('build: inout – dvě pozice',rev.length===2&&rev[0].position.ticket==='600'&&rev[0].position.status==='closed'&&rev[1].position.ticket==='600:r1'&&rev[1].position.side==='sell'&&rev[1].position.volume_max===1&&rev[1].position.status==='closed',rev.map(r=>r.position));
+check('build: inout – peníze dealu otočení patří zavírané části',rev[0].position.net===500&&rev[1].position.net===500,rev.map(r=>r.position.net));
+b=one(S.mt4Chain);
+check('build: MT4 řetězec – vstupy ve stejném čase se slučují (bez add)',b&&b.position.volume_max===1&&b.changes.map(c=>c.kind).join()==='open,partial_close,close'&&b.changes[0].volume===1,b?.changes);
+b=one(S.states);
+check('build: MFE/MAE ze stavů',b&&b.position.mfe_money===50&&b.position.mfe_price===1.1005&&b.position.mae_money===-25&&b.position.mae_price===1.09975,b?.position);
+check('build: mezera > 10 min → mfe_partial',b&&b.position.mfe_partial===1,b?.position.mfe_partial);
+check('build: bez SL → bez rizika a R',b&&b.position.risk_money===null&&b.position.r_result===null&&b.position.rr_planned===null,b?.position);
+check('build: bez mezery → mfe_partial 0',one([S.deal(30,S.T0,{position:'31',side:'buy',entry:'in',volume:1,price:1}),S.state(31,S.T0+120_000,{}),S.deal(32,S.T0+240_000,{position:'31',side:'sell',entry:'out',volume:1,price:1})])?.position.mfe_partial===0);
+b=one(S.lateSl);
+check('build: SL do 10 s po vstupu = počáteční',b&&b.position.sl_initial===1.099&&b.position.risk_money===100&&b.position.risk_pct===2,b?.position);
+check('build: SL po 10 s není počáteční',one([S.deal(40,S.T0,{position:'41',side:'buy',entry:'in',volume:1,price:1.1}),S.mod(41,S.T0+20_000,{slNew:1.09})])?.position.sl_initial===null);
+const shuffled=[...S.trailing].reverse(),dup=[...S.trailing,S.trailing[2],S.trailing[0]];
+check('build: přeházené a duplicitní události → stejný výsledek',JSON.stringify(buildPositions('acc1',shuffled))===JSON.stringify(buildPositions('acc1',S.trailing))&&JSON.stringify(buildPositions('acc1',dup))===JSON.stringify(buildPositions('acc1',S.trailing)));
+const open=one([S.deal(50,S.T0,{position:'51',side:'buy',entry:'in',volume:1,price:1.1})]);
+check('build: jen vstup → otevřená pozice',open&&open.position.status==='open'&&open.position.close_ts===null&&open.position.net===0,open?.position);
+check('build: výstup bez vstupu → nic',buildPositions('acc1',[S.deal(60,S.T0,{position:'61',side:'sell',entry:'out',volume:1,price:1})]).length===0);
+check('build: balance deal se ignoruje',buildPositions('acc1',[S.deal(70,S.T0,{position:'0',symbol:'',dealType:'balance',entry:'in',volume:0,price:0,profit:5000})]).length===0);
+check('tagy: unikátní, malá písmena, diakritika, min. 2 znaky',JSON.stringify(extractTags('#Breakout #breakout #Průraz #a x'))==='["breakout","průraz"]',extractTags('#Breakout #breakout #Průraz #a x'));
 
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
