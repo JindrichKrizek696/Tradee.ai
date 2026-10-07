@@ -2,6 +2,8 @@
 import {toJournalTrades,mtRowToTrade,manualRowToTrade,cleanTags,cleanNote,parseJournalId,checkUpload,splitTags} from '../lib/journal/rows.ts';
 import {fmtHold,fmtR,fmtDate,pragueOffsetMs,tradesWord} from '../lib/journal/format.ts';
 import {makeRates} from '../lib/fx.ts';
+import {filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER} from '../lib/journal/stats.ts';
+import {chartTime,snapper,candles,levelSteps,tradeMarkers} from '../lib/journal/chart-data.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const throws=(fn,re)=>{try{fn();return false}catch(e){return re.test(e.message)}};
@@ -57,5 +59,67 @@ check('datum',fmtDate('2026-10-05')==='5. 10. 2026');
 check('offset Praha zima/léto',pragueOffsetMs(Date.UTC(2026,0,10,12))===3600000&&pragueOffsetMs(Date.UTC(2026,6,10,12))===7200000);
 check('offset Praha přes přechod',pragueOffsetMs(Date.UTC(2026,2,29,0,30))===3600000&&pragueOffsetMs(Date.UTC(2026,2,29,1,30))===7200000);
 check('slova',tradesWord(1)==='obchod je'&&tradesWord(3)==='obchody jsou'&&tradesWord(5)==='obchodů je');
+
+// --- statistiky
+const base={source:'mt',accountId:'a1',account:'Demo',symbol:'EURUSD',side:'buy',volume:1,net:0,accountCurrency:'USD',converted:true,rr:null,riskPct:null,mfeR:null,maeR:null,tags:[],hasNote:false,files:0};
+const mk=(id,day,pnl,x={})=>{const closeTs=Date.UTC(2026,9,day,10);return {...base,id,date:new Date(closeTs).toISOString().slice(0,10),openTs:closeTs-3600000,closeTs,holdMs:3600000,pnl,r:null,...x}};
+const A=mk('a',1,100,{r:1,tags:['breakout']}),B=mk('b',2,-50,{r:-0.5,tags:['breakout','london'],side:'sell'}),C=mk('c',3,-50,{symbol:'GBPUSD'}),Dm={...mk('d',4,200),source:'manual',accountId:'manual',side:null,openTs:null,holdMs:null},E=mk('e',5,0,{r:0});
+const list=[E,Dm,C,B,A];
+const s=summary(list);
+check('souhrn: počty',s.count===5&&s.wins===2&&s.losses===2&&s.winRate===40,s);
+check('souhrn: peníze',s.total===200&&s.grossWin===300&&s.grossLoss===100&&s.profitFactor===3&&s.expectancy===40&&s.avgWin===150&&s.avgLoss===-50&&s.best===200&&s.worst===-50,s);
+check('souhrn: R jen s rizikem',s.expectancyR===0.17&&s.rCount===3&&s.noRisk===1,s);
+check('souhrn: série a drawdown',s.maxWinStreak===1&&s.maxLossStreak===2&&s.maxDrawdown===100,s);
+check('souhrn: držení bez ručních',s.avgHoldMs===3600000);
+check('souhrn: bez ztrát PF null',summary([A]).profitFactor===null);
+const s0=summary([]);
+check('souhrn: prázdný',s0.count===0&&s0.winRate===null&&s0.expectancy===null&&s0.maxDrawdown===0&&s0.best===null,s0);
+check('křivka',JSON.stringify(equityCurve(list).map(p=>p.value))==='[100,50,0,200,200]');
+check('drawdown od nuly',maxDrawdown([{value:-30},{value:-10}])===30);
+const bt1=breakdown([A,B,C],'tag');
+check('rozpad tag',bt1.length===3&&bt1[0].key==='breakout'&&bt1[0].count===2&&bt1[0].total===50&&bt1[0].winRate===50&&bt1[0].expectancyR===0.25&&bt1.some(g=>g.key===''&&g.label==='bez tagu'),bt1);
+const bs=breakdown(list,'side');
+check('rozpad směr bez ručních',bs.reduce((n,g)=>n+g.count,0)===4&&bs.find(g=>g.key==='sell').count===1,bs);
+check('hodina: zima/léto',pragueHour(Date.UTC(2026,0,5,8))===9&&pragueHour(Date.UTC(2026,6,6,8))===10);
+check('hodina: přechod na letní čas',pragueHour(Date.UTC(2026,2,29,0,30))===1&&pragueHour(Date.UTC(2026,2,29,1,30))===3);
+const late={...mk('l',5,10),openTs:Date.UTC(2026,9,4,22,30)};   // 5. 10. 00:30 v Praze = pondělí
+const bw=breakdown([late,{...Dm,date:'2026-10-05'}],'weekday');
+check('rozpad den: podle Prahy, ruční podle data',bw.length===1&&bw[0].label==='Po'&&bw[0].count===2,bw);
+const bh=breakdown([A,Dm],'hour');
+check('rozpad hodina jen MT',bh.length===1&&bh[0].label==='11:00',bh);
+const hold=[1,14.99,15,59,60,239,240,1439,1440,10079,10080].map(m=>({...A,id:'h'+m,holdMs:m*60000}));
+check('rozpad držení',breakdown(hold,'hold').map(g=>g.label+':'+g.count).join()==='< 15 min:2,15 min – 1 h:2,1–4 h:2,4–24 h:2,1–7 d:2,> 7 d:1',breakdown(hold,'hold'));
+
+// --- filtry a řazení
+const now=Date.UTC(2026,9,7,10);
+const F=(x)=>({...DEFAULT_FILTER,...x});
+const sep30={...A,id:'s',date:'2026-09-30'},oct1={...A,id:'o',date:'2026-10-01'};
+check('filtr: tento měsíc',filterTrades([sep30,oct1],F({period:'month'}),now).map(x=>x.id).join()==='o');
+check('filtr: 30 dní',filterTrades([{...A,id:'x',date:'2026-09-07'},{...A,id:'y',date:'2026-09-08'}],F({period:'30d'}),now).map(x=>x.id).join()==='y');
+check('filtr: vlastní včetně krajů',filterTrades([sep30,oct1,{...A,id:'n',date:'2026-10-02'}],F({period:'custom',from:'2026-09-30',to:'2026-10-01'}),now).length===2);
+check('filtr: směr vyřadí ruční',filterTrades(list,F({side:'buy'}),now).every(x=>x.side==='buy'));
+check('filtr: zisk bez nul',filterTrades(list,F({result:'win'}),now).map(x=>x.id).sort().join()==='a,d');
+check('filtr: tag, účet, pár, zdroj',filterTrades(list,F({tag:'london'}),now).length===1&&filterTrades(list,F({account:'manual'}),now).length===1&&filterTrades(list,F({symbol:'GBPUSD'}),now).length===1&&filterTrades(list,F({source:'manual'}),now).length===1);
+const san=sanitizeFilter(F({account:'gone',tag:'old',symbol:'XAUUSD',period:'30d'}),list,[{id:'a1',name:'Demo',platform:'mt5',currency:'USD'}]);
+check('filtr: neexistující účet/tag/pár se zruší',san.account==='all'&&san.tag==='all'&&san.symbol==='all'&&san.period==='30d',san);
+check('filtr: platné hodnoty zůstanou',JSON.stringify(sanitizeFilter(F({account:'a1',tag:'london'}),list,[{id:'a1',name:'Demo',platform:'mt5',currency:'USD'}]))===JSON.stringify(F({account:'a1',tag:'london'})));
+check('filtr: ruční účet zůstane',sanitizeFilter(F({account:'manual'}),list,[]).account==='manual');
+check('řazení: R, null na konci',sortTrades(list,'r',-1).map(x=>x.id).join()==='a,e,b,d,c'&&sortTrades(list,'r',1).map(x=>x.id).join()==='b,e,a,d,c',[sortTrades(list,'r',-1).map(x=>x.id),sortTrades(list,'r',1).map(x=>x.id)]);
+check('řazení: pár',sortTrades([C,A],'symbol',1)[0].id==='a');
+
+// --- data grafu (časy jsou posunuté na pražský čas, v sekundách)
+const b0=Date.UTC(2026,9,5,7,0);
+const bars=[[b0+60000,1,2,0.5,1.5],[b0,1,2,0.5,1.5],[b0+120000,1,2,0.5,1.5],[b0+60000,1,2,0.5,1.5]];
+const cs=candles(bars);
+check('svíčky: seřazené a bez duplicit',cs.length===3&&cs[0].time===chartTime(b0)&&cs[0].time===(b0+7200000)/1000,cs);
+const snap=snapper(cs.map(c=>c.time));
+check('snap: dolů na svíčku, před první na první',snap(chartTime(b0+90000))===chartTime(b0+60000)&&snap(chartTime(b0-600000))===chartTime(b0));
+const ch=[{ts:b0+65000,kind:'sl',old_value:0.9,new_value:0.95,price:1,volume:null,reason:null},{ts:b0+70000,kind:'tp',old_value:null,new_value:1.8,price:1,volume:null,reason:null},{ts:b0+100000,kind:'sl',old_value:0.95,new_value:null,price:1,volume:null,reason:null}];
+const sl=levelSteps('sl',0.9,ch,b0,b0+120000,snap);
+check('SL schody: start, posun, zrušení, konec',JSON.stringify(sl)===JSON.stringify([{time:chartTime(b0),value:0.9},{time:chartTime(b0+60000)},{time:chartTime(b0+120000)}]),sl);
+const tp=levelSteps('tp',null,ch,b0,b0+120000,snap);
+check('TP schody: bez počátečního TP',JSON.stringify(tp)===JSON.stringify([{time:chartTime(b0)},{time:chartTime(b0+60000),value:1.8},{time:chartTime(b0+120000),value:1.8}]),tp);
+const mk2=tradeMarkers('sell',[{ts:b0+120000,kind:'close',old_value:null,new_value:null,price:1.1,volume:0.5,reason:'tp'},{ts:b0,kind:'open',old_value:null,new_value:null,price:1.2,volume:1,reason:'client'},{ts:b0+60000,kind:'partial_close',old_value:null,new_value:null,price:1.15,volume:0.5,reason:'client'},{ts:b0+60000,kind:'sl',old_value:1,new_value:2,price:1,volume:null,reason:null}],snap);
+check('značky: pořadí, tvar u sell',mk2.length===3&&mk2[0].text==='Vstup 1'&&mk2[0].shape==='arrowDown'&&mk2[0].position==='aboveBar'&&mk2[2].shape==='arrowUp'&&mk2[2].text==='Výstup 0.5',mk2);
 
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
