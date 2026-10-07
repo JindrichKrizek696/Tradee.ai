@@ -10,8 +10,10 @@ export function makeRates(rows:FxRow[]):Rates{
  return by;
 }
 // Kurz platný k datu = poslední známý ≤ datum; před první hodnotou se použije první (starší obchody než historie kurzů).
+const CENT:Record<string,string>={USC:'USD',EUC:'EUR',GBX:'GBP',GBC:'GBP'};
 export function rateOn(rates:Rates,currency:string,date:string):number|null{
  if(currency==='EUR')return 1;
+ if(CENT[currency]){const b=rateOn(rates,CENT[currency],date);return b===null?null:b*100}
  const l=rates.get(currency);if(!l||!l.length)return null;
  let lo=0,hi=l.length-1,ans=0;
  while(lo<=hi){const m=(lo+hi)>>1;if(l[m].date<=date){ans=m;lo=m+1}else hi=m-1}
