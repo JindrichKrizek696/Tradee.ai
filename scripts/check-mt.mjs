@@ -40,6 +40,14 @@ const ws=parseBatch({v:1,account,events:[],snapshot:snap});
 check('protokol: snapshot projde',ws.ok&&ws.batch.snapshot.positions.length===1,ws);
 const se=snapshotEvents(snap);
 check('protokol: snapshotEvents → position_state',se.length===1&&se[0].type==='position_state'&&se[0].id==='p:5001:1791370120000'&&se[0].ts===snap.ts&&se[0].mfeMoney===25,se);
+check('protokol: ctrl char v komentáři',!parseBatch({v:1,account,events:[{...deal,comment:'a\u0000b'}]}).ok);
+check('protokol: __proto__ z JSON inertní',(()=>{const r=parseBatch(JSON.parse('{"v":1,"account":'+JSON.stringify(account)+',"events":[{"__proto__":{"type":"deal"},"id":"d:5","type":"deal","ts":1791370000123}]}'));return !r.ok&&({}).type===undefined})());
+check('protokol: obrovské magic clamped',(()=>{const r=parseBatch({v:1,account,events:[{...deal,magic:18446744073709551615}]});return r.ok&&r.batch.events[0].magic===9e18})());
+check('protokol: ticket delší než 40',!parseBatch({v:1,account,events:[{...deal,position:'9'.repeat(41)}]}).ok);
+check('protokol: ticket 40 znaků ok',parseBatch({v:1,account,events:[{...deal,position:'9'.repeat(40)}]}).ok);
+check(`protokol: přesně ${MAX_EVENTS} událostí`,parseBatch({v:1,account,events:Array.from({length:MAX_EVENTS},(_,i)=>({...deal,id:'d:'+i}))}).ok);
+check('protokol: pole místo objektu events',!parseBatch({v:1,account,events:[[1,2]]}).ok);
+check('protokol: pole místo objektu account',!parseBatch({v:1,account:[],events:[]}).ok);
 
 // --- skládání pozic
 const one=(ev)=>{const b=buildPositions('acc1',ev);return b.length===1?b[0]:null};
