@@ -1,14 +1,17 @@
 import {identity,db,failed,sameOrigin} from '@/lib/server';
 import type {Trade} from '@/lib/trades';
-import {makeRates,isCurrency,type FxRow} from '@/lib/fx';
+import {makeRates,isCurrency,CENT,type FxRow} from '@/lib/fx';
 import {mtTradesToCalendar,type MtClosedRow} from '@/lib/mt/trades';
 const str=(s:unknown):s is string=>typeof s==='string';
+// starší ruční záznamy mají created jako 'RRRR-MM-DD HH:MM:SS' (UTC) – sjednotit na ISO kvůli řazení s MT obchody
+const iso=(s:string)=>s.includes('T')?s:s.replace(' ','T')+'Z';
 export async function GET(req:Request){try{const u=await identity(req),d=db();
  const m=await d.prepare('SELECT currency FROM members WHERE id=?').bind(u.id).first<{currency:string|null}>();const currency=isCurrency(m?.currency)?m!.currency:'USD';
- const manual=(await d.prepare('SELECT id,date,instrument,pnl,note,created FROM trades WHERE user_id=? ORDER BY date,created').bind(u.id).all<Trade>()).results.map(t=>({...t,source:'manual' as const}));
+ const manual=(await d.prepare('SELECT id,date,instrument,pnl,note,created FROM trades WHERE user_id=? ORDER BY date,created').bind(u.id).all<Trade>()).results.map(t=>({...t,created:iso(String(t.created)),source:'manual' as const}));
  const mtRows=(await d.prepare(`SELECT p.id,p.ticket,p.symbol,p.net,p.close_ts,p.tags,p.tags_manual,p.note,a.currency AS acc_currency,a.name AS acc_name,a.login AS acc_login
   FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE a.user_id=? AND p.status='closed' ORDER BY p.close_ts`).bind(u.id).all<MtClosedRow>()).results;
- const curs=[...new Set([currency,...mtRows.map(r=>r.acc_currency)])].filter(c=>c&&c!=='EUR');
+ // centové měny (USC…) se počítají z kurzu základní měny – ta musí být mezi načtenými
+ const accCurs=mtRows.map(r=>r.acc_currency),curs=[...new Set([currency,...accCurs,...accCurs.map(c=>CENT[c]).filter(Boolean)])].filter(c=>c&&c!=='EUR');
  const rates=makeRates(curs.length?(await d.prepare(`SELECT date,currency,per_eur FROM fx_rates WHERE currency IN (${curs.map(()=>'?').join(',')})`).bind(...curs).all<FxRow>()).results:[]);
  const trades=[...manual,...mtTradesToCalendar(mtRows,currency,rates)].sort((a,b)=>a.date.localeCompare(b.date)||a.created.localeCompare(b.created));
  return Response.json({trades,currency},{headers:{'Cache-Control':'private, no-store'}})}catch(e){return failed(e)}}

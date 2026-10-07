@@ -50,6 +50,13 @@ check('protokol: ticket 40 znaků ok',parseBatch({v:1,account,events:[{...deal,p
 check(`protokol: přesně ${MAX_EVENTS} událostí`,parseBatch({v:1,account,events:Array.from({length:MAX_EVENTS},(_,i)=>({...deal,id:'d:'+i}))}).ok);
 check('protokol: pole místo objektu events',!parseBatch({v:1,account,events:[[1,2]]}).ok);
 check('protokol: pole místo objektu account',!parseBatch({v:1,account:[],events:[]}).ok);
+// údaje účtu se upraví, dávku neodmítnou
+const acc=(over)=>{const r=parseBatch({v:1,account:{...account,...over},events:[deal]});return r.ok?r.batch.account:r};
+check("protokol: měna účtu 'US$' → 'US'",acc({currency:'US$'}).currency==='US',acc({currency:'US$'}));
+check("protokol: mode 'weird' → 'real'",acc({mode:'weird'}).mode==='real',acc({mode:'weird'}));
+check('protokol: firma 70 znaků → 64',acc({company:'C'.repeat(70)}).company==='C'.repeat(64),acc({company:'C'.repeat(70)}));
+check('protokol: páka Infinity/NaN → 0, ctrl char ve jménu se odstraní',acc({leverage:Infinity}).leverage===0&&acc({leverage:Number.NaN}).leverage===0&&acc({name:'a\u0001b'}).name==='ab');
+check('protokol: neznámá platforma dál neprojde',!parseBatch({v:1,account:{...account,platform:'mt6'},events:[]}).ok);
 
 // --- skládání pozic
 const one=(ev)=>{const b=buildPositions('acc1',ev);return b.length===1?b[0]:null};
@@ -136,6 +143,7 @@ const cal=mtTradesToCalendar(mtRows,'CZK',rates);
 check('kalendář: převod do měny souhrnu',cal[0].pnl===2400&&cal[0].converted===true&&cal[0].net===120&&cal[0].accountCurrency==='USD'&&cal[0].source==='mt'&&cal[0].id==='mt:acc1:100',cal[0]);
 check('kalendář: štítek účtu bez názvu = poslední 4 číslice',cal[0].account==='••••4321',cal[0].account);
 check('kalendář: neznámá měna → původní hodnota, converted false',cal[1].pnl===500&&cal[1].converted===false&&cal[1].account==='Cent',cal[1]);
+check('kalendář: centový účet USC → CZK (souhrn)',(()=>{const c=mtTradesToCalendar([{...mtRows[0],id:'acc3:1',net:500,acc_currency:'USC'}],'CZK',rates)[0];return c.pnl===100&&c.converted===true})(),mtTradesToCalendar([{...mtRows[0],net:500,acc_currency:'USC'}],'CZK',rates)[0]);
 check('kalendář: poznámka = tagy + note',cal[0].note==='#breakout'&&cal[1].note==='test',[cal[0].note,cal[1].note]);
 
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
