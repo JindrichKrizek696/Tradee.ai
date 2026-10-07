@@ -13,6 +13,13 @@ export function carryTarget(oldOpenTs:number,built:{id:string;open_ts:number}[])
  if(!built.length)return null;
  return (built.find(b=>b.open_ts===oldOpenTs)||built[0]).id;
 }
+// Sloučení ručních údajů zaniklého segmentu do cílového: tagy sjednotit (max 10, vejdou se do 400 znaků), poznámky spojit.
+export function mergeManual(target:{tags_manual:string;note:string|null},from:{tags_manual:string;note:string|null}):{tags_manual:string;note:string|null}{
+ const tags=[...new Set([...target.tags_manual.split(','),...from.tags_manual.split(',')].map(t=>t.trim()).filter(Boolean))].slice(0,10).join(',');
+ const a=(target.note||'').trim()?target.note as string:'',b=(from.note||'').trim()?(from.note as string):'';
+ const note=a&&b?(a.includes(b.trim())?a:a+'\n\n'+b):a||b||null;
+ return {tags_manual:tags,note};
+}
 
 type Seg={row:PositionRow;changes:ChangeRow[];volume:number;inVol:number;inValue:number;outVol:number;outValue:number;first:DealEvent;initVol:number;lastStateTs:number|null};
 function start(accountId:string,ticket:string,d:DealEvent,side:Side,volume:number):Seg{

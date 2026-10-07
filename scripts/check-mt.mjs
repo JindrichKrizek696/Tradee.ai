@@ -1,7 +1,7 @@
 // Kontrola MetaTrader synchronizace: node --experimental-strip-types scripts/check-mt.mjs
 import {isKeyFormat,hashKey,generateKey} from '../lib/mt/keys.ts';
 import {parseBatch,snapshotEvents,MAX_EVENTS} from '../lib/mt/protocol.ts';
-import {buildPositions,extractTags,carryTarget} from '../lib/mt/build.ts';
+import {buildPositions,extractTags,carryTarget,mergeManual} from '../lib/mt/build.ts';
 import {makeRates,rateOn,convert} from '../lib/fx.ts';
 import {mtTradesToCalendar,pragueDate} from '../lib/mt/trades.ts';
 import {barsWindow,wantedLine} from '../lib/mt/bars.ts';
@@ -187,4 +187,11 @@ const segs=[{id:'a:5:r1',open_ts:100},{id:'a:5:r2',open_ts:200}];
 check('carry: stejné otevření',carryTarget(200,segs)==='a:5:r2');
 check('carry: jinak první segment',carryTarget(150,segs)==='a:5:r1');
 check('carry: bez segmentů nikam',carryTarget(100,[])===null);
+const mm=mergeManual;
+check('merge: sjednocení a dedupe tagů',mm({tags_manual:'a,b',note:null},{tags_manual:'b,c',note:null}).tags_manual==='a,b,c');
+check('merge: max 10 tagů',mm({tags_manual:'1,2,3,4,5,6',note:null},{tags_manual:'7,8,9,10,11,12',note:null}).tags_manual==='1,2,3,4,5,6,7,8,9,10');
+check('merge: poznámka se připojí',mm({tags_manual:'',note:'A'},{tags_manual:'',note:'B'}).note==='A\n\nB');
+check('merge: poznámka se neduplikuje',mm({tags_manual:'',note:'A B'},{tags_manual:'',note:'B'}).note==='A B');
+check('merge: obě prázdné → null',mm({tags_manual:'',note:' '},{tags_manual:'',note:null}).note===null);
+check('merge: prázdný cíl vezme zdroj',(r=>r.note==='X'&&r.tags_manual==='t')(mm({tags_manual:'',note:null},{tags_manual:'t',note:'X'})));
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

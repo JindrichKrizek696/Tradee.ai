@@ -1,7 +1,7 @@
 // DB operace MetaTrader synchronizace. Db je parametr, aby šly použít z route handlerů i ze skriptu mt-rebuild.
 import type {Db} from '../mysql.ts';
 import type {AccountInfo,BarsEvent,MtEvent,OrderEvent,Snapshot} from './protocol.ts';
-import {buildPositions,carryTarget,POSITION_COLUMNS} from './build.ts';
+import {buildPositions,carryTarget,mergeManual,POSITION_COLUMNS} from './build.ts';
 import {wantedLine} from './bars.ts';
 export const nowSql=()=>new Date().toISOString().slice(0,19).replace('T',' ');
 const CHUNK=100;
@@ -84,7 +84,11 @@ export async function rebuildPositions(d:Db,accountId:string,positions:string[])
   for(const o of old)if(!keep.has(o.id)){
    const target=carryTarget(Number(o.open_ts),segs);
    if(target){
-    if(o.tags_manual||o.note)await d.prepare("UPDATE mt_positions SET tags_manual=IF(tags_manual='',?,tags_manual),note=COALESCE(note,?) WHERE id=?").bind(o.tags_manual,o.note,target).run();
+    if(o.tags_manual||o.note){
+     const t=await d.prepare('SELECT tags_manual,note FROM mt_positions WHERE id=?').bind(target).first<{tags_manual:string;note:string|null}>();
+     const m=mergeManual({tags_manual:t?.tags_manual||'',note:t?.note??null},{tags_manual:o.tags_manual||'',note:o.note});
+     await d.prepare('UPDATE mt_positions SET tags_manual=?,note=? WHERE id=?').bind(m.tags_manual,m.note,target).run();
+    }
     await d.prepare('UPDATE mt_position_files SET position_id=? WHERE position_id=?').bind(target,o.id).run();
    }
    await d.prepare('DELETE FROM mt_position_changes WHERE position_id=?').bind(o.id).run();
