@@ -1,8 +1,10 @@
-export type Trade={id:string;date:string;instrument:string;pnl:number;note:string;created:string};
+export type Trade={id:string;date:string;instrument:string;pnl:number;note:string;created:string;source?:'manual'|'mt';account?:string;accountCurrency?:string;net?:number;converted?:boolean};
 export type DayCell={date:string;day:number;inMonth:boolean;pnl:number;count:number;isToday:boolean};
 export type Week={days:DayCell[];total:number;count:number};
 const iso=(d:Date)=>d.toISOString().slice(0,10);
-export const fmtUsd=(n:number)=>(n>0?'+':'')+n.toLocaleString('cs-CZ',{minimumFractionDigits:0,maximumFractionDigits:2})+' $';
+export const CURRENCY_SIGN:Record<string,string>={USD:'$',EUR:'€',CZK:'Kč',GBP:'£',CHF:'CHF',JPY:'¥',AUD:'A$',CAD:'C$',NZD:'NZ$',PLN:'zł'};
+export const fmtMoney=(n:number,cur='USD')=>(n>0?'+':'')+n.toLocaleString('cs-CZ',{minimumFractionDigits:0,maximumFractionDigits:2})+' '+(CURRENCY_SIGN[cur]||cur);
+export const fmtUsd=(n:number)=>fmtMoney(n,'USD');
 /** Mřížka měsíce: týdny pondělí–neděle, každý týden má součet všech sedmi dnů (i mimo měsíc). */
 export function monthGrid(year:number,month:number,trades:Trade[],todayIso:string):Week[]{
  const byDay=new Map<string,{pnl:number;count:number}>();

@@ -2,6 +2,8 @@
 import {isKeyFormat,hashKey,generateKey} from '../lib/mt/keys.ts';
 import {parseBatch,snapshotEvents,MAX_EVENTS} from '../lib/mt/protocol.ts';
 import {buildPositions,extractTags} from '../lib/mt/build.ts';
+import {makeRates,rateOn,convert} from '../lib/fx.ts';
+import {mtTradesToCalendar,pragueDate} from '../lib/mt/trades.ts';
 import * as S from './fixtures/mt/sequences.mjs';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -107,5 +109,25 @@ b=one(S.beSl);
 check('build: SL na vstupní ceně → bez rizika',b&&b.position.sl_initial===1.1&&b.position.risk_money===null&&b.position.r_result===null,b?.position);
 b=one(S.partialAdd);
 check('build: partial, add, close',b&&kinds(b)==='open,partial_close,add,close'&&b.position.volume_max===3&&b.position.status==='closed',b);
+
+// --- měny
+const rates=makeRates([{date:'2026-10-01',currency:'USD',per_eur:1.10},{date:'2026-10-06',currency:'USD',per_eur:1.20},{date:'2026-10-06',currency:'CZK',per_eur:24},{date:'2026-10-01',currency:'CZK',per_eur:25}]);
+check('fx: EUR = 1',rateOn(rates,'EUR','2026-10-05')===1);
+check('fx: poslední kurz ≤ datum',rateOn(rates,'USD','2026-10-05')===1.10&&rateOn(rates,'USD','2026-10-07')===1.20);
+check('fx: datum před prvním kurzem → první dostupný',rateOn(rates,'USD','2020-01-01')===1.10);
+check('fx: neznámá měna → null',rateOn(rates,'USC','2026-10-06')===null);
+check('fx: USD → CZK',convert(120,'USD','CZK','2026-10-06',rates)===2400);
+check('fx: stejná měna beze změny',convert(-12.345,'USD','USD','2026-10-06',rates)===-12.345);
+check('fx: neznámá → null',convert(10,'USC','USD','2026-10-06',rates)===null);
+// --- MT obchody v kalendáři
+const late=Date.UTC(2026,9,6,22,30);   // 6. 10. 22:30 UTC = 7. 10. 00:30 v Praze
+check('kalendář: den uzavření podle Prahy',pragueDate(late)==='2026-10-07',pragueDate(late));
+const mtRows=[{id:'acc1:100',ticket:'100',symbol:'EURUSD',net:120,close_ts:Date.UTC(2026,9,6,12),tags:'breakout',tags_manual:'',note:null,acc_currency:'USD',acc_name:'',acc_login:'87654321'},
+ {id:'acc2:7',ticket:'7',symbol:'XAUUSD',net:500,close_ts:Date.UTC(2026,9,6,12),tags:'',tags_manual:'',note:'test',acc_currency:'USC',acc_name:'Cent',acc_login:'1'}];
+const cal=mtTradesToCalendar(mtRows,'CZK',rates);
+check('kalendář: převod do měny souhrnu',cal[0].pnl===2400&&cal[0].converted===true&&cal[0].net===120&&cal[0].accountCurrency==='USD'&&cal[0].source==='mt'&&cal[0].id==='mt:acc1:100',cal[0]);
+check('kalendář: štítek účtu bez názvu = poslední 4 číslice',cal[0].account==='••••4321',cal[0].account);
+check('kalendář: neznámá měna → původní hodnota, converted false',cal[1].pnl===500&&cal[1].converted===false&&cal[1].account==='Cent',cal[1]);
+check('kalendář: poznámka = tagy + note',cal[0].note==='#breakout'&&cal[1].note==='test',[cal[0].note,cal[1].note]);
 
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

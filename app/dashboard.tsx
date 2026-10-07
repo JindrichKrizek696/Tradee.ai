@@ -7,7 +7,7 @@ import {groups} from '@/lib/markets';
 import {TradeCalendar,useTrades,months,todayIso,plural} from './trade-calendar';
 import {EventRow} from './calendar';
 import {upcomingCalendar,flaggedMarkets,relative as until,type CalendarEvent} from '@/lib/calendar';
-import {monthStats,fmtUsd,periodStats,type Period,type Bucket} from '@/lib/trades';
+import {monthStats,fmtMoney,periodStats,type Period,type Bucket} from '@/lib/trades';
 import type {View} from './shell';
 import {greeting,vocative,breadth,topSignals,sessions,dataHealth,recentChanges,scoreSeries,bullishTrail,bearishTrail,type Row,type HistoryLike} from '@/lib/dashboard';
 const fmt=(n:number|null,d=1)=>n===null?'—':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:d});
@@ -77,7 +77,7 @@ function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail
 }
 
 export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady}:{calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
- const {trades,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
+ const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
  const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[period,setPeriod]=useState<Period>('month');
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
  const events=upcomingCalendar(calendar,now,6),next=events.find(e=>Date.parse(e.at)>=now&&(e.signal===3||e.global))||events.find(e=>Date.parse(e.at)>=now);
@@ -126,7 +126,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
 
    <section className="d-card d-pnl" style={tile(1)}>
     <div className="d-head"><h2>P&amp;L</h2><div className="d-seg sm" role="tablist" aria-label="Období">{([['week','Týden'],['month','Měsíc'],['year','Rok']] as const).map(([p,l])=><button key={p} type="button" role="tab" aria-selected={period===p} className={period===p?'on':''} onClick={()=>setPeriod(p)}>{l}</button>)}</div></div>
-    <div className="d-big"><b className={tradesReady&&!tradeError?tone(ps.total):''}>{tradesReady&&!tradeError?fmtUsd(ps.total):'—'}</b>{ps.count>0&&<span className={'d-delta '+tone(ps.total)}>{ps.total>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{Math.round(ps.winRate)} % úspěšnost</span>}<span className="d-meta">{periodLabel}</span></div>
+    <div className="d-big"><b className={tradesReady&&!tradeError?tone(ps.total):''}>{tradesReady&&!tradeError?fmtMoney(ps.total,currency):'—'}</b>{ps.count>0&&<span className={'d-delta '+tone(ps.total)}>{ps.total>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{Math.round(ps.winRate)} % úspěšnost</span>}<span className="d-meta">{periodLabel}</span></div>
     <div className="d-bleed d-pnlwrap">
      {tradesReady&&!tradeError&&ps.count?<PnlChart buckets={ps.buckets}/>:<><PnlChart buckets={GHOST} ghost/><div className="d-ghostmsg">{tradeError?<><span>Deník obchodů se nepodařilo načíst.</span><button type="button" className="d-btn" onClick={()=>reloadTrades()}><RotateCcw size={14}/>Zkusit znovu</button></>:!tradesReady?<span>Načítám obchody…</span>:<><span>V tomto období zatím žádné obchody.</span><button type="button" className="d-btn" onClick={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}><Plus size={14}/>Zapsat obchod</button></>}</div></>}
      <div className="d-axis d-ticks">{ps.buckets.map((x,i)=><span key={i}>{period!=='month'||i===0||(i+1)%5===0||(i===ps.buckets.length-1&&(i+1)%5>=3)?x.label:''}</span>)}</div>
@@ -134,8 +134,8 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     <dl className="d-kv">
      <div><dt>Obchody</dt><dd>{ps.count||'—'}</dd></div>
      <div><dt>Profit factor</dt><dd>{ps.profitFactor===null?(ps.wins?'∞':'—'):ps.profitFactor.toLocaleString('cs-CZ',{maximumFractionDigits:2})}</dd></div>
-     <div><dt>Ø zisk</dt><dd className={ps.avgWin===null?'':'up'}>{ps.avgWin===null?'—':fmtUsd(ps.avgWin)}</dd></div>
-     <div><dt>Ø ztráta</dt><dd className={ps.avgLoss===null?'':'down'}>{ps.avgLoss===null?'—':fmtUsd(ps.avgLoss)}</dd></div>
+     <div><dt>Ø zisk</dt><dd className={ps.avgWin===null?'':'up'}>{ps.avgWin===null?'—':fmtMoney(ps.avgWin,currency)}</dd></div>
+     <div><dt>Ø ztráta</dt><dd className={ps.avgLoss===null?'':'down'}>{ps.avgLoss===null?'—':fmtMoney(ps.avgLoss,currency)}</dd></div>
     </dl>
    </section>
 
@@ -161,7 +161,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     </button>})}</div>:<p className="d-empty">Indexy měn zatím nemají skóre.</p>}
    </section>
 
-   <div className="d-cal" style={tile(4)}><TradeCalendar now={now} trades={trades} ready={tradesReady} loadError={tradeError} reload={reloadTrades}/></div>
+   <div className="d-cal" style={tile(4)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={reloadTrades}/></div>
 
    <section className="d-card d-perf" style={tile(5)}>
     <div className="d-head"><h2>Statistiky · {month}</h2></div>
@@ -169,12 +169,12 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
      <div className="d-ringbox"><Ring pct={stats.winRate}/><div><b>{Math.round(stats.winRate)} %</b><span>úspěšnost · {stats.wins} z {stats.count} obchodů v zisku</span></div></div>
      <dl className="d-stats">
       <div><dt>Ziskové dny</dt><dd>{stats.greenDays} z {stats.days}</dd></div>
-      <div><dt>Průměr na obchod</dt><dd className={tone(stats.total)}>{fmtUsd(Math.round(stats.total/stats.count*100)/100)}</dd></div>
-      <div><dt>Nejlepší den</dt><dd className={tone(stats.best)}>{fmtUsd(stats.best)}</dd></div>
-      <div><dt>Nejhorší den</dt><dd className={tone(stats.worst)}>{fmtUsd(stats.worst)}</dd></div>
+      <div><dt>Průměr na obchod</dt><dd className={tone(stats.total)}>{fmtMoney(Math.round(stats.total/stats.count*100)/100,currency)}</dd></div>
+      <div><dt>Nejlepší den</dt><dd className={tone(stats.best)}>{fmtMoney(stats.best,currency)}</dd></div>
+      <div><dt>Nejhorší den</dt><dd className={tone(stats.worst)}>{fmtMoney(stats.worst,currency)}</dd></div>
      </dl>
     </>}
-    {recent.length>0&&<div className="d-recent"><h3>Poslední obchody</h3><ul>{recent.map(t=><li key={t.id}><span className="d-name"><b>{t.instrument}</b><small>{day(t.date+'T12:00:00Z')}{t.note?' · '+t.note:''}</small></span><em className={tone(t.pnl)}>{fmtUsd(t.pnl)}</em></li>)}</ul></div>}
+    {recent.length>0&&<div className="d-recent"><h3>Poslední obchody</h3><ul>{recent.map(t=><li key={t.id}><span className="d-name"><b>{t.instrument}</b><small>{day(t.date+'T12:00:00Z')}{t.note?' · '+t.note:''}</small></span><em className={tone(t.pnl)}>{fmtMoney(t.pnl,currency)}</em></li>)}</ul></div>}
    </section>
   </div>
 
