@@ -110,6 +110,12 @@ check('build: SL na vstupní ceně → bez rizika',b&&b.position.sl_initial===1.
 b=one(S.partialAdd);
 check('build: partial, add, close',b&&kinds(b)==='open,partial_close,add,close'&&b.position.volume_max===3&&b.position.status==='closed',b);
 
+// --- oprava kolo 2: position_state, posun hodin
+check('protokol: position_state bez openTs projde a zůstane position_state',(()=>{const st={id:'p:5001:1791370120000',type:'position_state',ts:1791370120000,position:'5001',symbol:'EURUSD',side:'buy',volume:0,priceOpen:0,priceCurrent:0,sl:1.095,tp:0,profit:0,swap:0,mfePrice:1.1005,maePrice:1.0997,mfeMoney:50,maeMoney:-25,spread:8};const r=parseBatch({v:1,account,events:[st]});return r.ok&&r.batch.events[0].type==='position_state'&&r.batch.events[0].mfeMoney===50})());
+b=one([S.mod(81,S.T0-3000,{slNew:1.099}),S.deal(80,S.T0,{position:'81',side:'buy',entry:'in',volume:1,price:1.1,tickSize:0.00001,tickValue:1,balance:10000})]);
+check('build: modify 3 s před vstupem (posun hodin) → počáteční SL',b&&b.position.sl_initial===1.099&&kinds(b)==='open,sl'&&b.changes[1].ts===S.T0,b);
+check('build: modify 30 s před vstupem se zahodí',one([S.mod(83,S.T0-30000,{slNew:1.099}),S.deal(82,S.T0,{position:'83',side:'buy',entry:'in',volume:1,price:1.1})])?.position.sl_last===null);
+
 // --- měny
 const rates=makeRates([{date:'2026-10-01',currency:'USD',per_eur:1.10},{date:'2026-10-06',currency:'USD',per_eur:1.20},{date:'2026-10-06',currency:'CZK',per_eur:24},{date:'2026-10-01',currency:'CZK',per_eur:25}]);
 check('fx: EUR = 1',rateOn(rates,'EUR','2026-10-05')===1);

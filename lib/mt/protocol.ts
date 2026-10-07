@@ -17,13 +17,14 @@ export type Batch={v:1;account:AccountInfo;events:MtEvent[];snapshot?:Snapshot};
 // cur = měna (0–8 písmen, velká), n = konečné číslo (chybí → 0), ts = čas v ms 2000–2100, a|b = výčet; '?' = nepovinné.
 type Spec=Record<string,string>;
 const ACCOUNT:Spec={platform:'mt4|mt5',login:'id',server:'txt',company:'txt',currency:'cur',leverage:'n',mode:'demo|real|contest',name:'txt',ea:'txt'};
+const SNAP_POS:Spec={position:'tk',symbol:'sym',side:'buy|sell',volume:'n',priceOpen:'n',priceCurrent:'n',sl:'n',tp:'n',profit:'n',swap:'n',mfePrice:'n',maePrice:'n',mfeMoney:'n',maeMoney:'n',spread:'n',openTs:'ts?'};
 const EVENTS:Record<string,Spec>={
  deal:{deal:'tk',position:'tk',order:'tk?',symbol:'sym',side:'buy|sell',entry:'in|out|inout|out_by',volume:'n',price:'n',commission:'n',swap:'n',fee:'n',profit:'n',magic:'mag',comment:'txt',reason:'txt',dealType:'txt',sl:'n',tp:'n',digits:'n',point:'n',tickSize:'n',tickValue:'n',spread:'n',priceRequested:'n',balance:'n'},
  position_modify:{position:'tk',symbol:'sym',slOld:'n',slNew:'n',tpOld:'n',tpNew:'n',price:'n'},
  order:{order:'tk',position:'tk?',symbol:'sym',orderType:'txt',state:'placed|modified|canceled|expired|filled|rejected',volume:'n',priceOpen:'n',priceRequested:'n',sl:'n',tp:'n',expiration:'n',comment:'txt',magic:'mag'},
  account:{balance:'n',equity:'n',margin:'n',leverage:'n',currency:'cur'},
+ position_state:SNAP_POS,
 };
-const SNAP_POS:Spec={position:'tk',symbol:'sym',side:'buy|sell',volume:'n',priceOpen:'n',priceCurrent:'n',sl:'n',tp:'n',profit:'n',swap:'n',mfePrice:'n',maePrice:'n',mfeMoney:'n',maeMoney:'n',spread:'n',openTs:'ts?'};
 const MIN_TS=Date.UTC(2000,0,1),MAX_TS=Date.UTC(2100,0,1);
 
 function field(kind:string,v:unknown):[boolean,unknown]{

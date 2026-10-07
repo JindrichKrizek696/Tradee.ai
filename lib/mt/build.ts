@@ -41,13 +41,21 @@ function finish(s:Seg):Built{
 const rank=(e:MtEvent)=>e.type==='deal'?(e.entry==='in'?0:e.entry==='inout'?1:2):e.type==='position_modify'?3:e.type==='position_state'?4:5; // pořadí při stejném čase
 export function buildPositions(accountId:string,events:MtEvent[]):Built[]{
  const seen=new Set<string>(),sorted=[...events].filter(e=>!seen.has(e.id)&&seen.add(e.id)).sort((a,b)=>a.ts-b.ts||rank(a)-rank(b)||a.id.localeCompare(b.id,undefined,{numeric:true}));
- const out:Built[]=[];let cur:Seg|null=null,segs=0;
+ const out:Built[]=[];let cur:Seg|null=null,segs=0,pending:Extract<MtEvent,{type:'position_modify'}>[]=[];
+ // posun SL/TP (posun hodiny EA) – použije se jako hodnota v čase ts
+ const applyMod=(s:Seg,e:Extract<MtEvent,{type:'position_modify'}>,ts:number)=>{
+  const r=s.row,sl=lvl(e.slNew),tp=lvl(e.tpNew),price=e.price>0?e.price:null;
+  if(sl!==r.sl_last){s.changes.push({ts,kind:'sl',old_value:r.sl_last,new_value:sl,price,volume:null,reason:null});if(r.sl_initial===null&&ts-r.open_ts<=INITIAL_SL_WINDOW)r.sl_initial=sl;r.sl_last=sl}
+  if(tp!==r.tp_last){s.changes.push({ts,kind:'tp',old_value:r.tp_last,new_value:tp,price,volume:null,reason:null});if(r.tp_initial===null&&ts-r.open_ts<=INITIAL_SL_WINDOW)r.tp_initial=tp;r.tp_last=tp}
+ };
+ // modify, který dorazil dřív než otevření (rozdíl hodin): do 10 s před otevřením platí jako v čase otevření
+ const begin=(s:Seg,base:string)=>{for(const m of pending)if(m.position===base&&m.ts>=s.row.open_ts-INITIAL_SL_WINDOW)applyMod(s,m,s.row.open_ts);pending=[];return s};
  for(const e of sorted){
   if(e.type==='deal'){
    if(e.dealType!=='trade')continue;
    const base=e.position;
    if(e.entry==='in'){
-    if(!cur){cur=start(accountId,segs?`${base}:r${segs}`:base,e,e.side,e.volume);segs++}
+    if(!cur){cur=begin(start(accountId,segs?`${base}:r${segs}`:base,e,e.side,e.volume),base);segs++}
     else if(e.ts===cur.row.open_ts){cur.volume+=e.volume;cur.inVol+=e.volume;cur.inValue+=e.volume*e.price;cur.initVol+=e.volume;cur.row.volume_max=Math.max(cur.row.volume_max,cur.volume);cur.changes[0].volume=Math.round(cur.initVol*1e8)/1e8} // MT4 řetězec: části původního vstupu
     else{cur.volume+=e.volume;cur.inVol+=e.volume;cur.inValue+=e.volume*e.price;cur.row.volume_max=Math.max(cur.row.volume_max,cur.volume);cur.changes.push({ts:e.ts,kind:'add',old_value:null,new_value:null,price:e.price,volume:e.volume,reason:e.reason})}
     money(cur,e);
@@ -55,17 +63,15 @@ export function buildPositions(accountId:string,events:MtEvent[]):Built[]{
     if(!cur)continue;
     const closing=cur.volume;money(cur,e);close(cur,e,closing);out.push(finish(cur));
     const rest=e.volume-closing;
-    if(rest>EPS){cur=start(accountId,`${base}:r${segs++}`,{...e,commission:0,swap:0,fee:0,profit:0},e.side,rest)}else cur=null;
+    if(rest>EPS){cur=begin(start(accountId,`${base}:r${segs++}`,{...e,commission:0,swap:0,fee:0,profit:0},e.side,rest),base)}else cur=null;
    }else{
     if(!cur)continue;
     money(cur,e);
     if(close(cur,e,Math.min(e.volume,cur.volume))){out.push(finish(cur));cur=null}
    }
   }else if(e.type==='position_modify'){
-   if(!cur)continue;
-   const r=cur.row,sl=lvl(e.slNew),tp=lvl(e.tpNew),price=e.price>0?e.price:null;
-   if(sl!==r.sl_last){cur.changes.push({ts:e.ts,kind:'sl',old_value:r.sl_last,new_value:sl,price,volume:null,reason:null});if(r.sl_initial===null&&e.ts-r.open_ts<=INITIAL_SL_WINDOW)r.sl_initial=sl;r.sl_last=sl}
-   if(tp!==r.tp_last){cur.changes.push({ts:e.ts,kind:'tp',old_value:r.tp_last,new_value:tp,price,volume:null,reason:null});if(r.tp_initial===null&&e.ts-r.open_ts<=INITIAL_SL_WINDOW)r.tp_initial=tp;r.tp_last=tp}
+   if(!cur){pending.push(e);continue}
+   applyMod(cur,e,e.ts);
   }else if(e.type==='position_state'){
    if(!cur)continue;
    const r=cur.row;
