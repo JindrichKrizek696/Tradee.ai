@@ -236,8 +236,9 @@ string BarsJson(string item){
    SymbolSelect(p[1],true);
    datetime from=(datetime)(StringToInteger(p[3])+g_offset),to=(datetime)(StringToInteger(p[4])+g_offset);
    MqlRates r[];ResetLastError();
-   int n=CopyRates(p[1],tf,from,to,r);
-   if(n<0)return "";
+   int n=CopyRates(p[1],tf,from,to,r);int err=GetLastError();
+   // neúplná/nesynchronizovaná historie by se uložila navždy → "" a server se zeptá znovu
+   if(n<0||err!=0||SeriesInfoInteger(p[1],tf,SERIES_SYNCHRONIZED)==0)return "";
    int start=MathMax(0,n-1000);string bars="";
    for(int i=start;i<n;i++)bars+=(i>start?",":"")+"["+I(((long)r[i].time-g_offset)*1000)+","+N(r[i].open)+","+N(r[i].high)+","+N(r[i].low)+","+N(r[i].close)+"]";
    return "{\"id\":"+Q("b:"+p[0]+":"+p[2])+",\"type\":\"bars\",\"ts\":"+I(NowMs())+",\"position\":"+Q(p[0])+",\"symbol\":"+Q(p[1])+",\"tf\":"+Q(p[2])+",\"bars\":["+bars+"]}";
