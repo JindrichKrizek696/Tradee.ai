@@ -21,10 +21,14 @@ uint     g_firstQueued=0,g_failAt=0;
 bool     g_failed=false;
 int      g_backoff=2000;
 bool     g_stopped=false;
-long     g_offset=0;
-datetime g_lastSnap=0,g_lastTick=0;
+bool     g_connected=false;          // spojení s brokerem a úvodní stav načtený
+bool     g_needReconcile=false;      // dorovnání historie čeká na ověřený offset
+long     g_login=0;                  // účet, ke kterému patří fronta a sledovaný stav
+long     g_offset=0;                 // čas serveru brokera − UTC (s)
+bool     g_offsetOk=false;           // offset z čerstvého ticku nebo uložený z dřívějška
+datetime g_lastSnap=0,g_lastTick=0,g_lastTickLocal=0;
 // minulý stav otevřených objednávek
-int      g_t[],g_type[],g_root[];
+int      g_t[],g_type[],g_root[],g_miss[];   // g_miss = kolikrát se zmizelý ticket nenašel v historii
 double   g_lots[],g_sl[],g_tp[],g_price[],g_mfeP[],g_maeP[],g_mfeM[],g_maeM[];
 string   g_sym[];
 
@@ -34,11 +38,12 @@ string N(double v){if(!MathIsValidNumber(v))return "0";string s=DoubleToString(v
 string I(long v){return IntegerToString(v);}
 string Cut(string s,int n){return StringLen(s)>n?StringSubstr(s,0,n):s;}
 long   Utc(datetime serverTime){return ((long)serverTime-g_offset)*1000;}
-long   NowMs(){return (long)TimeGMT()*1000+(long)(GetTickCount()%1000);}
-string QueueFile(){return "TradeeSync\\"+I(AccountNumber())+".queue";}
+long   NowMs(){static long last=0;long t=(long)TimeGMT()*1000+(long)(GetTickCount()%1000);if(t<=last)t=last+1;last=t;return t;}
+string QueueFile(){return "TradeeSync\\"+I(g_login)+".queue";}
+string OffsetVar(){return "TradeeSync_offset_"+I(g_login);}
 
-void SaveQueue(){int h=FileOpen(QueueFile(),FILE_WRITE|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;for(int i=0;i<ArraySize(g_queue);i++)FileWriteString(h,g_queue[i]+"\n");FileClose(h);}
-void LoadQueue(){ArrayResize(g_queue,0);if(!FileIsExist(QueueFile()))return;int h=FileOpen(QueueFile(),FILE_READ|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;while(!FileIsEnding(h)){string l=FileReadString(h);if(StringLen(l)>2){int n=ArraySize(g_queue);ArrayResize(g_queue,n+1);g_queue[n]=l;}}FileClose(h);if(ArraySize(g_queue)>0)g_firstQueued=GetTickCount();}
+void SaveQueue(){if(g_login<=0)return;int h=FileOpen(QueueFile(),FILE_WRITE|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;for(int i=0;i<ArraySize(g_queue);i++)FileWriteString(h,g_queue[i]+"\n");FileClose(h);}
+void LoadQueue(){ArrayResize(g_queue,0);g_firstQueued=0;if(g_login<=0)return;if(!FileIsExist(QueueFile()))return;int h=FileOpen(QueueFile(),FILE_READ|FILE_TXT|FILE_ANSI,'\t',CP_UTF8);if(h==INVALID_HANDLE)return;while(!FileIsEnding(h)){string l=FileReadString(h);if(StringLen(l)>2){int n=ArraySize(g_queue);ArrayResize(g_queue,n+1);g_queue[n]=l;}}FileClose(h);if(ArraySize(g_queue)>0)g_firstQueued=GetTickCount();}
 void Push(string ev){if(ev=="")return;int n=ArraySize(g_queue);ArrayResize(g_queue,n+1);g_queue[n]=ev;if(n==0)g_firstQueued=GetTickCount();}
 void Enqueue(string ev){if(ev=="")return;Push(ev);SaveQueue();}
 void Drop(int n){int left=ArraySize(g_queue)-n;for(int i=0;i<left;i++)g_queue[i]=g_queue[i+n];ArrayResize(g_queue,MathMax(left,0));g_firstQueued=left>0?GetTickCount():0;SaveQueue();}
@@ -55,9 +60,22 @@ int Http(string method,string path,string body,string &resp){
    return code;
 }
 long JsonLong(string s,string key){int p=StringFind(s,"\""+key+"\":");if(p<0)return 0;p+=StringLen(key)+3;string num="";while(p<StringLen(s)){ushort c=StringGetCharacter(s,p);if((c>='0'&&c<='9')||c=='-')num+=ShortToString(c);else break;p++;}return StringToInteger(num);}
+// pole řetězců "key":["a","b"] (tickety neobsahují uvozovky ani ])
+int JsonStrArr(string s,string key,string &out[]){
+   ArrayResize(out,0);
+   int p=StringFind(s,"\""+key+"\":[");if(p<0)return 0;p+=StringLen(key)+4;
+   int e=StringFind(s,"]",p);if(e<0)return 0;
+   while(p<e){
+      int a=StringFind(s,"\"",p);if(a<0||a>=e)break;
+      int b=StringFind(s,"\"",a+1);if(b<0||b>e)break;
+      int n=ArraySize(out);ArrayResize(out,n+1);out[n]=StringSubstr(s,a+1,b-a-1);p=b+1;
+   }
+   return ArraySize(out);
+}
+bool InList(int &a[],int v){for(int i=0;i<ArraySize(a);i++)if(a[i]==v)return true;return false;}
 
 string AccountJson(){
-   return "{\"platform\":\"mt4\",\"login\":"+Q(I(AccountNumber()))+",\"server\":"+Q(Cut(AccountServer(),64))+",\"company\":"+Q(Cut(AccountCompany(),64))+",\"currency\":"+Q(Cut(AccountCurrency(),8))+",\"leverage\":"+I(AccountLeverage())+",\"mode\":"+Q(IsDemo()?"demo":"real")+",\"name\":"+Q(Cut(AccountName,60))+",\"ea\":"+Q(EA_VERSION)+"}";
+   return "{\"platform\":\"mt4\",\"login\":"+Q(I(g_login))+",\"server\":"+Q(Cut(AccountServer(),64))+",\"company\":"+Q(Cut(AccountCompany(),64))+",\"currency\":"+Q(Cut(AccountCurrency(),8))+",\"leverage\":"+I(AccountLeverage())+",\"mode\":"+Q(IsDemo()?"demo":"real")+",\"name\":"+Q(Cut(AccountName,60))+",\"ea\":"+Q(EA_VERSION)+"}";
 }
 // Kořen řetězce dílčích uzavření: komentář „from #N“ odkazuje na předchozí ticket.
 int ParseFrom(string c){int p=StringFind(c,"from #");if(p<0)return 0;return (int)StringToInteger(StringSubstr(c,p+6));}
@@ -107,9 +125,9 @@ string StateJson4(int k,bool full){
    return "\"position\":"+Q(I(g_root[k]))+",\"symbol\":"+Q(Cut(g_sym[k],32))+",\"side\":"+Q(side)+",\"volume\":"+N(vol)+",\"priceOpen\":"+N(po)+",\"priceCurrent\":"+N(pc)+",\"sl\":"+N(g_sl[k])+",\"tp\":"+N(g_tp[k])+",\"profit\":"+N(pf)+",\"swap\":"+N(sw)
      +",\"mfePrice\":"+N(g_mfeP[k])+",\"maePrice\":"+N(g_maeP[k])+",\"mfeMoney\":"+N(g_mfeM[k])+",\"maeMoney\":"+N(g_maeM[k])+",\"spread\":"+I((long)MarketInfo(g_sym[k],MODE_SPREAD))+(ots>0?",\"openTs\":"+I(ots):"");
 }
-void ResizeAll(int n){ArrayResize(g_t,n);ArrayResize(g_type,n);ArrayResize(g_root,n);ArrayResize(g_lots,n);ArrayResize(g_sl,n);ArrayResize(g_tp,n);ArrayResize(g_price,n);ArrayResize(g_sym,n);ArrayResize(g_mfeP,n);ArrayResize(g_maeP,n);ArrayResize(g_mfeM,n);ArrayResize(g_maeM,n);}
-void AddCurrent(int root){int k=ArraySize(g_t);ResizeAll(k+1);g_t[k]=OrderTicket();g_type[k]=OrderType();g_root[k]=root;g_lots[k]=OrderLots();g_sl[k]=OrderStopLoss();g_tp[k]=OrderTakeProfit();g_price[k]=OrderOpenPrice();g_sym[k]=OrderSymbol();g_mfeP[k]=OrderClosePrice();g_maeP[k]=OrderClosePrice();g_mfeM[k]=OrderProfit();g_maeM[k]=OrderProfit();}
-void RemoveAt(int i){int l=ArraySize(g_t)-1;g_t[i]=g_t[l];g_type[i]=g_type[l];g_root[i]=g_root[l];g_lots[i]=g_lots[l];g_sl[i]=g_sl[l];g_tp[i]=g_tp[l];g_price[i]=g_price[l];g_sym[i]=g_sym[l];g_mfeP[i]=g_mfeP[l];g_maeP[i]=g_maeP[l];g_mfeM[i]=g_mfeM[l];g_maeM[i]=g_maeM[l];ResizeAll(l);}
+void ResizeAll(int n){ArrayResize(g_miss,n);ArrayResize(g_t,n);ArrayResize(g_type,n);ArrayResize(g_root,n);ArrayResize(g_lots,n);ArrayResize(g_sl,n);ArrayResize(g_tp,n);ArrayResize(g_price,n);ArrayResize(g_sym,n);ArrayResize(g_mfeP,n);ArrayResize(g_maeP,n);ArrayResize(g_mfeM,n);ArrayResize(g_maeM,n);}
+void AddCurrent(int root){int k=ArraySize(g_t);ResizeAll(k+1);g_miss[k]=0;g_t[k]=OrderTicket();g_type[k]=OrderType();g_root[k]=root;g_lots[k]=OrderLots();g_sl[k]=OrderStopLoss();g_tp[k]=OrderTakeProfit();g_price[k]=OrderOpenPrice();g_sym[k]=OrderSymbol();g_mfeP[k]=OrderClosePrice();g_maeP[k]=OrderClosePrice();g_mfeM[k]=OrderProfit();g_maeM[k]=OrderProfit();}
+void RemoveAt(int i){int l=ArraySize(g_t)-1;g_miss[i]=g_miss[l];g_t[i]=g_t[l];g_type[i]=g_type[l];g_root[i]=g_root[l];g_lots[i]=g_lots[l];g_sl[i]=g_sl[l];g_tp[i]=g_tp[l];g_price[i]=g_price[l];g_sym[i]=g_sym[l];g_mfeP[i]=g_mfeP[l];g_maeP[i]=g_maeP[l];g_mfeM[i]=g_mfeM[l];g_maeM[i]=g_maeM[l];ResizeAll(l);}
 
 // Porovnání aktuálního stavu s minulým → události.
 void Poll(){
@@ -138,26 +156,30 @@ void Poll(){
          Enqueue(OrderJson4("modified"));g_price[k]=OrderOpenPrice();g_sl[k]=OrderStopLoss();g_tp[k]=OrderTakeProfit();g_lots[k]=OrderLots();
       }
    }
-   // zmizelé objednávky → uzavření / zrušení
+   // zmizelé objednávky → uzavření / zrušení; dokud ticket v historii není (synchronizace po připojení), zkouší se dál
    for(int i=ArraySize(g_t)-1;i>=0;i--){
       bool f=false;for(int j=0;j<ArraySize(cur);j++)if(cur[j]==g_t[i]){f=true;break;}
-      if(f)continue;
-      if(OrderSelect(g_t[i],SELECT_BY_TICKET,MODE_HISTORY)){
+      if(f){g_miss[i]=0;continue;}
+      if(OrderSelect(g_t[i],SELECT_BY_TICKET,MODE_HISTORY)&&OrderCloseTime()>0){
          if(g_type[i]<=OP_SELL){
             long ts=Utc(OrderCloseTime())-1;
             Push("{\"id\":"+Q("p:"+I(g_root[i])+":"+I(ts))+",\"type\":\"position_state\",\"ts\":"+I(ts)+","+StateJson4(i,false)+"}");
             Enqueue(DealJson4("out",g_root[i],OrderLots(),true));
          }else Enqueue(OrderJson4(OrderExpiration()>0&&OrderCloseTime()>=OrderExpiration()?"expired":"canceled"));
-      }
-      RemoveAt(i);
+         RemoveAt(i);
+      }else if(++g_miss[i]>=30){Print("TradeeSync: ticket ",g_t[i]," zmizel a v historii se nenašel, vzdávám to");RemoveAt(i);}
    }
 }
 // Dorovnání historie po startu: in pro každý kořen (objem = součet řetězce), out pro každou uzavřenou část.
 void Reconcile(){
-   string resp,path="/api/mt/state?login="+I(AccountNumber())+"&server="+UrlEnc(AccountServer());
+   string resp,path="/api/mt/state?login="+I(g_login)+"&server="+UrlEnc(AccountServer());
    int code=Http("GET",path,"",resp);
    if(code==401||code==403){g_stopped=true;Comment("TradeeSync zastaven: ",resp);return;}
    long last=code==200?JsonLong(resp,"lastDealTs"):0;
+   // kořenové tickety pozic, které Tradee vede jako otevřené (bez přípony :rN)
+   string srv[];int ns=code==200?JsonStrArr(resp,"openPositions",srv):0;
+   int sroot[];ArrayResize(sroot,ns);
+   for(int i=0;i<ns;i++){string t=srv[i];int c=StringFind(t,":r");if(c>0)t=StringSubstr(t,0,c);sroot[i]=(int)StringToInteger(t);}
    int tk[],rt[];double lots[];bool open[];int cnt=0;
    for(int pass=0;pass<2;pass++){
       int total=pass==0?OrdersHistoryTotal():OrdersTotal();
@@ -172,10 +194,20 @@ void Reconcile(){
    for(int i=0;i<cnt;i++){
       bool isOpen=open[i];
       if(!OrderSelect(tk[i],SELECT_BY_TICKET,isOpen?MODE_TRADES:MODE_HISTORY))continue;
-      bool recent=isOpen||Utc(OrderCloseTime())>=last-60000;
+      // i starší uzavření pozice, kterou Tradee vede jako otevřenou (zavřená offline, lastDealTs už je za ní)
+      bool recent=isOpen||Utc(OrderCloseTime())>=last-60000||InList(sroot,rt[i]);
       if(!recent)continue;
       if(rt[i]==tk[i]){double sum=0;for(int j=0;j<cnt;j++)if(rt[j]==tk[i])sum+=lots[j];Push(DealJson4("in",tk[i],sum,false));}
       if(!isOpen)Push(DealJson4("out",rt[i],lots[i],false));
+   }
+   // vedená jako otevřená, ale v terminálu ani v zobrazené historii není → výběr přímo podle ticketu
+   for(int s=0;s<ns;s++){
+      int r=sroot[s];if(r<=0)continue;
+      bool known=false;for(int j=0;j<cnt;j++)if(rt[j]==r||tk[j]==r){known=true;break;}
+      if(known)continue;
+      if(!OrderSelect(r,SELECT_BY_TICKET,MODE_HISTORY)||OrderCloseTime()==0||OrderType()>OP_SELL)continue;
+      double ol=OrderLots();int root=RootOf(r,OrderComment(),MODE_HISTORY);
+      Push(DealJson4("in",root,ol,false));Push(DealJson4("out",root,ol,false));
    }
    SaveQueue();
 }
@@ -202,20 +234,55 @@ void Flush(bool withSnapshot){
    g_backoff=MathMin(g_backoff*2,300000);g_failAt=GetTickCount();g_failed=true;
 }
 
-void CalcOffset(){long off=(long)(TimeCurrent()-TimeGMT());g_offset=(long)MathRound(off/900.0)*900;}
+// offset = čas serveru − UTC; ověřený se uloží do globální proměnné terminálu pro příští start
+void CalcOffset(){
+   long off=(long)(TimeCurrent()-TimeGMT()),o=(long)MathRound(off/900.0)*900;
+   if(!g_offsetOk||o!=g_offset)GlobalVariableSet(OffsetVar(),(double)o);
+   g_offset=o;g_offsetOk=true;
+}
+// TimeCurrent() je čas posledního ticku: věří se mu jen, když se změnil (nový tick) před nejvýš 60 s
+void TickWatch(){
+   datetime tc=TimeCurrent();
+   if(g_lastTick==0){g_lastTick=tc;return;}       // první pozorování může být starý tick (víkend, nepřipojeno)
+   if(tc!=g_lastTick){g_lastTick=tc;g_lastTickLocal=TimeLocal();}
+   if(g_lastTickLocal>0&&TimeLocal()-g_lastTickLocal<=60)CalcOffset();
+}
+// vyčistit stav v paměti (start EA, přepnutí účtu); fronta je už uložená v souboru
+void ResetState(){
+   ArrayResize(g_queue,0);g_firstQueued=0;g_failed=false;g_backoff=2000;g_lastSnap=0;
+   ResizeAll(0);g_login=0;g_connected=false;g_needReconcile=false;
+   g_offset=0;g_offsetOk=false;g_lastTick=0;g_lastTickLocal=0;
+}
+// po připojení (i po každém obnovení spojení); stav objednávek se načte jen poprvé pro daný účet –
+// po výpadku zmizelé tickety dohledá Poll (s opakováním) a dorovnání historie
+void ConnectedInit(){
+   long login=AccountNumber();
+   if(login!=g_login){
+      g_login=login;LoadQueue();InitState();
+      string gv=OffsetVar();if(GlobalVariableCheck(gv)){g_offset=(long)GlobalVariableGet(gv);g_offsetOk=true;}
+      Print("TradeeSync: MT4: v záložce Historie účtu klikni pravým tlačítkem → Celá historie (jinak EA nevidí starší obchody).");
+   }
+   g_connected=true;g_needReconcile=true;
+}
 int OnInit(){
    if(StringLen(TradeeKey)<20){Alert("TradeeSync: vlož klíč z tradee.eu (Propojení s MetaTraderem)");return INIT_PARAMETERS_INCORRECT;}
-   CalcOffset();
    FolderCreate("TradeeSync");
-   LoadQueue();InitState();Reconcile();
-   EventSetTimer(1);g_lastSnap=0;
+   g_stopped=false;ResetState();
+   EventSetTimer(1);
    return INIT_SUCCEEDED;
 }
-void OnDeinit(const int reason){EventKillTimer();SaveQueue();Comment("");}
+void OnDeinit(const int reason){EventKillTimer();Comment("");}   // fronta je uložená při každé změně
 void OnTimer(){
    if(g_stopped)return;
-   // TimeCurrent() je čas posledního ticku: offset se přepočítá jen při čerstvém ticku
-   datetime tc=TimeCurrent();if(tc!=g_lastTick){g_lastTick=tc;CalcOffset();}
+   // bez spojení s brokerem (nebo bez přihlášení) se nic nedělá
+   long login=AccountNumber();
+   if(!IsConnected()||login==0){Comment("TradeeSync: čekám na spojení s brokerem…");g_connected=false;return;}
+   if(g_login!=0&&login!=g_login){Print("TradeeSync: přepnutý účet ",g_login," → ",login);SaveQueue();ResetState();}
+   if(!g_connected)ConnectedInit();
+   TickWatch();
+   // časy obchodů potřebují ověřený offset: do té doby se nic nesbírá ani neposílá (fronta je v souboru)
+   if(!g_offsetOk){Comment("TradeeSync: čekám na první tick (časové pásmo serveru)…");return;}
+   if(g_needReconcile){g_needReconcile=false;Reconcile();if(g_stopped)return;}
    Poll();
    uint now=GetTickCount();
    int every=OpenMarket()>0?120:900;
