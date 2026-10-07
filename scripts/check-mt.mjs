@@ -89,4 +89,23 @@ check('build: výstup bez vstupu → nic',buildPositions('acc1',[S.deal(60,S.T0,
 check('build: balance deal se ignoruje',buildPositions('acc1',[S.deal(70,S.T0,{position:'0',symbol:'',dealType:'balance',entry:'in',volume:0,price:0,profit:5000})]).length===0);
 check('tagy: unikátní, malá písmena, diakritika, min. 2 znaky',JSON.stringify(extractTags('#Breakout #breakout #Průraz #a x'))==='["breakout","průraz"]',extractTags('#Breakout #breakout #Průraz #a x'));
 
+// --- skládání pozic: oprava kolo 1
+const kinds=(x)=>x?.changes.map(c=>c.kind).join();
+b=one(S.sameTsIdOrder);
+check('build: stejný ts, id d:9 / d:10 → uzavřená',b&&b.position.status==='closed'&&kinds(b)==='open,close',b);
+b=one(S.mt4Ids);
+check('build: stejný ts, d4:1000:in / d4:999:out → open,close',b&&b.position.status==='closed'&&kinds(b)==='open,close',b);
+b=one(S.mt4Earlier);
+check('build: in dřív než out s id d:999:out / d:1000:in',b&&b.position.status==='closed'&&kinds(b)==='open,close',b);
+const ro=buildPositions('acc1',S.reopen);
+check('build: znovuotevření po uzavření → unikátní id',ro.length===2&&ro[0].position.id==='acc1:5'&&ro[1].position.id==='acc1:5:r1'&&ro.every(x=>x.position.status==='closed'),ro.map(x=>x.position.id));
+b=one(S.outBy);
+check('build: out_by zavírá pozici',b&&b.position.status==='closed'&&b.position.close_reason==='client',b?.position);
+b=one(S.slWrongSide);
+check('build: SL na ziskové straně → bez rizika, R a R:R',b&&b.position.sl_initial===1.2&&b.position.risk_money===null&&b.position.risk_pct===null&&b.position.r_result===null&&b.position.rr_planned===null,b?.position);
+b=one(S.beSl);
+check('build: SL na vstupní ceně → bez rizika',b&&b.position.sl_initial===1.1&&b.position.risk_money===null&&b.position.r_result===null,b?.position);
+b=one(S.partialAdd);
+check('build: partial, add, close',b&&kinds(b)==='open,partial_close,add,close'&&b.position.volume_max===3&&b.position.status==='closed',b);
+
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

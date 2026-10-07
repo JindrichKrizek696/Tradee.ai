@@ -62,3 +62,42 @@ export const lateSl=[
  mod(900,T0+3000,{slOld:0,slNew:1.099}),
  deal(19,T0+60_000,{position:'900',side:'sell',entry:'out',volume:1,price:1.102,profit:200}),
 ];
+
+// --- fixtures pro řazení, otevření znovu, out_by, rizikovou stranu
+export const sameTsIdOrder=[
+ deal(9,T0,{position:'71',side:'buy',entry:'in',volume:1,price:1.1}),
+ deal(10,T0,{position:'71',side:'sell',entry:'out',volume:1,price:1.1,profit:5}),
+];
+export const mt4Ids=[
+ {...deal('d4:999:out',T0,{position:'72',side:'sell',entry:'out',volume:1,price:1.1}),id:'d4:999:out'},
+ {...deal('d4:1000:in',T0,{position:'72',side:'buy',entry:'in',volume:1,price:1.1}),id:'d4:1000:in'},
+];
+export const mt4Earlier=[
+ {...deal('d:999:out',T0+60_000,{position:'73',side:'sell',entry:'out',volume:1,price:1.1}),id:'d:999:out'},
+ {...deal('d:1000:in',T0,{position:'73',side:'buy',entry:'in',volume:1,price:1.1}),id:'d:1000:in'},
+];
+export const reopen=[
+ deal(80,T0,{position:'5',side:'buy',entry:'in',volume:1,price:1.1}),
+ deal(81,T0+60_000,{position:'5',side:'sell',entry:'out',volume:1,price:1.101,profit:10}),
+ deal(82,T0+120_000,{position:'5',side:'buy',entry:'in',volume:1,price:1.1}),
+ deal(83,T0+180_000,{position:'5',side:'sell',entry:'out',volume:1,price:1.102,profit:20}),
+];
+export const outBy=[
+ deal(84,T0,{position:'90',side:'buy',entry:'in',volume:1,price:1.1}),
+ deal(85,T0+60_000,{position:'90',side:'sell',entry:'out_by',volume:1,price:1.1,reason:'client'}),
+];
+export const slWrongSide=[
+ deal(86,T0,{position:'91',side:'buy',entry:'in',volume:1,price:1.1,sl:1.2,tp:1.3,balance:10000}),
+ deal(87,T0+60_000,{position:'91',side:'sell',entry:'out',volume:1,price:1.2,profit:100}),
+];
+export const beSl=[
+ deal(88,T0,{position:'92',side:'buy',entry:'in',volume:1,price:1.1,balance:10000}),
+ mod(92,T0+3000,{slOld:0,slNew:1.1}),
+ deal(89,T0+60_000,{position:'92',side:'sell',entry:'out',volume:1,price:1.1,profit:0}),
+];
+export const partialAdd=[
+ deal(90,T0,{position:'93',side:'buy',entry:'in',volume:2,price:1.1}),
+ deal(91,T0+60_000,{position:'93',side:'sell',entry:'out',volume:1,price:1.1,profit:1}),
+ deal(92,T0+120_000,{position:'93',side:'buy',entry:'in',volume:2,price:1.1}),
+ deal(93,T0+180_000,{position:'93',side:'sell',entry:'out',volume:3,price:1.1,profit:1}),
+];

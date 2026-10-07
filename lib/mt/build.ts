@@ -13,7 +13,7 @@ type Seg={row:PositionRow;changes:ChangeRow[];volume:number;inVol:number;inValue
 function start(accountId:string,ticket:string,d:DealEvent,side:Side,volume:number):Seg{
  const row:PositionRow={id:accountId+':'+ticket,account_id:accountId,ticket,symbol:d.symbol,side,status:'open',open_ts:d.ts,close_ts:null,open_price:d.price,close_price_avg:null,volume_max:volume,sl_initial:lvl(d.sl),tp_initial:lvl(d.tp),sl_last:lvl(d.sl),tp_last:lvl(d.tp),profit:0,commission:0,swap:0,fee:0,net:0,magic:d.magic,comment:d.comment,tags:'',open_reason:d.reason,close_reason:null,mfe_money:null,mae_money:null,mfe_price:null,mae_price:null,mfe_partial:0,spread_entry:d.spread>0?d.spread:null,slippage_points:null,risk_money:null,risk_pct:null,rr_planned:null,r_result:null};
  if(d.priceRequested>0&&d.point>0)row.slippage_points=r2((side==='buy'?d.price-d.priceRequested:d.priceRequested-d.price)/d.point);
- return {row,changes:[{ts:d.ts,kind:'open',old_value:null,new_value:d.price,price:d.price,volume,reason:d.reason}],volume,inVol:volume,inValue:volume*d.price,outVol:0,outValue:0,first:d,initVol:volume,lastStateTs:null};
+ return {row,changes:[{ts:d.ts,kind:'open',old_value:null,new_value:d.price,price:d.price,volume:Math.round(volume*1e8)/1e8,reason:d.reason}],volume,inVol:volume,inValue:volume*d.price,outVol:0,outValue:0,first:d,initVol:volume,lastStateTs:null};
 }
 const money=(s:Seg,d:DealEvent)=>{s.row.profit+=d.profit;s.row.commission+=d.commission;s.row.swap+=d.swap;s.row.fee+=d.fee};
 function close(s:Seg,d:DealEvent,vol:number){
@@ -31,29 +31,31 @@ function finish(s:Seg):Built{
  r.profit=r2(r.profit);r.commission=r2(r.commission);r.swap=r2(r.swap);r.fee=r2(r.fee);r.net=r2(r.profit+r.commission+r.swap+r.fee);
  r.tags=extractTags(r.comment).join(',');
  // riziko a plánované R:R od prvního vstupu a počátečního SL/TP
- if(r.sl_initial!==null&&d.tickSize>0&&d.tickValue>0){r.risk_money=r2(Math.abs(d.price-r.sl_initial)/d.tickSize*d.tickValue*s.initVol);if(d.balance>0)r.risk_pct=r2(r.risk_money/d.balance*100)}
- if(r.sl_initial!==null&&r.tp_initial!==null&&Math.abs(d.price-r.sl_initial)>EPS)r.rr_planned=r2(Math.abs(r.tp_initial-d.price)/Math.abs(d.price-r.sl_initial));
+ const lossSide=r.sl_initial!==null&&(r.side==='buy'?r.sl_initial<d.price:r.sl_initial>d.price);
+ if(lossSide&&r.sl_initial!==null&&d.tickSize>0&&d.tickValue>0){r.risk_money=r2(Math.abs(d.price-r.sl_initial)/d.tickSize*d.tickValue*s.initVol);if(d.balance>0)r.risk_pct=r2(r.risk_money/d.balance*100)}
+ if(lossSide&&r.sl_initial!==null&&r.tp_initial!==null&&Math.abs(d.price-r.sl_initial)>EPS)r.rr_planned=r2(Math.abs(r.tp_initial-d.price)/Math.abs(d.price-r.sl_initial));
  if(r.status==='closed'&&r.risk_money)r.r_result=r2(r.net/r.risk_money);
  if(r.status==='closed'&&r.close_ts!==null&&r.close_ts-(s.lastStateTs??r.open_ts)>GAP)r.mfe_partial=1;
  return {position:r,changes:s.changes};
 }
+const rank=(e:MtEvent)=>e.type==='deal'?(e.entry==='in'?0:e.entry==='inout'?1:2):e.type==='position_modify'?3:e.type==='position_state'?4:5; // pořadí při stejném čase
 export function buildPositions(accountId:string,events:MtEvent[]):Built[]{
- const seen=new Set<string>(),sorted=[...events].filter(e=>!seen.has(e.id)&&seen.add(e.id)).sort((a,b)=>a.ts-b.ts||(a.id<b.id?-1:a.id>b.id?1:0));
- const out:Built[]=[];let cur:Seg|null=null,reversals=0;
+ const seen=new Set<string>(),sorted=[...events].filter(e=>!seen.has(e.id)&&seen.add(e.id)).sort((a,b)=>a.ts-b.ts||rank(a)-rank(b)||a.id.localeCompare(b.id,undefined,{numeric:true}));
+ const out:Built[]=[];let cur:Seg|null=null,segs=0;
  for(const e of sorted){
   if(e.type==='deal'){
    if(e.dealType!=='trade')continue;
    const base=e.position;
    if(e.entry==='in'){
-    if(!cur){cur=start(accountId,reversals?`${base}:r${reversals}`:base,e,e.side,e.volume)}
-    else if(e.ts===cur.row.open_ts){cur.volume+=e.volume;cur.inVol+=e.volume;cur.inValue+=e.volume*e.price;cur.initVol+=e.volume;cur.row.volume_max=Math.max(cur.row.volume_max,cur.volume);cur.changes[0].volume=cur.initVol} // MT4 řetězec: části původního vstupu
+    if(!cur){cur=start(accountId,segs?`${base}:r${segs}`:base,e,e.side,e.volume);segs++}
+    else if(e.ts===cur.row.open_ts){cur.volume+=e.volume;cur.inVol+=e.volume;cur.inValue+=e.volume*e.price;cur.initVol+=e.volume;cur.row.volume_max=Math.max(cur.row.volume_max,cur.volume);cur.changes[0].volume=Math.round(cur.initVol*1e8)/1e8} // MT4 řetězec: části původního vstupu
     else{cur.volume+=e.volume;cur.inVol+=e.volume;cur.inValue+=e.volume*e.price;cur.row.volume_max=Math.max(cur.row.volume_max,cur.volume);cur.changes.push({ts:e.ts,kind:'add',old_value:null,new_value:null,price:e.price,volume:e.volume,reason:e.reason})}
     money(cur,e);
    }else if(e.entry==='inout'){
     if(!cur)continue;
     const closing=cur.volume;money(cur,e);close(cur,e,closing);out.push(finish(cur));
-    reversals++;const rest=e.volume-closing;
-    if(rest>EPS){cur=start(accountId,`${base}:r${reversals}`,{...e,commission:0,swap:0,fee:0,profit:0},e.side,rest)}else cur=null;
+    const rest=e.volume-closing;
+    if(rest>EPS){cur=start(accountId,`${base}:r${segs++}`,{...e,commission:0,swap:0,fee:0,profit:0},e.side,rest)}else cur=null;
    }else{
     if(!cur)continue;
     money(cur,e);
