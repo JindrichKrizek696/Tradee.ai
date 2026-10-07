@@ -16,6 +16,8 @@ python3 scripts/refresh-expanded-data.py || echo "!! refresh-expanded-data selha
 node --experimental-strip-types scripts/capture-score-history.mjs || echo "!! capture-score-history selhal"
 node --experimental-strip-types scripts/check-score.mjs || echo "!! check-score hlásí problém"
 python3 scripts/refresh_calendar.py || echo "!! refresh_calendar selhal"
+python3 scripts/refresh_fx.py || echo "!! refresh_fx selhal"
+python3 scripts/mt_maintenance.py || echo "!! mt_maintenance selhal"
 if npm run build >/tmp/tradee-build.log 2>&1; then
   sudo systemctl restart tradee && echo "== $(date -Is) nasazeno"
 else
