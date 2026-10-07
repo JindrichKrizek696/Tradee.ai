@@ -2,9 +2,9 @@
 import {useEffect,useRef,useState} from 'react';
 import {PalettePicker} from './palette';
 import {ThemeToggle} from './theme';
-import {LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,RefreshCw} from 'lucide-react';
-export type View='dashboard'|'analyzer'|'reports'|'calendar';
-const items:[View,string,typeof LayoutDashboard][]=[['dashboard','Dashboard',LayoutDashboard],['analyzer','Analýza trhů',ChartNoAxesCombined],['reports','Reporty',Landmark],['calendar','Kalendář',CalendarDays]];
+import {LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,RefreshCw} from 'lucide-react';
+export type View='dashboard'|'analyzer'|'reports'|'calendar'|'journal';
+const items:[View,string,typeof LayoutDashboard][]=[['dashboard','Dashboard',LayoutDashboard],['analyzer','Analýza trhů',ChartNoAxesCombined],['reports','Reporty',Landmark],['calendar','Kalendář',CalendarDays],['journal','Deník',NotebookPen]];
 export function Shell({wide,view,setView,busy,onRefresh,userName,palette,onPalette,paletteError,children}:{wide?:boolean;view:View;setView:(v:View)=>void;busy:boolean;onRefresh:()=>void;userName:string;palette:string;onPalette:(id:string)=>void;paletteError?:string;children:React.ReactNode}){
  const [menu,setMenu]=useState(false),wrap=useRef<HTMLDivElement>(null);
  useEffect(()=>{if(!menu)return;const close=(e:MouseEvent)=>{if(!wrap.current?.contains(e.target as Node))setMenu(false)};const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setMenu(false)};document.addEventListener('mousedown',close);document.addEventListener('keydown',esc);return()=>{document.removeEventListener('mousedown',close);document.removeEventListener('keydown',esc)}},[menu]);
