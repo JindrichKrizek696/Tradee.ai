@@ -75,3 +75,17 @@ export async function accountState(d:Db,userId:string,login:string,server:string
  const open=(await d.prepare("SELECT ticket FROM mt_positions WHERE account_id=? AND status='open'").bind(a.id).all<{ticket:string}>()).results.map(r=>r.ticket);
  return {known:true,lastDealTs:Number(last?.ts||0),lastDealTicket:last?last.event_id.replace(/^d:/,''):'',openPositions:open};
 }
+export async function listAccounts(d:Db,userId:string){
+ const rows=(await d.prepare(`SELECT a.id,a.platform,a.login,a.server,a.company,a.currency,a.mode,a.name,a.ea_version,a.last_seen,a.balance,a.equity,
+  (SELECT COUNT(*) FROM mt_positions p WHERE p.account_id=a.id) AS positions,(SELECT COUNT(*) FROM mt_positions p WHERE p.account_id=a.id AND p.status='open') AS open
+  FROM mt_accounts a WHERE a.user_id=? ORDER BY a.created`).bind(userId).all<Record<string,unknown>>()).results;
+ return rows.map(r=>({...r,login:'••••'+String(r.login).slice(-4),positions:Number(r.positions),open:Number(r.open)}));
+}
+export async function deleteAccount(d:Db,userId:string,id:string){
+ const a=await d.prepare('SELECT id FROM mt_accounts WHERE id=? AND user_id=?').bind(id,userId).first<{id:string}>();
+ if(!a)return false;
+ await d.prepare('DELETE FROM mt_position_changes WHERE position_id IN (SELECT id FROM mt_positions WHERE account_id=?)').bind(id).run();
+ for(const t of ['mt_positions','mt_events','mt_orders','mt_snapshots'])await d.prepare(`DELETE FROM ${t} WHERE account_id=?`).bind(id).run();
+ await d.prepare('DELETE FROM mt_accounts WHERE id=?').bind(id).run();
+ return true;
+}
