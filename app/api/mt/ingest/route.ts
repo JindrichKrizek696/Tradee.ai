@@ -16,9 +16,9 @@ export async function POST(req:Request){
   const accountId=await upsertAccount(d,a.userId,account,balance,equity);
   const all:MtEvent[]=snapshot?[...events,...snapshotEvents(snapshot)]:events;
   const r=await insertEvents(d,accountId,all);
-  await upsertOrders(d,accountId,events.filter((e):e is OrderEvent=>e.type==='order'));
+  await upsertOrders(d,accountId,r.fresh.filter((e):e is OrderEvent=>e.type==='order'));
   if(snapshot)await insertSnapshot(d,accountId,snapshot);
-  await rebuildPositions(d,accountId,all.map(eventPosition));
+  await rebuildPositions(d,accountId,r.fresh.map(eventPosition));
   return mtJson({ok:true,accepted:r.accepted,duplicates:r.duplicates});
  }catch(e){console.error('mt ingest',e);return mtJson({error:'Server data teď neuložil, EA to zkusí znovu.'},503)}
 }
