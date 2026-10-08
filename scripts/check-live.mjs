@@ -1,0 +1,36 @@
+// Kontrola živých cen: node --experimental-strip-types scripts/check-live.mjs
+import {yahooSymbol,changePct,parseChart,sessionPoints,currencyChange,currencySeries,liveState,sparkPath} from '../lib/live.ts';
+const fails=[];
+const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
+const CUR=['USD','EUR','GBP','CHF','JPY','CAD','AUD','NZD'];
+check('symbol FX',yahooSymbol('EUR/USD',CUR)==='EURUSD=X'&&yahooSymbol('USD/EUR',CUR)==='USDEUR=X');
+check('symbol měnový index = null',yahooSymbol('USD',CUR)===null);
+check('symbol akcie/index/krypto',yahooSymbol('JPM',CUR)==='JPM'&&yahooSymbol('^GSPC',CUR)==='^GSPC'&&yahooSymbol('BTC-USD',CUR)==='BTC-USD'&&yahooSymbol('BRK-B',CUR)==='BRK-B');
+check('změna %',changePct(101,100)===1&&changePct(99.5,100)===-0.5&&changePct(1,0)===0&&changePct(Number.NaN,100)===0);
+const t0=Date.UTC(2026,9,9,8,0)/1000;
+const yj={chart:{result:[{meta:{regularMarketPrice:1.0912,chartPreviousClose:1.09,regularMarketTime:t0+1800},timestamp:[t0,t0+900,t0+1800],indicators:{quote:[{close:[1.09,null,1.0912]}]}}]}};
+const pc=parseChart(yj);
+check('parse: cena, zavření, čas',pc&&pc.price===1.0912&&pc.prevClose===1.09&&pc.marketTime===(t0+1800)*1000,pc);
+check('parse: null body vynechá',pc&&pc.points.length===2&&pc.points[1][0]===(t0+1800)*1000,pc&&pc.points);
+check('parse: previousClose jako náhrada',parseChart({chart:{result:[{meta:{regularMarketPrice:10,previousClose:9,regularMarketTime:t0},timestamp:[],indicators:{quote:[{close:[]}]}}]}})?.prevClose===9);
+check('parse: nepoužitelné',parseChart(null)===null&&parseChart({chart:{result:null}})===null&&parseChart({chart:{result:[{meta:{regularMarketPrice:0,chartPreviousClose:1,regularMarketTime:t0}}]}})===null);
+const P=(iso,p)=>[Date.parse(iso),p];
+const sp=sessionPoints([P('2026-10-08T21:30:00Z',1),P('2026-10-09T08:00:00Z',3),P('2026-10-08T22:30:00Z',2)]);
+check('dnešní body přes pražskou půlnoc',sp.length===2&&sp[0][1]===2&&sp[1][1]===3,sp);
+const dst=sessionPoints([P('2026-10-24T22:30:00Z',1),P('2026-10-25T00:30:00Z',2),P('2026-10-25T23:30:00Z',3)]);
+check('dnešní body přes změnu času',dst.length===1&&dst[0][1]===3,dst);
+check('dnešní body prázdné',sessionPoints([]).length===0);
+const pairs={'USD/EUR':{changePct:1},'EUR/GBP':{changePct:-0.5}};
+check('síla měn',currencyChange('USD',pairs)===1&&currencyChange('EUR',pairs)===-0.75&&currencyChange('GBP',pairs)===0.5&&currencyChange('CHF',pairs)===null);
+const T=Date.UTC(2026,9,9,8,0),Q=900000;
+const ser=currencySeries('EUR',{'USD/EUR':{prevClose:1,points:[[T,1.01],[T+Q,1.02]]},'EUR/GBP':{prevClose:2,points:[[T+5000,2],[T+Q,1.98],[T+2*Q,1.97]]}});
+check('průběh indexu měny: společné časy, průměr',ser.length===2&&ser[0][0]===T&&ser[0][1]===99.5&&ser[1][1]===98.5,ser);
+check('průběh bez párů',currencySeries('CHF',{'USD/EUR':{prevClose:1,points:[[T,1]]}}).length===0);
+const now=Date.UTC(2026,9,9,12,0);
+check('stav live',liveState(now-5*60000,now-10*60000,now)==='live');
+check('stav zpožděno',liveState(now-50*60000,now-10*60000,now)==='delayed'&&liveState(null,now,now)==='delayed');
+check('stav zavřeno',liveState(now-5*60000,now-3*3600000,now)==='closed'&&liveState(now-60000,null,now)==='closed');
+check('mini graf',sparkPath([[0,1],[10,2]],100,10)==='M0.0 10.0 L100.0 0.0'&&sparkPath([[0,1]],100,10)==='');
+check('mini graf rovná čára',sparkPath([[0,5],[10,5]],100,10)==='M0.0 10.0 L100.0 10.0');
+
+if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
