@@ -29,3 +29,26 @@ export function LiveBadge({live,quote,now}:{live:LiveData|null;quote:{marketTime
  const text=s==='live'?'živě':s==='delayed'?'zpožděno':'zavřeno'+(quote?' · poslední cena '+hhmm(quote.marketTime):'');
  return <span className={'lv-badge '+s} title={'Aktualizováno '+hhmm(live.updated)}><i/>{text}</span>;
 }
+const fmtPrice=(v:number)=>v.toLocaleString('cs-CZ',{maximumFractionDigits:Math.abs(v)<10?5:Math.abs(v)<1000?2:0});
+// Graf dneška: průběh ceny, čára předchozího zavření, hover/dotyk s bublinou (vzor PnlChart)
+export function IntradayChart({quote,currencyIndex}:{quote:LiveQuote;currencyIndex?:boolean}){
+ const [hover,setHover]=useState<number|null>(null),w=600,h=160,pts=quote.points,n=pts.length;
+ if(n<2)return null;
+ const t0=pts[0][0],t1=pts[n-1][0],vals=pts.map(p=>p[1]).concat(quote.prevClose),hi=Math.max(...vals),lo=Math.min(...vals),span=(hi-lo)||1;
+ const xs=(t:number)=>(t1===t0?0:(t-t0)/(t1-t0))*w,ys=(v:number)=>10+(hi-v)/span*(h-20),yp=ys(quote.prevClose);
+ const line=pts.map((p,i)=>(i?'L':'M')+xs(p[0]).toFixed(1)+' '+ys(p[1]).toFixed(1)).join(' '),cls=tone(quote.changePct);
+ const pick=(e:React.PointerEvent<HTMLDivElement>)=>{const r=e.currentTarget.getBoundingClientRect(),t=t0+Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*(t1-t0);let b=0;for(let i=1;i<n;i++)if(Math.abs(pts[i][0]-t)<Math.abs(pts[b][0]-t))b=i;setHover(b)};
+ const hp=hover===null?null:pts[hover],hx=hp?xs(hp[0])/w*100:0,hy=hp?ys(hp[1])/h*100:0,hc=hp&&quote.prevClose?(hp[1]/quote.prevClose-1)*100:0;
+ return <div className="lv-chartwrap" onPointerMove={pick} onPointerDown={pick} onPointerLeave={()=>setHover(null)} onPointerCancel={()=>setHover(null)}>
+  <svg className={'lv-chart '+cls} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+   <line x1="0" x2={w} y1={yp} y2={yp} className="lv-prev" vectorEffect="non-scaling-stroke"/>
+   <path d={`${line} L${xs(t1)} ${h} L0 ${h} Z`} className="lv-area"/>
+   <path d={line} fill="none" className="lv-line" vectorEffect="non-scaling-stroke"/>
+   {hp&&<line x1={xs(hp[0])} x2={xs(hp[0])} y1="0" y2={h} className="lv-guide" vectorEffect="non-scaling-stroke"/>}
+  </svg>
+  {hp&&<><i className={'lv-dot '+cls} style={{left:hx+'%',top:hy+'%'}}/><div className="lv-tip" role="status" style={{left:hx+'%',transform:`translateX(${hx<18?'-12%':hx>82?'-88%':'-50%'})`}}>
+   <b>{hhmm(hp[0])}</b>{!currencyIndex&&<span>Cena <em>{fmtPrice(hp[1])}</em></span>}<span>Od zavření <em className={tone(hc)}>{fmtPct(hc)}</em></span>
+  </div></>}
+ </div>;
+}
+export {fmtPrice};
