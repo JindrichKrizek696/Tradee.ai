@@ -1,7 +1,7 @@
 'use client';
 import {useCallback,useEffect,useState} from 'react';
 import {ArrowLeft} from 'lucide-react';
-import {fmtMoney} from '@/lib/trades';
+import {fmtAmount} from '@/lib/trades';
 import type {Overview,Person,AdminMtAccount,AuditRow} from '@/lib/admin/store';
 import '../mt.css';
 import './admin.css';
@@ -51,7 +51,7 @@ export default function AdminPage(){
      <td data-l="Stav"><span className={'mt-tag ad-st '+p.status}>{STATUS[p.status]}</span></td>
      <td data-l="Role">{p.role==='admin'?'admin':p.role?'člen':'–'}</td>
      <td data-l="Zapsán">{day(p.created)}</td>
-     <td data-l="Poslední přihlášení">{ago(p.lastLogin)}</td>
+     <td data-l="Poslední přihlášení">{p.lastLogin?ago(p.lastLogin):<span title="Přihlášení se zaznamenávají od 8. 10. 2026">–</span>}</td>
      <td data-l="MT účty">{p.mtAccounts}</td>
      <td className="ad-acts">{!none&&<>
       {p.status==='pending'&&<button type="button" className="mt-btn dark" disabled={off} onClick={()=>act(p.email,'approve')}>Schválit</button>}
@@ -68,7 +68,7 @@ export default function AdminPage(){
      <td data-l="EA">{a.eaVersion||'–'}{a.oldEa&&<span className="mt-tag warn">stará verze</span>}</td>
      <td data-l="Spojení"><span className={'mt-dot '+(a.online?'on':'')}/>{a.online?'online · ':''}{ago(a.lastSeen)}</td>
      <td data-l="Pozice">{a.positions} · {a.open} otevř.</td>
-     {me.owner&&<td data-l="Zůstatek / equity">{a.balance==null?'–':fmtMoney(a.balance,a.currency)}{a.equity!=null&&<small>{fmtMoney(a.equity,a.currency)}</small>}</td>}
+     {me.owner&&<td data-l="Zůstatek / equity">{a.balance==null?'–':fmtAmount(a.balance,a.currency)}{a.equity!=null&&<small>{fmtAmount(a.equity,a.currency)}</small>}</td>}
      {me.owner&&<td className="ad-acts"><a className="mt-btn" href={'/admin/journal/'+encodeURIComponent(a.memberId)}>Otevřít deník</a></td>}
     </tr>)}</tbody></table>}
    </section>}
