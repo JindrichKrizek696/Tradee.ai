@@ -90,6 +90,12 @@
 .d-dash .d-pnl-line{stroke:var(--t-fg);stroke-width:2;stroke-linejoin:round;opacity:.85}
 .d-dash .d-pnl-end{fill:var(--t-surface);stroke:var(--t-fg);stroke-width:2.5}
 .d-dash .d-pnlchart.ghost{opacity:.22;filter:grayscale(1)}
+.d-dash .d-pnlhover{position:relative;touch-action:pan-y}
+.d-dash .d-pnl-band{fill:var(--t-fg);opacity:.05}
+.d-dash .d-pnltip{position:absolute;top:-8px;z-index:3;pointer-events:none;display:grid;gap:2px;min-width:140px;padding:8px 11px;border-radius:12px;background:var(--t-surface);border:1px solid var(--t-border);box-shadow:var(--t-shadow);font-size:12.5px;color:var(--t-muted);white-space:nowrap}
+.d-dash .d-pnltip b{color:var(--t-fg);font-size:13px}
+.d-dash .d-pnltip em{font-style:normal;font-weight:600;color:var(--t-fg);margin-left:4px}
+.d-dash .d-pnltip em.up{color:var(--bull-text)}.d-dash .d-pnltip em.down{color:var(--bear-text)}
 .d-dash .d-ghostmsg{position:absolute;inset:12px 0 30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;font-size:13px;color:var(--t-fg-2)}
 .d-dash .d-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--t-border-strong);background:var(--t-surface);font-size:12.5px;font-weight:500;color:var(--t-fg)}
 .d-dash .d-btn:hover{background:var(--t-surface-3)}
