@@ -21,11 +21,12 @@ for(const c of fxCurrencies){
  got[c]={symbol:'',price:100*(1+ch/100),prevClose:100,marketTime:mt,points:currencySeries(c,fx)};
 }
 if(dry){for(const [id,q] of Object.entries(got))console.log(id.padEnd(9),String(q.price).padEnd(12),changePct(q.price,q.prevClose)+' %',q.points.length+' bodů');console.log(`dry: ${Object.keys(got).length} trhů, chyby: ${fails.length?fails.join('; '):'žádné'}`);process.exit(0)}
+let saved=0;
+try{
 const {createDb}=await import('../lib/mysql.ts');
 const env=Object.fromEntries(readFileSync(new URL('../.mariadb.env',import.meta.url),'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim()]));
 const d=createDb({host:env.MARIADB_HOST,port:Number(env.MARIADB_PORT||3306),user:env.MARIADB_USER,password:env.MARIADB_PASSWORD,database:env.MARIADB_DB});
 const nowSql=new Date().toISOString().slice(0,19).replace('T',' ');
-let saved=0;
 for(const [id,q] of Object.entries(got)){
  try{
   const ps=q.points.map(p=>p[1]),hi=ps.length?Math.max(...ps):null,lo=ps.length?Math.min(...ps):null;
@@ -35,4 +36,5 @@ for(const [id,q] of Object.entries(got)){
  }catch(e){fails.push(id+': DB '+e.message)}
 }
 await d.prepare('DELETE FROM market_intraday WHERE ts<?').bind(Date.now()-7*86400000).run();
+}catch(e){fails.push('DB: '+e.message)}
 console.log(`live ok: ${saved}/${list.length+fxCurrencies.length} uloženo${fails.length?' · chyby: '+fails.join('; '):''}`);
