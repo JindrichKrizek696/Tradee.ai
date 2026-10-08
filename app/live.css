@@ -1,0 +1,8 @@
+.lv-change{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.lv-change.up{color:var(--bull-text)}.lv-change.down{color:var(--bear-text)}.lv-change.flat{color:var(--t-muted)}
+.lv-spark{display:block;flex:none;overflow:visible}
+.lv-spark.up{stroke:var(--bull)}.lv-spark.down{stroke:var(--bear)}.lv-spark.flat{stroke:var(--t-muted)}
+.lv-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t-muted-2);white-space:nowrap}
+.lv-badge i{width:7px;height:7px;border-radius:50%;background:var(--t-muted-2)}
+.lv-badge.live{color:var(--t-muted)}.lv-badge.live i{background:var(--bull)}
+.lv-badge.delayed i{background:var(--bear)}

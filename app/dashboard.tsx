@@ -1,4 +1,5 @@
 'use client';
+import type {LiveData} from './live';
 import {useId,useRef,useState} from 'react';
 import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,ArrowUpRight,ArrowDownRight,RotateCcw,Plus} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
@@ -98,7 +99,7 @@ function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail
  return <aside ref={ref} className={'d-notch '+side} tabIndex={0} aria-label={label} onPointerEnter={measure} onFocus={measure}><div className="d-notch-clip"><div className="d-notch-rail" aria-hidden="true">{rail}</div><div className="d-notch-panel"><div ref={inner} className="d-notch-inner">{children}</div></div></div></aside>;
 }
 
-export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady}:{calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
+export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:_live}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
  const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[period,setPeriod]=useState<Period>('month');
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
