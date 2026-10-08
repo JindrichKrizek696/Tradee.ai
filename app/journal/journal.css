@@ -92,3 +92,5 @@
 .j-barcell span{display:block;height:8px;border-radius:4px}
 .j-barcell span.pos{background:var(--bull)}.j-barcell span.neg{background:var(--bear)}
 @media (max-width:760px){.j-barcell{display:none}}
+.j-viewas{margin:0;padding:10px 14px;border-radius:12px;background:var(--t-notice-bg);border:1px solid var(--t-notice-border);font-size:14px}
+.j-noteview{white-space:pre-wrap;margin:0;font-size:14px;line-height:1.6}

@@ -63,3 +63,4 @@ li.done .mt-num{background:var(--bull);color:#fff}
 .mt-trouble p{margin:8px 0 0;line-height:1.6;font-size:15px}
 .mt-btn{text-decoration:none}
 @media (max-width:640px){.mt-gbody{padding-left:0}}
+.mt-main.wide{max-width:1240px}
