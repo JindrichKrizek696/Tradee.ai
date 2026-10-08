@@ -2,13 +2,13 @@
 import {useEffect,useState} from 'react';
 import {liveState,sparkPath,type LiveQuote} from '@/lib/live';
 import './live.css';
-export type LiveData={updated:number|null;quotes:Record<string,LiveQuote>};
+export type LiveData={updated:number|null;quotes:Record<string,LiveQuote>;fetchedAt?:number}; // fetchedAt = čas posledního úspěšného stažení v prohlížeči
 // Živá data trhů: při mountu, pak po 5 min a při návratu na kartu; chyby nechají poslední data
 export function useLive():LiveData|null{
  const [live,setLive]=useState<LiveData|null>(null);
  useEffect(()=>{
   let dead=false;
-  const load=async()=>{if(document.visibilityState!=='visible')return;try{const r=await fetch('/api/markets/live',{cache:'no-store'});if(!r.ok)return;const j=await r.json() as LiveData;if(!dead&&j&&j.quotes)setLive(j)}catch{}};
+  const load=async()=>{if(document.visibilityState!=='visible')return;try{const r=await fetch('/api/markets/live',{cache:'no-store'});if(!r.ok)return;const j=await r.json() as LiveData;if(!dead&&j&&j.quotes)setLive({...j,fetchedAt:Date.now()})}catch{}};
   load();const timer=setInterval(load,300000),vis=()=>{if(document.visibilityState==='visible')load()};
   document.addEventListener('visibilitychange',vis);
   return()=>{dead=true;clearInterval(timer);document.removeEventListener('visibilitychange',vis)};
@@ -23,11 +23,19 @@ export function Spark({points,changePct,width=72,height=22}:{points:[number,numb
 export const fmtPct=(pct:number)=>(pct>0?'+':'')+pct.toLocaleString('cs-CZ',{minimumFractionDigits:2,maximumFractionDigits:2})+' %';
 export function LiveChange({pct}:{pct:number}){return <span className={'lv-change '+tone(pct)}>{fmtPct(pct)}</span>}
 const hhmm=(ms:number)=>new Date(ms).toLocaleTimeString('cs-CZ',{timeZone:'Europe/Prague',hour:'2-digit',minute:'2-digit'});
-export function LiveBadge({live,quote,now}:{live:LiveData|null;quote:{marketTime:number}|null;now:number}){
+const pragueDay=(ms:number)=>new Date(ms).toLocaleDateString('sv-SE',{timeZone:'Europe/Prague'});
+// „pá 9. 10. 22:00", když je poslední cena z jiného pražského dne než dnes; jinak jen čas
+const lastAt=(ms:number,now:number)=>pragueDay(ms)===pragueDay(now)?hhmm(ms):new Date(ms).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',day:'numeric',month:'numeric'}).replace(/\s+/g,' ')+' '+hhmm(ms);
+// nejnovější čas trhu napříč všemi kotacemi (pro souhrnný štítek)
+export const newest=(l:LiveData)=>{const t=Math.max(0,...Object.values(l.quotes).map(q=>q.marketTime));return t?{marketTime:t}:null};
+// stav se počítá s aktuálním časem a přepočítá se každou minutu i bez nového stažení
+export function LiveBadge({live,quote}:{live:LiveData|null;quote:{marketTime:number}|null}){
+ const [,tick]=useState(0);
+ useEffect(()=>{const t=setInterval(()=>tick(x=>x+1),60000);return()=>clearInterval(t)},[]);
  if(!live||!live.updated)return null;
- const s=liveState(live.updated,quote?quote.marketTime:null,now);
- const text=s==='live'?'živě':s==='delayed'?'zpožděno':'zavřeno'+(quote?' · poslední cena '+hhmm(quote.marketTime):'');
- return <span className={'lv-badge '+s} title={'Aktualizováno '+hhmm(live.updated)}><i/>{text}</span>;
+ const now=Date.now(),s=liveState(live.updated,quote?quote.marketTime:null,now);
+ const text=s==='live'?'živě':s==='delayed'?'zpožděno':'zavřeno'+(quote?' · poslední cena '+lastAt(quote.marketTime,now):'');
+ return <span className={'lv-badge '+s} title={'Aktualizováno '+hhmm(live.updated)+(live.fetchedAt?' · staženo '+hhmm(live.fetchedAt):'')}><i/>{text}</span>;
 }
 const fmtPrice=(v:number)=>v.toLocaleString('cs-CZ',{maximumFractionDigits:Math.abs(v)<10?5:Math.abs(v)<1000?2:0});
 // Graf dneška: průběh ceny, čára předchozího zavření, hover/dotyk s bublinou (vzor PnlChart)

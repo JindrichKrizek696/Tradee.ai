@@ -35,7 +35,6 @@
 .d-dash .d-bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:dense;gap:16px}
 .d-dash .d-pulse{grid-column:span 7}.d-dash .d-pnl{grid-column:span 5}
 .d-dash .d-watch{grid-column:span 7}.d-dash .d-ccy{grid-column:span 5}
-.d-dash .d-bento{grid-auto-flow:row dense}
 .d-dash .d-movers{grid-column:span 12}
 .d-dash .d-mv-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
 .d-dash .d-movers h3{margin:0 0 8px;font-size:12px;font-weight:500;color:var(--t-muted-2)}

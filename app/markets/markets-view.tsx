@@ -5,15 +5,14 @@ import {Picker} from '../score-analyzer';
 import {groups,flagLabels} from '@/lib/markets';
 import {topSignals,heatmapGroups,sortItems,filterItems,type MarketItem,type ScoreFilter,type SortKey} from '@/lib/market-view';
 import type {Palette} from '@/lib/palettes';
-import {LiveBadge,type LiveData} from '../live';
+import {LiveBadge,newest,type LiveData} from '../live';
 import {TopSignals} from './top-signals';
 import {Heatmap} from './heatmap';
 import {MarketTable} from './market-table';
 const VIEW_KEY='tradee.markets.view';
 const readView=()=>{try{return localStorage.getItem(VIEW_KEY)==='table'?'table':'heatmap'}catch{return 'heatmap'}};
 
-const newest=(l:LiveData)=>{const t=Math.max(0,...Object.values(l.quotes).map(q=>q.marketTime));return t?{marketTime:t}:null};
-export function MarketsView({items,checkedAt,palette,flags,flagsReady,onFlag,open,live,now}:{live?:LiveData|null;now?:number;items:MarketItem[];checkedAt:string;palette:Palette;flags:Record<string,string>;flagsReady:boolean;onFlag:(id:string,flag:string)=>void;open:(id:string)=>void}){
+export function MarketsView({items,checkedAt,palette,flags,flagsReady,onFlag,open,live}:{live?:LiveData|null;items:MarketItem[];checkedAt:string;palette:Palette;flags:Record<string,string>;flagsReady:boolean;onFlag:(id:string,flag:string)=>void;open:(id:string)=>void}){
  // Seznam trhů se vykreslí až po přepnutí pohledu v prohlížeči, localStorage je dostupné hned.
  const [view,setViewState]=useState<'heatmap'|'table'>(readView),[group,setGroup]=useState('all'),[query,setQuery]=useState(''),[score,setScore]=useState<ScoreFilter>('all'),[flag,setFlag]=useState('all'),[sort,setSort]=useState<{key:SortKey;dir:1|-1}>({key:'score',dir:-1});
  const setView=(v:'heatmap'|'table')=>{setViewState(v);try{localStorage.setItem(VIEW_KEY,v)}catch{}};
@@ -25,7 +24,7 @@ export function MarketsView({items,checkedAt,palette,flags,flagsReady,onFlag,ope
  const stamp=new Date(checkedAt).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
  return <div className="m-page">
   <div className="m-head-bar">
-   <h1>Analýza trhů</h1><span className="m-stamp">kontrola podkladů {stamp}</span>{live&&<LiveBadge live={live} quote={newest(live)} now={now??Date.now()}/>}
+   <h1>Analýza trhů</h1><span className="m-stamp">kontrola podkladů {stamp}</span>{live&&<LiveBadge live={live} quote={newest(live)}/>}
    <label className="m-search"><Search size={15}/><input aria-label="Hledat trh" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Hledat trh…"/></label>
    <div className="m-switch" role="tablist" aria-label="Zobrazení"><button type="button" role="tab" aria-selected={view==='heatmap'} className={view==='heatmap'?'on':''} onClick={()=>setView('heatmap')}><LayoutGrid size={15}/>Heatmapa</button><button type="button" role="tab" aria-selected={view==='table'} className={view==='table'?'on':''} onClick={()=>setView('table')}><List size={15}/>Tabulka</button></div>
   </div>

@@ -1,6 +1,5 @@
 'use client';
-import {Spark as LiveSpark,LiveChange,LiveBadge,type LiveData} from './live';
-import {currencyChange} from '@/lib/live';
+import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
 import {useId,useRef,useState} from 'react';
 import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,ArrowUpRight,ArrowDownRight,RotateCcw,Plus} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
@@ -114,7 +113,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const watched=rows.filter(r=>FLAGS.includes(flags[r.id])).sort((a,c)=>FLAGS.indexOf(flags[a.id])-FLAGS.indexOf(flags[c.id])||a.name.localeCompare(c.name)),count=(f:string)=>watched.filter(r=>flags[r.id]===f).length;
  const okSources=health.filter(h=>h.ok).length,live=sess.list.filter(x=>x.open),trail=history.snapshots.slice(-24);
  const quotes=liveData?.quotes||{},moves=rows.filter(r=>r.group!=='currency'&&quotes[r.id]).map(r=>({r,q:quotes[r.id]})),rise=moves.filter(m=>m.q.changePct>0).sort((a,c)=>c.q.changePct-a.q.changePct).slice(0,5),fall=moves.filter(m=>m.q.changePct<0).sort((a,c)=>a.q.changePct-c.q.changePct).slice(0,5);
- const strength=rows.filter(r=>r.group==='currency').map(r=>({r,v:currencyChange(r.id,quotes)})).filter((x):x is {r:Row;v:number}=>x.v!==null).sort((a,c)=>c.v-a.v),strScale=Math.max(0.05,...strength.map(x=>Math.abs(x.v)));
+ const strength=rows.filter(r=>r.group==='currency').map(r=>({r,v:quotes[r.id]?.changePct})).filter((x):x is {r:Row;v:number}=>x.v!==undefined).sort((a,c)=>c.v-a.v),strScale=Math.max(0.05,...strength.map(x=>Math.abs(x.v)));
  const dateLine=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',year:'numeric'});
  const pct=(n:number)=>b.scored?100*n/b.scored+'%':'0%',spark=(r:Row)=>scoreSeries(history,r.id,r.r.method,'1m',now).map(p=>p.score);
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
@@ -151,7 +150,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
    </section>
 
    {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(1)}>
-    <div className="d-head"><h2>Co se dnes hýbe</h2><LiveBadge live={liveData} quote={moves[0]?.q||null} now={now}/></div>
+    <div className="d-head"><h2>Co se dnes hýbe</h2><LiveBadge live={liveData} quote={newest(liveData)}/></div>
     <div className="d-mv-cols">
      {([['Rostou',rise],['Padají',fall]] as const).map(([label,list])=><div key={label} className="d-mv-col"><h3>{label}</h3>
       {list.length?<ul>{list.map(({r,q})=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><span className="d-mv-name">{r.name}</span><LiveSpark points={q.points} changePct={q.changePct}/><LiveChange pct={q.changePct}/></button></li>)}</ul>:<p className="d-empty">Dnes žádný pohyb.</p>}
