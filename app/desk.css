@@ -79,6 +79,16 @@
 .d-dash .d-netbars .pos::before{bottom:50%;background:var(--bull);border-radius:999px 999px 0 0}
 .d-dash .d-netbars .neg::before{top:50%;background:var(--bear);border-radius:0 0 999px 999px}
 .d-dash .d-netbars .zero::before{top:calc(50% - 1px);height:2px;background:var(--t-muted-2)}
+.d-dash .d-netzone{position:relative;display:flex;flex-direction:column;flex:1;touch-action:pan-y}
+.d-dash .d-netbars span{cursor:default}
+.d-dash .d-netbars.hovering span:not(.on)::before{opacity:.4}
+.d-dash .d-nettip{position:absolute;top:-14px;z-index:3;pointer-events:none;display:grid;gap:2px;padding:8px 11px;border-radius:12px;background:var(--t-surface);border:1px solid var(--t-border);box-shadow:var(--t-shadow);font-size:12.5px;color:var(--t-muted);white-space:nowrap}
+.d-dash .d-nettip b{color:var(--t-fg);font-size:13px}
+.d-dash .d-nettip em{font-style:normal;font-weight:600;color:var(--t-fg)}
+.d-dash .d-nettip em.up{color:var(--bull-text)}.d-dash .d-nettip em.down{color:var(--bear-text)}
+.d-dash .d-netdays{display:flex;gap:3px;padding:6px 22px 0;font-size:10.5px;color:var(--t-muted-2);font-variant-numeric:tabular-nums}
+.d-dash .d-netdays span{flex:1;min-width:0;overflow:visible;white-space:nowrap;text-align:left}
+.d-dash .d-netcap{justify-content:center}
 
 /* P&L: období, sloupce + kumulativní křivka, ukazatele */
 .d-dash .d-seg.sm button{height:26px;padding:0 11px;font-size:12px}

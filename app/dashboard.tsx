@@ -46,10 +46,20 @@ function Gauge({value}:{value:number}){
   <circle cx={kx} cy={ky} r="10" className="d-gauge-knob"/>
  </svg>;
 }
-// Čistá převaha (bullish − bearish) v jednotlivých snímcích.
-function NetBars({values}:{values:number[]}){
- const max=Math.max(1,...values.map(Math.abs));
- return <div className="d-netbars" aria-hidden="true">{values.map((v,i)=><span key={i} className={v>0?'pos':v<0?'neg':'zero'} style={{'--h':Math.abs(v)/max*50+'%'} as React.CSSProperties}/>)}</div>;
+// Čistá převaha (bullish − bearish) v jednotlivých snímcích; najetím se ukáže čas snímku a počty, pod sloupci datum při změně dne.
+const stamp=(s:string)=>new Date(s).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+function NetBars({values,bull,bear,ats}:{values:number[];bull:number[];bear:number[];ats:string[]}){
+ const [hov,setHov]=useState<number|null>(null),n=values.length,max=Math.max(1,...values.map(Math.abs));
+ const days=ats.map((a,i)=>{const d=day(a);return i===0||d!==day(ats[i-1])?d:''}),pos=hov===null?0:(hov+.5)/n;
+ return <div className="d-netzone" onPointerLeave={()=>setHov(null)}>
+  <div className={'d-netbars'+(hov!==null?' hovering':'')}>{values.map((v,i)=><span key={i} onPointerEnter={()=>setHov(i)} className={(v>0?'pos':v<0?'neg':'zero')+(hov===i?' on':'')} style={{'--h':Math.abs(v)/max*50+'%'} as React.CSSProperties}/>)}</div>
+  {hov!==null&&<div className="d-nettip" role="status" style={{left:`calc(22px + (100% - 44px) * ${pos})`,transform:`translateX(${pos<.15?'-12%':pos>.85?'-88%':'-50%'})`}}>
+   <b>{stamp(ats[hov])}</b>
+   <span>Bullish <em className="up">{bull[hov]}</em> · Bearish <em className="down">{bear[hov]}</em></span>
+   <span>Převaha <em className={values[hov]>0?'up':values[hov]<0?'down':''}>{values[hov]>0?'+':''}{values[hov]}</em></span>
+  </div>}
+  <div className="d-netdays" aria-hidden="true">{days.map((d,i)=><span key={i}>{d}</span>)}</div>
+ </div>;
 }
 const GHOST:Bucket[]=[14,-6,22,9,-12,18,26,-4,12,30,-9,16,24,8].map((pnl,i,a)=>({label:'',pnl,future:false,cum:a.slice(0,i+1).reduce((s,x)=>s+x,0)}));
 // Sloupec od nulové osy: zakulacený jen na vnějším konci (u nuly rovný).
@@ -133,7 +143,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
       <li><div className="d-brow-flat"><span className="d-badge"><i>=</i></span><span className="d-name"><b>Neutrální</b><small>skóre přesně 0</small></span><span/><em className="d-score">{b.flat}</em></div></li>
      </ul>
     </div>
-    {net.length>1&&<div className="d-bleed d-netwrap"><NetBars values={net}/><div className="d-axis"><span>{day(trail[0].at)}</span><span>Čistá převaha bullish − bearish · {net.length} snímků</span><span>{day(trail[trail.length-1].at)}</span></div></div>}
+    {net.length>1&&<div className="d-bleed d-netwrap"><NetBars values={net} bull={bullT} bear={bearT} ats={trail.map(t=>t.at)}/><div className="d-axis d-netcap"><span>Čistá převaha bullish − bearish · {net.length} snímků · najeď na sloupec pro detail</span></div></div>}
    </section>
 
    <section className="d-card d-pnl" style={tile(1)}>
