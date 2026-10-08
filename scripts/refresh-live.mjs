@@ -17,10 +17,11 @@ for(let i=0;i<list.length;i+=6)await Promise.all(list.slice(i,i+6).map(async x=>
 const fx=Object.fromEntries(Object.entries(got).filter(([id])=>id.includes('/')).map(([id,q])=>[id,{...q,changePct:changePct(q.price,q.prevClose)}]));
 for(const c of fxCurrencies){
  const ch=currencyChange(c,fx);if(ch===null)continue;
- const mt=Math.max(...Object.entries(fx).filter(([id])=>id.split('/').includes(c)).map(([,q])=>q.marketTime));
- got[c]={symbol:'',price:100*(1+ch/100),prevClose:100,marketTime:mt,points:currencySeries(c,fx)};
+ const mine=Object.entries(fx).filter(([id])=>id.split('/').includes(c)).map(([,q])=>q),mt=Math.max(...mine.map(q=>q.marketTime));
+ const ss=mine.map(q=>q.sessionStart).filter(v=>v>0),sessionStart=ss.length?Math.min(...ss):null; // nejdřívější start seance z párů
+ got[c]={symbol:'',price:100*(1+ch/100),prevClose:100,marketTime:mt,sessionStart,points:currencySeries(c,fx)};
 }
-if(dry){for(const [id,q] of Object.entries(got))console.log(id.padEnd(9),String(q.price).padEnd(12),changePct(q.price,q.prevClose)+' %',q.points.length+' bodů');console.log(`dry: ${Object.keys(got).length} trhů, chyby: ${fails.length?fails.join('; '):'žádné'}`);process.exit(0)}
+if(dry){for(const [id,q] of Object.entries(got))console.log(id.padEnd(9),String(q.price).padEnd(12),changePct(q.price,q.prevClose)+' %',q.points.length+' bodů',q.points.every(p=>p[0]%900000===0)?'mřížka ok':'MIMO MŘÍŽKU','seance '+(q.sessionStart?new Date(q.sessionStart).toISOString().slice(5,16):'—'));console.log(`dry: ${Object.keys(got).length} trhů, chyby: ${fails.length?fails.join('; '):'žádné'}`);process.exit(0)}
 let saved=0;
 try{
 const {createDb}=await import('../lib/mysql.ts');
@@ -30,7 +31,7 @@ const nowSql=new Date().toISOString().slice(0,19).replace('T',' ');
 for(const [id,q] of Object.entries(got)){
  try{
   const ps=q.points.map(p=>p[1]),hi=ps.length?Math.max(...ps):null,lo=ps.length?Math.min(...ps):null;
-  await d.prepare('INSERT INTO market_live(instrument,symbol,price,prev_close,change_pct,day_high,day_low,market_time,updated) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE symbol=VALUES(symbol),price=VALUES(price),prev_close=VALUES(prev_close),change_pct=VALUES(change_pct),day_high=VALUES(day_high),day_low=VALUES(day_low),market_time=VALUES(market_time),updated=VALUES(updated)').bind(id,q.symbol,q.price,q.prevClose,changePct(q.price,q.prevClose),hi,lo,q.marketTime,nowSql).run();
+  await d.prepare('INSERT INTO market_live(instrument,symbol,price,prev_close,change_pct,day_high,day_low,market_time,session_start,updated) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE symbol=VALUES(symbol),price=VALUES(price),prev_close=VALUES(prev_close),change_pct=VALUES(change_pct),day_high=VALUES(day_high),day_low=VALUES(day_low),market_time=VALUES(market_time),session_start=VALUES(session_start),updated=VALUES(updated)').bind(id,q.symbol,q.price,q.prevClose,changePct(q.price,q.prevClose),hi,lo,q.marketTime,q.sessionStart??null,nowSql).run();
   for(let i=0;i<q.points.length;i+=200){const ch=q.points.slice(i,i+200);await d.prepare('INSERT INTO market_intraday(instrument,ts,price) VALUES '+ch.map(()=>'(?,?,?)').join(',')+' ON DUPLICATE KEY UPDATE price=VALUES(price)').bind(...ch.flatMap(p=>[id,p[0],p[1]])).run()}
   saved++;
  }catch(e){fails.push(id+': DB '+e.message)}

@@ -12,6 +12,15 @@ const yj={chart:{result:[{meta:{regularMarketPrice:1.0912,chartPreviousClose:1.0
 const pc=parseChart(yj);
 check('parse: cena, zavření, čas',pc&&pc.price===1.0912&&pc.prevClose===1.09&&pc.marketTime===(t0+1800)*1000,pc);
 check('parse: null body vynechá',pc&&pc.points.length===2&&pc.points[1][0]===(t0+1800)*1000,pc&&pc.points);
+const off=parseChart({chart:{result:[{meta:{regularMarketPrice:1.1,chartPreviousClose:1.09,regularMarketTime:t0+2631,currentTradingPeriod:{regular:{start:t0-3600}}},timestamp:[t0,t0+900,t0+2631],indicators:{quote:[{close:[1.09,1.095,1.1]}]}}]}});
+check('parse: živý bod mimo mřížku → začátek slotu',off&&off.points.length===3&&off.points[2][0]===(t0+900*2)*1000&&off.points[2][1]===1.1&&off.points.every(p=>p[0]%900000===0),off&&off.points);
+const ovr=parseChart({chart:{result:[{meta:{regularMarketPrice:1.1,chartPreviousClose:1.09,regularMarketTime:t0+1000},timestamp:[t0,t0+900,t0+1000],indicators:{quote:[{close:[1.09,1.095,1.1]}]}}]}});
+check('parse: poslední hodnota slotu vyhrává',ovr&&ovr.points.length===2&&ovr.points[1][0]===(t0+900)*1000&&ovr.points[1][1]===1.1,ovr&&ovr.points);
+check('parse: začátek seance z currentTradingPeriod',off&&off.sessionStart===(t0-3600)*1000,off&&off.sessionStart);
+check('parse: začátek seance bez meta = první bod',pc&&pc.sessionStart===t0*1000,pc&&pc.sessionStart);
+const pre=parseChart({chart:{result:[{meta:{regularMarketPrice:10,chartPreviousClose:9,regularMarketTime:t0,currentTradingPeriod:{regular:{start:t0+86400}}},timestamp:[t0-900,t0],indicators:{quote:[{close:[9.5,10]}]}}]}});
+check('parse: seance v budoucnu (před otevřením) = první bod',pre&&pre.sessionStart===(t0-900)*1000,pre&&pre.sessionStart);
+check('parse: bez bodů a meta = null',parseChart({chart:{result:[{meta:{regularMarketPrice:10,previousClose:9,regularMarketTime:t0},timestamp:[],indicators:{quote:[{close:[]}]}}]}})?.sessionStart===null);
 check('parse: previousClose jako náhrada',parseChart({chart:{result:[{meta:{regularMarketPrice:10,previousClose:9,regularMarketTime:t0},timestamp:[],indicators:{quote:[{close:[]}]}}]}})?.prevClose===9);
 check('parse: nepoužitelné',parseChart(null)===null&&parseChart({chart:{result:null}})===null&&parseChart({chart:{result:[{meta:{regularMarketPrice:0,chartPreviousClose:1,regularMarketTime:t0}}]}})===null);
 const P=(iso,p)=>[Date.parse(iso),p];
@@ -25,6 +34,8 @@ check('síla měn',currencyChange('USD',pairs)===1&&currencyChange('EUR',pairs)=
 const T=Date.UTC(2026,9,9,8,0),Q=900000;
 const ser=currencySeries('EUR',{'USD/EUR':{prevClose:1,points:[[T,1.01],[T+Q,1.02]]},'EUR/GBP':{prevClose:2,points:[[T+5000,2],[T+Q,1.98],[T+2*Q,1.97]]}});
 check('průběh indexu měny: společné časy, průměr',ser.length===2&&ser[0][0]===T&&ser[0][1]===99.5&&ser[1][1]===98.5,ser);
+const fl=currencySeries('EUR',{'USD/EUR':{prevClose:1,points:[[T+14*60000,1.01]]}});
+check('průběh indexu měny: čas zaokrouhlí dolů na slot',fl.length===1&&fl[0][0]===T,fl);
 check('průběh bez párů',currencySeries('CHF',{'USD/EUR':{prevClose:1,points:[[T,1]]}}).length===0);
 const now=Date.UTC(2026,9,9,12,0);
 check('stav live',liveState(now-5*60000,now-10*60000,now)==='live');

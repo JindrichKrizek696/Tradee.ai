@@ -1,5 +1,5 @@
 'use client';
-import type {LiveData} from './live';
+import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
 import {useId,useRef,useState} from 'react';
 import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,ArrowUpRight,ArrowDownRight,RotateCcw,Plus} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
@@ -99,7 +99,7 @@ function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail
  return <aside ref={ref} className={'d-notch '+side} tabIndex={0} aria-label={label} onPointerEnter={measure} onFocus={measure}><div className="d-notch-clip"><div className="d-notch-rail" aria-hidden="true">{rail}</div><div className="d-notch-panel"><div ref={inner} className="d-notch-inner">{children}</div></div></div></aside>;
 }
 
-export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:_live}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
+export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
  const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[period,setPeriod]=useState<Period>('month');
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
@@ -112,6 +112,8 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const ccy=rows.filter(r=>r.group==='currency'&&r.r.score!==null).sort((a,c)=>(c.r.score as number)-(a.r.score as number)),ccyScale=Math.max(10,...ccy.map(r=>Math.abs(r.r.score as number)))*1.15;
  const watched=rows.filter(r=>FLAGS.includes(flags[r.id])).sort((a,c)=>FLAGS.indexOf(flags[a.id])-FLAGS.indexOf(flags[c.id])||a.name.localeCompare(c.name)),count=(f:string)=>watched.filter(r=>flags[r.id]===f).length;
  const okSources=health.filter(h=>h.ok).length,live=sess.list.filter(x=>x.open),trail=history.snapshots.slice(-24);
+ const quotes=liveData?.quotes||{},moves=rows.filter(r=>r.group!=='currency'&&quotes[r.id]).map(r=>({r,q:quotes[r.id]})),rise=moves.filter(m=>m.q.changePct>0).sort((a,c)=>c.q.changePct-a.q.changePct).slice(0,5),fall=moves.filter(m=>m.q.changePct<0).sort((a,c)=>a.q.changePct-c.q.changePct).slice(0,5);
+ const strength=rows.filter(r=>r.group==='currency').map(r=>({r,v:quotes[r.id]?.changePct})).filter((x):x is {r:Row;v:number}=>x.v!==undefined).sort((a,c)=>c.v-a.v),strScale=Math.max(0.05,...strength.map(x=>Math.abs(x.v)));
  const dateLine=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',year:'numeric'});
  const pct=(n:number)=>b.scored?100*n/b.scored+'%':'0%',spark=(r:Row)=>scoreSeries(history,r.id,r.r.method,'1m',now).map(p=>p.score);
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
@@ -147,7 +149,19 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     {net.length>1&&<div className="d-bleed d-netwrap"><NetBars values={net} bull={bullT} bear={bearT} ats={trail.map(t=>t.at)}/><div className="d-axis d-netcap"><span>Čistá převaha bullish − bearish · {net.length} snímků · najeď na sloupec pro detail</span></div></div>}
    </section>
 
-   <section className="d-card d-pnl" style={tile(1)}>
+   {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(1)}>
+    <div className="d-head"><h2>Co se dnes hýbe</h2><LiveBadge live={liveData} quote={newest(liveData)}/></div>
+    <div className="d-mv-cols">
+     {([['Rostou',rise],['Padají',fall]] as const).map(([label,list])=><div key={label} className="d-mv-col"><h3>{label}</h3>
+      {list.length?<ul>{list.map(({r,q})=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><span className="d-mv-name">{r.name}</span><LiveSpark points={q.points} changePct={q.changePct}/><LiveChange pct={q.changePct}/></button></li>)}</ul>:<p className="d-empty">Dnes žádný pohyb.</p>}
+     </div>)}
+    </div>
+    {strength.length>0&&<div className="d-mv-str"><h3>Síla měn dnes</h3>
+     <ul>{strength.map(({r,v})=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><b>{r.id}</b><span className="d-hbar"><i className={v>0?'pos':v<0?'neg':'zero'} style={{'--w':Math.abs(v)/strScale*50+'%'} as React.CSSProperties}/></span><LiveChange pct={v}/></button></li>)}</ul>
+    </div>}
+   </section>}
+
+   <section className="d-card d-pnl" style={tile(2)}>
     <div className="d-head"><h2>P&amp;L</h2><div className="d-seg sm" role="tablist" aria-label="Období">{([['week','Týden'],['month','Měsíc'],['year','Rok']] as const).map(([p,l])=><button key={p} type="button" role="tab" aria-selected={period===p} className={period===p?'on':''} onClick={()=>setPeriod(p)}>{l}</button>)}</div></div>
     <div className="d-big"><b className={tradesReady&&!tradeError?tone(ps.total):''}>{tradesReady&&!tradeError?fmtMoney(ps.total,currency):'—'}</b>{ps.count>0&&<span className={'d-delta '+tone(ps.total)}>{ps.total>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{Math.round(ps.winRate)} % úspěšnost</span>}<span className="d-meta">{periodLabel}</span></div>
     <div className="d-bleed d-pnlwrap">
@@ -162,7 +176,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     </dl>
    </section>
 
-   <section className="d-card d-watch" style={tile(2)}>
+   <section className="d-card d-watch" style={tile(3)}>
     <div className="d-head">
      <div className="d-seg" role="tablist" aria-label="Směr">{(['bull','bear'] as const).map(s=><button key={s} type="button" role="tab" aria-selected={side===s} className={side===s?'on':''} onClick={()=>setSide(s)}><span className={'d-key '+s}/>{s==='bull'?'Nejsilnější long':'Nejsilnější short'}</button>)}</div>
      <div className="d-chips" role="tablist" aria-label="Skupina trhů">{['all',...signalGroups].map(g=><button key={g} type="button" role="tab" aria-selected={group===g} className={group===g?'on':''} onClick={()=>setGroup(g)}>{g==='all'?'Vše':groups[g]}</button>)}</div>
@@ -176,7 +190,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     <div className="d-foot"><span>Skóre −100 až +100 · křivka = posledních 30 dní</span><button type="button" className="d-link" onClick={()=>setView('analyzer')}>Všechny trhy <ChevronRight size={14}/></button></div>
    </section>
 
-   <section className="d-card d-ccy" style={tile(3)}>
+   <section className="d-card d-ccy" style={tile(4)}>
     <div className="d-head"><h2>Síla měn</h2><span className="d-meta">každá proti 7 ostatním</span></div>
     {ccy.length?<div className="d-vbars">{ccy.map(r=>{const v=r.r.score as number,h=Math.min(50,Math.abs(v)/ccyScale*50);return <button key={r.id} type="button" className="d-vbar" onClick={()=>open(r.id)} title={r.name+' · '+fmt(v)}>
      <span className="d-vbar-plot"><i className={v>=0?'pos':'neg'} style={{height:h+'%'}}/><em className={tone(v)} style={v>=0?{bottom:`calc(50% + ${h}% + 4px)`}:{top:`calc(50% + ${h}% + 4px)`}}>{fmt(v)}</em></span>
@@ -184,9 +198,9 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     </button>})}</div>:<p className="d-empty">Indexy měn zatím nemají skóre.</p>}
    </section>
 
-   <div className="d-cal" style={tile(4)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={reloadTrades}/></div>
+   <div className="d-cal" style={tile(5)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={reloadTrades}/></div>
 
-   <section className="d-card d-perf" style={tile(5)}>
+   <section className="d-card d-perf" style={tile(6)}>
     <div className="d-head"><h2>Statistiky · {month}</h2></div>
     {tradeError?<p className="d-empty">Deník obchodů se nepodařilo načíst.</p>:!stats.count?<p className="d-empty">Statistiky se ukážou po prvním obchodu v měsíci.</p>:<>
      <div className="d-ringbox"><Ring pct={stats.winRate}/><div><b>{Math.round(stats.winRate)} %</b><span>úspěšnost · {stats.wins} z {stats.count} obchodů v zisku</span></div></div>
