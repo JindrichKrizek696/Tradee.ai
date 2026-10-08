@@ -8,7 +8,7 @@ export function canDo(actor:Actor,action:AdminAction,target:{isOwner:boolean;mem
  if(action==='approve')return null;
  if(target.isOwner)return 'Vlastníka nelze blokovat ani měnit jeho roli.';
  if(target.memberId&&target.memberId===actor.id)return 'Sám sebe zablokovat ani měnit si roli nemůžeš.';
- if(action==='role_admin'||action==='role_member'){if(!target.memberId)return 'Uživatel se ještě nepřihlásil.'}
+ if(action==='role_admin'||action==='role_member'){if(!actor.owner)return 'Role může měnit jen vlastník.';if(!target.memberId)return 'Uživatel se ještě nepřihlásil.'}
  return null;
 }
 export function personStatus(p:{approved:number;blocked:number;isOwner:boolean}){return p.isOwner?'owner' as const:Number(p.blocked)?'blocked' as const:Number(p.approved)?'approved' as const:'pending' as const}

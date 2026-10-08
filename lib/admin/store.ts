@@ -43,6 +43,7 @@ export async function mtAccounts(d:Db,withMoney:boolean):Promise<AdminMtAccount[
  return rows.map(r=>{const base:AdminMtAccount={id:String(r.id),ownerEmail:String(r.email||''),ownerName:String(r.name||''),memberId:String(r.user_id),platform:String(r.platform),mode:String(r.mode),company:String(r.company||''),server:String(r.server||''),login:'••••'+String(r.login).slice(-4),eaVersion:String(r.ea_version||''),oldEa:isOldEa(r.ea_version?String(r.ea_version):null),lastSeen:r.last_seen?String(r.last_seen):null,online:!!n(r.online),positions:n(r.positions),open:n(r.open)};
   return withMoney?{...base,currency:String(r.currency||''),balance:r.balance===null?null:Number(r.balance),equity:r.equity===null?null:Number(r.equity)}:base});
 }
-export async function auditLog(d:Db,limit=100):Promise<AuditRow[]>{
- return (await d.prepare(`SELECT a.at,a.action,a.detail,COALESCE(ma.email,a.actor_id) actor,COALESCE(mt.email,a.target_id) target FROM admin_audit a LEFT JOIN members ma ON ma.id=a.actor_id LEFT JOIN members mt ON mt.id=a.target_id ORDER BY a.id DESC LIMIT ${Math.max(1,Math.min(500,Math.floor(limit)))}`).all<Record<string,unknown>>()).results.map(r=>({at:String(r.at),action:String(r.action),actor:String(r.actor),target:String(r.target),detail:String(r.detail||'')}));
+// změny rolí vidí jen vlastník
+export async function auditLog(d:Db,withRoles:boolean,limit=100):Promise<AuditRow[]>{
+ return (await d.prepare(`SELECT a.at,a.action,a.detail,COALESCE(ma.email,a.actor_id) actor,COALESCE(mt.email,a.target_id) target FROM admin_audit a LEFT JOIN members ma ON ma.id=a.actor_id LEFT JOIN members mt ON mt.id=a.target_id ${withRoles?'':"WHERE a.action NOT IN ('role_admin','role_member')"} ORDER BY a.id DESC LIMIT ${Math.max(1,Math.min(500,Math.floor(limit)))}`).all<Record<string,unknown>>()).results.map(r=>({at:String(r.at),action:String(r.action),actor:String(r.actor),target:String(r.target),detail:String(r.detail||'')}));
 }

@@ -58,7 +58,7 @@ export default function AdminPage(){
       {p.status==='pending'&&<button type="button" className="mt-btn dark" disabled={off} onClick={()=>act(p.email,'approve')}>Schválit</button>}
       {p.status==='approved'&&<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'block',`Zablokovat ${p.email}? Ztratí přístup do Tradee a jeho EA přestane posílat data.`)}>Zablokovat</button>}
       {p.status==='blocked'&&<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'unblock')}>Odblokovat</button>}
-      {p.memberId&&(p.role==='admin'?<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_member',`Odebrat ${p.email} roli admina?`)}>Odebrat admina</button>:<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_admin',`Udělat z ${p.email} admina?`)}>Udělat adminem</button>)}
+      {me.owner&&p.memberId&&(p.role==='admin'?<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_member',`Odebrat ${p.email} roli admina?`)}>Odebrat admina</button>:<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_admin',`Udělat z ${p.email} admina?`)}>Udělat adminem</button>)}
      </>}</td>
     </tr>})}</tbody></table>}
    </section>}

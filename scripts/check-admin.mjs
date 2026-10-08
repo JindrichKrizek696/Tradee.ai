@@ -8,7 +8,7 @@ check('akce',ADMIN_ACTIONS.join()==='approve,block,unblock,role_admin,role_membe
 check('isAdmin',isAdmin(owner)&&isAdmin(admin)&&!isAdmin(member)&&isAdmin({id:'x',role:'member',owner:true}));
 check('člen nesmí nic',ADMIN_ACTIONS.every(a=>canDo(member,a,t('g:9'))==='Na tohle nemáš oprávnění.'));
 check('admin schválí a blokuje',canDo(admin,'approve',t(null))===null&&canDo(admin,'block',t('g:9'))===null&&canDo(admin,'unblock',t('g:9'))===null);
-check('admin mění role',canDo(admin,'role_admin',t('g:9'))===null&&canDo(admin,'role_member',t('g:9'))===null);
+check('admin nemění role',canDo(admin,'role_admin',t('g:9'))==='Role může měnit jen vlastník.'&&canDo(admin,'role_member',t('g:9'))==='Role může měnit jen vlastník.');
 check('vlastník mění role',canDo(owner,'role_admin',t('g:9'))===null&&canDo(owner,'role_member',t('g:9'))===null);
 check('role jen přihlášenému',canDo(owner,'role_admin',t(null))==='Uživatel se ještě nepřihlásil.');
 check('vlastníka nelze blokovat ani měnit',['block','unblock','role_admin','role_member'].every(a=>canDo(admin,a,t('g:1',true))==='Vlastníka nelze blokovat ani měnit jeho roli.'));
