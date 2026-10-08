@@ -3,6 +3,7 @@ import {useCallback,useEffect,useState} from 'react';
 import {ArrowLeft} from 'lucide-react';
 import {fmtAmount} from '@/lib/trades';
 import type {Overview,Person,AdminMtAccount,AuditRow} from '@/lib/admin/store';
+import {usePalette} from '@/app/palette';
 import '../mt.css';
 import './admin.css';
 type Filter='all'|'pending'|'approved'|'blocked';
@@ -15,6 +16,7 @@ const stamp=(s:string|null|undefined)=>{const t=s?(/^\d{4}-\d\d-\d\d \d/.test(s)
 const day=(s:string|null)=>{const m=s&&/^(\d{4})-(\d\d)-(\d\d)/.exec(s);return m?new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString('cs-CZ'):'–'};
 async function get<T>(url:string){const r=await fetch(url,{cache:'no-store'});const j=await r.json().catch(()=>({})) as T&{error?:string};if(!r.ok)throw Object.assign(Error((j as {error?:string}).error||'Data se nepodařilo načíst.'),{status:r.status});return j}
 export default function AdminPage(){
+ usePalette(); // barvy signálu podle nastavení uživatele (jinak výchozí)
  const [ov,setOv]=useState<Overview|null>(null),[ppl,setPpl]=useState<Person[]>([]),[me,setMe]=useState({id:'',owner:false}),[mt,setMt]=useState<AdminMtAccount[]>([]),[log,setLog]=useState<AuditRow[]>([]);
  const [fund,setFund]=useState<{checkedAt?:string;prices?:string}>({}),[error,setError]=useState(''),[denied,setDenied]=useState(false),[ready,setReady]=useState(false),[filter,setFilter]=useState<Filter>('all'),[q,setQ]=useState(''),[busy,setBusy]=useState('');
  const reload=useCallback(async(parts?:'people')=>{try{

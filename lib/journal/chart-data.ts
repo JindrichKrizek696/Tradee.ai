@@ -24,3 +24,5 @@ export function tradeMarkers(side:'buy'|'sell',changes:JournalChange[],snap:(t:n
  return changes.filter(c=>LABEL[c.kind]).map(c=>{const entry=c.kind==='open'||c.kind==='add',up=entry===(side==='buy');
   return {time:snap(chartTime(c.ts)),position:up?'belowBar' as const:'aboveBar' as const,shape:up?'arrowUp' as const:'arrowDown' as const,color:entry?'#2563eb':'#f59e0b',text:LABEL[c.kind]+(c.volume?' '+c.volume:'')}}).sort((a,b)=>a.time-b.time);
 }
+// počet desetinných míst cen (podle dat, max. 6) – aby osa a popisky neukazovaly 0.47 místo 0.47108
+export function pricePrecision(values:number[]){let d=0;for(const v of values){if(!Number.isFinite(v))continue;const s=String(Math.abs(v)),e=s.indexOf('e-');const n=e>=0?Number(s.slice(e+2))+(s.split('e')[0].split('.')[1]?.length||0):(s.split('.')[1]?.length||0);if(n>d)d=n}return Math.min(6,d)}

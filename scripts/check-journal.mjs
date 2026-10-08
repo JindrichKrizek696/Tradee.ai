@@ -3,7 +3,7 @@ import {toJournalTrades,mtRowToTrade,manualRowToTrade,cleanTags,cleanNote,parseJ
 import {fmtHold,fmtR,fmtDate,pragueOffsetMs,tradesWord} from '../lib/journal/format.ts';
 import {makeRates} from '../lib/fx.ts';
 import {filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER} from '../lib/journal/stats.ts';
-import {chartTime,snapper,candles,levelSteps,tradeMarkers} from '../lib/journal/chart-data.ts';
+import {chartTime,snapper,candles,levelSteps,tradeMarkers,pricePrecision} from '../lib/journal/chart-data.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const throws=(fn,re)=>{try{fn();return false}catch(e){return re.test(e.message)}};
@@ -124,4 +124,5 @@ check('TP schody: bez počátečního TP',JSON.stringify(tp)===JSON.stringify([{
 const mk2=tradeMarkers('sell',[{ts:b0+120000,kind:'close',old_value:null,new_value:null,price:1.1,volume:0.5,reason:'tp'},{ts:b0,kind:'open',old_value:null,new_value:null,price:1.2,volume:1,reason:'client'},{ts:b0+60000,kind:'partial_close',old_value:null,new_value:null,price:1.15,volume:0.5,reason:'client'},{ts:b0+60000,kind:'sl',old_value:1,new_value:2,price:1,volume:null,reason:null}],snap);
 check('značky: pořadí, tvar u sell',mk2.length===3&&mk2[0].text==='Vstup 1'&&mk2[0].shape==='arrowDown'&&mk2[0].position==='aboveBar'&&mk2[2].shape==='arrowUp'&&mk2[2].text==='Výstup 0.5',mk2);
 
+check('přesnost cen',pricePrecision([0.47108,0.4679,0.47])===5&&pricePrecision([157.123,157.1])===3&&pricePrecision([2650,2651.5])===1&&pricePrecision([1e-7])===6&&pricePrecision([])===0,[pricePrecision([0.47108,0.4679]),pricePrecision([157.123])]);
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
