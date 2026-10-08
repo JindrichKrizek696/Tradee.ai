@@ -85,11 +85,18 @@
 .j-curve .zero{stroke:var(--t-border);stroke-width:1;vector-effect:non-scaling-stroke}
 .j-curve path{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
 .j-curve path.pos{stroke:var(--bull)}.j-curve path.neg{stroke:var(--bear)}
+.j-curvewrap{position:relative;touch-action:pan-y}
+.j-curve .guide{stroke:var(--t-border-strong);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.j-curvedot{position:absolute;width:9px;height:9px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--t-surface);border:2px solid var(--t-fg);pointer-events:none}
+.j-curvetip{position:absolute;top:-6px;z-index:3;pointer-events:none;display:grid;gap:2px;padding:8px 11px;border-radius:12px;background:var(--t-surface);border:1px solid var(--t-border);box-shadow:var(--t-shadow);font-size:12.5px;color:var(--t-muted);white-space:nowrap}
+.j-curvetip b{color:var(--t-fg);font-size:13px}
+.j-curvetip em{font-style:normal;font-weight:600;color:var(--t-fg);margin-left:4px}
+.j-curvetip em.pos{color:var(--bull-text)}.j-curvetip em.neg{color:var(--bear-text)}
 .j-bhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .j-bhead h2{margin:0}
 .j-break tbody tr{cursor:default}
 .j-barcell{width:28%}
-.j-barcell span{display:block;height:8px;border-radius:4px}
+.j-barcell span{display:block;height:8px;border-radius:0 4px 4px 0}
 .j-barcell span.pos{background:var(--bull)}.j-barcell span.neg{background:var(--bear)}
 @media (max-width:760px){.j-barcell{display:none}}
 .j-viewas{margin:0;padding:10px 14px;border-radius:12px;background:var(--t-notice-bg);border:1px solid var(--t-notice-border);font-size:14px}
