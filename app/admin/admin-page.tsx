@@ -20,8 +20,9 @@ export default function AdminPage(){
  const reload=useCallback(async(parts?:'people')=>{try{
   if(parts==='people'){const [o,p]=await Promise.all([get<Overview>('/api/admin/overview'),get<{people:Person[]}>('/api/admin/people')]);setOv(o);setPpl(p.people);setError('');return}
   const w=await get<{user?:{owner?:boolean}}>('/api/watchlist'),owner=!!w.user?.owner;
-  const [o,p,m,a,f]=await Promise.all([get<Overview>('/api/admin/overview'),get<{people:Person[];me:{id:string;owner:boolean}}>('/api/admin/people'),get<{accounts:AdminMtAccount[]}>('/api/admin/mt'),owner?get<{audit:AuditRow[]}>('/api/admin/audit'):Promise.resolve({audit:[] as AuditRow[]}),get<{checkedAt?:string;scoreMarket?:{refresh?:{attemptedAt?:string}}}>('/api/fundamentals').catch(()=>null)]);
-  setOv(o);setPpl(p.people);setMe(p.me);setMt(m.accounts);setLog(a.audit);setFund({checkedAt:f?.checkedAt,prices:f?.scoreMarket?.refresh?.attemptedAt});setError('');setReady(true);
+  const [o,p,m,a]=await Promise.all([get<Overview>('/api/admin/overview'),get<{people:Person[];me:{id:string;owner:boolean}}>('/api/admin/people'),get<{accounts:AdminMtAccount[]}>('/api/admin/mt'),owner?get<{audit:AuditRow[]}>('/api/admin/audit'):Promise.resolve({audit:[] as AuditRow[]})]);
+  setOv(o);setPpl(p.people);setMe(p.me);setMt(m.accounts);setLog(a.audit);setError('');setReady(true);
+  get<{checkedAt?:string;scoreMarket?:{refresh?:{attemptedAt?:string}}}>('/api/fundamentals').then(f=>setFund({checkedAt:f.checkedAt,prices:f.scoreMarket?.refresh?.attemptedAt})).catch(()=>{});
  }catch(e){if((e as {status?:number}).status===403)setDenied(true);else setError((e as Error).message||'Data se nepodařilo načíst. Obnov stránku.');setReady(true)}},[]);
  useEffect(()=>{reload()},[reload]);
  async function act(email:string,action:string,confirm?:string){if(confirm&&!window.confirm(confirm))return;setBusy(email);try{const r=await fetch('/api/admin/people',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,action})});const j=await r.json().catch(()=>({})) as {error?:string};if(!r.ok)throw Error(j.error||'Akce se nepovedla.');await reload('people')}catch(e){setError((e as Error).message)}setBusy('')}
