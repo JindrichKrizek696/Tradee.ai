@@ -12,10 +12,12 @@ const accessCache=new Map<string,{until:number;role:string|null}>();
 async function accessRole(id:string,email:string){
  const hit=accessCache.get(id);if(hit&&hit.until>Date.now())return hit.role;
  const owner=isOwner(email);let role:string|null=null;
- const w=owner?null:await db().prepare('SELECT approved FROM waitlist WHERE email=?').bind(email).first<{approved:number}>();
- if(owner||Number(w?.approved)===1){const m=await db().prepare('SELECT role FROM members WHERE id=?').bind(id).first<{role:string}>();role=owner?'admin':m?.role||'member'}
+ const w=owner?null:await db().prepare('SELECT approved,blocked FROM waitlist WHERE email=?').bind(email).first<{approved:number;blocked:number}>();
+ if(owner||(Number(w?.approved)===1&&!Number(w?.blocked))){const m=await db().prepare('SELECT role FROM members WHERE id=?').bind(id).first<{role:string}>();role=owner?'admin':m?.role||'member'}
  accessCache.set(id,{until:Date.now()+30_000,role});return role;
-}
+}// po schválení/blokaci/změně role, ať změna platí hned (jinak do 30 s)
+export function forgetAccess(id:string){accessCache.delete(id)}
+export const ownerEmail=()=>(runtime().OWNER_EMAIL||'').trim().toLowerCase();
 export async function currentUser(req:Request):Promise<User|null>{
  const secret=runtime().SESSION_SECRET;if(!secret)return null;
  const s=await verifySession(readCookie(req.headers.get('cookie'),SESSION_COOKIE),secret);if(!s)return null;
@@ -24,14 +26,14 @@ export async function currentUser(req:Request):Promise<User|null>{
 }
 // Přístup podle ID člena (pro požadavky z EA, které nemají session cookie).
 export async function hasAccessById(id:string){const m=await db().prepare('SELECT email FROM members WHERE id=?').bind(id).first<{email:string}>();return !!m&&!!await accessRole(id,m.email)}
-// Zapíše přihlášení na waitlist; schválenému (nebo ownerovi) založí/aktualizuje člena. Vrací, zda smí dovnitř.
-export async function recordLogin(u:{sub:string;email:string;name:string}){
+// Zapíše přihlášení na waitlist; schválenému (nebo ownerovi) založí/aktualizuje člena a zapíše poslední přihlášení. Vrací stav přístupu.
+export async function recordLogin(u:{sub:string;email:string;name:string}):Promise<'ok'|'cekas'|'pozastaveno'>{
  await db().prepare("INSERT INTO waitlist(email,name,google_sub,source,approved,created) VALUES(?,?,?,'google',0,NOW()) ON DUPLICATE KEY UPDATE name=VALUES(name),google_sub=VALUES(google_sub)").bind(u.email,u.name,u.sub.slice(2)).run();
  const owner=isOwner(u.email);
- const w=await db().prepare('SELECT approved FROM waitlist WHERE email=?').bind(u.email).first<{approved:number}>();
- const ok=owner||Number(w?.approved)===1;
- if(ok)await db().prepare("INSERT INTO members(id,email,name,role) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE email=VALUES(email),name=VALUES(name),role=IF(VALUES(role)='admin','admin',role)").bind(u.sub,u.email,u.name,owner?'admin':'member').run();
- accessCache.delete(u.sub);return ok;
+ const w=await db().prepare('SELECT approved,blocked FROM waitlist WHERE email=?').bind(u.email).first<{approved:number;blocked:number}>();
+ const state=owner?'ok':Number(w?.blocked)?'pozastaveno':Number(w?.approved)===1?'ok':'cekas';
+ if(state==='ok')await db().prepare("INSERT INTO members(id,email,name,role,last_login) VALUES(?,?,?,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE email=VALUES(email),name=VALUES(name),role=IF(VALUES(role)='admin','admin',role),last_login=VALUES(last_login)").bind(u.sub,u.email,u.name,owner?'admin':'member').run();
+ accessCache.delete(u.sub);return state;
 }
 export async function identity(req:Request):Promise<User>{const u=await currentUser(req);if(!u)throw new Error('Pro tuto akci se přihlas.');return u}
 export function sameOrigin(req:Request){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw new Error('Nepovolený původ požadavku.');}

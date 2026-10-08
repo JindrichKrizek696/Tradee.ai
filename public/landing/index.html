@@ -328,7 +328,7 @@ footer a{color:#fff;text-decoration:none}
 document.querySelectorAll('.tabs button[data-s]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('shot').src='/landing/img/shot-'+b.dataset.s+'.webp'});
 
 (function(){
- var M={zapsano:['ok','Díky, jsi na seznamu. Ozveme se, až tě pustíme dovnitř.'],cekas:['ok','Tvůj účet čeká na schválení. Ozveme se.'],chyba:['err','Přihlášení se nepovedlo, zkus to prosím znovu.'],neplatny:['err','Zadej prosím platný e-mail.']};
+ var M={zapsano:['ok','Díky, jsi na seznamu. Ozveme se, až tě pustíme dovnitř.'],cekas:['ok','Tvůj účet čeká na schválení. Ozveme se.'],chyba:['err','Přihlášení se nepovedlo, zkus to prosím znovu.'],neplatny:['err','Zadej prosím platný e-mail.'],pozastaveno:['err','Přístup k tvému účtu je pozastavený. Pokud jde o omyl, napiš nám.']};
  function show(el,k,text){if(!el)return;var m=Object.prototype.hasOwnProperty.call(M,k)?M[k]:null;el.className='msg '+(m?m[0]:'err');el.textContent=text||(m?m[1]:'')}
  var stav=new URLSearchParams(location.search).get('stav');
  if(stav&&Object.prototype.hasOwnProperty.call(M,stav)){var first=document.querySelector('#prihlaska + .msg');show(first,stav)}

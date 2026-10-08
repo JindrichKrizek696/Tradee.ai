@@ -6,7 +6,7 @@ import {fmtMoney} from '@/lib/trades';
 import {fmtHold,fmtR,fmtDateTime,fmtDate,fmtNum} from '@/lib/journal/format';
 import {checkUpload} from '@/lib/journal/rows';
 import {TradeChart} from './trade-chart';
-export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void};
+export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void;readOnly?:boolean;query?:string};
 const KIND:Record<string,string>={open:'Otevření',add:'Přidání',partial_close:'Částečné uzavření',close:'Uzavření',sl:'Stop loss',tp:'Take profit'};
 const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus'};
 const why=(r:string|null)=>r?REASON[r]||r:'–';
@@ -15,10 +15,10 @@ async function send(url:string,method:string,body?:unknown):Promise<any>{
  const j=await r.json().catch(()=>({})) as any;if(!r.ok)throw Error(j.error||'Akce se nepovedla. Zkus to znovu.');return j;
 }
 const describe=(c:JournalChange)=>c.kind==='sl'||c.kind==='tp'?`${fmtNum(c.old_value)} → ${c.new_value===null?'zrušen':fmtNum(c.new_value)}`:`${c.volume??''} @ ${fmtNum(c.price)}${c.reason?' · '+why(c.reason):''}`;
-export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,onChanged}:TradeDetailProps){
+export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,onChanged,readOnly=false,query=''}:TradeDetailProps){
  const mt=id.startsWith('mt:'),url='/api/journal/'+encodeURIComponent(id);
  const [d,setD]=useState<JournalDetail|null>(null),[error,setError]=useState(''),[note,setNote]=useState(mt?'':trade?.note||''),[saved,setSaved]=useState(''),[tagInput,setTagInput]=useState(''),[zoom,setZoom]=useState<string|null>(null),[busy,setBusy]=useState(false);
- async function load(){try{const r=await fetch(url,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Obchod se nepodařilo načíst.');setD(j);setNote(j.position.note||'')}catch(e){setError((e as Error).message)}}
+ async function load(){try{const r=await fetch(url+query,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Obchod se nepodařilo načíst.');setD(j);setNote(j.position.note||'')}catch(e){setError((e as Error).message)}}
  useEffect(()=>{if(mt)load()},[]);
  useEffect(()=>{if(!zoom)return;const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setZoom(null)};document.addEventListener('keydown',esc);return()=>document.removeEventListener('keydown',esc)},[zoom]);
  const oldNote=mt?d?.position.note||'':trade?.note||'';
@@ -29,7 +29,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
  async function upload(f:File){const err=checkUpload({type:f.type,size:f.size},d?.files.length||0);if(err){setError(err);return}
   setBusy(true);try{const fd=new FormData();fd.append('file',f);await send(url+'/files','POST',fd);setError('');await load();onChanged()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
  async function removeFile(fileId:string){if(!window.confirm('Smazat screenshot?'))return;try{await send(url+'/files','DELETE',{fileId});await load();onChanged()}catch(e){setError((e as Error).message)}}
- const noteBox=(max:number)=><><textarea className="j-note" rows={5} maxLength={max} value={note} onChange={e=>{setNote(e.target.value);setSaved('')}} onBlur={saveNote} placeholder="Proč jsi vstoupil, co jsi viděl, co příště jinak…" aria-label="Poznámka k obchodu"/><small className="j-muted">{saved||`Ukládá se po kliknutí mimo pole · max. ${max} znaků`}</small></>;
+ const noteBox=(max:number)=>readOnly?(note.trim()?<p className="j-noteview">{note}</p>:<p className="j-muted">Bez poznámky.</p>):<><textarea className="j-note" rows={5} maxLength={max} value={note} onChange={e=>{setNote(e.target.value);setSaved('')}} onBlur={saveNote} placeholder="Proč jsi vstoupil, co jsi viděl, co příště jinak…" aria-label="Poznámka k obchodu"/><small className="j-muted">{saved||`Ukládá se po kliknutí mimo pole · max. ${max} znaků`}</small></>;
  const head=<div className="j-dhead"><button type="button" className="j-back" onClick={onClose}><ArrowLeft size={16}/> Deník</button>
   <div className="j-nav"><button type="button" disabled={!prev} onClick={()=>prev&&onOpen(prev)} aria-label="Novější obchod" title="Novější obchod"><ChevronLeft size={18}/></button><button type="button" disabled={!next} onClick={()=>next&&onOpen(next)} aria-label="Starší obchod" title="Starší obchod"><ChevronRight size={18}/></button></div></div>;
  if(!mt){
@@ -65,15 +65,15 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <section className="j-card"><h2>Průběh</h2><ol className="j-timeline">{d.changes.map((c,i)=><li key={i}><time>{fmtDateTime(c.ts)}</time><b>{KIND[c.kind]||c.kind}</b><span>{describe(c)}</span></li>)}</ol></section>
   </div>
   <section className="j-card"><h2>Tagy</h2>
-   <div className="j-chips">{autoTags.map(t=><span key={'a'+t} className="j-chip" title="Z komentáře obchodu v MetaTraderu">#{t}</span>)}{manualTags.map(t=><span key={t} className="j-chip manual">#{t}<button type="button" aria-label={'Odebrat tag '+t} onClick={()=>saveTags(manualTags.filter(x=>x!==t))}><X size={12}/></button></span>)}{!autoTags.length&&!manualTags.length&&<span className="j-muted">Zatím bez tagů.</span>}</div>
-   <form className="j-tagform" onSubmit={e=>{e.preventDefault();addTag()}}><input list="j-alltags" value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="Přidat tag, např. breakout" maxLength={31} aria-label="Nový tag"/><datalist id="j-alltags">{allTags.map(t=><option key={t} value={t}/>)}</datalist><button type="submit" className="j-btn">Přidat</button></form>
-   <small className="j-muted">Tagy napsané v komentáři obchodu v MetaTraderu (#breakout) se přidají samy.</small>
+   <div className="j-chips">{autoTags.map(t=><span key={'a'+t} className="j-chip" title="Z komentáře obchodu v MetaTraderu">#{t}</span>)}{manualTags.map(t=><span key={t} className="j-chip manual">#{t}{!readOnly&&<button type="button" aria-label={'Odebrat tag '+t} onClick={()=>saveTags(manualTags.filter(x=>x!==t))}><X size={12}/></button>}</span>)}{!autoTags.length&&!manualTags.length&&<span className="j-muted">Zatím bez tagů.</span>}</div>
+   {!readOnly&&<><form className="j-tagform" onSubmit={e=>{e.preventDefault();addTag()}}><input list="j-alltags" value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="Přidat tag, např. breakout" maxLength={31} aria-label="Nový tag"/><datalist id="j-alltags">{allTags.map(t=><option key={t} value={t}/>)}</datalist><button type="submit" className="j-btn">Přidat</button></form>
+   <small className="j-muted">Tagy napsané v komentáři obchodu v MetaTraderu (#breakout) se přidají samy.</small></>}
   </section>
   <section className="j-card"><h2>Poznámka</h2>{noteBox(5000)}</section>
   <section className="j-card"><h2>Screenshoty</h2>
-   {d.files.length>0&&<div className="j-shots">{d.files.map(f=><figure key={f.id}><button type="button" className="j-shot" onClick={()=>setZoom('/api/journal/files/'+f.id)} aria-label={'Zvětšit '+f.name}><img src={'/api/journal/files/'+f.id} alt={f.name} loading="lazy"/></button><button type="button" className="j-del" aria-label={'Smazat '+f.name} onClick={()=>removeFile(f.id)}><Trash2 size={14}/></button></figure>)}</div>}
-   {d.files.length<5?<label className="j-btn"><Upload size={14}/> {busy?'Nahrávám…':'Nahrát screenshot'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)upload(f)}}/></label>:<p className="j-muted">K obchodu jde nahrát nejvýš 5 screenshotů.</p>}
-   <small className="j-muted">PNG, JPEG nebo WebP, nejvýš 5 MB.</small>
+   {d.files.length>0&&<div className="j-shots">{d.files.map(f=><figure key={f.id}><button type="button" className="j-shot" onClick={()=>setZoom('/api/journal/files/'+f.id+query)} aria-label={'Zvětšit '+f.name}><img src={'/api/journal/files/'+f.id+query} alt={f.name} loading="lazy"/></button>{!readOnly&&<button type="button" className="j-del" aria-label={'Smazat '+f.name} onClick={()=>removeFile(f.id)}><Trash2 size={14}/></button>}</figure>)}</div>}
+   {readOnly?!d.files.length&&<p className="j-muted">Bez screenshotů.</p>:<>{d.files.length<5?<label className="j-btn"><Upload size={14}/> {busy?'Nahrávám…':'Nahrát screenshot'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)upload(f)}}/></label>:<p className="j-muted">K obchodu jde nahrát nejvýš 5 screenshotů.</p>}
+   <small className="j-muted">PNG, JPEG nebo WebP, nejvýš 5 MB.</small></>}
   </section>
   {zoom&&<div className="j-zoom" role="dialog" aria-modal="true" aria-label="Screenshot" onClick={()=>setZoom(null)}><img src={zoom} alt=""/><button type="button" aria-label="Zavřít" onClick={()=>setZoom(null)}><X size={20}/></button></div>}
  </div>;
