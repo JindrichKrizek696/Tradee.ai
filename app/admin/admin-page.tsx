@@ -20,7 +20,7 @@ export default function AdminPage(){
  const reload=useCallback(async(parts?:'people')=>{try{
   if(parts==='people'){const [o,p]=await Promise.all([get<Overview>('/api/admin/overview'),get<{people:Person[]}>('/api/admin/people')]);setOv(o);setPpl(p.people);setError('');return}
   const w=await get<{user?:{owner?:boolean}}>('/api/watchlist'),owner=!!w.user?.owner;
-  const [o,p,m,a]=await Promise.all([get<Overview>('/api/admin/overview'),get<{people:Person[];me:{id:string;owner:boolean}}>('/api/admin/people'),get<{accounts:AdminMtAccount[]}>('/api/admin/mt'),owner?get<{audit:AuditRow[]}>('/api/admin/audit'):Promise.resolve({audit:[] as AuditRow[]})]);
+  const [o,p,m,a]=await Promise.all([get<Overview>('/api/admin/overview'),get<{people:Person[];me:{id:string;owner:boolean}}>('/api/admin/people'),get<{accounts:AdminMtAccount[]}>('/api/admin/mt'),get<{audit:AuditRow[]}>('/api/admin/audit')]);
   setOv(o);setPpl(p.people);setMe(p.me);setMt(m.accounts);setLog(a.audit);setError('');setReady(true);
   get<{checkedAt?:string;scoreMarket?:{refresh?:{attemptedAt?:string}}}>('/api/fundamentals').then(f=>setFund({checkedAt:f.checkedAt,prices:f.scoreMarket?.refresh?.attemptedAt})).catch(()=>{});
  }catch(e){if((e as {status?:number}).status===403)setDenied(true);else setError((e as Error).message||'Data se nepodařilo načíst. Obnov stránku.');setReady(true)}},[]);
@@ -58,22 +58,22 @@ export default function AdminPage(){
       {p.status==='pending'&&<button type="button" className="mt-btn dark" disabled={off} onClick={()=>act(p.email,'approve')}>Schválit</button>}
       {p.status==='approved'&&<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'block',`Zablokovat ${p.email}? Ztratí přístup do Tradee a jeho EA přestane posílat data.`)}>Zablokovat</button>}
       {p.status==='blocked'&&<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'unblock')}>Odblokovat</button>}
-      {me.owner&&p.memberId&&(p.role==='admin'?<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_member',`Odebrat ${p.email} roli admina?`)}>Odebrat admina</button>:<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_admin',`Udělat z ${p.email} admina?`)}>Udělat adminem</button>)}
+      {p.memberId&&(p.role==='admin'?<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_member',`Odebrat ${p.email} roli admina?`)}>Odebrat admina</button>:<button type="button" className="mt-btn" disabled={off} onClick={()=>act(p.email,'role_admin',`Udělat z ${p.email} admina?`)}>Udělat adminem</button>)}
      </>}</td>
     </tr>})}</tbody></table>}
    </section>}
    {ready&&!denied&&<section className="mt-card" aria-label="MetaTrader účty"><h2>MetaTrader účty</h2>
-    {!mt.length?<p className="mt-empty">Zatím nikdo nepřipojil MetaTrader.</p>:<table className="mt-table ad-table"><thead><tr><th>Majitel</th><th>Účet</th><th>EA</th><th>Spojení</th><th>Pozice</th>{me.owner&&<th>Zůstatek / equity</th>}{me.owner&&<th>Deník</th>}</tr></thead><tbody>{mt.map(a=><tr key={a.id}>
+    {!mt.length?<p className="mt-empty">Zatím nikdo nepřipojil MetaTrader.</p>:<table className="mt-table ad-table"><thead><tr><th>Majitel</th><th>Účet</th><th>EA</th><th>Spojení</th><th>Pozice</th>{<th>Zůstatek / equity</th>}{<th>Deník</th>}</tr></thead><tbody>{mt.map(a=><tr key={a.id}>
      <td className="ad-main"><b>{a.ownerName||a.ownerEmail}</b>{a.ownerName&&<small>{a.ownerEmail}</small>}</td>
      <td data-l="Účet"><span className="mt-tag">{a.platform.toUpperCase()}</span><span className={'mt-tag '+(a.mode==='real'?'real':'')}>{a.mode==='real'?'live':'demo'}</span><br/>{a.company}<small>{a.server} · {a.login}</small></td>
      <td data-l="EA">{a.eaVersion||'–'}{a.oldEa&&<span className="mt-tag warn">stará verze</span>}</td>
      <td data-l="Spojení"><span className={'mt-dot '+(a.online?'on':'')}/>{a.online?'online · ':''}{ago(a.lastSeen)}</td>
      <td data-l="Pozice">{a.positions} · {a.open} otevř.</td>
-     {me.owner&&<td data-l="Zůstatek / equity">{a.balance==null?'–':fmtAmount(a.balance,a.currency)}{a.equity!=null&&<small>{fmtAmount(a.equity,a.currency)}</small>}</td>}
-     {me.owner&&<td className="ad-acts"><a className="mt-btn" href={'/admin/journal/'+encodeURIComponent(a.memberId)}>Otevřít deník</a></td>}
+     {<td data-l="Zůstatek / equity">{a.balance==null?'–':fmtAmount(a.balance,a.currency)}{a.equity!=null&&<small>{fmtAmount(a.equity,a.currency)}</small>}</td>}
+     {<td className="ad-acts"><a className="mt-btn" href={'/admin/journal/'+encodeURIComponent(a.memberId)}>Otevřít deník</a></td>}
     </tr>)}</tbody></table>}
    </section>}
-   {ready&&me.owner&&<section className="mt-card" aria-label="Záznam nahlížení"><h2>Záznam nahlížení</h2>
+   {ready&&<section className="mt-card" aria-label="Záznam nahlížení"><h2>Záznam nahlížení</h2>
     {!log.length?<p className="mt-empty">Zatím nic.</p>:<table className="mt-table ad-table"><thead><tr><th>Čas</th><th>Kdo</th><th>Akce</th><th>Koho</th><th>Detail</th></tr></thead><tbody>{log.slice(0,100).map((r,i)=><tr key={i}>
      <td data-l="Čas">{stamp(r.at)}</td><td data-l="Kdo">{r.actor}</td><td data-l="Akce">{ACTION[r.action]||r.action}</td><td data-l="Koho">{r.target}</td><td data-l="Detail">{r.detail||'–'}</td>
     </tr>)}</tbody></table>}
