@@ -76,8 +76,8 @@
 .d-dash .d-netbars::before{content:'';position:absolute;left:22px;right:22px;top:50%;height:1px;background:var(--t-border-strong)}
 .d-dash .d-netbars span{position:relative;flex:1;display:flex;justify-content:center}
 .d-dash .d-netbars span::before{content:'';position:absolute;width:min(70%,9px);height:var(--h);min-height:2px;border-radius:999px}
-.d-dash .d-netbars .pos::before{bottom:50%;background:var(--bull)}
-.d-dash .d-netbars .neg::before{top:50%;background:var(--bear)}
+.d-dash .d-netbars .pos::before{bottom:50%;background:var(--bull);border-radius:999px 999px 0 0}
+.d-dash .d-netbars .neg::before{top:50%;background:var(--bear);border-radius:0 0 999px 999px}
 .d-dash .d-netbars .zero::before{top:calc(50% - 1px);height:2px;background:var(--t-muted-2)}
 
 /* P&L: období, sloupce + kumulativní křivka, ukazatele */
