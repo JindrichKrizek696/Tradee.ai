@@ -20,16 +20,20 @@ export async function overview(d:Db,owner:string,now=Date.now()):Promise<Overvie
 // waitlist i členové bez řádku ve waitlistu (starší účty); čekající nahoře
 export async function people(d:Db,owner:string):Promise<Person[]>{
  const rows=(await d.prepare(`SELECT w.email,w.name,w.created,w.approved,w.blocked,m.id member_id,m.role,m.last_login,(SELECT COUNT(*) FROM mt_accounts a WHERE a.user_id=m.id) mt FROM waitlist w LEFT JOIN members m ON LOWER(m.email)=LOWER(w.email)
-  UNION ALL SELECT m.email,m.name,NULL,1,0,m.id,m.role,m.last_login,(SELECT COUNT(*) FROM mt_accounts a WHERE a.user_id=m.id) FROM members m WHERE NOT EXISTS(SELECT 1 FROM waitlist w WHERE LOWER(w.email)=LOWER(m.email))`).all<Record<string,unknown>>()).results;
+  UNION ALL SELECT m.email,m.name,NULL,0,0,m.id,m.role,m.last_login,(SELECT COUNT(*) FROM mt_accounts a WHERE a.user_id=m.id) FROM members m WHERE NOT EXISTS(SELECT 1 FROM waitlist w WHERE LOWER(w.email)=LOWER(m.email))`).all<Record<string,unknown>>()).results;
  const out=rows.map(r=>{const email=String(r.email),isOwner=!!owner&&email.toLowerCase()===owner;return {email,name:String(r.name||''),created:r.created?String(r.created):null,status:personStatus({approved:n(r.approved),blocked:n(r.blocked),isOwner}),role:r.role?String(r.role):null,lastLogin:r.last_login?String(r.last_login):null,mtAccounts:n(r.mt),memberId:r.member_id?String(r.member_id):null,isOwner}});
  const rank={pending:0,blocked:1,approved:2,owner:3};
  return out.sort((a,b)=>rank[a.status]-rank[b.status]||String(b.created||'').localeCompare(String(a.created||'')));
 }
 export async function personByEmail(d:Db,email:string){
- return d.prepare('SELECT w.email,w.approved,w.blocked,m.id member_id FROM waitlist w LEFT JOIN members m ON LOWER(m.email)=LOWER(w.email) WHERE LOWER(w.email)=LOWER(?)').bind(email).first<{email:string;approved:number;blocked:number;member_id:string|null}>();
+ type P={email:string;approved:number;blocked:number;member_id:string|null};
+ const w=await d.prepare('SELECT w.email,w.approved,w.blocked,m.id member_id FROM waitlist w LEFT JOIN members m ON LOWER(m.email)=LOWER(w.email) WHERE LOWER(w.email)=LOWER(?)').bind(email).first<P>();
+ return w||d.prepare('SELECT m.email,0 approved,0 blocked,m.id member_id FROM members m WHERE LOWER(m.email)=LOWER(?)').bind(email).first<P>();
 }
-export async function setApproved(d:Db,email:string){await d.prepare('UPDATE waitlist SET approved=1,approved_at=COALESCE(approved_at,NOW()) WHERE LOWER(email)=LOWER(?)').bind(email).run()}
-export async function setBlocked(d:Db,email:string,blocked:boolean){await d.prepare('UPDATE waitlist SET blocked=? WHERE LOWER(email)=LOWER(?)').bind(blocked?1:0,email).run()}
+// člen bez řádku ve waitlistu: řádek se vytvoří (jméno z members)
+const memberName="(SELECT name FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1)";
+export async function setApproved(d:Db,email:string){await d.prepare(`INSERT INTO waitlist(email,name,source,approved,approved_at,created) VALUES(?,${memberName},'admin',1,NOW(),NOW()) ON DUPLICATE KEY UPDATE approved=1,approved_at=COALESCE(approved_at,NOW())`).bind(email,email).run()}
+export async function setBlocked(d:Db,email:string,blocked:boolean){await d.prepare(`INSERT INTO waitlist(email,name,source,approved,blocked,created) VALUES(?,${memberName},'admin',0,?,NOW()) ON DUPLICATE KEY UPDATE blocked=VALUES(blocked)`).bind(email,email,blocked?1:0).run()}
 export async function setRole(d:Db,memberId:string,role:'admin'|'member'){await d.prepare('UPDATE members SET role=? WHERE id=?').bind(role,memberId).run()}
 // zůstatek, equity a měnu jen pro vlastníka (ostatním se pole vůbec nepošlou)
 export async function mtAccounts(d:Db,withMoney:boolean):Promise<AdminMtAccount[]>{
