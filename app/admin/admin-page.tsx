@@ -28,7 +28,7 @@ export default function AdminPage(){
  const needle=q.trim().toLowerCase(),list=ppl.filter(p=>(filter==='all'||p.status===filter)&&(!needle||p.email.toLowerCase().includes(needle)||p.name.toLowerCase().includes(needle)));
  const top=<header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>;
  if(denied)return <div className="mt-page">{top}<main className="mt-main"><section className="mt-card"><h1>Administrace</h1><p className="mt-empty">Sem nemáš přístup.</p><a className="mt-btn" href="/">Zpět do Tradee</a></section></main></div>;
- const kpi=(l:string,v:string|number,s?:string)=><div className="ad-kpi" key={l}><span>{l}</span><b>{v}</b>{s&&<small>{s}</small>}</div>;
+ const kpi=(l:string,v:string|number,s?:string)=><div className="ad-kpi" key={l+s}><span>{l}</span><b>{v}</b>{s&&<small>{s}</small>}</div>;
  return <div className="mt-page">{top}
   <main className="mt-main">
    <h1>Administrace</h1>
