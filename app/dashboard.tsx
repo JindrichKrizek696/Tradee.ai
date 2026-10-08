@@ -52,12 +52,12 @@ function NetBars({values,bull,bear,ats}:{values:number[];bull:number[];bear:numb
  const [hov,setHov]=useState<number|null>(null),n=values.length,max=Math.max(1,...values.map(Math.abs));
  const days=ats.map((a,i)=>{const d=day(a);return i===0||d!==day(ats[i-1])?d:''}),pos=hov===null?0:(hov+.5)/n;
  return <div className="d-netzone" onPointerLeave={()=>setHov(null)}>
-  <div className={'d-netbars'+(hov!==null?' hovering':'')}>{values.map((v,i)=><span key={i} onPointerEnter={()=>setHov(i)} className={(v>0?'pos':v<0?'neg':'zero')+(hov===i?' on':'')} style={{'--h':Math.abs(v)/max*50+'%'} as React.CSSProperties}/>)}</div>
-  {hov!==null&&<div className="d-nettip" role="status" style={{left:`calc(22px + (100% - 44px) * ${pos})`,transform:`translateX(${pos<.15?'-12%':pos>.85?'-88%':'-50%'})`}}>
+  <div className={'d-netbars'+(hov!==null?' hovering':'')}>{values.map((v,i)=><span key={i} onPointerEnter={()=>setHov(i)} className={(v>0?'pos':v<0?'neg':'zero')+(hov===i?' on':'')} style={{'--h':Math.abs(v)/max*50+'%'} as React.CSSProperties}/>)}
+  {hov!==null&&<div className="d-nettip" role="status" style={{left:`calc(22px + (100% - 44px) * ${pos})`,...(values[hov]>=0?{top:'calc(50% + 8px)'}:{bottom:'calc(50% + 8px)'}),transform:`translateX(${pos<.15?'-12%':pos>.85?'-88%':'-50%'})`}}>
    <b>{stamp(ats[hov])}</b>
    <span>Bullish <em className="up">{bull[hov]}</em> · Bearish <em className="down">{bear[hov]}</em></span>
    <span>Převaha <em className={values[hov]>0?'up':values[hov]<0?'down':''}>{values[hov]>0?'+':''}{values[hov]}</em></span>
-  </div>}
+  </div>}</div>
   <div className="d-netdays" aria-hidden="true">{days.map((d,i)=><span key={i}>{d}</span>)}</div>
  </div>;
 }
