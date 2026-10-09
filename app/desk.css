@@ -33,7 +33,7 @@
 
 /* Bento */
 .d-dash .d-bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:dense;gap:16px}
-.d-dash .d-pulse{grid-column:span 7}.d-dash .d-pnl{grid-column:span 5}
+.d-dash .d-mt{grid-column:1/-1}.d-dash .d-pulse{grid-column:span 12}
 .d-dash .d-watch{grid-column:span 7}.d-dash .d-ccy{grid-column:span 5}
 .d-dash .d-movers{grid-column:span 12}
 .d-dash .d-mv-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
@@ -136,6 +136,27 @@
 .d-dash .d-big b{font-size:48px;font-weight:600;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
 .d-dash .d-delta{display:inline-flex;align-items:center;gap:3px;padding:5px 10px 5px 7px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--t-surface-3)}
 .d-dash .d-delta.up{background:color-mix(in srgb,var(--bull) 13%,transparent)}.d-dash .d-delta.down{background:color-mix(in srgb,var(--bear) 13%,transparent)}
+
+/* Můj trading: výběr účtu + období, 5 ukazatelů, P&L období a celkový zisk vedle sebe */
+.d-dash .d-mt-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.d-dash .d-mt-acc{height:32px;max-width:220px;padding:0 10px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);font:inherit;font-size:12.5px;font-weight:500;color:var(--t-fg)}
+.d-dash .d-mt-kpi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;margin:0;border-radius:14px;overflow:hidden;background:var(--t-border);border:1px solid var(--t-border)}
+.d-dash .d-mt-kpi>div{display:flex;flex-direction:column;gap:4px;min-width:0;padding:14px 16px;background:var(--t-surface-2)}
+.d-dash .d-mt-kpi dt{font-size:12px;color:var(--t-muted);white-space:nowrap}
+.d-dash .d-mt-kpi dd{margin:0;font-size:24px;font-weight:600;letter-spacing:-.03em;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--t-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-dash .d-mt-kpi dd.up{color:var(--bull-text)}.d-dash .d-mt-kpi dd.down{color:var(--bear-text)}
+.d-dash .d-mt-kpi small{font-size:12px;color:var(--t-muted-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-dash .d-mt-kpi .d-delta{padding:2px 8px 2px 5px;font-size:11.5px;color:var(--t-fg)}
+.d-dash .d-mt-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:20px}
+.d-dash .d-mt-charts>:only-child{grid-column:1/-1}
+.d-dash .d-mt-chart{min-width:0}
+.d-dash .d-mt-chart h3{margin:0 0 6px;font-size:13px;font-weight:500;color:var(--t-fg)}
+.d-dash .d-mt-chart h3 span{color:var(--t-muted);font-weight:400}
+.d-dash .d-mt-chart .d-axis{padding-inline:0}
+.d-dash .d-mt-chart .j-curvewrap{margin-top:12px}
+.d-dash .d-mt-cta{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.d-dash .d-mt-cta a{text-decoration:none}
+.d-dash .d-mt>.d-pnlwrap{min-height:190px}
+@media(max-width:860px){.d-dash .d-mt-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.d-dash .d-mt-kpi>div:first-child{grid-column:1/-1}.d-dash .d-mt-charts{grid-template-columns:1fr}}
 
 /* Watchlist signálů */
 .d-dash .d-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--t-surface-3)}
@@ -285,8 +306,7 @@
 
 /* Pod 1200 px nejsou po stranách místo: lišty se stanou kartami pod obsahem, bento dvousloupcové. */
 @media(max-width:1199px){
- .d-dash .d-pnl,.d-dash .d-perf{grid-column:span 6}
- .d-dash .d-pulse,.d-dash .d-ccy,.d-dash .d-watch,.d-dash .d-cal{grid-column:span 12}
+ .d-dash .d-pulse,.d-dash .d-ccy,.d-dash .d-watch,.d-dash .d-cal,.d-dash .d-perf{grid-column:span 12}
  .d-dash .d-notches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
  .d-dash .d-notch{position:static;transform:none;width:auto!important;height:auto!important;filter:none;border:1px solid var(--t-border);border-radius:20px!important;box-shadow:var(--t-shadow)}
  .d-dash .d-notch::before,.d-dash .d-notch::after,.d-dash .d-notch-rail{display:none}

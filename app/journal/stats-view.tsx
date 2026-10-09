@@ -6,7 +6,7 @@ import {fmtMoney} from '@/lib/trades';
 import {fmtHold,fmtR,fmtNum,tradesWord} from '@/lib/journal/format';
 const BY:[BreakdownBy,string][]=[['tag','Tag'],['symbol','Pár'],['side','Směr'],['weekday','Den vstupu'],['hour','Hodina vstupu'],['hold','Délka držení']];
 // Kumulovaný výsledek po obchodech; najetím myší (prstem) se ukáže obchod, jeho výsledek a průběžný součet.
-function Curve({points,currency}:{points:{ts:number;value:number}[];currency:string}){
+export function Curve({points,currency}:{points:{ts:number;value:number}[];currency:string}){
  const [hover,setHover]=useState<number|null>(null),values=points.map(p=>p.value),n=values.length;
  const W=600,H=160,min=Math.min(0,...values),max=Math.max(0,...values),span=max-min||1;
  const x=(i:number)=>(i+1)/n*W,y=(v:number)=>H-4-(v-min)/span*(H-8);
