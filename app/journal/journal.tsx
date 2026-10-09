@@ -19,7 +19,7 @@ export function Journal({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const {data:openData,now:openNow}=useOpenPositions(q),openCount=useMemo(()=>byAccount(openData?.positions||[],filter.account).length,[openData,filter.account]);
  async function reload(){try{const r=await fetch('/api/journal'+q,{cache:'no-store'});const j=await r.json() as JournalList&{error?:string};if(!r.ok)throw Error(j.error||'');setData(j);setError('')}catch(e){setError((e as Error).message||'Deník se nepodařilo načíst. Zkus obnovit stránku.')}}
  useEffect(()=>{reload();const on=()=>setDetail(hashId());window.addEventListener('hashchange',on);
-  return()=>{window.removeEventListener('hashchange',on);if(location.hash.startsWith('#journal'))history.replaceState(null,'',location.pathname+location.search)}},[]);
+  return()=>{window.removeEventListener('hashchange',on);if(/^#journal(\/|$)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}},[]);
  // po načtení dat zrušit části filtru, které odkazují na smazaný účet, tag nebo pár
  useEffect(()=>{if(data)setFilter(f=>{const s=sanitizeFilter(f,data.trades,data.accounts);return JSON.stringify(s)===JSON.stringify(f)?f:s})},[data]);
  // vlastní deník: účet sdílený s Dashboardem (i po vrácení neexistujícího účtu na „all“)

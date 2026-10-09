@@ -95,9 +95,11 @@ export async function rebuildPositions(d:Db,accountId:string,positions:string[])
     await d.prepare('UPDATE mt_position_files SET position_id=? WHERE position_id=?').bind(target,o.id).run();
     await d.prepare("UPDATE IGNORE trade_checklists SET trade_id=CONCAT('mt:',?) WHERE trade_id=CONCAT('mt:',?)").bind(target,o.id).run();
     await d.prepare("UPDATE IGNORE trade_violations SET trade_id=CONCAT('mt:',?) WHERE trade_id=CONCAT('mt:',?)").bind(target,o.id).run();
+    await d.prepare("UPDATE IGNORE trade_reviews SET trade_id=CONCAT('mt:',?) WHERE trade_id=CONCAT('mt:',?)").bind(target,o.id).run();
    }
    await d.prepare("DELETE FROM trade_checklists WHERE trade_id=CONCAT('mt:',?)").bind(o.id).run();
    await d.prepare("DELETE FROM trade_violations WHERE trade_id=CONCAT('mt:',?)").bind(o.id).run();
+   await d.prepare("DELETE FROM trade_reviews WHERE trade_id=CONCAT('mt:',?)").bind(o.id).run();
    await d.prepare('DELETE FROM mt_position_changes WHERE position_id=?').bind(o.id).run();
    await d.prepare('DELETE FROM mt_positions WHERE id=?').bind(o.id).run();
   }
@@ -124,6 +126,7 @@ export async function deleteAccount(d:Db,userId:string,id:string,bucket?:{delete
  if(keys.length&&bucket)try{await bucket.delete(keys)}catch(e){console.error('mt files r2',id,e)}
  await d.prepare("DELETE FROM trade_checklists WHERE trade_id IN (SELECT CONCAT('mt:',id) FROM mt_positions WHERE account_id=?)").bind(id).run();
  await d.prepare("DELETE FROM trade_violations WHERE trade_id IN (SELECT CONCAT('mt:',id) FROM mt_positions WHERE account_id=?)").bind(id).run();
+ await d.prepare("DELETE FROM trade_reviews WHERE trade_id IN (SELECT CONCAT('mt:',id) FROM mt_positions WHERE account_id=?)").bind(id).run();
  await d.prepare('DELETE FROM mt_position_files WHERE position_id IN (SELECT id FROM mt_positions WHERE account_id=?)').bind(id).run();
  await d.prepare('DELETE FROM mt_position_changes WHERE position_id IN (SELECT id FROM mt_positions WHERE account_id=?)').bind(id).run();
  for(const t of ['mt_positions','mt_events','mt_orders','mt_snapshots','mt_position_bars'])await d.prepare(`DELETE FROM ${t} WHERE account_id=?`).bind(id).run();
