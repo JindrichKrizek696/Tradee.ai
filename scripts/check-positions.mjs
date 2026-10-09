@@ -1,0 +1,25 @@
+// Kontrola otevřených pozic: node --experimental-strip-types scripts/check-positions.mjs
+import {levelBar,isStale,rMultiple,summarize} from '../lib/positions/open.ts';
+const fails=[];
+const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
+const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+let b=levelBar('buy',1.10,1.11,1.09,1.12);
+check('pruh buy',eq(b,{sl:0,tp:100,entry:33.33,price:66.67}),b);
+b=levelBar('sell',1.10,1.09,1.12,1.08);
+check('pruh sell: SL vlevo, TP vpravo',eq(b,{sl:0,tp:100,entry:50,price:75}),b);
+b=levelBar('buy',1.10,1.11,null,null);
+check('pruh bez SL/TP',eq(b,{sl:null,tp:null,entry:0,price:100}),b);
+check('pruh: vstup = cena bez SL/TP → null',levelBar('buy',1.10,1.10,null,null)===null&&levelBar('sell',1.10,null,null,null)===null);
+b=levelBar('sell',1.10,1.11,null,null);
+check('pruh sell bez SL/TP: ztráta vlevo',eq(b,{sl:null,tp:null,entry:100,price:0}),b);
+const now=Date.UTC(2026,9,9,12);
+check('isStale',!isStale(now-9*60_000,now)&&isStale(now-11*60_000,now)&&isStale(null,now));
+check('rMultiple',rMultiple(100,50)===2&&rMultiple(100,null)===null&&rMultiple(100,0)===null&&rMultiple(null,50)===null&&rMultiple(-25,50)===-0.5&&rMultiple(10,30)===0.33);
+const P=(o)=>({id:'a:1',accountId:'a',account:'A',symbol:'EURUSD',instrument:'EUR/USD',side:'buy',volume:1,openPrice:1.1,price:1.11,sl:1.09,tp:null,profit:0,accountCurrency:'USD',pnl:0,converted:true,riskMoney:null,r:null,openTs:0,updated:now,stale:false,...o});
+let s=summarize([P({pnl:100,riskMoney:50}),P({pnl:-30,riskMoney:20,sl:null}),P({pnl:null,sl:null})]);
+check('summarize',eq(s,{count:3,pnl:70,converted:true,risk:70,noSl:2}),s);
+s=summarize([P({pnl:100}),P({pnl:50,converted:false})]);
+check('summarize: nepřevedená jen označí',eq(s,{count:2,pnl:100,converted:false,risk:0,noSl:0}),s);
+s=summarize([]);
+check('summarize prázdné',eq(s,{count:0,pnl:0,converted:true,risk:0,noSl:0}),s);
+if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
