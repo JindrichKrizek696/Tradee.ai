@@ -7,14 +7,16 @@ import {Filters} from './filters';
 import {TradesTable} from './trades-table';
 import {TradeDetail} from './trade-detail';
 import {StatsView} from './stats-view';
+import {useOpenPositions,byAccount,OpenPositionsTab} from '../open-positions';
 import './journal.css';
-type Tab='trades'|'stats';
+type Tab='trades'|'stats'|'open';
 // filtr a záložka se pamatují v prohlížeči (deník se renderuje jen na klientu)
-function saved(key:string):{filter:Filter;tab:Tab}{try{const v=JSON.parse(localStorage.getItem(key)||'{}');return {filter:{...DEFAULT_FILTER,...(v.filter||{})},tab:v.tab==='stats'?'stats':'trades'}}catch{return {filter:DEFAULT_FILTER,tab:'trades'}}}
+function saved(key:string):{filter:Filter;tab:Tab}{try{const v=JSON.parse(localStorage.getItem(key)||'{}');return {filter:{...DEFAULT_FILTER,...(v.filter||{})},tab:v.tab==='stats'||v.tab==='open'?v.tab:'trades'}}catch{return {filter:DEFAULT_FILTER,tab:'trades'}}}
 const hashId=()=>{const h=location.hash;if(!h.startsWith('#journal/'))return null;try{return decodeURIComponent(h.slice(9))}catch{return null}};
 export function Journal({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const q=viewAs?'?as='+encodeURIComponent(viewAs.id):'',KEY=viewAs?'tradee.journal.admin':'tradee.journal';
  const [data,setData]=useState<JournalList|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved(KEY).filter;return viewAs?f:{...f,account:readAccount()}}),[tab,setTab]=useState<Tab>(()=>saved(KEY).tab),[detail,setDetail]=useState<string|null>(()=>hashId()),[now]=useState(()=>Date.now());
+ const {data:openData,now:openNow}=useOpenPositions(q),openCount=useMemo(()=>byAccount(openData?.positions||[],filter.account).length,[openData,filter.account]);
  async function reload(){try{const r=await fetch('/api/journal'+q,{cache:'no-store'});const j=await r.json() as JournalList&{error?:string};if(!r.ok)throw Error(j.error||'');setData(j);setError('')}catch(e){setError((e as Error).message||'Deník se nepodařilo načíst. Zkus obnovit stránku.')}}
  useEffect(()=>{reload();const on=()=>setDetail(hashId());window.addEventListener('hashchange',on);
   return()=>{window.removeEventListener('hashchange',on);if(location.hash.startsWith('#journal'))history.replaceState(null,'',location.pathname+location.search)}},[]);
@@ -32,9 +34,9 @@ export function Journal({viewAs}:{viewAs?:{id:string;name:string}}={}){
  if(detail){const idx=list.findIndex(t=>t.id===detail);
   return <div className="j-page">{banner}<TradeDetail key={detail} id={detail} trade={trades.find(t=>t.id===detail)} currency={data.currency} allTags={allTags} prev={idx>0?list[idx-1].id:null} next={idx>=0&&idx<list.length-1?list[idx+1].id:null} onOpen={open} onClose={close} onChanged={reload} readOnly={!!viewAs} query={q}/></div>}
  return <div className="j-page">
-  {banner}<div className="j-head"><h1>Deník obchodů</h1><div className="j-tabs" role="tablist">{([['trades','Obchody'],['stats','Statistiky']] as [Tab,string][]).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>setTab(k)}>{l}</button>)}</div></div>
+  {banner}<div className="j-head"><h1>Deník obchodů</h1><div className="j-tabs" role="tablist">{([['trades','Obchody'],['stats','Statistiky'],['open',openData?`Otevřené (${openCount})`:'Otevřené']] as [Tab,string][]).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>setTab(k)}>{l}</button>)}</div></div>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  {!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p></div>:<>
+  {tab==='open'?<>{(data.accounts.length>1||filter.account!=='all')&&<div className="j-filters"><label className="j-field"><span>Účet</span><select value={filter.account} onChange={e=>setFilter(f=>({...f,account:e.target.value}))}><option value="all">Všechny</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}{trades.some(t=>t.source==='manual')&&<option value="manual">Ručně</option>}</select></label></div>}<OpenPositionsTab data={openData} now={openNow} account={filter.account} onOpen={id=>open('mt:'+id)}/></>:!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p></div>:<>
    <Filters filter={filter} onChange={setFilter} trades={trades} accounts={data.accounts}/>
    {tab==='trades'?<TradesTable trades={list} currency={data.currency} onOpen={open}/>:<StatsView trades={list} currency={data.currency}/>}
   </>}

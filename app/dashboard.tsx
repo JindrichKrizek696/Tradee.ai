@@ -2,6 +2,7 @@
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
 import {useId,useRef,useState} from 'react';
 import {MyTrading} from './my-trading';
+import {OpenPositionsCard} from './open-positions';
 import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
@@ -73,7 +74,7 @@ function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail
 
 export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
- const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0);
+ const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0),[account,setAccount]=useState('all');
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
  const events=upcomingCalendar(calendar,now,6),next=events.find(e=>Date.parse(e.at)>=now&&(e.signal===3||e.global))||events.find(e=>Date.parse(e.at)>=now);
  const today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7)),stats=monthStats(trades,y,mo),month=months[mo-1].toLowerCase();
@@ -99,9 +100,10 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
   </header>
 
   <div className="d-bento">
-   <MyTrading now={now} rev={rev} style={tile(0)} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+   <MyTrading now={now} rev={rev} style={tile(0)} onAccount={setAccount} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+   <OpenPositionsCard account={account} style={tile(1)}/>
 
-   <section className="d-card d-pulse" style={tile(1)}>
+   <section className="d-card d-pulse" style={tile(2)}>
     <div className="d-head"><h2>Šíře trhu</h2><span className="d-meta">{b.scored?b.scored+' trhů se skóre':'Podklady jsou starší než limit'}{trail.length?' · snímek '+day(trail[trail.length-1].at):''}</span></div>
     <div className="d-pulse-body">
      <div className="d-gaugebox">
@@ -122,7 +124,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     {net.length>1&&<div className="d-bleed d-netwrap"><NetBars values={net} bull={bullT} bear={bearT} ats={trail.map(t=>t.at)}/><div className="d-axis d-netcap"><span>Čistá převaha bullish − bearish · {net.length} snímků · najeď na sloupec pro detail</span></div></div>}
    </section>
 
-   {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(2)}>
+   {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(3)}>
     <div className="d-head"><h2>Co se dnes hýbe</h2><LiveBadge live={liveData} quote={newest(liveData)}/></div>
     <div className="d-mv-cols">
      {([['Rostou',rise],['Padají',fall]] as const).map(([label,list])=><div key={label} className="d-mv-col"><h3>{label}</h3>
@@ -134,7 +136,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     </div>}
    </section>}
 
-   <section className="d-card d-watch" style={tile(3)}>
+   <section className="d-card d-watch" style={tile(4)}>
     <div className="d-head">
      <div className="d-seg" role="tablist" aria-label="Směr">{(['bull','bear'] as const).map(s=><button key={s} type="button" role="tab" aria-selected={side===s} className={side===s?'on':''} onClick={()=>setSide(s)}><span className={'d-key '+s}/>{s==='bull'?'Nejsilnější long':'Nejsilnější short'}</button>)}</div>
      <div className="d-chips" role="tablist" aria-label="Skupina trhů">{['all',...signalGroups].map(g=><button key={g} type="button" role="tab" aria-selected={group===g} className={group===g?'on':''} onClick={()=>setGroup(g)}>{g==='all'?'Vše':groups[g]}</button>)}</div>
@@ -148,7 +150,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     <div className="d-foot"><span>Skóre −100 až +100 · křivka = posledních 30 dní</span><button type="button" className="d-link" onClick={()=>setView('analyzer')}>Všechny trhy <ChevronRight size={14}/></button></div>
    </section>
 
-   <section className="d-card d-ccy" style={tile(4)}>
+   <section className="d-card d-ccy" style={tile(5)}>
     <div className="d-head"><h2>Síla měn</h2><span className="d-meta">každá proti 7 ostatním</span></div>
     {ccy.length?<div className="d-vbars">{ccy.map(r=>{const v=r.r.score as number,h=Math.min(50,Math.abs(v)/ccyScale*50);return <button key={r.id} type="button" className="d-vbar" onClick={()=>open(r.id)} title={r.name+' · '+fmt(v)}>
      <span className="d-vbar-plot"><i className={v>=0?'pos':'neg'} style={{height:h+'%'}}/><em className={tone(v)} style={v>=0?{bottom:`calc(50% + ${h}% + 4px)`}:{top:`calc(50% + ${h}% + 4px)`}}>{fmt(v)}</em></span>
@@ -156,9 +158,9 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     </button>})}</div>:<p className="d-empty">Indexy měn zatím nemají skóre.</p>}
    </section>
 
-   <div className="d-cal" style={tile(5)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={async()=>{await reloadTrades();setRev(r=>r+1)}}/></div>
+   <div className="d-cal" style={tile(6)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={async()=>{await reloadTrades();setRev(r=>r+1)}}/></div>
 
-   <section className="d-card d-perf" style={tile(6)}>
+   <section className="d-card d-perf" style={tile(7)}>
     <div className="d-head"><h2>Statistiky · {month}</h2></div>
     {tradeError?<p className="d-empty">Deník obchodů se nepodařilo načíst.</p>:!stats.count?<p className="d-empty">Statistiky se ukážou po prvním obchodu v měsíci.</p>:<>
      <div className="d-ringbox"><Ring pct={stats.winRate}/><div><b>{Math.round(stats.winRate)} %</b><span>úspěšnost · {stats.wins} z {stats.count} obchodů v zisku</span></div></div>
