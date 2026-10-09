@@ -33,7 +33,7 @@ export function NotifySettings(){
    if(sub){const endpoint=sub.endpoint;await sub.unsubscribe();await fetch('/api/push',{method:'DELETE',headers:json,body:JSON.stringify({endpoint})})}}catch{}
   setHere(false);
  };
- const flipPush=async()=>{if(busy)return;setBusy(true);setMsg('');try{if(n.push&&here)await pushOff();else await pushOn()}catch{setMsg('Push se nepodařilo nastavit. Zkus to znovu.')}setBusy(false)};
+ const flipPush=async()=>{if(busy)return;setBusy(true);setMsg('');try{if(n.push&&here)await pushOff();else await pushOn()}catch(e){const brave=!!(navigator as Navigator&{brave?:unknown}).brave,push=e instanceof DOMException&&(e.name==='AbortError'||e.name==='NotAllowedError'||/push service/i.test(e.message));setMsg(brave&&push?'Brave má push vypnutý: v brave://settings/privacy zapni „Use Google services for push messaging“, restartuj prohlížeč a zkus to znovu.':push?'Prohlížeč odmítl push službu ('+(e as DOMException).name+'). Zkus Chrome, Edge nebo Firefox.':'Push se nepodařilo nastavit. Zkus to znovu.')}setBusy(false)};
  const pushChecked=n.push&&here,state=pushChecked?'Zapnuto na tomto zařízení':n.push?'Na tomto zařízení zatím vypnuto':'';
  const sw=(label:string,on:boolean,onClick:()=>void)=><button type="button" role="switch" aria-checked={on} className={'ns-row'+(on?' on':'')} disabled={busy} onClick={onClick}><span>{label}</span><i aria-hidden="true"/></button>;
  return <div className="ns" role="group" aria-label="Upozornění">
