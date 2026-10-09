@@ -1,0 +1,44 @@
+/* Stránka Nastavení – barvy jen z tokenů */
+.nv-title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.nv-title h2{margin:0 0 12px}
+.nv-status{font-size:14px;color:var(--t-muted)}
+.nv-status.err{color:var(--bear)}
+.nv-stage{--notch:color-mix(in srgb,var(--t-surface-3) 55%,var(--t-surface));--notch-line:#0b0c0e3d;--notch-shadow:#0b0c0e1f;--notch-r:14px;display:flex;justify-content:center;padding:0 var(--notch-r) 14px;margin:6px 0 14px;border-radius:14px;background:var(--t-surface-2);border:1px solid var(--t-border);overflow-x:auto;scrollbar-width:none}
+:root[data-theme=dark] .nv-stage{--notch-line:#ffffff30;--notch-shadow:#000}
+.nv-stage .t-nav{flex:none}
+@media(min-width:901px){
+ .nv-stage{overflow:visible;padding-top:0}
+ .nv-stage .t-nav{position:relative;overflow:visible;gap:4px;height:54px;padding:8px 10px 10px;border:0;border-radius:0 0 20px 20px;background:var(--notch);box-shadow:none;filter:drop-shadow(0 0 .6px var(--notch-line)) drop-shadow(0 10px 22px var(--notch-shadow))}
+ .nv-stage .t-nav::before,.nv-stage .t-nav::after{content:'';position:absolute;top:0;width:var(--notch-r);height:var(--notch-r);pointer-events:none}
+ .nv-stage .t-nav::before{left:calc(-1*var(--notch-r));background:radial-gradient(circle at 0 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
+ .nv-stage .t-nav::after{right:calc(-1*var(--notch-r));background:radial-gradient(circle at 100% 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
+ .nv-stage .t-nav button.active{background:var(--t-surface);box-shadow:0 0 0 1px var(--t-border)}
+}
+@media(max-width:760px){.nv-stage .t-nav button svg{display:none}.nv-stage .t-nav button{padding:0 10px;font-size:13px}}
+.nv-stage .t-nav button{pointer-events:none}
+.nv-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.nv-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--t-border);border-radius:14px;background:var(--t-surface);transition:opacity .15s,box-shadow .15s}
+.nv-row.off .nv-name,.nv-row.off>svg{color:var(--t-muted)}
+.nv-row.drag{box-shadow:0 8px 20px -10px #0b0c0e55;border-color:var(--t-border-strong);background:var(--t-surface-2)}
+.nv-name{flex:1;min-width:0;font-weight:600}
+.nv-grip{display:grid;place-items:center;width:34px;height:34px;margin:-4px 0 -4px -6px;color:var(--t-muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:9px}
+.nv-grip:hover{background:var(--t-surface-3);color:var(--t-fg)}
+.nv-row.drag .nv-grip{cursor:grabbing}
+.nv-list{touch-action:pan-y}
+.mt-icon:disabled{opacity:.35;cursor:default}
+.nv-switch{position:relative;flex:none;width:42px;height:24px;padding:0;border:0;border-radius:9999px;background:var(--t-border-strong);transition:background .15s}
+.nv-switch i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--t-surface);transition:transform .15s}
+.nv-switch[aria-checked=true]{background:var(--bull)}
+.nv-switch[aria-checked=true] i{transform:translateX(18px)}
+.nv-switch:disabled{opacity:.5;cursor:not-allowed}
+.nv-foot{margin-top:14px}
+.nv-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.nv-line>span{font-weight:600}
+.mt-chips button{display:inline-flex;align-items:center;gap:6px}
+/* PalettePicker a NotifySettings jsou původně rozbalovací menu – tady jako běžný obsah karty */
+.nv-embed .p-picker,.p-picker.nv-embed{position:static;width:auto;padding:0;border:0;box-shadow:none;background:none}
+.nv-embed .p-picker{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+.nv-embed .p-picker>b,.nv-embed .p-picker>.p-error{grid-column:1/-1}
+.p-picker.nv-embed .ns{margin-top:0;padding-top:0;border-top:0;max-width:420px}
+.p-picker.nv-embed .ns>b{display:none}
+@media(max-width:640px){.nv-row{gap:6px;padding:8px}.nv-line{align-items:flex-start}.nv-stage{justify-content:flex-start}}

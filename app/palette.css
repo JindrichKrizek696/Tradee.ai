@@ -44,3 +44,6 @@
 .ns-row i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--t-surface);transition:transform .15s}
 .ns-row.on i{background:var(--t-brand-fg)}.ns-row.on i::after{transform:translateX(12px)}
 .ns-row:disabled{opacity:.6;cursor:default}
+/* menu avatara jen s odkazy */
+.p-menu{width:230px}
+.p-menu .p-link:first-child{border-top:0;margin-top:0}
