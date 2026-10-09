@@ -1,12 +1,13 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {Activity,Wallet,ShieldAlert,ShieldOff,Clock,CircleAlert,ChevronRight,type LucideIcon} from 'lucide-react';
-import {levelBar,summarize,type OpenPosition} from '@/lib/positions/open';
+import {levelBar,summarize,type riskSummary,type OpenPosition} from '@/lib/positions/open';
 import {fmtHold,fmtR,plural} from '@/lib/journal/format';
 import {fmtMoney,fmtAmount} from '@/lib/trades';
 import {fmtPrice} from './live';
 import './open-positions.css';
-type Data={currency:string;positions:OpenPosition[];summary:ReturnType<typeof summarize>};
+export type OpenData={currency:string;positions:OpenPosition[];summary:ReturnType<typeof summarize>}&ReturnType<typeof riskSummary>;
+type Data=OpenData;
 const tone=(n:number|null)=>!n?'':n>0?'up':'down';
 const POS=['otevřená pozice','otevřené pozice','otevřených pozic'] as const;
 // objem: celé loty skloňovat (1 lot · 2 loty · 5 lotů), desetinné „0,5 lotu“

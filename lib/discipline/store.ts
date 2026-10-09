@@ -120,10 +120,16 @@ export async function evaluateAccount(d:Db,userId:string,accountId:string,ticket
  const toTrade=(r:PosRow,k:string):EvalTrade=>({id:r.id,accountId,side:r.side==='sell'?'sell':'buy',status:r.status==='closed'?'closed':'open',openTs:Number(r.open_ts),closeTs:num(r.close_ts),openPrice:Number(r.open_price),slInitial:effectiveLevel(num(r.sl_initial),changes.get(r.id)||[],Number(r.open_ts)),tpInitial:effectiveLevel(num(r.tp_initial),tpChanges.get(r.id)||[],Number(r.open_ts)),riskPct:num(r.risk_pct),net:Number(r.net)||0,closeReason:r.close_reason,balanceStart:balances.get(k)??null,slChanges:changes.get(r.id)||[],currencies:currenciesOf(r.symbol)});
  const dayTrades=new Map<string,EvalTrade[]>();
  for(const [k,rows] of byDay)dayTrades.set(k,rows.map(r=>toTrade(r,k)));
+ // max_total_risk: jeden dotaz na všechny pozice účtu překrývající okno vyhodnocovaných vstupů
+ let overlap:EvalTrade[]|undefined;
+ if(settings.max_total_risk.on&&targets.length){
+  const mn=Math.min(...targets.map(r=>Number(r.open_ts))),mx=Math.max(...targets.map(r=>Number(r.open_ts)));
+  overlap=(await d.prepare(`SELECT ${COLS} FROM mt_positions WHERE account_id=? AND open_ts<=? AND (close_ts IS NULL OR close_ts>?)`).bind(accountId,mx,mn).all<PosRow>()).results.map(r=>toTrade(r,pragueDate(Number(r.open_ts))));
+ }
  const found=new Map<string,Map<RuleId,ReturnType<typeof evaluate>[number]>>();
  for(const r of targets){
   const k=pragueDate(Number(r.open_ts)),day=dayTrades.get(k)!,t=day.find(x=>x.id===r.id)!;
-  found.set(r.id,new Map(evaluate(t,day,settings,useNews).map(v=>[v.rule,v])));
+  found.set(r.id,new Map(evaluate(t,day,settings,useNews,overlap).map(v=>[v.rule,v])));
  }
  // existující porušení cílových obchodů
  const tradeIds=targets.map(r=>'mt:'+r.id),existing=new Map<string,{id:number;rule:string;reasoned:boolean}[]>();

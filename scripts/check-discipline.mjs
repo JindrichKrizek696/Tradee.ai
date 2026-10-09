@@ -10,7 +10,7 @@ const on=(...ids)=>{const s=normalizeSettings({});for(const r of RULES)s[r.id]={
 const ev=(t,day,s=S,news=[])=>evaluate(t,day??[t],s,news);
 const has=(v,id)=>v.find(x=>x.rule===id);
 // RULES
-check('RULES: výchozí hodnoty',JSON.stringify(RULES.map(r=>[r.id,r.def.on,r.def.value,r.min??null,r.max??null,r.needsReason]))===JSON.stringify([['sl_required',true,null,null,null,false],['max_risk',true,1,0.1,20,false],['max_trades_day',true,3,1,50,false],['stop_after_losses',true,2,1,20,false],['max_daily_loss',true,2,0.1,50,false],['no_early_close',true,null,null,null,true],['no_sl_widen',true,null,null,null,true],['no_news',false,null,null,null,false]]),RULES);
+check('RULES: výchozí hodnoty',JSON.stringify(RULES.map(r=>[r.id,r.def.on,r.def.value,r.min??null,r.max??null,r.needsReason]))===JSON.stringify([['sl_required',true,null,null,null,false],['max_risk',true,1,0.1,20,false],['max_total_risk',true,3,0.5,50,false],['max_trades_day',true,3,1,50,false],['stop_after_losses',true,2,1,20,false],['max_daily_loss',true,2,0.1,50,false],['no_early_close',true,null,null,null,true],['no_sl_widen',true,null,null,null,true],['no_news',false,null,null,null,false]]),RULES);
 check('RULES: texty a jednotky',RULES.every(r=>r.label&&r.help)&&RULES.find(r=>r.id==='max_risk').unit==='%'&&RULES.find(r=>r.id==='max_trades_day').unit==='×'&&RULES.find(r=>r.id==='sl_required').unit===null);
 // sl_required
 check('sl_required: null ano',!!has(ev(tr({slInitial:null}),null,on('sl_required')),'sl_required')&&JSON.stringify(has(ev(tr({slInitial:null}),null,on('sl_required')),'sl_required').detail)==='{}');
@@ -73,13 +73,25 @@ check('stop_after_losses: dvě ztráty pak obchod ano',sl1.length===1&&sl1[0].de
  check('no_news: 10 min po ano',ev(t3,[t3],on('no_news'),nw(-10*M,['EUR'])).length===1);
  check('no_news: GBP ne',ev(t3,[t3],on('no_news'),nw(5*M,['GBP'])).length===0);
  check('no_news: instrument bez měn ne',ev(tr({openTs:open,currencies:[]}),null,on('no_news'),nw(5*M,['USD'])).length===0)}
+// max_total_risk
+{const a=tr({id:'A',openTs:T0,closeTs:null,status:'open',riskPct:1.5}),b=tr({id:'B',openTs:T0+M,closeTs:null,status:'open',riskPct:1.6}),c=tr({id:'C',openTs:T0+M,closeTs:null,status:'open',riskPct:1.4});
+ const v=evaluate(b,[a,b],on('max_total_risk'),[],[a,b]);
+ check('max_total_risk: 1.5+1.6 ano + detail',v.length===1&&v[0].rule==='max_total_risk'&&v[0].detail.totalPct===3.1&&v[0].detail.limit===3,v);
+ check('max_total_risk: 1.5+1.4 ne',evaluate(c,[a,c],on('max_total_risk'),[],[a,c]).length===0);
+ const old=tr({id:'O',openTs:T0-H,closeTs:T0+30000,riskPct:2});
+ check('max_total_risk: zavřená před vstupem se nepočítá',evaluate(c,[old,a,c],on("max_total_risk"),[],[old,a,c]).length===0);
+ const other=tr({id:'X',accountId:'a2',openTs:T0,closeTs:null,status:'open',riskPct:2});
+ check('max_total_risk: jiný účet se nepočítá',evaluate(c,[a,c],on("max_total_risk"),[],[a,c,other]).length===0);
+ check('max_total_risk: bez riskPct = 0',evaluate(b,[a,b],on('max_total_risk'),[],[a,b,tr({id:'N',openTs:T0,closeTs:null,riskPct:null})]).length===1);
+ check('max_total_risk: bez openAt se nevyhodnocuje',evaluate(b,[a,b],on('max_total_risk')).length===0);
+ check('max_total_risk: vypnuto',evaluate(b,[a,b],on(),[],[a,b]).length===0)}
 // vypnutá pravidla
 {const bad=tr({slInitial:null,riskPct:9,closeReason:'client',slChanges:[{ts:1,old:1.09,new:1.05}]});
  check('vypnutá pravidla nevrací nic',ev(bad,[bad],on(),[{at:bad.openTs,currencies:['USD']}]).length===0);
  check('výchozí nastavení najde víc porušení',ev(bad,[bad]).map(v=>v.rule).join()==='sl_required,max_risk,no_early_close,no_sl_widen')}
 // normalizeSettings
 {const d=normalizeSettings(undefined);
- check('normalize: výchozí z ničeho',d.max_risk.on===true&&d.max_risk.value===1&&d.no_news.on===false&&d.sl_required.value===null&&Object.keys(d).length===8,d);
+ check('normalize: výchozí z ničeho',d.max_risk.on===true&&d.max_risk.value===1&&d.no_news.on===false&&d.sl_required.value===null&&Object.keys(d).length===9&&d.max_total_risk.on===true&&d.max_total_risk.value===3,d);
  const n=normalizeSettings({max_risk:{on:false,value:5},max_trades_day:{value:999},max_daily_loss:{value:0},stop_after_losses:{on:'ano',value:'x'},bogus:{on:true,value:1},sl_required:{on:false,value:7}});
  check('normalize: zachová platné, ořízne meze',n.max_risk.on===false&&n.max_risk.value===5&&n.max_trades_day.value===50&&n.max_trades_day.on===true&&n.max_daily_loss.value===0.1,n);
  check('normalize: nesmysl → výchozí',n.stop_after_losses.on===true&&n.stop_after_losses.value===2,n.stop_after_losses);
