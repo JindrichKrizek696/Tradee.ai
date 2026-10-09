@@ -20,13 +20,13 @@ export const byAccount=(list:OpenPosition[],account:string)=>account==='all'?lis
 export const openTrade=(id:string)=>{location.hash='journal/'+encodeURIComponent('mt:'+id)};
 
 // Otevřené pozice z API: při připojení a každých 60 s, jen když je stránka vidět; chyba nechá poslední data.
-export function useOpenPositions(query=''){
+export function useOpenPositions(query='',enabled=true){
  const [data,setData]=useState<Data|null>(null),[now,setNow]=useState(0);
- useEffect(()=>{let live=true;
+ useEffect(()=>{if(!enabled)return;let live=true;
   const load=async()=>{try{const r=await fetch('/api/positions/open'+query,{cache:'no-store'});if(!r.ok)return;const j=await r.json() as Data;if(live){setData(j);setNow(Date.now())}}catch{}};
   load();const t=setInterval(()=>{if(document.visibilityState==='visible')load()},60_000);
   const vis=()=>{if(document.visibilityState==='visible')load()};document.addEventListener('visibilitychange',vis);
-  return()=>{live=false;clearInterval(t);document.removeEventListener('visibilitychange',vis)}},[query]);
+  return()=>{live=false;clearInterval(t);document.removeEventListener('visibilitychange',vis)}},[query,enabled]);
  return {data,now};
 }
 
@@ -65,8 +65,8 @@ function Summary({list,currency}:{list:OpenPosition[];currency:string}){
 }
 
 // Dashboard: karta pod „Můj trading“, stejný výběr účtu; bez pozic skrytá
-export function OpenPositionsCard({account,style}:{account:string;style?:React.CSSProperties}){
- const {data,now}=useOpenPositions(),list=useMemo(()=>byAccount(data?.positions||[],account),[data,account]);
+export function OpenPositionsCard({account,style,shared}:{account:string;style?:React.CSSProperties;shared?:{data:Data|null;now:number}}){
+ const own=useOpenPositions('',!shared),{data,now}=shared||own,list=useMemo(()=>byAccount(data?.positions||[],account),[data,account]);
  if(!data||!list.length)return null;
  return <section className="d-card d-op" style={style}>
   <div className="d-head"><h2>Otevřené pozice</h2><span className="d-meta">{list.length} {plural(list.length,POS)} · obnovuje se každou minutu</span></div>

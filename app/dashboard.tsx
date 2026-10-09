@@ -1,8 +1,9 @@
 'use client';
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
-import {useId,useRef,useState} from 'react';
+import {useEffect,useId,useRef,useState} from 'react';
 import {MyTrading} from './my-trading';
-import {OpenPositionsCard} from './open-positions';
+import {OpenPositionsCard,useOpenPositions} from './open-positions';
+import {useMarkets,railSummary,inTradeText,useChecklistProgress,useNarrow,PositionLine} from './flag-rail';
 import {DisciplineTile} from './discipline-tile';
 import {RiskTile} from './risk-tile';
 import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart} from 'lucide-react';
@@ -67,11 +68,12 @@ function NetBars({values,bull,bear,ats}:{values:number[];bull:number[];bear:numb
  </div>;
 }
 // Lišta zapuštěná do okraje okna: v klidu vystupuje jen úzký pruh s ikonami, po najetí se roztáhne.
-function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail:React.ReactNode;children:React.ReactNode}){
- const ref=useRef<HTMLElement>(null),inner=useRef<HTMLDivElement>(null);
+function Notch({side,label,rail,children,wide,onOpenChange}:{side:'left'|'right';label:string;rail:React.ReactNode;children:React.ReactNode;wide?:boolean;onOpenChange?:(o:boolean)=>void}){
+ const ref=useRef<HTMLElement>(null),inner=useRef<HTMLDivElement>(null),[hov,setHov]=useState(false),[foc,setFoc]=useState(false);
+ useEffect(()=>{onOpenChange?.(hov||foc)},[hov,foc]);// eslint-disable-line react-hooks/exhaustive-deps
  // Rozbalená výška podle obsahu (CSS ji omezí výškou okna), aby pod krátkým seznamem nezůstávalo prázdné místo.
  const measure=()=>{if(ref.current&&inner.current)ref.current.style.setProperty('--open-h',inner.current.offsetHeight+'px')};
- return <aside ref={ref} className={'d-notch '+side} tabIndex={0} aria-label={label} onPointerEnter={measure} onFocus={measure}><div className="d-notch-clip"><div className="d-notch-rail" aria-hidden="true">{rail}</div><div className="d-notch-panel"><div ref={inner} className="d-notch-inner">{children}</div></div></div></aside>;
+ return <aside ref={ref} className={'d-notch '+side+(wide?' wide':'')} tabIndex={0} aria-label={label} onPointerEnter={()=>{measure();setHov(true)}} onPointerLeave={()=>setHov(false)} onFocus={()=>{measure();setFoc(true)}} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setFoc(false)}}><div className="d-notch-clip"><div className="d-notch-rail" aria-hidden="true">{rail}</div><div className="d-notch-panel"><div ref={inner} className="d-notch-inner">{children}</div></div></div></aside>;
 }
 
 export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
@@ -85,6 +87,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const signalGroups=SIGNAL_GROUPS.filter(g=>rows.some(r=>r.group===g&&r.r.score)),list=topSignals(group==='all'?rows:rows.filter(r=>r.group===group),6)[side];
  const ccy=rows.filter(r=>r.group==='currency'&&r.r.score!==null).sort((a,c)=>(c.r.score as number)-(a.r.score as number)),ccyScale=Math.max(10,...ccy.map(r=>Math.abs(r.r.score as number)))*1.15;
  const watched=rows.filter(r=>FLAGS.includes(flags[r.id])).sort((a,c)=>FLAGS.indexOf(flags[a.id])-FLAGS.indexOf(flags[c.id])||a.name.localeCompare(c.name)),count=(f:string)=>watched.filter(r=>flags[r.id]===f).length;
+ const op=useOpenPositions(),marks=useMarkets(op.data),railSum=railSummary(watched.map(r=>r.id),marks),narrow=useNarrow(),[railOpen,setRailOpen]=useState(false),progress=useChecklistProgress(watched.map(r=>r.id),railOpen||narrow);
  const okSources=health.filter(h=>h.ok).length,live=sess.list.filter(x=>x.open),trail=history.snapshots.slice(-24);
  const quotes=liveData?.quotes||{},moves=rows.filter(r=>r.group!=='currency'&&quotes[r.id]).map(r=>({r,q:quotes[r.id]})),rise=moves.filter(m=>m.q.changePct>0).sort((a,c)=>c.q.changePct-a.q.changePct).slice(0,5),fall=moves.filter(m=>m.q.changePct<0).sort((a,c)=>a.q.changePct-c.q.changePct).slice(0,5);
  const strength=rows.filter(r=>r.group==='currency').map(r=>({r,v:quotes[r.id]?.changePct})).filter((x):x is {r:Row;v:number}=>x.v!==undefined).sort((a,c)=>c.v-a.v),strScale=Math.max(0.05,...strength.map(x=>Math.abs(x.v)));
@@ -103,9 +106,9 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
 
   <div className="d-bento">
    <MyTrading now={now} rev={rev} style={tile(0)} onAccount={setAccount} onPeriod={setPeriod} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
-   <OpenPositionsCard account={account} style={tile(1)}/>
+   <OpenPositionsCard account={account} style={tile(1)} shared={op}/>
    <DisciplineTile now={now} account={account} period={period} rev={rev} style={tile(2)}/>
-   <RiskTile account={account} style={tile(3)}/>
+   <RiskTile account={account} style={tile(3)} shared={op}/>
 
    <section className="d-card d-pulse" style={tile(3)}>
     <div className="d-head"><h2>Šíře trhu</h2><span className="d-meta">{b.scored?b.scored+' trhů se skóre':'Podklady jsou starší než limit'}{trail.length?' · snímek '+day(trail[trail.length-1].at):''}</span></div>
@@ -180,10 +183,11 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
   </div>
 
   <div className="d-notches">
-   <Notch side="left" label="Moje vlaječky" rail={<><Flag size={17}/>{FLAGS.map(f=><span key={f} className="d-rail-n"><i className={'d-dot '+f}/>{count(f)}</span>)}</>}>
+   <Notch side="left" wide onOpenChange={setRailOpen} label="Moje vlaječky" rail={<><Flag size={17}/>{FLAGS.map(f=><span key={f} className="d-rail-n"><i className={'d-dot '+f}/>{count(f)}</span>)}{railSum.n>0&&<span className={'d-rail-t '+railSum.tone} title={inTradeText(railSum.n,watched.length)}><i/>{railSum.n}</span>}</>}>
     <div className="d-head"><h2>Moje vlaječky</h2><button type="button" className="d-link" onClick={()=>setView('analyzer')}>Analýza trhů <ChevronRight size={14}/></button></div>
+    {op.data&&watched.length>0&&<p className="d-fl-sum"><b>{inTradeText(railSum.n,watched.length)}</b></p>}
     <div className="d-flagsum">{FLAGS.map(f=><div key={f}><i className={'d-dot '+f}/><b>{count(f)}</b><span>{FLAG_SHORT[f]}</span></div>)}</div>
-    {watched.length?<ul className="d-rows">{watched.map(r=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><Badge r={r}/><span className="d-name"><b>{r.name}</b><small><i className={'d-dot '+flags[r.id]}/>{FLAG_SHORT[flags[r.id]]}</small></span><em className={'d-score '+tone(r.r.score)}>{fmt(r.r.score)}</em></button></li>)}</ul>:<p className="d-empty">{flagsReady?'Zatím žádné vlaječky. Označ trhy v Analýze trhů.':'Vlaječky teď nejsou k dispozici.'}</p>}
+    {watched.length?<ul className="d-rows">{watched.map(r=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><Badge r={r}/><span className="d-name"><b>{r.name}</b><small><i className={'d-dot '+flags[r.id]}/>{FLAG_SHORT[flags[r.id]]}</small><PositionLine p={marks.get(r.id)}/></span><span className="d-fl-end"><em className={'d-score '+tone(r.r.score)}>{fmt(r.r.score)}</em>{progress[r.id]&&<small className={'d-fl-chk'+(progress[r.id]!.done===progress[r.id]!.total?' full':'')} title="Splněno bodů checklistu">{progress[r.id]!.done}/{progress[r.id]!.total}</small>}</span></button></li>)}</ul>:<p className="d-empty">{flagsReady?'Zatím žádné vlaječky. Označ trhy v Analýze trhů.':'Vlaječky teď nejsou k dispozici.'}</p>}
    </Notch>
    <Notch side="right" label="Trh teď: seance, události a podklady" rail={<><span className="d-rail-i"><Globe2 size={17}/>{sess.fxOpen&&<i className="live"/>}</span><span className="d-rail-i"><CalendarDays size={17}/>{events.length>0&&<em>{events.length}</em>}</span><span className="d-rail-i"><Activity size={17}/></span><span className="d-rail-i"><DatabaseZap size={17}/><i className={okSources===health.length?'live':'warn'}/></span></>}>
     <div className="d-head"><h2>Obchodní seance</h2><span className={'d-chip sm'+(sess.fxOpen?' live':'')}><i/>{sess.fxOpen?'FX otevřeno':'FX zavřeno'}</span></div>

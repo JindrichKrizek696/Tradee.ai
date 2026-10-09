@@ -4,7 +4,7 @@ import {ShieldAlert,CircleAlert} from 'lucide-react';
 import {maxPositionRisk} from '@/lib/positions/open';
 import {plural} from '@/lib/journal/format';
 import {fmtAmount,fmtMoney} from '@/lib/trades';
-import {useOpenPositions} from './open-positions';
+import {useOpenPositions,type OpenData} from './open-positions';
 import './risk-tile.css';
 const POS=['pozice','pozice','pozic'] as const,NOSL=['pozice bez SL','pozice bez SL','pozic bez SL'] as const,PROFIT=['pozice se SL v zisku','pozice se SL v zisku','pozic se SL v zisku'] as const;
 const pc=(n:number)=>n.toLocaleString('cs-CZ',{minimumFractionDigits:0,maximumFractionDigits:2})+' %';
@@ -26,8 +26,8 @@ function useLimits():Limits{
 const goOpen=()=>{try{const k='tradee.journal',v=JSON.parse(localStorage.getItem(k)||'{}');localStorage.setItem(k,JSON.stringify({...v,tab:'open'}))}catch{}location.hash='journal'};
 
 // Dashboard: otevřené riziko (součet rizika do aktuálních SL) proti limitu z pravidel; stejný výběr účtu jako ostatní dlaždice
-export function RiskTile({account,style}:{account:string;style?:React.CSSProperties}){
- const {data}=useOpenPositions(),limits=useLimits();
+export function RiskTile({account,style,shared}:{account:string;style?:React.CSSProperties;shared?:{data:OpenData|null}}){
+ const own=useOpenPositions('',!shared),{data}=shared||own,limits=useLimits();
  const view=useMemo(()=>{
   if(!data||account==='manual'||!data.accounts.length)return null;
   const all=account==='all',acc=all?null:data.accounts.find(a=>a.accountId===account);
