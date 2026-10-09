@@ -1,0 +1,25 @@
+// Kontrola textů upozornění: node --experimental-strip-types scripts/check-notify.mjs
+import {pushPayload,mailContent,mailSubject,dueForMail,pushEndpoint} from '../lib/discipline/notify.ts';
+const fails=[];
+const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
+const it=(o={})=>({id:7,tradeId:'mt:a/1',rule:'no_early_close',trade:{symbol:'NZDCHF',net:-12.5,currency:'USD'},...o});
+const p=pushPayload(it());
+check('push no_early_close',p.title==='Tradee · zdůvodni obchod'&&p.body==='Zavřel jsi NZDCHF dřív – proč?'&&p.tag==='v7'&&p.url==='https://tradee.eu/#journaling/mt%3Aa%2F1',p);
+check('push no_sl_widen',pushPayload(it({rule:'no_sl_widen'})).body==='Posunul jsi SL u NZDCHF proti sobě – proč?',pushPayload(it({rule:'no_sl_widen'})));
+check('předmět 1',mailSubject(1)==='Tradee: 1 obchod čeká na zdůvodnění',mailSubject(1));
+check('předmět 2',mailSubject(2)==='Tradee: 2 obchody čekají na zdůvodnění',mailSubject(2));
+check('předmět 5',mailSubject(5)==='Tradee: 5 obchodů čeká na zdůvodnění',mailSubject(5));
+const m=mailContent('<script>alert(1)</script>',[it({trade:{symbol:'<script>x</script>',net:5,currency:'EUR'}})]);
+check('escapování html',!m.html.includes('<script>')&&m.html.includes('&lt;script&gt;'),m.html);
+check('mail text a patička',m.text.includes('https://tradee.eu/#journaling/')&&m.text.includes('Upozornění vypneš v Tradee v menu u avataru.')&&m.html.includes('menu u avataru'),m.text);
+check('mail více položek',mailContent('Dan Slabý',[it(),it({id:8,tradeId:'mt:a/2'})]).subject==='Tradee: 2 obchody čekají na zdůvodnění','');
+const N=Date.UTC(2026,9,9,12,0,0);
+check('dueForMail null',dueForMail(null,N)===true,'');
+check('dueForMail 59 min',dueForMail(N-59*60000,N)===false,'');
+check('dueForMail 61 min',dueForMail(N-61*60000,N)===true,'');
+const pe=pushEndpoint;
+check('endpoint fcm',pe('https://fcm.googleapis.com/fcm/send/abc')==='https://fcm.googleapis.com/fcm/send/abc',pe('https://fcm.googleapis.com/fcm/send/abc'));
+check('endpoint apple',!!pe('https://web.push.apple.com/QAbc')&&!!pe('https://api.push.apple.com/3/device/x'),'');
+check('endpoint mozilla/windows',!!pe('https://updates.push.services.mozilla.com/wpush/v2/x')&&!!pe('https://wns2.notify.windows.com/x'),'');
+for(const [n,u] of [['ip','https://127.0.0.1/x'],['cesta','https://evil.com/fcm.googleapis.com'],['příbuzná doména','https://fcm.googleapis.com.evil.com/x'],['http','http://fcm.googleapis.com/x'],['user:pass','https://user:pass@fcm.googleapis.com/x'],['port','https://fcm.googleapis.com:8443/x'],['nenaslovitelné','nonsense']])check('endpoint zamítnut: '+n,pe(u)===null,pe(u));
+if(fails.length){console.log('\nSelhalo: '+fails.length);process.exit(1)}console.log('\nVše ok');

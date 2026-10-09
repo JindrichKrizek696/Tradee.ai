@@ -56,3 +56,4 @@ tsconfig.tsbuildinfo
 .superpowers/
 __pycache__/
 logs/
+.notify.env
