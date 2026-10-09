@@ -72,7 +72,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
  return <div className="j-detail">{head}
   <h1 className="j-title">{p.symbol} <span className={'j-side '+p.side}>{p.side==='buy'?'Buy':'Sell'}</span> <small>{p.acc_name} · {fmtDateTime(p.open_ts)} → {p.close_ts?fmtDateTime(p.close_ts):'otevřená'}</small></h1>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  <section className="j-card">{d.bars&&d.bars.data.length?<><TradeChart bars={d.bars.data} position={p} changes={d.changes}/><small className="j-muted">Svíčky {d.bars.tf} · čas Europe/Praha · tečkovaně nejlepší (MFE) a nejhorší (MAE) cena</small></>:<p className="j-muted">{open?'Graf bude k dispozici po uzavření obchodu.':'Graf není k dispozici – svíčky posílá EA od verze 1.1 a jen pro obchody z posledních 30 dní.'}</p>}</section>
+  <section className="j-card">{d.bars&&d.bars.data.length?<><TradeChart bars={d.bars.data} position={p} changes={d.changes}/><small className="j-muted">{open?'Obchod běží · graf se obnovuje každých 5 min, když běží EA · ':''}Svíčky {d.bars.tf} · čas Europe/Praha · tečkovaně nejlepší (MFE) a nejhorší (MAE) cena</small></>:<p className="j-muted">{open?'Graf se objeví do 5 minut, jakmile EA pošle svíčky (MetaTrader musí běžet).':'Graf není k dispozici – svíčky posílá EA od verze 1.1 a jen pro obchody z posledních 30 dní.'}</p>}</section>
   <div className="j-grid">
    <section className="j-card"><h2>Čísla</h2><dl className="j-dl">{rows.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></section>
    <section className="j-card"><h2>Průběh</h2><ol className="j-timeline">{d.changes.map((c,i)=><li key={i}><time>{fmtDateTime(c.ts)}</time><b>{KIND[c.kind]||c.kind}</b><span>{describe(c)}</span></li>)}</ol></section>

@@ -54,12 +54,15 @@ export async function upsertBars(d:Db,accountId:string,bars:BarsEvent[]){
   await d.prepare('INSERT INTO mt_position_bars(account_id,position,tf,symbol,data,updated) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE tf=VALUES(tf),symbol=VALUES(symbol),data=VALUES(data),updated=VALUES(updated)').bind(accountId,b.position,b.tf,b.symbol,data,nowSql()).run();
  }
 }
-// uzavřené pozice (všechny segmenty zavřené ≥ 5 min, ne starší 30 dní) bez svíček → řádky pro EA
+// pozice bez aktuálních svíček → řádky pro EA (ptá se každých 5 min):
+// otevřené = okno od vstupu do teď, obnova po 4 min; uzavřené (≥ 5 min, ne starší 30 dní) = bez svíček,
+// nebo svíčky stažené ještě za běhu obchodu (před koncem okna po výstupu) → jednou znovu i s výstupem
 export async function barsWanted(d:Db,accountId:string,now=Date.now()){
- const rows=(await d.prepare(`SELECT w.base,w.symbol,w.open_ts,w.close_ts FROM (SELECT SUBSTRING_INDEX(ticket,':r',1) AS base,MIN(symbol) AS symbol,MIN(open_ts) AS open_ts,MAX(close_ts) AS close_ts,SUM(status='open') AS open_n FROM mt_positions WHERE account_id=? GROUP BY base) w
+ const rows=(await d.prepare(`SELECT w.base,w.symbol,w.open_ts,w.close_ts,w.open_n FROM (SELECT SUBSTRING_INDEX(ticket,':r',1) AS base,MIN(symbol) AS symbol,MIN(open_ts) AS open_ts,MAX(close_ts) AS close_ts,SUM(status='open') AS open_n FROM mt_positions WHERE account_id=? GROUP BY base) w
   LEFT JOIN mt_position_bars b ON b.account_id=? AND b.position=w.base
-  WHERE w.open_n=0 AND w.close_ts BETWEEN ? AND ? AND b.position IS NULL ORDER BY w.close_ts DESC LIMIT 20`).bind(accountId,accountId,now-30*86400000,now-5*60000).all<{base:string;symbol:string;open_ts:number;close_ts:number}>()).results;
- return rows.map(r=>wantedLine(r.base,r.symbol,Number(r.open_ts),Number(r.close_ts))).filter((x):x is string=>x!==null);
+  WHERE (w.open_n>0 AND (b.position IS NULL OR b.updated<?)) OR (w.open_n=0 AND w.close_ts BETWEEN ? AND ? AND (b.position IS NULL OR b.updated<DATE_ADD('1970-01-01 00:00:00',INTERVAL w.close_ts DIV 1000+GREATEST((w.close_ts-w.open_ts) DIV 5000,1800) SECOND)))
+  ORDER BY w.open_n>0 DESC,w.close_ts DESC LIMIT 20`).bind(accountId,accountId,new Date(now-4*60000).toISOString().slice(0,19).replace('T',' '),now-30*86400000,now-5*60000).all<{base:string;symbol:string;open_ts:number;close_ts:number|null;open_n:number}>()).results;
+ return rows.map(r=>wantedLine(r.base,r.symbol,Number(r.open_ts),Number(r.open_n)>0?now:Number(r.close_ts))).filter((x):x is string=>x!==null);
 }
 export async function rebuildPositions(d:Db,accountId:string,positions:string[]){
  for(const p of new Set(positions)){
