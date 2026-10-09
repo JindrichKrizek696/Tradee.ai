@@ -6,6 +6,8 @@ import {fmtMoney} from '@/lib/trades';
 import {fmtHold,fmtR,fmtDateTime,fmtDate,fmtNum} from '@/lib/journal/format';
 import {checkUpload} from '@/lib/journal/rows';
 import {TradeChart} from './trade-chart';
+import {CheckSet} from '../checklist-card';
+import type {SnapshotList} from '@/lib/checklists/core';
 export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void;readOnly?:boolean;query?:string};
 const KIND:Record<string,string>={open:'Otevření',add:'Přidání',partial_close:'Částečné uzavření',close:'Uzavření',sl:'Stop loss',tp:'Take profit'};
 const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus'};
@@ -18,8 +20,13 @@ const describe=(c:JournalChange)=>c.kind==='sl'||c.kind==='tp'?`${fmtNum(c.old_v
 export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,onChanged,readOnly=false,query=''}:TradeDetailProps){
  const mt=id.startsWith('mt:'),url='/api/journal/'+encodeURIComponent(id);
  const [d,setD]=useState<JournalDetail|null>(null),[error,setError]=useState(''),[note,setNote]=useState(mt?'':trade?.note||''),[saved,setSaved]=useState(''),[tagInput,setTagInput]=useState(''),[zoom,setZoom]=useState<string|null>(null),[busy,setBusy]=useState(false);
+ const [snap,setSnap]=useState<SnapshotList[]|null>(null),[avail,setAvail]=useState(false),[ckLoaded,setCkLoaded]=useState(false),[ckBusy,setCkBusy]=useState(false);
+ async function loadCk(){try{const r=await fetch(url+'/checklist'+query,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Checklist se nepodařilo načíst.');setSnap(j.snapshot);setAvail(!!j.available);setCkLoaded(true)}catch(e){setError((e as Error).message)}}
+ async function toggleCk(ci:number,itemId:string){if(!snap)return;const before=snap,after=snap.map((l,i)=>i!==ci?l:{...l,items:l.items.map(it=>it.id===itemId?{...it,checked:!it.checked}:it)});setSnap(after);setError('');try{await send(url+'/checklist','PUT',{snapshot:after})}catch(e){setSnap(before);setError((e as Error).message)}}
+ async function fillCk(){setCkBusy(true);try{await send(url+'/checklist','POST');setError('');await loadCk()}catch(e){setError((e as Error).message)}finally{setCkBusy(false)}}
  async function load(){try{const r=await fetch(url+query,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Obchod se nepodařilo načíst.');setD(j);setNote(j.position.note||'')}catch(e){setError((e as Error).message)}}
  useEffect(()=>{if(mt)load()},[]);
+ useEffect(()=>{loadCk()},[]);
  useEffect(()=>{if(!zoom)return;const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setZoom(null)};document.addEventListener('keydown',esc);return()=>document.removeEventListener('keydown',esc)},[zoom]);
  const oldNote=mt?d?.position.note||'':trade?.note||'';
  async function saveNote(){if(note.trim()===oldNote.trim())return;try{await send(url,'PATCH',{note});setSaved('Uloženo');setError('');if(d)setD({...d,position:{...d.position,note}});onChanged()}catch(e){setError((e as Error).message)}}
@@ -30,6 +37,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
   setBusy(true);try{const fd=new FormData();fd.append('file',f);await send(url+'/files','POST',fd);setError('');await load();onChanged()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
  async function removeFile(fileId:string){if(!window.confirm('Smazat screenshot?'))return;try{await send(url+'/files','DELETE',{fileId});await load();onChanged()}catch(e){setError((e as Error).message)}}
  const noteBox=(max:number)=>readOnly?(note.trim()?<p className="j-noteview">{note}</p>:<p className="j-muted">Bez poznámky.</p>):<><textarea className="j-note" rows={5} maxLength={max} value={note} onChange={e=>{setNote(e.target.value);setSaved('')}} onBlur={saveNote} placeholder="Proč jsi vstoupil, co jsi viděl, co příště jinak…" aria-label="Poznámka k obchodu"/><small className="j-muted">{saved||`Ukládá se po kliknutí mimo pole · max. ${max} znaků`}</small></>;
+ const checklistBox=!ckLoaded?<p className="j-muted">Načítám…</p>:snap?<div className="cc-list">{snap.map((l,ci)=><CheckSet key={l.checklistId+ci} name={l.name} items={l.items} onToggle={readOnly?undefined:id=>toggleCk(ci,id)}/>)}</div>:avail?<><p className="j-muted">K obchodu není uložený checklist.</p>{!readOnly&&<button type="button" className="j-btn" disabled={ckBusy} onClick={fillCk}>{ckBusy?'Vyplňuji…':'Vyplnit checklist'}</button>}</>:readOnly?null:<p className="j-muted">Pro tento trh nemáš checklist.</p>;
  const head=<div className="j-dhead"><button type="button" className="j-back" onClick={onClose}><ArrowLeft size={16}/> Deník</button>
   <div className="j-nav"><button type="button" disabled={!prev} onClick={()=>prev&&onOpen(prev)} aria-label="Novější obchod" title="Novější obchod"><ChevronLeft size={18}/></button><button type="button" disabled={!next} onClick={()=>next&&onOpen(next)} aria-label="Starší obchod" title="Starší obchod"><ChevronRight size={18}/></button></div></div>;
  if(!mt){
@@ -39,6 +47,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    {error&&<p role="alert" className="s-notice">{error}</p>}
    <section className="j-card"><dl className="j-dl"><div><dt>Výsledek</dt><dd className={trade.pnl>0?'pos':trade.pnl<0?'neg':''}>{fmtMoney(trade.pnl,currency)}</dd></div></dl><p className="j-muted">Ruční zápis nemá vstup, výstup ani stop loss – graf a podrobná čísla jsou jen u obchodů z MetaTraderu.</p></section>
    <section className="j-card"><h2>Poznámka</h2>{noteBox(500)}</section>
+  {checklistBox&&<section className="j-card"><h2>Checklist při vstupu</h2>{checklistBox}</section>}
   </div>;
  }
  const p=d?.position;
@@ -70,6 +79,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <small className="j-muted">Tagy napsané v komentáři obchodu v MetaTraderu (#breakout) se přidají samy.</small></>}
   </section>
   <section className="j-card"><h2>Poznámka</h2>{noteBox(5000)}</section>
+  {checklistBox&&<section className="j-card"><h2>Checklist při vstupu</h2>{checklistBox}</section>}
   <section className="j-card"><h2>Screenshoty</h2>
    {d.files.length>0&&<div className="j-shots">{d.files.map(f=><figure key={f.id}><button type="button" className="j-shot" onClick={()=>setZoom('/api/journal/files/'+f.id+query)} aria-label={'Zvětšit '+f.name}><img src={'/api/journal/files/'+f.id+query} alt={f.name} loading="lazy"/></button>{!readOnly&&<button type="button" className="j-del" aria-label={'Smazat '+f.name} onClick={()=>removeFile(f.id)}><Trash2 size={14}/></button>}</figure>)}</div>}
    {readOnly?!d.files.length&&<p className="j-muted">Bez screenshotů.</p>:<>{d.files.length<5?<label className="j-btn"><Upload size={14}/> {busy?'Nahrávám…':'Nahrát screenshot'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)upload(f)}}/></label>:<p className="j-muted">K obchodu jde nahrát nejvýš 5 screenshotů.</p>}
