@@ -46,3 +46,10 @@
  .t-nav::after{right:calc(-1*var(--notch-r));background:radial-gradient(circle at 100% 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
  .t-nav button.active{background:var(--t-surface);box-shadow:0 0 0 1px var(--t-border)}
 }
+/* Přejíždějící pilulka aktivní položky navigace */
+.t-nav.has-pill{position:relative}
+.t-nav.has-pill button{position:relative;z-index:1}
+.t-nav.has-pill button.active{background:transparent;box-shadow:none}
+.t-pill{position:absolute;left:0;top:0;z-index:0;border-radius:999px;background:var(--t-surface);box-shadow:0 1px 2px #0b0c0e14,0 0 0 1px var(--t-border);pointer-events:none}
+.t-pill.on{transition:transform .5s cubic-bezier(.32,.72,0,1),width .5s cubic-bezier(.32,.72,0,1)}
+@media(prefers-reduced-motion:reduce){.t-pill.on{transition:none}}
