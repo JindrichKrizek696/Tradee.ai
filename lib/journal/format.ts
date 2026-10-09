@@ -17,3 +17,5 @@ export function pragueOffsetMs(ms:number){
  return Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-Math.floor(ms/1000)*1000;
 }
 export const tradesWord=(n:number)=>n===1?'obchod je':n>=2&&n<=4?'obchody jsou':'obchodů je';
+// česká množná čísla: 1 výhra · 2–4 výhry · 0 / 5+ výher
+export const plural=(n:number,[one,few,many]:readonly [string,string,string])=>n===1?one:n>=2&&n<=4?few:many;

@@ -1,21 +1,23 @@
 'use client';
-import {useState} from 'react';
+import {useId,useState} from 'react';
 import type {JournalTrade} from '@/lib/journal/types';
 import {summary,equityCurve,breakdown,type BreakdownBy} from '@/lib/journal/stats';
 import {fmtMoney} from '@/lib/trades';
 import {fmtHold,fmtR,fmtNum,tradesWord} from '@/lib/journal/format';
 const BY:[BreakdownBy,string][]=[['tag','Tag'],['symbol','Pár'],['side','Směr'],['weekday','Den vstupu'],['hour','Hodina vstupu'],['hold','Délka držení'],['checklist','Checklist']];
 // Kumulovaný výsledek po obchodech; najetím myší (prstem) se ukáže obchod, jeho výsledek a průběžný součet.
-export function Curve({points,currency}:{points:{ts:number;value:number}[];currency:string}){
- const [hover,setHover]=useState<number|null>(null),values=points.map(p=>p.value),n=values.length;
+// fill = plocha nad nulou zeleně / pod nulou červeně (slábne k nule), end = tečka s aktuální hodnotou na konci.
+export function Curve({points,currency,fill=false,end=false}:{points:{ts:number;value:number}[];currency:string;fill?:boolean;end?:boolean}){
+ const gid=useId(),[hover,setHover]=useState<number|null>(null),values=points.map(p=>p.value),n=values.length;
  const W=600,H=160,min=Math.min(0,...values),max=Math.max(0,...values),span=max-min||1;
  const x=(i:number)=>(i+1)/n*W,y=(v:number)=>H-4-(v-min)/span*(H-8);
  const d=`M0,${y(0).toFixed(1)}`+values.map((v,i)=>`L${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
  const pick=(e:React.PointerEvent<HTMLDivElement>)=>{const r=e.currentTarget.getBoundingClientRect();setHover(Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left)/r.width*n)-1)))};
  const p=hover===null?null:points[hover],delta=hover===null?0:values[hover]-(hover?values[hover-1]:0),hx=hover===null?0:x(hover)/W*100;
  return <div className="j-curvewrap" onPointerMove={pick} onPointerLeave={()=>setHover(null)}>
-  <svg className="j-curve" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`Kumulovaný výsledek po ${n} obchodech`}><line x1="0" x2={W} y1={y(0)} y2={y(0)} className="zero"/><path d={d} className={(values.at(-1)??0)>=0?'pos':'neg'}/>{p&&<line x1={x(hover!)} x2={x(hover!)} y1="0" y2={H} className="guide"/>}</svg>
+  <svg className="j-curve" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`Kumulovaný výsledek po ${n} obchodech`}>{fill&&<><defs><linearGradient id={gid} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2={H}><stop offset="0" style={{stopColor:'var(--bull)',stopOpacity:.32}}/><stop offset={y(0)/H} style={{stopColor:'var(--bull)',stopOpacity:.02}}/><stop offset={y(0)/H} style={{stopColor:'var(--bear)',stopOpacity:.02}}/><stop offset="1" style={{stopColor:'var(--bear)',stopOpacity:.32}}/></linearGradient></defs><path d={`${d}L${W},${y(0).toFixed(1)}Z`} className="area" style={{fill:`url(#${gid})`,stroke:"none"}}/></>}<line x1="0" x2={W} y1={y(0)} y2={y(0)} className="zero"/><path d={d} className={(values.at(-1)??0)>=0?'pos':'neg'}/>{p&&<line x1={x(hover!)} x2={x(hover!)} y1="0" y2={H} className="guide"/>}</svg>
   {p&&<span className="j-curvedot" style={{left:hx+'%',top:y(p.value)/H*100+'%'}}/>}
+  {end&&!p&&n>0&&<><span className={'j-curvedot end '+(values[n-1]>=0?'pos':'neg')} style={{left:'100%',top:y(values[n-1])/H*100+'%'}}/><b className={'j-curveend '+(values[n-1]>=0?'pos':'neg')+(y(values[n-1])/H<.25?' below':'')} style={{top:y(values[n-1])/H*100+'%'}}>{fmtMoney(values[n-1],currency)}</b></>}
   {p&&<div className="j-curvetip" role="status" style={{left:hx+'%',transform:`translateX(${hx<18?'-12%':hx>82?'-88%':'-50%'})`}}>
    <b>{hover!+1}. obchod · {new Date(p.ts).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague'})}</b>
    <span>Výsledek <em className={delta>0?'pos':delta<0?'neg':''}>{fmtMoney(delta,currency)}</em></span>
