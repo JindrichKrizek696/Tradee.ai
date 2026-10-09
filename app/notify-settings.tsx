@@ -17,8 +17,8 @@ export function NotifySettings(){
  const save=async(p:Partial<N>)=>{const r=await fetch('/api/notify',{method:'PUT',headers:json,body:JSON.stringify(p)});if(!r.ok)throw Error();const j=await r.json() as N;setN(o=>({...(o as N),...j,vapidPublic:o?.vapidPublic??null}))};
  const flip=async(k:'popup'|'mail')=>{if(busy)return;setBusy(true);setMsg('');try{await save({[k]:!n[k]})}catch{setMsg('Nastavení se nepodařilo uložit.')}setBusy(false)};
  const pushOn=async()=>{
-  if(!supported()){setMsg('Tento prohlížeč push nepodporuje.');return}
   if(ios()&&!standalone()){setMsg('Na iPhonu nejdřív přidej Tradee na plochu (Sdílet → Přidat na plochu).');return}
+  if(!supported()){setMsg('Tento prohlížeč push nepodporuje.');return}
   const perm=await Notification.requestPermission();
   if(perm!=='granted'){setMsg('Prohlížeč upozornění blokuje – povol je v nastavení prohlížeče.');return}
   const reg=await navigator.serviceWorker.register('/sw.js');await navigator.serviceWorker.ready;
@@ -45,3 +45,5 @@ export function NotifySettings(){
   {msg&&<p className="p-error" role="alert">{msg}</p>}
  </div>;
 }
+// Při odhlášení odebere odběr push z tohoto prohlížeče (best-effort), aby další uživatel na sdíleném zařízení nedostával cizí upozornění.
+export async function dropPush(){try{if(!('serviceWorker' in navigator))return;const reg=await navigator.serviceWorker.getRegistration('/sw.js'),sub=await reg?.pushManager.getSubscription();if(!sub)return;const endpoint=sub.endpoint;await Promise.race([fetch('/api/push',{method:'DELETE',headers:json,body:JSON.stringify({endpoint})}).catch(()=>{}),new Promise(r=>setTimeout(r,3000))]);await sub.unsubscribe().catch(()=>{})}catch{}}

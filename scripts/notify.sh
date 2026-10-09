@@ -6,4 +6,4 @@ cd "$(dirname "$0")/.."
 source "$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null
 exec 9>/tmp/tradee-notify.lock
 flock -n 9 || { echo "!! $(date -Is) předchozí běh ještě běží"; exit 0; }
-node --experimental-strip-types scripts/notify.mjs
+timeout 240 node --experimental-strip-types scripts/notify.mjs
