@@ -1,9 +1,10 @@
 // Disciplína: definice automatických pravidel a jejich vyhodnocení. Čisté funkce bez DB – testy scripts/check-discipline.mjs.
-export type RuleId='sl_required'|'max_risk'|'max_trades_day'|'stop_after_losses'|'max_daily_loss'|'no_early_close'|'no_sl_widen'|'no_news';
+export type RuleId='sl_required'|'max_risk'|'max_total_risk'|'max_trades_day'|'stop_after_losses'|'max_daily_loss'|'no_early_close'|'no_sl_widen'|'no_news';
 export type RuleDef={id:RuleId;label:string;unit:'%'|'×'|null;def:{on:boolean;value:number|null};min?:number;max?:number;needsReason:boolean;help:string};
 export const RULES:RuleDef[]=[
  {id:'sl_required',label:'Vždy SL',unit:null,def:{on:true,value:null},needsReason:false,help:'Obchod musí mít stop loss nastavený do 2 minut od vstupu.'},
  {id:'max_risk',label:'Max. riziko na obchod',unit:'%',def:{on:true,value:1},min:0.1,max:20,needsReason:false,help:'Riziko obchodu (vzdálenost SL × objem) nesmí překročit tento podíl zůstatku.'},
+ {id:'max_total_risk',label:'Max. celkové otevřené riziko',unit:'%',def:{on:true,value:3},min:0.5,max:50,needsReason:false,help:'Součet rizika do SL všech otevřených pozic na účtu při vstupu nesmí překročit tuto hodnotu (v % zůstatku).'},
  {id:'max_trades_day',label:'Max. obchodů za den',unit:'×',def:{on:true,value:3},min:1,max:50,needsReason:false,help:'Počet obchodů otevřených za pražský den na jednom účtu; porušením je obchod, který limit překročil.'},
  {id:'stop_after_losses',label:'Stop po ztrátách v řadě',unit:'×',def:{on:true,value:2},min:1,max:20,needsReason:false,help:'Po tomto počtu uzavřených ztrátových obchodů v řadě už ten den neotevírat další.'},
  {id:'max_daily_loss',label:'Max. denní ztráta',unit:'%',def:{on:true,value:2},min:0.1,max:50,needsReason:false,help:'Po dosažení této ztráty (v % zůstatku na začátku dne) už ten den neotevírat další obchod.'},
@@ -41,12 +42,19 @@ export function effectiveLevel(initial:number|null,changes:{ts:number;new:number
  const c=[...changes].sort((a,b)=>a.ts-b.ts).find(c=>c.new!==null&&c.new>0&&c.ts<=openTs+LEVEL_WINDOW_MS);
  return c?c.new:null;
 }
-export function evaluate(t:EvalTrade,day:EvalTrade[],s:RuleSettings,news:{at:number;currencies:string[]}[]):Violation[]{
+export function evaluate(t:EvalTrade,day:EvalTrade[],s:RuleSettings,news:{at:number;currencies:string[]}[],openAt?:EvalTrade[]):Violation[]{
  const out:Violation[]=[];const need=(id:RuleId)=>RULES.find(r=>r.id===id)!.needsReason;
  const add=(rule:RuleId,detail:Record<string,unknown>={})=>out.push({rule,detail,needsReason:need(rule)});
  const earlier=day.filter(x=>x.status==='closed'&&x.closeTs!==null&&x.closeTs<t.openTs);
  if(s.sl_required.on&&t.slInitial===null)add('sl_required');
  if(s.max_risk.on&&t.riskPct!==null&&s.max_risk.value!==null&&t.riskPct>s.max_risk.value)add('max_risk',{riskPct:t.riskPct,limit:s.max_risk.value});
+ if(s.max_total_risk.on&&s.max_total_risk.value!==null&&openAt){
+  // pozice stejného účtu otevřené v okamžiku vstupu (včetně t); riskPct null = 0
+  const live=openAt.filter(x=>x.accountId===t.accountId&&x.openTs<=t.openTs&&(x.closeTs===null||x.closeTs>t.openTs));
+  if(!live.some(x=>x.id===t.id))live.push(t);
+  const totalPct=Math.round(live.reduce((a,x)=>a+(x.riskPct||0),0)*100)/100;
+  if(totalPct>s.max_total_risk.value)add('max_total_risk',{totalPct,limit:s.max_total_risk.value});
+ }
  if(s.max_trades_day.on&&s.max_trades_day.value!==null){const n=day.findIndex(x=>x.id===t.id)+1;if(n>s.max_trades_day.value)add('max_trades_day',{n,limit:s.max_trades_day.value})}
  if(s.stop_after_losses.on&&s.stop_after_losses.value!==null){
   const seq=[...earlier].sort((a,b)=>a.closeTs!-b.closeTs!);let losses=0;

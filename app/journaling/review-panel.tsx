@@ -19,6 +19,7 @@ export function violationText(rule:string,d:Record<string,unknown>):string{
  switch(rule){
   case 'sl_required':return 'Stop loss nebyl nastaven do 2 minut od vstupu.';
   case 'max_risk':return `Riziko ${n(d.riskPct)} % (limit ${n(d.limit)} %)`;
+  case 'max_total_risk':return `Celkové otevřené riziko ${n(d.totalPct)} % (limit ${n(d.limit)} %)`;
   case 'max_trades_day':return `${n(d.n,0)}. obchod dne (limit ${n(d.limit,0)})`;
   case 'stop_after_losses':return `Další obchod po ${n(d.losses,0)} ztrátách v řadě (limit ${n(d.limit,0)})`;
   case 'max_daily_loss':return `Denní ztráta ${n(d.lossPct)} % (limit ${n(d.limit)} %)`;
