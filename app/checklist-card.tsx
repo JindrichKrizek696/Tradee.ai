@@ -35,7 +35,7 @@ export function ChecklistCard({instrument}:{instrument:string}){
  if(lists===null)return <section className="s-card"><h2>Checklist</h2><p className="j-muted">Načítám…</p></section>;
  return <section className="s-card"><h2>Checklist</h2>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  {!lists.length?<p className="j-muted">Pro tento trh nemáš checklist. <a href="/checklisty">Nastavit checklisty</a></p>
+  {!lists.length?<p className="j-muted">Pro tento trh nemáš checklist. <a href="/pravidla">Nastavit checklisty</a></p>
   :<div className="cc-list">{lists.map(l=>{const on=new Set(state[l.id]||[]);
    return <CheckSet key={l.id} name={l.name} items={l.items.map(i=>({...i,checked:on.has(i.id)}))} onToggle={id=>toggle(l,id)} extra={l.items.some(i=>on.has(i.id))&&<button type="button" className="cc-clear" onClick={()=>clear(l)}>Vymazat</button>}/>})}</div>}
  </section>;
