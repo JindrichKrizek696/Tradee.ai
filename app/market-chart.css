@@ -41,3 +41,7 @@
  .mc-controls{width:100%;justify-content:space-between}
  .mc-src{margin-left:0}
 }
+
+/* hlavička grafu má pevnou výšku řádků, aby se graf při najetí na zprávu neposouval */
+.score-v2 .mc-ohlc{min-height:20px}
+.score-v2 .mc-news-line{min-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}

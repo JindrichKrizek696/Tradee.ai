@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS market_bars (
   v DOUBLE NULL,
   PRIMARY KEY (instrument, tf, t)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS market_bars_meta (
   instrument VARCHAR(64) NOT NULL,
   tf VARCHAR(4) NOT NULL,
