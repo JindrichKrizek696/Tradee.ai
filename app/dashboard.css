@@ -35,3 +35,16 @@
 .t-page-head p{color:var(--t-muted);margin:4px 0 0;font-size:14px}
 @media(max-width:900px){.t-top{display:flex;justify-content:space-between}.t-nav button{padding:0 11px}}
 @media(max-width:760px){.t-top{padding:0 12px;gap:8px}.t-brand span{display:none}.t-main{padding:14px}.t-nav button svg{display:none}.t-nav button{padding:0 10px;font-size:13px}.t-actions{gap:2px}}
+/* Navigace jako výřez MacBooku: přirostlá k horní hraně, dole zaoblená, rohy plynule vykrojené do lišty (od 901 px) */
+@media(min-width:901px){
+ .t-top{--notch:#0b0c0e;--notch-fg:#a1a1aa;--notch-r:16px}
+ :root[data-theme=dark] .t-top{--notch:#1c1c20;--notch-fg:#8b8b94}
+ .t-nav{position:relative;align-self:start;overflow:visible;gap:4px;padding:6px 10px 8px;height:52px;border:0;border-radius:0 0 22px 22px;background:var(--notch);box-shadow:0 10px 24px -14px #0b0c0e80}
+ .t-nav::before,.t-nav::after{content:'';position:absolute;top:0;width:var(--notch-r);height:var(--notch-r);pointer-events:none}
+ .t-nav::before{left:calc(-1*var(--notch-r));background:radial-gradient(circle at 0 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
+ .t-nav::after{right:calc(-1*var(--notch-r));background:radial-gradient(circle at 100% 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
+ .t-nav button{color:var(--notch-fg)}
+ .t-nav button:hover{color:#fff;background:#ffffff14}
+ .t-nav button.active{background:#fff;color:#0b0c0e;box-shadow:none}
+ :root[data-theme=dark] .t-nav button.active{background:#f4f4f5;color:#000}
+}
