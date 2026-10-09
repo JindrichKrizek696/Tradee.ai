@@ -11,6 +11,7 @@ export const RULES:RuleDef[]=[
  {id:'no_sl_widen',label:'Neposouvat SL proti sobě',unit:null,def:{on:true,value:null},needsReason:true,help:'Stop loss se nesmí posunout dál od vstupu (buy níž, sell výš). Vyžaduje zdůvodnění.'},
  {id:'no_news',label:'Neobchodovat kolem zpráv',unit:null,def:{on:false,value:null},needsReason:false,help:'Žádný vstup do 15 minut před ani po zprávě s vysokým dopadem v měně páru.'},
 ];
+export const LIMITS={customRules:30,customText:120,strategies:50,strategyName:60};
 export type RuleSettings=Record<RuleId,{on:boolean;value:number|null}>;
 export function normalizeSettings(raw:unknown):RuleSettings{
  const o=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw as Record<string,unknown>:{};

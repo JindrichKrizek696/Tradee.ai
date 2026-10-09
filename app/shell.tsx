@@ -15,7 +15,7 @@ export function Shell({wide,view,setView,busy,onRefresh,userName,palette,onPalet
    <div className="t-actions">
     <ThemeToggle/>
     <button className={'t-icon-btn'+(busy?' spin':'')} onClick={onRefresh} disabled={busy} aria-label="Obnovit podklady" title="Obnovit podklady"><RefreshCw size={17}/></button>
-    <div className="t-avatar-wrap" ref={wrap}><button type="button" className="t-avatar" title={userName+' · barvy signálu'} aria-label={'Přihlášen: '+userName+'. Nastavení barev signálu'} aria-expanded={menu} onClick={()=>setMenu(!menu)}>{userName.trim().charAt(0).toUpperCase()}</button>{menu&&<PalettePicker value={palette} onChoose={onPalette} error={paletteError}>{admin&&<a className="p-link" href="/admin">Administrace</a>}<a className="p-link" href="/mt">Propojení s MetaTraderem</a><a className="p-link" href="/checklisty">Checklisty</a><form method="post" action="/auth/logout" className="p-logout"><button type="submit">Odhlásit</button></form></PalettePicker>}</div>
+    <div className="t-avatar-wrap" ref={wrap}><button type="button" className="t-avatar" title={userName+' · barvy signálu'} aria-label={'Přihlášen: '+userName+'. Nastavení barev signálu'} aria-expanded={menu} onClick={()=>setMenu(!menu)}>{userName.trim().charAt(0).toUpperCase()}</button>{menu&&<PalettePicker value={palette} onChoose={onPalette} error={paletteError}>{admin&&<a className="p-link" href="/admin">Administrace</a>}<a className="p-link" href="/mt">Propojení s MetaTraderem</a><a className="p-link" href="/pravidla">Pravidla a strategie</a><form method="post" action="/auth/logout" className="p-logout"><button type="submit">Odhlásit</button></form></PalettePicker>}</div>
    </div>
   </header>
   <main className={'t-main'+(wide?' wide':'')}>{children}</main>

@@ -39,7 +39,7 @@ function Editor({draft,markets,onSave,onCancel}:{draft:Draft;markets:Market[];on
   <div className="ck-foot"><button type="button" className="mt-btn dark" disabled={busy} onClick={save}>{busy?'Ukládám…':'Uložit'}</button><button type="button" className="mt-btn" disabled={busy} onClick={onCancel}>Zrušit</button></div>
  </div>;
 }
-export default function ChecklistsPage(){
+export default function ChecklistsPage({embedded=false}:{embedded?:boolean}={}){
  usePalette(); // barvy signálu podle nastavení uživatele (jinak výchozí)
  const [lists,setLists]=useState<Checklist[]>([]),[markets,setMarkets]=useState<Market[]>([]),[unmapped,setUnmapped]=useState<string[]>([]),[map,setMap]=useState<Record<string,string>>({});
  const [edit,setEdit]=useState<Draft|null>(null),[error,setError]=useState(''),[ready,setReady]=useState(false);
@@ -53,10 +53,8 @@ export default function ChecklistsPage(){
  const assign=(symbol:string,instrument:string|null)=>run(()=>call('/api/checklists/symbols','PUT',{symbol,instrument}));
  const opts=<>{markets.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</>;
  const manual=Object.entries(map);
- return <div className="mt-page">
-  <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
-  <main className="mt-main">
-   <h1>Checklisty</h1>
+ const body=<>
+   {embedded?<h2 className="rl-h2">Checklisty</h2>:<h1>Checklisty</h1>}
    <p className="mt-lead">Checklist jsou tvoje pravidla před vstupem do obchodu. Přiřaď ho k trhům, na kterých platí, a při obchodování ho jen odškrtáváš. Stav zaškrtnutí se uloží k obchodu, takže pak uvidíš, jak dodržuješ plán a jak se to promítá do statistik.</p>
    {error&&<p className="mt-alert" role="alert">{error}</p>}
    {ready&&<section className="mt-card">
@@ -82,6 +80,10 @@ export default function ChecklistsPage(){
     {manual.length>0&&<><p className="mt-lead" style={{marginTop:unmapped.length?16:0}}>Ruční přiřazení</p>
      {manual.map(([s,ins])=><div className="ck-sym" key={s}><code>{s}</code><span>{ins?names[ins]||ins:'nesledovat'}</span><button type="button" className="mt-btn" style={{height:34}} onClick={()=>assign(s,null)}>Zrušit</button></div>)}</>}
    </section>}
-  </main>
+ </>;
+ if(embedded)return body;
+ return <div className="mt-page">
+  <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
+  <main className="mt-main">{body}</main>
  </div>;
 }

@@ -2,9 +2,9 @@
 import type {Db} from '../mysql.ts';
 import {nowSql} from '../mt/store.ts';
 import {pragueDate} from '../mt/trades.ts';
-import {RULES,normalizeSettings,evaluate,effectiveLevel,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
+import {LIMITS,RULES,normalizeSettings,evaluate,effectiveLevel,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
 import type {NewsEvent} from './news.ts';
-export const LIMITS={customRules:30,customText:120,strategies:50,strategyName:60};
+export {LIMITS};
 const uid=(p:string)=>p+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,24);
 export async function getRuleSettings(d:Db,userId:string):Promise<RuleSettings>{
  const r=await d.prepare('SELECT rules FROM rules_settings WHERE user_id=?').bind(userId).first<{rules:string}>();
