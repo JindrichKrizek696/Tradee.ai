@@ -13,18 +13,23 @@ async function call<T=unknown>(url:string,method:string,body?:unknown){const r=a
 const move=<T,>(a:T[],i:number,d:number)=>{const j=i+d;if(j<0||j>=a.length)return a;const b=[...a];[b[i],b[j]]=[b[j],b[i]];return b};
 function AutoRules(){
  const [defs,setDefs]=useState<RuleDef[]>([]),[s,setS]=useState<RuleSettings|null>(null),[st,setSt]=useState<'idle'|'saving'|'saved'|'err'>('idle'),[err,setErr]=useState(''),[loadErr,setLoadErr]=useState(false);
- const timer=useRef<ReturnType<typeof setTimeout>|null>(null),seq=useRef(0);
- useEffect(()=>{fetch('/api/rules',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json() as Promise<{rules:RuleSettings;defs:RuleDef[]}>}).then(j=>{setDefs(j.defs);setS(j.rules)}).catch(()=>setLoadErr(true));return()=>{if(timer.current)clearTimeout(timer.current)}},[]);
- function change(next:RuleSettings){
-  setS(next);setSt('saving');setErr('');if(timer.current)clearTimeout(timer.current);const n=++seq.current;
-  timer.current=setTimeout(()=>{call('/api/rules','PUT',{rules:next}).then(()=>{if(n===seq.current)setSt('saved')}).catch((e:Error)=>{if(n===seq.current){setSt('err');setErr(e.message)}})},600);
+ const timer=useRef<ReturnType<typeof setTimeout>|null>(null),seq=useRef(0),pending=useRef<RuleSettings|null>(null),alive=useRef(true);
+ useEffect(()=>{alive.current=true;fetch('/api/rules',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json() as Promise<{rules:RuleSettings;defs:RuleDef[]}>}).then(j=>{setDefs(j.defs);setS(j.rules)}).catch(()=>setLoadErr(true));return()=>{alive.current=false;if(timer.current)clearTimeout(timer.current);if(pending.current)fetch('/api/rules',{method:'PUT',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({rules:pending.current})}).catch(()=>{})}},[]);
+ function send(next:RuleSettings,n:number){
+  pending.current=null;
+  call<{rules:RuleSettings}>('/api/rules','PUT',{rules:next}).then(j=>{if(alive.current&&n===seq.current){setS(j.rules);setSt('saved')}}).catch((e:Error)=>{if(alive.current&&n===seq.current){setSt('err');setErr(e.message)}});
  }
- const upd=(id:RuleId,p:Partial<{on:boolean;value:number|null}>)=>s&&change({...s,[id]:{...s[id],...p}});
+ function change(next:RuleSettings,wait:boolean){
+  setS(next);setSt('saving');setErr('');if(timer.current)clearTimeout(timer.current);const n=++seq.current;
+  if(wait){pending.current=next;timer.current=setTimeout(()=>send(next,n),600)}else send(next,n);
+ }
+ const upd=(id:RuleId,p:Partial<{on:boolean;value:number|null}>)=>s&&change({...s,[id]:{...s[id],...p}},!('on' in p));
  return <section className="mt-card">
   <div className="rl-title"><h2>Automatická pravidla</h2><span className={'rl-status'+(st==='err'?' err':'')} role="status" aria-live="polite">{st==='saving'?'Ukládám…':st==='saved'?'Uloženo':st==='err'?'Uložení se nepovedlo.':''}</span></div>
   <p className="mt-lead">Tradee každý obchod z MetaTraderu zkontroluje proti těmto pravidlům a porušení uloží k obchodu.</p>
   {err&&<p className="mt-alert" role="alert">{err}</p>}
   {loadErr&&<p className="mt-alert" role="alert">Pravidla se nepodařilo načíst. Obnov stránku.</p>}
+  {!s&&!loadErr&&<p className="mt-empty">Načítám…</p>}
   {s&&<div className="rl-list">{defs.map(r=>{const v=s[r.id];return <div className={'rl-row'+(v.on?'':' off')} key={r.id}>
    <label className="rl-switch"><input type="checkbox" role="switch" checked={v.on} onChange={e=>upd(r.id,{on:e.target.checked})} aria-label={r.label}/><span className="rl-track"/></label>
    <div className="rl-text"><div className="rl-name">{r.label}{r.needsReason&&<span className="rl-tag">chce zdůvodnění</span>}</div><div className="rl-help">{r.help}</div></div>
@@ -41,6 +46,7 @@ function CustomRules(){
   <h2>Vlastní pravidla</h2>
   <p className="mt-lead">Vlastní zásady, které Tradee nemůže ověřit samo. Budeš je moct odškrtávat při hodnocení obchodu.</p>
   {err&&<p className="mt-alert" role="alert">{err}</p>}
+  {!ready&&!err&&<p className="mt-empty">Načítám…</p>}
   {ready&&<>
    {!items.length&&<p className="mt-empty">Zatím nemáš žádné vlastní pravidlo.</p>}
    <div className="ck-points">{items.map((it,i)=><div className="ck-point rl-point" key={it.id||'n'+i}>
@@ -77,6 +83,7 @@ function Strategies(){
   <h2>Strategie</h2>
   <p className="mt-lead">Pojmenuj strategie, které obchoduješ, a u obchodů pak uvidíš, která ti vychází. Archivovaná strategie zůstane u starých obchodů.</p>
   {err&&<p className="mt-alert" role="alert">{err}</p>}
+  {!ready&&!err&&<p className="mt-empty">Načítám…</p>}
   {ready&&<>
    {!active.length&&<p className="mt-empty">Zatím nemáš žádnou aktivní strategii.</p>}
    <div className="rl-slist">{active.map(row)}</div>

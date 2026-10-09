@@ -44,8 +44,8 @@ const cleanName=(name:unknown)=>{const n=String(name??'').trim();if(!n||n.length
 // shoda názvu bez ohledu na velikost písmen (kolace general_ci) vrátí existující strategii
 export async function createStrategy(d:Db,userId:string,name:string):Promise<string>{
  const n=cleanName(name);
- const hit=await d.prepare('SELECT id FROM strategies WHERE user_id=? AND name=?').bind(userId,n).first<{id:string}>();
- if(hit)return hit.id;
+ const hit=await d.prepare('SELECT id,archived FROM strategies WHERE user_id=? AND name=?').bind(userId,n).first<{id:string;archived:number|boolean}>();
+ if(hit){if(Number(hit.archived))await d.prepare('UPDATE strategies SET archived=0 WHERE id=? AND user_id=?').bind(hit.id,userId).run();return hit.id}
  const c=await d.prepare('SELECT COUNT(*) AS n FROM strategies WHERE user_id=?').bind(userId).first<{n:number}>();
  if(Number(c?.n||0)>=LIMITS.strategies)throw new Error(`Nejvýš ${LIMITS.strategies} strategií.`);
  const id=uid('str');
@@ -90,7 +90,7 @@ async function balanceAt(d:Db,accountId:string,start:number,end:number):Promise<
  return null;
 }
 /** Vyhodnotí pozice MT účtu proti pravidlům uživatele. `tickets` = základní tikety pozic (jako u rebuildPositions, segmenty :rN se přiřadí samy); bez nich všechny pozice účtu. Nová porušení přidá (INSERT IGNORE), existující se nepřepisují; porušení, které přestalo platit a nemá zdůvodnění, smaže (jen u zapnutých pravidel). */
-export async function evaluateAccount(d:Db,userId:string,accountId:string,tickets?:string[],news:NewsEvent[]=[]):Promise<{evaluated:number;added:number;removed:number}>{
+export async function evaluateAccount(d:Db,userId:string,accountId:string,tickets?:string[],news:()=>NewsEvent[]=()=>[]):Promise<{evaluated:number;added:number;removed:number}>{
  const base=tickets?[...new Set(tickets.filter(t=>t&&t!=='0'))]:undefined;
  if(base&&!base.length)return {evaluated:0,added:0,removed:0};
  const settings=await getRuleSettings(d,userId);
@@ -115,7 +115,7 @@ export async function evaluateAccount(d:Db,userId:string,accountId:string,ticket
  for(const r of all){const k=pragueDate(Number(r.open_ts));(byDay.get(k)||byDay.set(k,[]).get(k)!).push(r)}
  const balances=new Map<string,number|null>();
  if(settings.max_daily_loss.on)for(const k of new Set(targets.map(r=>pragueDate(Number(r.open_ts)))))balances.set(k,await balanceAt(d,accountId,pragueDayStart(k),pragueDayStart(nextDate(k))));
- const useNews=settings.no_news.on?news:[];
+ const useNews=settings.no_news.on?news():[];
  const toTrade=(r:PosRow,k:string):EvalTrade=>({id:r.id,accountId,side:r.side==='sell'?'sell':'buy',status:r.status==='closed'?'closed':'open',openTs:Number(r.open_ts),closeTs:num(r.close_ts),openPrice:Number(r.open_price),slInitial:effectiveLevel(num(r.sl_initial),changes.get(r.id)||[],Number(r.open_ts)),tpInitial:effectiveLevel(num(r.tp_initial),tpChanges.get(r.id)||[],Number(r.open_ts)),riskPct:num(r.risk_pct),net:Number(r.net)||0,closeReason:r.close_reason,balanceStart:balances.get(k)??null,slChanges:changes.get(r.id)||[],currencies:currenciesOf(r.symbol)});
  const dayTrades=new Map<string,EvalTrade[]>();
  for(const [k,rows] of byDay)dayTrades.set(k,rows.map(r=>toTrade(r,k)));
