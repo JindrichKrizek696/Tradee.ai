@@ -2,7 +2,7 @@
 import {toJournalTrades,mtRowToTrade,manualRowToTrade,cleanTags,cleanNote,parseJournalId,checkUpload,splitTags} from '../lib/journal/rows.ts';
 import {fmtHold,fmtR,fmtDate,pragueOffsetMs,tradesWord} from '../lib/journal/format.ts';
 import {makeRates} from '../lib/fx.ts';
-import {filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER} from '../lib/journal/stats.ts';
+import {currentStreak,periodRange,filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER} from '../lib/journal/stats.ts';
 import {chartTime,snapper,candles,levelSteps,tradeMarkers,pricePrecision} from '../lib/journal/chart-data.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -125,4 +125,17 @@ const mk2=tradeMarkers('sell',[{ts:b0+120000,kind:'close',old_value:null,new_val
 check('značky: pořadí, tvar u sell',mk2.length===3&&mk2[0].text==='Vstup 1'&&mk2[0].shape==='arrowDown'&&mk2[0].position==='aboveBar'&&mk2[2].shape==='arrowUp'&&mk2[2].text==='Výstup 0.5',mk2);
 
 check('přesnost cen',pricePrecision([0.47108,0.4679,0.47])===5&&pricePrecision([157.123,157.1])===3&&pricePrecision([2650,2651.5])===1&&pricePrecision([1e-7])===6&&pricePrecision([])===0,[pricePrecision([0.47108,0.4679]),pricePrecision([157.123])]);
+// --- série bez nul, aktuální série, týden
+const st=(id,day,pnl)=>({...A,id,date:`2026-10-${String(day).padStart(2,'0')}`,closeTs:Date.UTC(2026,9,day,10),pnl});
+const zz=[st('z1',1,10),st('z2',2,0),st('z3',3,5),st('z4',4,-3),st('z5',5,0),st('z6',6,-1)];
+const sz=summary(zz);
+check('série: nula nepřeruší',sz.maxWinStreak===2&&sz.maxLossStreak===2,sz);
+check('aktuální série: prohry přes nulu',JSON.stringify(currentStreak(zz))==='{"kind":"loss","count":2}',currentStreak(zz));
+check('aktuální série: výhry',JSON.stringify(currentStreak([st('a',1,-1),st('b',2,5),st('c',3,1)]))==='{"kind":"win","count":2}');
+check('aktuální série: jen nuly / prázdné',JSON.stringify(currentStreak([st('a',1,0)]))==='{"kind":null,"count":0}'&&JSON.stringify(currentStreak([]))==='{"kind":null,"count":0}');
+check('aktuální série: pořadí podle zavření',currentStreak([st('b',5,-2),st('a',4,3)]).kind==='loss');
+check('týden od pondělí',JSON.stringify(periodRange(F({period:'week'}),Date.UTC(2026,9,8,10)))==='["2026-10-05","2026-10-08"]',periodRange(F({period:'week'}),Date.UTC(2026,9,8,10)));
+check('týden: neděle patří k týdnu od pondělí',periodRange(F({period:'week'}),Date.UTC(2026,9,11,20))[0]==='2026-10-05');
+check('týden: pondělí po půlnoci v Praze',periodRange(F({period:'week'}),Date.UTC(2026,9,11,22,30))[0]==='2026-10-12');
+check('týden přes změnu času',periodRange(F({period:'week'}),Date.UTC(2026,9,26,10))[0]==='2026-10-26');
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
