@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,ChevronLeft,ChevronRight,Trash2,Upload,X} from 'lucide-react';
 import type {JournalChange,JournalDetail,JournalTrade} from '@/lib/journal/types';
 import {fmtMoney} from '@/lib/trades';
@@ -20,10 +20,12 @@ const describe=(c:JournalChange)=>c.kind==='sl'||c.kind==='tp'?`${fmtNum(c.old_v
 export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,onChanged,readOnly=false,query=''}:TradeDetailProps){
  const mt=id.startsWith('mt:'),url='/api/journal/'+encodeURIComponent(id);
  const [d,setD]=useState<JournalDetail|null>(null),[error,setError]=useState(''),[note,setNote]=useState(mt?'':trade?.note||''),[saved,setSaved]=useState(''),[tagInput,setTagInput]=useState(''),[zoom,setZoom]=useState<string|null>(null),[busy,setBusy]=useState(false);
- const [snap,setSnap]=useState<SnapshotList[]|null>(null),[avail,setAvail]=useState(false),[ckLoaded,setCkLoaded]=useState(false),[ckBusy,setCkBusy]=useState(false);
- async function loadCk(){try{const r=await fetch(url+'/checklist'+query,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Checklist se nepodařilo načíst.');setSnap(j.snapshot);setAvail(!!j.available);setCkLoaded(true)}catch(e){setError((e as Error).message)}}
- async function toggleCk(ci:number,itemId:string){if(!snap)return;const before=snap,after=snap.map((l,i)=>i!==ci?l:{...l,items:l.items.map(it=>it.id===itemId?{...it,checked:!it.checked}:it)});setSnap(after);setError('');try{await send(url+'/checklist','PUT',{snapshot:after})}catch(e){setSnap(before);setError((e as Error).message)}}
- async function fillCk(){setCkBusy(true);try{await send(url+'/checklist','POST');setError('');await loadCk()}catch(e){setError((e as Error).message)}finally{setCkBusy(false)}}
+ const [snap,setSnap]=useState<SnapshotList[]|null>(null),[avail,setAvail]=useState(false),[ckLoaded,setCkLoaded]=useState(false),[ckBusy,setCkBusy]=useState(false),[ckErr,setCkErr]=useState(''),ckChain=useRef<Promise<unknown>>(Promise.resolve()),ckCur=useRef<SnapshotList[]|null>(null);
+ async function loadCk(){try{const r=await fetch(url+'/checklist'+query,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Checklist se nepodařilo načíst.');ckCur.current=j.snapshot;setSnap(j.snapshot);setAvail(!!j.available);setCkErr('')}catch(e){setCkErr((e as Error).message)}finally{setCkLoaded(true)}}
+ // PUT se posílají postupně (starší nepřepíše novější); při chybě se snímek načte ze serveru
+ function toggleCk(ci:number,itemId:string){const base=ckCur.current;if(!base)return;const after=base.map((l,i)=>i!==ci?l:{...l,items:l.items.map(it=>it.id===itemId?{...it,checked:!it.checked}:it)});ckCur.current=after;setSnap(after);setError('');
+  ckChain.current=ckChain.current.then(async()=>{try{await send(url+'/checklist','PUT',{snapshot:after});onChanged()}catch(e){setError((e as Error).message);await loadCk()}})}
+ async function fillCk(){setCkBusy(true);try{await send(url+'/checklist','POST');setError('');await loadCk();onChanged()}catch(e){setError((e as Error).message)}finally{setCkBusy(false)}}
  async function load(){try{const r=await fetch(url+query,{cache:'no-store'});const j=await r.json() as any;if(!r.ok)throw Error(j.error||'Obchod se nepodařilo načíst.');setD(j);setNote(j.position.note||'')}catch(e){setError((e as Error).message)}}
  useEffect(()=>{if(mt)load()},[]);
  useEffect(()=>{loadCk()},[]);
@@ -37,7 +39,8 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
   setBusy(true);try{const fd=new FormData();fd.append('file',f);await send(url+'/files','POST',fd);setError('');await load();onChanged()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
  async function removeFile(fileId:string){if(!window.confirm('Smazat screenshot?'))return;try{await send(url+'/files','DELETE',{fileId});await load();onChanged()}catch(e){setError((e as Error).message)}}
  const noteBox=(max:number)=>readOnly?(note.trim()?<p className="j-noteview">{note}</p>:<p className="j-muted">Bez poznámky.</p>):<><textarea className="j-note" rows={5} maxLength={max} value={note} onChange={e=>{setNote(e.target.value);setSaved('')}} onBlur={saveNote} placeholder="Proč jsi vstoupil, co jsi viděl, co příště jinak…" aria-label="Poznámka k obchodu"/><small className="j-muted">{saved||`Ukládá se po kliknutí mimo pole · max. ${max} znaků`}</small></>;
- const checklistBox=!ckLoaded?<p className="j-muted">Načítám…</p>:snap?<div className="cc-list">{snap.map((l,ci)=><CheckSet key={l.checklistId+ci} name={l.name} items={l.items} onToggle={readOnly?undefined:id=>toggleCk(ci,id)}/>)}</div>:avail?<><p className="j-muted">K obchodu není uložený checklist.</p>{!readOnly&&<button type="button" className="j-btn" disabled={ckBusy} onClick={fillCk}>{ckBusy?'Vyplňuji…':'Vyplnit checklist'}</button>}</>:readOnly?null:<p className="j-muted">Pro tento trh nemáš checklist.</p>;
+ const ckTotal=snap?snap.reduce((a,l)=>a+l.items.length,0):0,ckDone=snap?snap.reduce((a,l)=>a+l.items.filter(i=>i.checked).length,0):0;
+ const checklistBox=!ckLoaded?<p className="j-muted">Načítám…</p>:ckErr&&!snap?<p className="j-muted">{ckErr}</p>:snap?<><p className="cc-count">Celkem {ckDone} / {ckTotal} splněno</p><div className="cc-list">{snap.map((l,ci)=><CheckSet key={l.checklistId+ci} name={l.name} items={l.items} onToggle={readOnly?undefined:id=>toggleCk(ci,id)}/>)}</div></>:avail?<><p className="j-muted">K obchodu není uložený checklist.</p>{!readOnly&&<button type="button" className="j-btn" disabled={ckBusy} onClick={fillCk}>{ckBusy?'Vyplňuji…':'Vyplnit checklist'}</button>}</>:readOnly?null:<p className="j-muted">Pro tento trh nemáš checklist.</p>;
  const head=<div className="j-dhead"><button type="button" className="j-back" onClick={onClose}><ArrowLeft size={16}/> Deník</button>
   <div className="j-nav"><button type="button" disabled={!prev} onClick={()=>prev&&onOpen(prev)} aria-label="Novější obchod" title="Novější obchod"><ChevronLeft size={18}/></button><button type="button" disabled={!next} onClick={()=>next&&onOpen(next)} aria-label="Starší obchod" title="Starší obchod"><ChevronRight size={18}/></button></div></div>;
  if(!mt){

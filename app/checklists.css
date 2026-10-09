@@ -22,6 +22,6 @@
 .ck-foot{display:flex;gap:8px;flex-wrap:wrap}
 .ck-sym{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--t-border)}
 .ck-sym code{background:var(--t-surface-3);border-radius:6px;padding:1px 6px;font-size:13px;color:var(--t-fg-2);min-width:90px}
-.ck-sym select{flex:0 1 240px!important}
+.mt-card .ck-sym select{flex:0 1 240px}
 .ck-sym span{color:var(--t-muted);font-size:14px}
-@media (max-width:640px){.ck-item,.mt-card{padding:14px}.ck-sym select{flex:1 1 100%!important}}
+@media (max-width:640px){.ck-item,.mt-card{padding:14px}.mt-card .ck-sym select{flex:1 1 100%}}

@@ -26,7 +26,7 @@ function Editor({draft,markets,onSave,onCancel}:{draft:Draft;markets:Market[];on
   <label>Název<input type="text" value={d.name} maxLength={LIMITS.name} onChange={e=>setD({...d,name:e.target.value})} placeholder="např. Pravidla před vstupem"/></label>
   <div><div className="ck-sub">Body ({d.items.length}/{LIMITS.items})</div>
    <div className="ck-points" style={{marginTop:6}}>{d.items.map((it,i)=><div className="ck-point" key={i}>
-    <input type="text" value={it.text} maxLength={LIMITS.item} onChange={e=>setItem(i,e.target.value)} placeholder={`Bod ${i+1}`} aria-label={`Bod ${i+1}`} style={{height:40,padding:'0 14px',border:'1px solid var(--t-border)',borderRadius:9999,background:'var(--t-surface)',color:'var(--t-fg)',font:'inherit',minWidth:0}}/>
+    <input type="text" value={it.text} maxLength={LIMITS.item} onChange={e=>setItem(i,e.target.value)} placeholder={`Bod ${i+1}`} aria-label={`Bod ${i+1}`}/>
     <button type="button" className="mt-icon" aria-label="Posunout nahoru" disabled={i===0} onClick={()=>setD({...d,items:move(d.items,i,-1)})}><ArrowUp size={14}/></button>
     <button type="button" className="mt-icon" aria-label="Posunout dolů" disabled={i===d.items.length-1} onClick={()=>setD({...d,items:move(d.items,i,1)})}><ArrowDown size={14}/></button>
     <button type="button" className="mt-icon" aria-label="Odebrat bod" onClick={()=>setD({...d,items:d.items.filter((_,k)=>k!==i)})}><X size={14}/></button>
@@ -67,7 +67,7 @@ export default function ChecklistsPage(){
       <div className="ck-head"><h3>{l.name}</h3><div className="ck-actions">
        <button type="button" className="mt-icon" aria-label="Posunout nahoru" disabled={i===0} onClick={()=>reorder(i,-1)}><ArrowUp size={14}/></button>
        <button type="button" className="mt-icon" aria-label="Posunout dolů" disabled={i===lists.length-1} onClick={()=>reorder(i,1)}><ArrowDown size={14}/></button>
-       <button type="button" className="mt-btn" onClick={()=>setEdit({id:l.id,name:l.name,items:l.items.map(x=>({...x})),markets:[...l.markets]})}>Upravit</button>
+       <button type="button" className="mt-btn" disabled={!!edit} onClick={()=>setEdit({id:l.id,name:l.name,items:l.items.map(x=>({...x})),markets:[...l.markets]})}>Upravit</button>
        <button type="button" className="mt-btn" onClick={()=>del(l)}>Smazat</button></div></div>
       <p className="ck-meta">{l.items.length} {l.items.length===1?'bod':l.items.length>=2&&l.items.length<=4?'body':'bodů'} · {l.markets.length?l.markets.slice(0,4).map(m=>names[m]||m).join(', ')+(l.markets.length>4?` +${l.markets.length-4}`:''):'žádné trhy'}</p></>}
     </div>)}</div>

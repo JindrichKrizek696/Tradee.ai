@@ -81,9 +81,9 @@ export async function saveTradeChecklist(d:Db,userId:string,tradeId:string,instr
  await d.prepare('INSERT INTO trade_checklists(user_id,trade_id,instrument,snapshot,completion,created,updated) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE instrument=VALUES(instrument),snapshot=VALUES(snapshot),completion=VALUES(completion),updated=VALUES(updated)').bind(userId,tradeId,instrument,JSON.stringify(snapshot),completion(snapshot),now,now).run();
 }
 // snímek ze současného stavu trhu; jen když existují checklisty pro trh a obchod ještě snímek nemá
-export async function snapshotTrade(d:Db,userId:string,tradeId:string,instrument:string):Promise<SnapshotList[]|null>{
+export async function snapshotTrade(d:Db,userId:string,tradeId:string,instrument:string,loaded?:Checklist[]):Promise<SnapshotList[]|null>{
  if(await tradeChecklist(d,userId,tradeId))return null;
- const lists=await listChecklists(d,userId);
+ const lists=loaded||await listChecklists(d,userId);
  if(!applicable(lists,instrument).length)return null;
  const snap=snapshotFor(lists,instrument,await marketState(d,userId,instrument)),now=nowSql();
  const r=await d.prepare('INSERT IGNORE INTO trade_checklists(user_id,trade_id,instrument,snapshot,completion,created,updated) VALUES(?,?,?,?,?,?,?)').bind(userId,tradeId,instrument,JSON.stringify(snap),completion(snap),now,now).run();
@@ -93,8 +93,9 @@ export async function snapshotTrade(d:Db,userId:string,tradeId:string,instrument
 export async function snapshotNewPositions(d:Db,userId:string,accountId:string,now:number,ids:readonly string[]){
  const rows=(await d.prepare("SELECT p.id,p.symbol FROM mt_positions p WHERE p.account_id=? AND p.open_ts>=? AND NOT EXISTS(SELECT 1 FROM trade_checklists t WHERE t.user_id=? AND t.trade_id=CONCAT('mt:',p.id))").bind(accountId,now-60*60000,userId).all<{id:string;symbol:string}>()).results;
  if(!rows.length)return;
+ const lists=await listChecklists(d,userId);if(!lists.length)return;
  const map=await symbolMap(d,userId);
- for(const r of rows){const inst=mapSymbol(r.symbol,ids,map);if(inst)await snapshotTrade(d,userId,'mt:'+r.id,inst)}
+ for(const r of rows){const inst=mapSymbol(r.symbol,ids,map);if(inst&&applicable(lists,inst).length)await snapshotTrade(d,userId,'mt:'+r.id,inst,lists)}
 }
 // tvar snímku od klienta → očištěný snímek, nebo text chyby
 export function cleanSnapshot(v:unknown):SnapshotList[]|string{

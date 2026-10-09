@@ -4,7 +4,7 @@ import {mapSymbol} from '@/lib/checklists/core';
 import {instruments} from '@/lib/markets';
 import type {Trade} from '@/lib/trades';
 import {userCurrency,loadRates} from '@/lib/rates-db';
-import {mtTradesToCalendar,type MtClosedRow} from '@/lib/mt/trades';
+import {mtTradesToCalendar,pragueDate,type MtClosedRow} from '@/lib/mt/trades';
 const str=(s:unknown):s is string=>typeof s==='string';
 // starší ruční záznamy mají created jako 'RRRR-MM-DD HH:MM:SS' (UTC) – sjednotit na ISO kvůli řazení s MT obchody
 const iso=(s:string)=>s.includes('T')?s:s.replace(' ','T')+'Z';
@@ -22,6 +22,6 @@ export async function POST(req:Request){try{sameOrigin(req);const u=await identi
  if(typeof b.pnl!=='number'||!Number.isFinite(b.pnl)||Math.abs(b.pnl)>1e9)throw Error('Výsledek musí být číslo.');
  const note=str(b.note)?b.note.trim().slice(0,500):'',id=crypto.randomUUID();
  await db().prepare('INSERT INTO trades(id,user_id,date,instrument,pnl,note,created) VALUES(?,?,?,?,?,?,?)').bind(id,u.id,b.date,b.instrument.trim(),Math.round(b.pnl*100)/100,note,new Date().toISOString()).run();
- try{const d=db(),inst=mapSymbol(b.instrument.trim(),instruments.map(i=>i.id),await symbolMap(d,u.id));if(inst)await snapshotTrade(d,u.id,'man:'+id,inst)}catch(e){console.error('checklist snapshot',e)}
+ try{if(b.date===pragueDate(Date.now())){const d=db(),inst=mapSymbol(b.instrument.trim(),instruments.map(i=>i.id),await symbolMap(d,u.id));if(inst)await snapshotTrade(d,u.id,'man:'+id,inst)}}catch(e){console.error('checklist snapshot',e)}
  return Response.json({ok:true,id})}catch(e){return failed(e)}}
-export async function DELETE(req:Request){try{sameOrigin(req);const u=await identity(req);const {id}=await req.json() as {id?:unknown};if(!str(id))throw Error('Chybí id obchodu.');await db().prepare('DELETE FROM trades WHERE id=? AND user_id=?').bind(id,u.id).run();return Response.json({ok:true})}catch(e){return failed(e)}}
+export async function DELETE(req:Request){try{sameOrigin(req);const u=await identity(req);const {id}=await req.json() as {id?:unknown};if(!str(id))throw Error('Chybí id obchodu.');const d=db();await d.prepare('DELETE FROM trades WHERE id=? AND user_id=?').bind(id,u.id).run();await d.prepare('DELETE FROM trade_checklists WHERE user_id=? AND trade_id=?').bind(u.id,'man:'+id).run();return Response.json({ok:true})}catch(e){return failed(e)}}
