@@ -1,7 +1,7 @@
 import {verifySession,readCookie,SESSION_COOKIE} from './auth';
 import {env} from 'cloudflare:workers';
 import {createDb,type Db} from './mysql';
-export const runtime=()=>env as unknown as {BUCKET:R2Bucket;OWNER_EMAIL?:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string;MARIADB_HOST?:string;MARIADB_PORT?:string;MARIADB_USER?:string;MARIADB_PASSWORD?:string;MARIADB_DB?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_CLIENT_SECRET?:string;SESSION_SECRET?:string;PUBLIC_URL?:string};
+export const runtime=()=>env as unknown as {BUCKET:R2Bucket;OWNER_EMAIL?:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string;MARIADB_HOST?:string;MARIADB_PORT?:string;MARIADB_USER?:string;MARIADB_PASSWORD?:string;MARIADB_DB?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_CLIENT_SECRET?:string;SESSION_SECRET?:string;PUBLIC_URL?:string;VAPID_PUBLIC_KEY?:string};
 let cached:Db|null=null;
 export function db(){const e=runtime();if(!e.MARIADB_HOST||!e.MARIADB_USER||!e.MARIADB_DB)throw new Error('Databáze zatím není dostupná.');return cached??=createDb({host:e.MARIADB_HOST,port:Number(e.MARIADB_PORT||3306),user:e.MARIADB_USER,password:e.MARIADB_PASSWORD||'',database:e.MARIADB_DB})}
 export type User={id:string;email:string;name:string;role:string;owner:boolean};
