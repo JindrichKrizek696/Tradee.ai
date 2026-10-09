@@ -1,6 +1,8 @@
 /* Barvy signálu – výchozí zelená/červená, přepisuje usePalette() na <html>. Barva značky #245bff se nemění.
    :root zvyšuje specifičnost – soubor se importuje na začátku globals.css a pozdější pravidla by ho jinak přebila. */
-:root{--bull:#16a34a;--bear:#dc2626;--bull-text:#15803d;--bear-text:#b91c1c}
+:root{--bull:var(--pl-bull,#16a34a);--bear:var(--pl-bear,#dc2626);--bull-text:var(--pl-bull-text,#15803d);--bear-text:var(--pl-bear-text,#b91c1c)}
+/* tmavý motiv: vlastní pár předvolby (černá ↔ bílá); text dopočítá theme.css */
+:root[data-theme=dark]{--bull:var(--pd-bull,var(--pl-bull,#16a34a));--bear:var(--pd-bear,var(--pl-bear,#dc2626))}
 :root .score-v2{--good:var(--bull);--bad:var(--bear)}
 :root .positive,:root .score-v2 .positive{color:var(--bull-text)!important}
 :root .negative,:root .score-v2 .negative{color:var(--bear-text)!important}
@@ -27,7 +29,7 @@
 .p-picker button:hover{background:var(--t-surface-3)}
 .p-picker button.on{border-color:#245bff55;background:var(--t-accent-soft)}
 .p-picker small{margin-left:auto;font-size:11px;color:var(--t-muted-2)}
-.p-swatch{display:flex;border-radius:5px;overflow:hidden}.p-swatch i{width:14px;height:14px}
+.p-swatch{display:flex;border-radius:5px;overflow:hidden;box-shadow:0 0 0 1px var(--t-border)}.p-swatch i{width:14px;height:14px;background:var(--l)}:root[data-theme=dark] .p-swatch i{background:var(--d)}
 .p-error{margin:6px 6px 0;font-size:12px;color:#b91c1c}
 .p-link{display:block;margin:6px 0 0;padding:8px;border-top:1px solid var(--t-border);border-radius:9px;color:inherit;text-decoration:none;font-size:13px;font-weight:600}
 .p-link:hover{background:var(--t-surface-3)}

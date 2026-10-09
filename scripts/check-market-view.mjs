@@ -34,7 +34,10 @@ check('text na sytě žluté a křiklavě zelené je tmavý, na černé bílý',
 
 check('výchozí předvolba je zelená/červená',DEFAULT_PALETTE==='green-red'&&getPalette(undefined).id==='green-red'&&getPalette('nesmysl').id==='green-red',getPalette('nesmysl').id);
 check('isPalette',isPalette('neon-pink')&&!isPalette('x')&&!isPalette(3),null);
-check('5 předvoleb s unikátním id',palettes.length===5&&new Set(palettes.map(p=>p.id)).size===5,palettes.map(p=>p.id));
+check('10 předvoleb s unikátním id',palettes.length===10&&new Set(palettes.map(p=>p.id)).size===10,palettes.map(p=>p.id));
+const hex=/^#[0-9a-f]{6}$/;
+check('barvy předvoleb jsou hex a v tmavém motivu se liší bull/bear',palettes.every(p=>[p.bull,p.bear,p.bullText,p.bearText,p.dark?.bull??p.bull,p.dark?.bear??p.bear].every(c=>hex.test(c))&&(p.dark?.bull??p.bull)!==(p.dark?.bear??p.bear)),null);
+check('černá se v tmavém motivu otočí na bílou',palettes.filter(p=>p.bear==='#17191e').every(p=>p.dark?.bear==='#f4f4f5'),null);
 const low=palettes.flatMap(p=>[[p.id+' bullText',hexContrastOnWhite(p.bullText)],[p.id+' bearText',hexContrastOnWhite(p.bearText)]]).filter(([,c])=>c<4.5);
 check('textové odstíny mají kontrast ≥ 4,5 na bílé',low.length===0,low);
 

@@ -3,7 +3,8 @@ import {useEffect,useLayoutEffect,useState} from 'react';
 import {palettes,getPalette,isPalette,DEFAULT_PALETTE,type Palette} from '@/lib/palettes';
 const KEY='tradee.palette';
 const useIso=typeof window==='undefined'?useEffect:useLayoutEffect;
-function apply(p:Palette){const s=document.documentElement.style;s.setProperty('--bull',p.bull);s.setProperty('--bear',p.bear);s.setProperty('--bull-text',p.bullText);s.setProperty('--bear-text',p.bearText)}
+// světlé barvy --pl-*, tmavé --pd-*; který pár platí, vybírá palette.css podle data-theme
+function apply(p:Palette){const s=document.documentElement.style,v:[string,string][]=[['--pl-bull',p.bull],['--pl-bear',p.bear],['--pl-bull-text',p.bullText],['--pl-bear-text',p.bearText],['--pd-bull',p.dark?.bull??p.bull],['--pd-bear',p.dark?.bear??p.bear]];for(const[k,x]of v)s.setProperty(k,x)}
 
 // Předvolba barev signálu: hned z localStorage (bez bliknutí), pak sjednocení s účtem přes /api/settings.
 export function usePalette(){
@@ -21,7 +22,7 @@ export function PalettePicker({value,onChoose,error,children}:{value:string;onCh
  return <div className="p-picker" role="radiogroup" aria-label="Barvy signálu">
   <b>Barvy signálu</b>
   {palettes.map(p=><button key={p.id} type="button" role="radio" aria-checked={p.id===value} className={p.id===value?'on':''} onClick={()=>onChoose(p.id)}>
-   <span className="p-swatch"><i style={{background:p.bull}}/><i style={{background:p.bear}}/></span>{p.label}{p.id===DEFAULT_PALETTE&&<small>výchozí</small>}
+   <span className="p-swatch"><i style={{'--l':p.bull,'--d':p.dark?.bull??p.bull} as React.CSSProperties}/><i style={{'--l':p.bear,'--d':p.dark?.bear??p.bear} as React.CSSProperties}/></span>{p.label}{p.id===DEFAULT_PALETTE&&<small>výchozí</small>}
   </button>)}
   {error&&<p className="p-error" role="alert">{error}</p>}
   {children}
