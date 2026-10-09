@@ -209,8 +209,11 @@ export async function saveReview(d:Db,userId:string,tradeId:string,input:ReviewI
   }
  }
  const now=nowSql();
- await d.prepare('INSERT INTO trade_reviews(user_id,trade_id,rating,strategy_id,reason,emotions,lesson,custom_broken,updated) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE rating=VALUES(rating),strategy_id=VALUES(strategy_id),reason=VALUES(reason),emotions=VALUES(emotions),lesson=VALUES(lesson),custom_broken=VALUES(custom_broken),updated=VALUES(updated)')
+ // prázdné vyhodnocení se neukládá (jinak by se ruční obchod počítal do disciplíny jako posouzený)
+ if(rating===null&&!strategyId&&!reason&&!emotions.length&&!lesson&&!customBroken.length)await d.prepare('DELETE FROM trade_reviews WHERE user_id=? AND trade_id=?').bind(userId,tradeId).run();
+ else await d.prepare('INSERT INTO trade_reviews(user_id,trade_id,rating,strategy_id,reason,emotions,lesson,custom_broken,updated) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE rating=VALUES(rating),strategy_id=VALUES(strategy_id),reason=VALUES(reason),emotions=VALUES(emotions),lesson=VALUES(lesson),custom_broken=VALUES(custom_broken),updated=VALUES(updated)')
   .bind(userId,tradeId,rating,strategyId,reason||null,emotions.join(','),lesson||null,customBroken.length?JSON.stringify(customBroken):null,now).run();
- for(const r of reasons)await d.prepare('UPDATE trade_violations SET reason_code=?,reason_text=?,reasoned_at=? WHERE user_id=? AND trade_id=? AND rule=? AND needs_reason=1').bind(r.code,r.text||null,now,userId,tradeId,r.rule).run();
+ // reasoned_at je v SET první, aby IF porovnával ještě původní hodnoty (nezměněné zdůvodnění si drží původní čas)
+ for(const r of reasons)await d.prepare('UPDATE trade_violations SET reasoned_at=IF(reason_code<=>? AND reason_text<=>?,reasoned_at,?),reason_code=?,reason_text=? WHERE user_id=? AND trade_id=? AND rule=? AND needs_reason=1').bind(r.code,r.text||null,now,r.code,r.text||null,userId,tradeId,r.rule).run();
  return {rating,strategyId,reason,emotions,lesson,customBroken};
 }
