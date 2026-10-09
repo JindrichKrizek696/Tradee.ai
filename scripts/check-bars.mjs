@@ -1,0 +1,32 @@
+// Kontrola archivu svíček: node --experimental-strip-types scripts/check-bars.mjs
+import {parseBars,validBar,windows,incrementalPlan,planUrl} from '../lib/bars/yahoo.ts';
+import {loadBars,toH4} from '../lib/bars/query.ts';
+const fails=[];
+const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
+const T=Date.UTC(2026,9,9,8,0)/1000;
+const yj={chart:{result:[{timestamp:[T,T+3600,T+7200,T+10800,T+14400],indicators:{quote:[{open:[1,1.1,null,1,1],high:[1.2,1.3,1.2,0.9,1.5],low:[0.9,1,1,0.8,0.5],close:[1.1,1.2,1.1,1,1.2],volume:[10,null,5,5,7]}]}}]}};
+const p=parseBars(yj);
+check('parse: null a neplatné vynechá',p.bars.length===3&&p.skipped===2,p);
+check('parse: čas v ms, volume',p.bars[0].t===T*1000&&p.bars[0].v===10&&p.bars[1].v===null,p.bars);
+check('parse: prázdné/špatné',parseBars(null).bars.length===0&&parseBars({chart:{result:null}}).bars.length===0);
+check('validace',validBar({t:1,o:1,h:2,l:0.5,c:1.5,v:null})&&!validBar({t:1,o:1,h:0.9,l:0.5,c:1,v:null})&&!validBar({t:1,o:1,h:2,l:1.1,c:1.5,v:null})&&!validBar({t:1,o:NaN,h:2,l:0,c:1,v:null}));
+const now=Date.UTC(2026,9,9)
+const w=windows('H1',now);
+check('H1: kusy ≤ 59 dní',w.every(x=>x.period2-x.period1<=59*86400&&x.interval==='60m'),w);
+check('H1: pokrývá 729 dní bez mezer',w[0].period1===now/1000-729*86400&&w[w.length-1].period2===now/1000&&w.every((x,i)=>!i||x.period1===w[i-1].period2),w);
+check('H1: 13 kusů',w.length===13,w.length);
+check('D1: od period1=0 (range=max dává jen měsíční)',JSON.stringify(windows('D1',now))===JSON.stringify([{tf:'D1',interval:'1d',period1:0,period2:now/1000}]));
+const inc=incrementalPlan('H1',now-5*3600000,now)[0];
+check('přírůstek H1: last−2 svíčky až teď',inc.period1===(now-7*3600000)/1000&&inc.period2===now/1000,inc);
+check('přírůstek D1 = 1mo',incrementalPlan('D1',now,now)[0].range==='1mo');
+check('přírůstek bez dat = poslední kus / max',incrementalPlan('H1',null,now).length===13&&incrementalPlan('D1',null,now)[0].period1===0);
+check('url',planUrl('EURUSD=X',w[0]).includes('EURUSD%3DX?period1=')&&planUrl('^GSPC',windows('D1',now)[0]).includes('period1=0&period2='));
+const H=3600000,b=(t,o,h,l,c,v)=>({t,o,h,l,c,v});
+const base=Date.UTC(2026,0,5,0);
+const h4=toH4([b(base+H,2,3,1,2.5,1),b(base,1,2,0.5,1.5,null),b(base+2*H,2.5,4,2,3,2),b(base+4*H,3,3,3,3,null)]);
+check('H4: agregace OHLCV',h4.length===2&&h4[0].t===base&&h4[0].o===1&&h4[0].h===4&&h4[0].l===0.5&&h4[0].c===3&&h4[0].v===3&&h4[1].t===base+4*H&&h4[1].v===null,h4);
+const calls=[];
+const fake={prepare:sql=>({bind:(...a)=>({all:async()=>{calls.push([sql,a]);return {results:[{t:'5',o:1,h:2,l:0.5,c:1,v:null}]}}})})};
+const lb=await loadBars(fake,'EUR/USD','H1',0,10);
+check('loadBars: jeden dotaz, t číslo',calls.length===1&&/ORDER BY t/.test(calls[0][0])&&lb[0].t===5&&calls[0][1].join()==='EUR/USD,H1,0,10',calls);
+console.log(fails.length?`\n${fails.length} selhalo`:'\nvše ok');process.exit(fails.length?1:0);
