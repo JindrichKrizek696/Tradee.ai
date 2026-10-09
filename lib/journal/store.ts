@@ -13,7 +13,9 @@ export async function listJournal(d:Db,userId:string):Promise<JournalList>{
   FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE a.user_id=? AND p.status='closed'`).bind(userId).all<MtJournalRow>()).results;
  const manual=(await d.prepare('SELECT id,date,instrument,pnl,note,created FROM trades WHERE user_id=?').bind(userId).all<ManualJournalRow>()).results;
  const rates=await loadRates(d,currency,mt.map(r=>r.acc_currency));
- return {currency,accounts,trades:toJournalTrades(mt,manual,currency,rates)};
+ const cl:Record<string,number|null>={};
+ for(const r of (await d.prepare('SELECT trade_id,completion FROM trade_checklists WHERE user_id=?').bind(userId).all<{trade_id:string;completion:number|null}>()).results)cl[r.trade_id]=r.completion===null?null:Number(r.completion);
+ return {currency,accounts,trades:toJournalTrades(mt,manual,currency,rates,cl)};
 }
 export async function ownsPosition(d:Db,userId:string,positionId:string){
  return !!await d.prepare('SELECT p.id FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE p.id=? AND a.user_id=?').bind(positionId,userId).first();

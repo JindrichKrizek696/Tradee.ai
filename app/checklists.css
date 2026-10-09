@@ -1,0 +1,27 @@
+.ck-list{display:grid;gap:12px;margin-top:12px}
+.ck-item{border:1px solid var(--t-border);border-radius:14px;padding:14px 16px;background:var(--t-surface)}
+.ck-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ck-head h3{margin:0;font-size:16px;flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.ck-meta{color:var(--t-muted);font-size:14px;margin:6px 0 0}
+.ck-actions{display:flex;gap:6px;flex-wrap:wrap}
+.ck-actions .mt-btn{height:34px;padding:0 12px;font-size:14px}
+.ck-new{margin-top:14px}
+.ck-editor{display:grid;gap:14px}
+.ck-editor label,.ck-sub{font-weight:600;font-size:14px;color:var(--t-fg-2)}
+.ck-editor input[type=text],.ck-search{width:100%;height:40px;padding:0 14px;border:1px solid var(--t-border);border-radius:9999px;background:var(--t-surface);color:var(--t-fg);font:inherit;min-width:0}
+.ck-editor label input[type=text]{margin-top:6px}
+.ck-points{display:grid;gap:8px}
+.ck-point{display:flex;gap:6px;align-items:center}
+.ck-point input{flex:1 1 auto}
+.ck-groups{display:flex;gap:8px;flex-wrap:wrap}
+.ck-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--t-border);border-radius:9999px;padding:5px 12px;font-size:14px;cursor:pointer;background:var(--t-surface);color:var(--t-fg)}
+.ck-chip.on{background:var(--t-inverse);color:var(--t-on-inverse);border-color:var(--t-inverse)}
+.ck-chip input{margin:0}
+.ck-markets{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 12px;max-height:260px;overflow:auto;border:1px solid var(--t-border);border-radius:12px;padding:8px 12px;margin-top:8px}
+.ck-markets label{display:flex;gap:8px;align-items:center;font-weight:400;color:var(--t-fg);padding:4px 0;font-size:14px}
+.ck-foot{display:flex;gap:8px;flex-wrap:wrap}
+.ck-sym{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--t-border)}
+.ck-sym code{background:var(--t-surface-3);border-radius:6px;padding:1px 6px;font-size:13px;color:var(--t-fg-2);min-width:90px}
+.mt-card .ck-sym select{flex:0 1 240px}
+.ck-sym span{color:var(--t-muted);font-size:14px}
+@media (max-width:640px){.ck-item,.mt-card{padding:14px}.mt-card .ck-sym select{flex:1 1 100%}}
