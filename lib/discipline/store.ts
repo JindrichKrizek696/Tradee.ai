@@ -2,8 +2,9 @@
 import type {Db} from '../mysql.ts';
 import {nowSql} from '../mt/store.ts';
 import {pragueDate} from '../mt/trades.ts';
-import {LIMITS,RULES,normalizeSettings,evaluate,effectiveLevel,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
+import {LIMITS,RULES,EMOTIONS,REASONS,REVIEW_LIMITS,normalizeSettings,evaluate,effectiveLevel,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
 import type {NewsEvent} from './news.ts';
+import type {ReviewLite,ViolationLite} from './overview.ts';
 export {LIMITS};
 const uid=(p:string)=>p+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,24);
 export async function getRuleSettings(d:Db,userId:string):Promise<RuleSettings>{
@@ -138,4 +139,78 @@ export async function evaluateAccount(d:Db,userId:string,accountId:string,ticket
  for(const c of chunks(ins,100))await d.prepare('INSERT IGNORE INTO trade_violations(user_id,trade_id,rule,detail,needs_reason,created) VALUES '+c.map(()=>'(?,?,?,?,?,?)').join(',')).bind(...c.flat()).run();
  for(const c of chunks(del))await d.prepare(`DELETE FROM trade_violations WHERE user_id=? AND reason_code IS NULL AND reasoned_at IS NULL AND id IN (${c.map(()=>'?').join(',')})`).bind(userId,...c).run();
  return {evaluated:targets.length,added:ins.length,removed:del.length};
+}
+
+// --- Journaling: vyhodnocení obchodů ---
+export type Review={rating:number|null;strategyId:string|null;reason:string;emotions:string[];lesson:string;customBroken:string[]};
+export type ReviewInput={rating?:unknown;strategyId?:unknown;strategyName?:unknown;reason?:unknown;emotions?:unknown;lesson?:unknown;customBroken?:unknown;reasons?:unknown};
+const parseArr=(s:unknown):string[]=>{try{const v=JSON.parse(String(s));return Array.isArray(v)?v.filter((x):x is string=>typeof x==='string'):[]}catch{return[]}};
+const parseObj=(s:unknown):Record<string,unknown>=>{try{const v=JSON.parse(String(s));return v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{}}catch{return{}}};
+const emoList=(s:unknown)=>String(s||'').split(',').filter(x=>EMOTIONS.some(e=>e.id===x));
+type ReviewRow={trade_id?:string;rating:number|null;strategy_id:string|null;reason:string|null;emotions:string;lesson:string|null;custom_broken:string|null};
+const toReview=(r:ReviewRow):Review=>({rating:r.rating===null?null:Number(r.rating),strategyId:r.strategy_id,reason:r.reason||'',emotions:emoList(r.emotions),lesson:r.lesson||'',customBroken:parseArr(r.custom_broken)});
+export async function listReviews(d:Db,userId:string):Promise<Record<string,ReviewLite&{customBroken:string[]}>>{
+ const out:Record<string,ReviewLite&{customBroken:string[]}>={};
+ for(const r of (await d.prepare('SELECT trade_id,rating,strategy_id,reason,emotions,lesson,custom_broken FROM trade_reviews WHERE user_id=?').bind(userId).all<ReviewRow&{trade_id:string}>()).results){
+  const v=toReview(r);out[r.trade_id]={rating:v.rating,strategyId:v.strategyId,emotions:v.emotions,customBroken:v.customBroken};
+ }
+ return out;
+}
+export async function listViolations(d:Db,userId:string):Promise<Record<string,ViolationLite[]>>{
+ const out:Record<string,ViolationLite[]>={};
+ for(const r of (await d.prepare('SELECT trade_id,rule,needs_reason,reason_code,reasoned_at FROM trade_violations WHERE user_id=? ORDER BY id').bind(userId).all<{trade_id:string;rule:string;needs_reason:number;reason_code:string|null;reasoned_at:string|null}>()).results)
+  (out[r.trade_id]||(out[r.trade_id]=[])).push({rule:r.rule,needsReason:!!Number(r.needs_reason),reasoned:r.reason_code!==null||r.reasoned_at!==null});
+ return out;
+}
+export type ViolationDetail={id:number;rule:string;detail:Record<string,unknown>;needsReason:boolean;reasonCode:string|null;reasonText:string|null};
+// bez uloženého vyhodnocení vrací prázdné (rating null, bez emocí)
+export async function getReview(d:Db,userId:string,tradeId:string):Promise<{review:Review;violations:ViolationDetail[]}>{
+ const r=await d.prepare('SELECT rating,strategy_id,reason,emotions,lesson,custom_broken FROM trade_reviews WHERE user_id=? AND trade_id=?').bind(userId,tradeId).first<ReviewRow>();
+ const vs=(await d.prepare('SELECT id,rule,detail,needs_reason,reason_code,reason_text FROM trade_violations WHERE user_id=? AND trade_id=? ORDER BY id').bind(userId,tradeId).all<{id:number;rule:string;detail:string;needs_reason:number;reason_code:string|null;reason_text:string|null}>()).results;
+ return {review:r?toReview(r):{rating:null,strategyId:null,reason:'',emotions:[],lesson:'',customBroken:[]},violations:vs.map(v=>({id:Number(v.id),rule:v.rule,detail:parseObj(v.detail),needsReason:!!Number(v.needs_reason),reasonCode:v.reason_code,reasonText:v.reason_text}))};
+}
+const optText=(v:unknown,max:number,what:string)=>{if(typeof v!=='string')throw new Error(`${what} musí být text.`);const t=v.trim();if(t.length>max)throw new Error(`${what} může mít nejvýš ${max} znaků.`);return t};
+/** Uloží vyhodnocení obchodu (vlastnictví obchodu musí ověřit volající). Vynechané položky zůstanou, null / prázdné je smaže. Zdůvodnění neexistujícího porušení se ignoruje. */
+export async function saveReview(d:Db,userId:string,tradeId:string,input:ReviewInput):Promise<Review>{
+ const cur=(await getReview(d,userId,tradeId)).review,i=input||{} as ReviewInput;
+ let {rating,strategyId,reason,emotions,lesson,customBroken}=cur;
+ if(i.rating!==undefined){
+  if(i.rating===null)rating=null;
+  else if(typeof i.rating==='number'&&Number.isInteger(i.rating)&&i.rating>=1&&i.rating<=5)rating=i.rating;
+  else throw new Error('Hodnocení musí být 1 až 5 hvězdiček.');
+ }
+ if(typeof i.strategyName==='string'&&i.strategyName.trim())strategyId=await createStrategy(d,userId,i.strategyName);
+ else if(i.strategyId!==undefined){
+  if(i.strategyId===null||i.strategyId==='')strategyId=null;
+  else if(typeof i.strategyId==='string'&&await d.prepare('SELECT id FROM strategies WHERE id=? AND user_id=?').bind(i.strategyId,userId).first())strategyId=i.strategyId;
+  else throw new Error('Strategie nenalezena.');
+ }
+ if(i.reason!==undefined)reason=i.reason===null?'':optText(i.reason,REVIEW_LIMITS.text,'Důvod vstupu');
+ if(i.lesson!==undefined)lesson=i.lesson===null?'':optText(i.lesson,REVIEW_LIMITS.text,'Ponaučení');
+ if(i.emotions!==undefined){
+  if(!Array.isArray(i.emotions)||i.emotions.some(e=>typeof e!=='string'||!EMOTIONS.some(x=>x.id===e)))throw new Error('Neplatná emoce.');
+  emotions=EMOTIONS.map(e=>e.id).filter(e=>(i.emotions as string[]).includes(e));
+ }
+ if(i.customBroken!==undefined){
+  if(!Array.isArray(i.customBroken)||i.customBroken.some(x=>typeof x!=='string'))throw new Error('Neplatná vlastní pravidla.');
+  const own=new Set((await listCustomRules(d,userId)).map(r=>r.id));
+  customBroken=[...new Set(i.customBroken as string[])].filter(x=>own.has(x));
+ }
+ // zdůvodnění porušení: nejdřív celé ověřit, pak zapisovat
+ const reasons:{rule:string;code:string;text:string}[]=[];
+ if(i.reasons!==undefined&&i.reasons!==null){
+  if(typeof i.reasons!=='object'||Array.isArray(i.reasons))throw new Error('Neplatné zdůvodnění.');
+  for(const [rule,v] of Object.entries(i.reasons as Record<string,unknown>)){
+   const o=v&&typeof v==='object'?v as {code?:unknown;text?:unknown}:{};
+   if(typeof o.code!=='string'||!REASONS.some(x=>x.id===o.code))throw new Error('Neplatný důvod zdůvodnění.');
+   const text=o.text===undefined||o.text===null?'':optText(o.text,REVIEW_LIMITS.reasonText,'Text zdůvodnění');
+   if(o.code==='other'&&!text)throw new Error('U důvodu „Jiné“ napiš, co se stalo.');
+   reasons.push({rule,code:o.code,text});
+  }
+ }
+ const now=nowSql();
+ await d.prepare('INSERT INTO trade_reviews(user_id,trade_id,rating,strategy_id,reason,emotions,lesson,custom_broken,updated) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE rating=VALUES(rating),strategy_id=VALUES(strategy_id),reason=VALUES(reason),emotions=VALUES(emotions),lesson=VALUES(lesson),custom_broken=VALUES(custom_broken),updated=VALUES(updated)')
+  .bind(userId,tradeId,rating,strategyId,reason||null,emotions.join(','),lesson||null,customBroken.length?JSON.stringify(customBroken):null,now).run();
+ for(const r of reasons)await d.prepare('UPDATE trade_violations SET reason_code=?,reason_text=?,reasoned_at=? WHERE user_id=? AND trade_id=? AND rule=? AND needs_reason=1').bind(r.code,r.text||null,now,userId,tradeId,r.rule).run();
+ return {rating,strategyId,reason,emotions,lesson,customBroken};
 }
