@@ -3,6 +3,7 @@ import {useId,useState} from 'react';
 import type {JournalTrade} from '@/lib/journal/types';
 import {summary,equityCurve,breakdown,type BreakdownBy} from '@/lib/journal/stats';
 import {fmtMoney} from '@/lib/trades';
+import {AnalyticsView} from './analytics-view';
 import {fmtHold,fmtR,fmtNum,tradesWord} from '@/lib/journal/format';
 const BY:[BreakdownBy,string][]=[['tag','Tag'],['symbol','Pár'],['side','Směr'],['weekday','Den vstupu'],['hour','Hodina vstupu'],['hold','Délka držení'],['checklist','Checklist']];
 // Kumulovaný výsledek po obchodech; najetím myší (prstem) se ukáže obchod, jeho výsledek a průběžný součet.
@@ -49,5 +50,6 @@ export function StatsView({trades,currency}:{trades:JournalTrade[];currency:stri
     <tbody>{groups.map(g=><tr key={g.key}><td data-l="Skupina"><b>{g.label}</b></td><td data-l="Obchody">{g.count}</td><td data-l="Win rate">{fmtNum(g.winRate,1)} %</td><td data-l="Celkem" className={g.total>0?'pos':g.total<0?'neg':''}>{m(g.total)}</td><td data-l="Exp. R">{fmtR(g.expectancyR)}</td><td className="j-barcell" aria-hidden="true"><span className={g.total>=0?'pos':'neg'} style={{width:Math.abs(g.total)/maxAbs*100+'%'}}/></td></tr>)}</tbody></table>
    :<p className="j-muted">{by==='hour'||by==='hold'||by==='side'?'Tenhle rozpad mají jen obchody z MetaTraderu.':'Žádná data.'}</p>}
   </section>
+  <AnalyticsView trades={trades} currency={currency}/>
  </div>;
 }

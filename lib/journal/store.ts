@@ -4,6 +4,9 @@ import {POSITION_COLUMNS} from '../mt/build.ts';
 import {nowSql} from '../mt/store.ts';
 import {userCurrency,loadRates} from '../rates-db.ts';
 import {toJournalTrades} from './rows.ts';
+import {mapSymbol} from '../checklists/core.ts';
+import {symbolMap} from '../checklists/store.ts';
+import {instruments} from '../markets.ts';
 import type {JournalAccount,JournalChange,JournalDetail,JournalFile,JournalList,JournalPosition,ManualJournalRow,MtJournalRow} from './types.ts';
 export async function listJournal(d:Db,userId:string):Promise<JournalList>{
  const currency=await userCurrency(d,userId);
@@ -15,7 +18,10 @@ export async function listJournal(d:Db,userId:string):Promise<JournalList>{
  const rates=await loadRates(d,currency,mt.map(r=>r.acc_currency));
  const cl:Record<string,number|null>={};
  for(const r of (await d.prepare('SELECT trade_id,completion FROM trade_checklists WHERE user_id=?').bind(userId).all<{trade_id:string;completion:number|null}>()).results)cl[r.trade_id]=r.completion===null?null:Number(r.completion);
- return {currency,accounts,trades:toJournalTrades(mt,manual,currency,rates,cl)};
+ // trh Tradee podle mapování symbolů (stejně jako u checklistů) – pro typ trhu v analytice
+ const ids=instruments.map(i=>i.id),map=await symbolMap(d,userId),inst=new Map<string,string|null>();
+ const trades=toJournalTrades(mt,manual,currency,rates,cl).map(t=>{if(!inst.has(t.symbol))inst.set(t.symbol,mapSymbol(t.symbol,ids,map));return {...t,instrument:inst.get(t.symbol)??null}});
+ return {currency,accounts,trades};
 }
 export async function ownsPosition(d:Db,userId:string,positionId:string){
  return !!await d.prepare('SELECT p.id FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE p.id=? AND a.user_id=?').bind(positionId,userId).first();
