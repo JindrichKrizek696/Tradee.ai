@@ -29,6 +29,8 @@ const hm=heatmap([tr({openTs:tue,pnl:100}),tr({openTs:tue+600000,pnl:20}),tr({op
 check('heatmapa: Út 15:00 = 3 obchody, +70',hm.cells[1][15].count===3&&hm.cells[1][15].total===70,hm.cells[1][15]);
 check('heatmapa: pondělí 00:30 Praha (22:30Z v létě → 00:30 úterý!)',hm.cells[1][0].count===1);
 check('heatmapa: maxima, 7×24, ruční mimo',hm.maxCount===3&&hm.maxAbs===70&&hm.cells.length===7&&hm.cells.every(r=>r.length===24));
+const hx=heatmap([tr({openTs:tue,closeTs:tue+3*3600000,pnl:40}),tr({openTs:null,closeTs:tue+3*3600000,source:'manual',pnl:5}),tr({openTs:tue,closeTs:Date.UTC(2026,9,9,14,0),pnl:-10})],'exit');
+check('heatmapa výstupů: Út 18:00 = 1 (ruční mimo), Pá 16:00 = 1',hx.cells[1][18].count===1&&hx.cells[1][18].total===40&&hx.cells[4][16].count===1&&hx.cells[4][16].total===-10,[hx.cells[1][18],hx.cells[4][16]]);
 // --- doba držení
 check('medián: lichý, sudý, prázdný',median([3,1,2])===2&&median([1,2,3,10])===3&&median([])===null);
 const min=60000;

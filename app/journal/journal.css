@@ -127,3 +127,5 @@
 .j-holdbar i.pos{background:var(--bull)}.j-holdbar i.neg{background:var(--bear)}
 .j-analytics .pos{color:var(--bull-text)}.j-analytics .neg{color:var(--bear-text)}
 @media (max-width:760px){.j-holdrow{grid-template-columns:80px 1fr 80px;}.j-holdrow b{grid-column:1/-1;text-align:left}.j-heat{min-width:520px}}
+
+.j-heatctl{display:flex;gap:8px;flex-wrap:wrap}

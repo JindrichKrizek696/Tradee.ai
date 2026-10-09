@@ -14,8 +14,8 @@ function BucketTable({title,rows,currency,first}:{title:string;rows:ReturnType<t
  </section>;
 }
 function Heat({trades,currency}:{trades:JournalTrade[];currency:string}){
- const [mode,setMode]=useState<'count'|'pnl'>('count'),[act,setAct]=useState<[number,number]|null>(null);
- const {cells,maxCount,maxAbs}=heatmap(trades);
+ const [mode,setMode]=useState<'count'|'pnl'>('count'),[by,setBy]=useState<'entry'|'exit'>('entry'),[act,setAct]=useState<[number,number]|null>(null);
+ const {cells,maxCount,maxAbs}=heatmap(trades,by);
  const label=(d:number,h:number)=>{const c=cells[d][h];return `${WEEKDAYS[d]} ${String(h).padStart(2,'0')}:00 · ${c.count} ${plural(c.count,OBCH)}${c.count?' · '+fmtMoney(c.total,currency):''}`};
  const bg=(c:{count:number;total:number})=>{
   if(!c.count)return undefined;
@@ -23,8 +23,8 @@ function Heat({trades,currency}:{trades:JournalTrade[];currency:string}){
   if(!c.total)return 'var(--t-surface-3)';
   return `color-mix(in srgb, var(${c.total>0?'--bull':'--bear'}) ${Math.round(14+66*Math.abs(c.total)/maxAbs)}%, transparent)`;
  };
- return <section className="j-card"><div className="j-bhead"><h2>Heatmapa vstupů</h2><div className="j-tabs small" role="tablist" aria-label="Zobrazení heatmapy">{([['count','Počet'],['pnl','P&L']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={mode===k} className={mode===k?'active':''} onClick={()=>setMode(k)}>{l}</button>)}</div></div>
-  <div className="j-heatscroll"><div className="j-heat" role="grid" aria-label="Obchody podle dne a hodiny vstupu">
+ return <section className="j-card"><div className="j-bhead"><h2>Heatmapa {by==='entry'?'vstupů':'výstupů'}</h2><div className="j-heatctl"><div className="j-tabs small" role="tablist" aria-label="Vstupy nebo výstupy">{([['entry','Vstupy'],['exit','Výstupy']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={by===k} className={by===k?'active':''} onClick={()=>setBy(k)}>{l}</button>)}</div><div className="j-tabs small" role="tablist" aria-label="Zobrazení heatmapy">{([['count','Počet'],['pnl','P&L']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={mode===k} className={mode===k?'active':''} onClick={()=>setMode(k)}>{l}</button>)}</div></div></div>
+  <div className="j-heatscroll"><div className="j-heat" role="grid" aria-label={'Obchody podle dne a hodiny '+(by==='entry'?'vstupu':'výstupu')}>
    <div className="j-heatrow" role="row"><span className="j-heatday"/>{Array.from({length:24},(_,h)=><span key={h} className="j-heathour" role="columnheader">{h%3===0?String(h).padStart(2,'0'):''}</span>)}</div>
    {cells.map((row,d)=><div className="j-heatrow" role="row" key={d}><span className="j-heatday" role="rowheader">{WEEKDAYS[d]}</span>{row.map((c,h)=><span role="gridcell" key={h}><button type="button" className={'j-heatcell'+(c.count?'':' empty')+(act&&act[0]===d&&act[1]===h?' on':'')} style={{background:bg(c)}} aria-label={label(d,h)} title={label(d,h)} onMouseEnter={()=>setAct([d,h])} onMouseLeave={()=>setAct(null)} onFocus={()=>setAct([d,h])} onBlur={()=>setAct(null)} onClick={()=>setAct([d,h])}/></span>)}</div>)}
   </div></div>

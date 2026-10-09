@@ -52,11 +52,12 @@ export function byMarketType(trades:JournalTrade[]):Bucket[]{
  for(const t of trades)m.get(marketTypeOf(t.instrument,t.symbol))!.push(t);
  return MARKET_TYPES.filter(x=>m.get(x.key)!.length).map(x=>bucketOf(x.key,x.label,m.get(x.key)!));
 }
-// ---- heatmapa den × hodina vstupu
+// ---- heatmapa den × hodina vstupu nebo výstupu (ruční obchody nemají skutečný čas, nepočítají se)
 export type HeatCell={count:number;total:number};
-export function heatmap(trades:JournalTrade[]){
+export function heatmap(trades:JournalTrade[],by:'entry'|'exit'='entry'){
  const cells:HeatCell[][]=Array.from({length:7},()=>Array.from({length:24},()=>({count:0,total:0})));
- for(const t of withEntry(trades)){const c=cells[weekdayOf(t.openTs as number)][pragueHour(t.openTs as number)];c.count++;c.total=r2(c.total+t.pnl)}
+ const list=by==='entry'?withEntry(trades).map(t=>[t,t.openTs as number] as const):trades.filter(t=>t.source!=='manual').map(t=>[t,t.closeTs] as const);
+ for(const [t,ts] of list){const c=cells[weekdayOf(ts)][pragueHour(ts)];c.count++;c.total=r2(c.total+t.pnl)}
  let maxCount=0,maxAbs=0;for(const row of cells)for(const c of row){maxCount=Math.max(maxCount,c.count);maxAbs=Math.max(maxAbs,Math.abs(c.total))}
  return {cells,maxCount,maxAbs};
 }
