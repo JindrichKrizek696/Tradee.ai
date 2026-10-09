@@ -1,5 +1,5 @@
 // Kontrola pravidel disciplíny: node --experimental-strip-types scripts/check-discipline.mjs
-import {RULES,normalizeSettings,evaluate,currenciesOf} from '../lib/discipline/rules.ts';
+import {RULES,normalizeSettings,evaluate,currenciesOf,effectiveLevel} from '../lib/discipline/rules.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const M=60000,H=3600000,T0=Date.UTC(2026,9,9,8,0,0);
@@ -85,6 +85,10 @@ check('stop_after_losses: dvě ztráty pak obchod ano',sl1.length===1&&sl1[0].de
  check('normalize: nesmysl → výchozí',n.stop_after_losses.on===true&&n.stop_after_losses.value===2,n.stop_after_losses);
  check('normalize: neznámý klíč pryč, value u pravidla bez hodnoty null',!('bogus' in n)&&n.sl_required.on===false&&n.sl_required.value===null,n);
  check('normalize: nesmyslný vstup',JSON.stringify(normalizeSettings('x'))===JSON.stringify(d)&&JSON.stringify(normalizeSettings([1]))===JSON.stringify(d)&&normalizeSettings({max_risk:{value:NaN}}).max_risk.value===1&&normalizeSettings({max_risk:null}).max_risk.value===1)}
+// effectiveLevel
+check('effectiveLevel: počáteční platí',effectiveLevel(1.09,[{ts:T0+30000,new:1.08}],T0)===1.09);
+check('effectiveLevel: SL v +90 s se počítá',effectiveLevel(null,[{ts:T0+90000,new:1.08}],T0)===1.08);
+check('effectiveLevel: SL v +150 s ne',effectiveLevel(null,[{ts:T0+150000,new:1.08}],T0)===null);
 // currenciesOf
 check('currenciesOf: FX',JSON.stringify(currenciesOf('EURUSD'))==='["EUR","USD"]'&&JSON.stringify(currenciesOf('EURUSD.m'))==='["EUR","USD"]'&&JSON.stringify(currenciesOf('#GBPJPY'))==='["GBP","JPY"]'&&JSON.stringify(currenciesOf('eurusd-ecn'))==='["EUR","USD"]');
 check('currenciesOf: XAUUSD',JSON.stringify(currenciesOf('XAUUSD'))==='["XAU","USD"]');

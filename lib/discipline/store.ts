@@ -2,7 +2,7 @@
 import type {Db} from '../mysql.ts';
 import {nowSql} from '../mt/store.ts';
 import {pragueDate} from '../mt/trades.ts';
-import {RULES,normalizeSettings,evaluate,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
+import {RULES,normalizeSettings,evaluate,effectiveLevel,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
 import type {NewsEvent} from './news.ts';
 export const LIMITS={customRules:30,customText:120,strategies:50,strategyName:60};
 const uid=(p:string)=>p+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,24);
@@ -107,16 +107,16 @@ export async function evaluateAccount(d:Db,userId:string,accountId:string,ticket
  // jeden dotaz na všechny pozice dotčených dní účtu
  const all=(await d.prepare(`SELECT ${COLS} FROM mt_positions WHERE account_id=? AND open_ts>=? AND open_ts<? ORDER BY open_ts,id`).bind(accountId,lo,hi).all<PosRow>()).results;
  const targets=all.filter(r=>!targetIds||targetIds.has(r.id));
- const changes=new Map<string,EvalTrade['slChanges']>();
- for(const c of chunks(targets.map(r=>r.id)))for(const r of (await d.prepare(`SELECT position_id,ts,old_value,new_value FROM mt_position_changes WHERE kind='sl' AND position_id IN (${c.map(()=>'?').join(',')}) ORDER BY ts,id`).bind(...c).all<{position_id:string;ts:number;old_value:number|null;new_value:number|null}>()).results){
-  const l=changes.get(r.position_id)||[];l.push({ts:Number(r.ts),old:num(r.old_value),new:num(r.new_value)});changes.set(r.position_id,l);
+ const changes=new Map<string,EvalTrade['slChanges']>(),tpChanges=new Map<string,EvalTrade['slChanges']>();
+ for(const c of chunks(targets.map(r=>r.id)))for(const r of (await d.prepare(`SELECT position_id,kind,ts,old_value,new_value FROM mt_position_changes WHERE kind IN ('sl','tp') AND position_id IN (${c.map(()=>'?').join(',')}) ORDER BY ts,id`).bind(...c).all<{position_id:string;kind:string;ts:number;old_value:number|null;new_value:number|null}>()).results){
+  const m=r.kind==='tp'?tpChanges:changes,l=m.get(r.position_id)||[];l.push({ts:Number(r.ts),old:num(r.old_value),new:num(r.new_value)});m.set(r.position_id,l);
  }
  const byDay=new Map<string,PosRow[]>();
  for(const r of all){const k=pragueDate(Number(r.open_ts));(byDay.get(k)||byDay.set(k,[]).get(k)!).push(r)}
  const balances=new Map<string,number|null>();
  if(settings.max_daily_loss.on)for(const k of new Set(targets.map(r=>pragueDate(Number(r.open_ts)))))balances.set(k,await balanceAt(d,accountId,pragueDayStart(k),pragueDayStart(nextDate(k))));
  const useNews=settings.no_news.on?news:[];
- const toTrade=(r:PosRow,k:string):EvalTrade=>({id:r.id,accountId,side:r.side==='sell'?'sell':'buy',status:r.status==='closed'?'closed':'open',openTs:Number(r.open_ts),closeTs:num(r.close_ts),openPrice:Number(r.open_price),slInitial:num(r.sl_initial),tpInitial:num(r.tp_initial),riskPct:num(r.risk_pct),net:Number(r.net)||0,closeReason:r.close_reason,balanceStart:balances.get(k)??null,slChanges:changes.get(r.id)||[],currencies:currenciesOf(r.symbol)});
+ const toTrade=(r:PosRow,k:string):EvalTrade=>({id:r.id,accountId,side:r.side==='sell'?'sell':'buy',status:r.status==='closed'?'closed':'open',openTs:Number(r.open_ts),closeTs:num(r.close_ts),openPrice:Number(r.open_price),slInitial:effectiveLevel(num(r.sl_initial),changes.get(r.id)||[],Number(r.open_ts)),tpInitial:effectiveLevel(num(r.tp_initial),tpChanges.get(r.id)||[],Number(r.open_ts)),riskPct:num(r.risk_pct),net:Number(r.net)||0,closeReason:r.close_reason,balanceStart:balances.get(k)??null,slChanges:changes.get(r.id)||[],currencies:currenciesOf(r.symbol)});
  const dayTrades=new Map<string,EvalTrade[]>();
  for(const [k,rows] of byDay)dayTrades.set(k,rows.map(r=>toTrade(r,k)));
  const found=new Map<string,Map<RuleId,ReturnType<typeof evaluate>[number]>>();

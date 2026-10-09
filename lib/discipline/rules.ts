@@ -33,6 +33,13 @@ export function currenciesOf(symbol:string):string[]{
  const base=String(symbol||'').trim().toUpperCase().replace(/^[#.]+/,'').split(/[._+-]/)[0];
  const m=base.match(/^([A-Z]{3})([A-Z]{3})$/);return m?[m[1],m[2]]:[];
 }
+export const LEVEL_WINDOW_MS=120_000;
+// SL/TP platí jako počáteční, i když přišel do 2 minut od vstupu (build.ts bere do sl_initial jen prvních 10 s)
+export function effectiveLevel(initial:number|null,changes:{ts:number;new:number|null}[],openTs:number):number|null{
+ if(initial!==null)return initial;
+ const c=[...changes].sort((a,b)=>a.ts-b.ts).find(c=>c.new!==null&&c.new>0&&c.ts<=openTs+LEVEL_WINDOW_MS);
+ return c?c.new:null;
+}
 export function evaluate(t:EvalTrade,day:EvalTrade[],s:RuleSettings,news:{at:number;currencies:string[]}[]):Violation[]{
  const out:Violation[]=[];const need=(id:RuleId)=>RULES.find(r=>r.id===id)!.needsReason;
  const add=(rule:RuleId,detail:Record<string,unknown>={})=>out.push({rule,detail,needsReason:need(rule)});
