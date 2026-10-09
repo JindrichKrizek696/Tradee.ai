@@ -21,7 +21,7 @@ const wrTone=(w:number)=>w<40?'down':w<=55?'mid':'up';
 // prstenec win rate (obvod kruhu r=16)
 const Ring=({pct}:{pct:number})=><svg className="d-mt-ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16"/><circle cx="20" cy="20" r="16" strokeDasharray={`${pct/100*100.53} 100.53`} transform="rotate(-90 20 20)"/></svg>;
 // Souhrn vlastního obchodování nahoře na Dashboardu: stejná data a výpočty jako Deník, účet sdílený s Deníkem.
-export function MyTrading({now,onAddTrade,onAccount,rev=0,style}:{now:number;onAddTrade:()=>void;onAccount?:(a:string)=>void;rev?:number;style?:React.CSSProperties}){
+export function MyTrading({now,onAddTrade,onAccount,onPeriod,rev=0,style}:{now:number;onAddTrade:()=>void;onAccount?:(a:string)=>void;onPeriod?:(p:P)=>void;rev?:number;style?:React.CSSProperties}){
  const [data,setData]=useState<JournalList|null>(null),[error,setError]=useState(''),[account,setAccount]=useState('all'),[period,setPeriod]=useState<P>('month');
  async function load(){try{const r=await fetch('/api/journal',{cache:'no-store'});const j=await r.json() as JournalList&{error?:string};if(!r.ok)throw Error(j.error||'');setData(j);setError('')}catch(e){setError((e as Error).message||'Obchody se nepodařilo načíst.')}}
  // volby z prohlížeče až po připojení (Dashboard se renderuje i na serveru)
@@ -32,6 +32,7 @@ export function MyTrading({now,onAddTrade,onAccount,rev=0,style}:{now:number;onA
  useEffect(()=>{if(acc!==account){setAccount(acc);writeAccount(acc)}},[acc,account]);
  // vybraný účet hlásí Dashboardu (karta Otevřené pozice)
  useEffect(()=>{onAccount?.(acc)},[acc,onAccount]);
+ useEffect(()=>{onPeriod?.(period)},[period,onPeriod]);
  const trades=useMemo(()=>data?.trades||[],[data]),cur=data?.currency||'USD',today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7));
  const all=useMemo(()=>filterTrades(trades,{...DEFAULT_FILTER,account:acc},now),[trades,acc,now]);
  const list=useMemo(()=>filterTrades(trades,{...DEFAULT_FILTER,account:acc,period},now),[trades,acc,period,now]);

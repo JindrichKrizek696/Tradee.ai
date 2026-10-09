@@ -1,0 +1,21 @@
+.rp-back{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:#0b0c0e73}
+.rp-box{width:min(480px,100%);max-height:calc(100vh - 32px);overflow:auto;display:grid;gap:12px;padding:20px 22px;background:var(--t-surface);color:var(--t-fg);border:1px solid var(--t-border-strong);border-radius:20px;box-shadow:0 24px 64px -20px #0b0c0e66;outline:none}
+.rp-box h2{margin:0;font-size:20px;line-height:1.3}
+.rp-box p{margin:0}
+.rp-count{font-size:12px;font-weight:600;color:var(--t-muted)}
+.rp-sub{font-size:14px;color:var(--t-muted)}
+.rp-sub.pos{color:var(--bull-text)}.rp-sub.neg{color:var(--bear-text)}
+.rp-detail{font-size:14px;padding:8px 10px;border-radius:10px;background:var(--t-warn-soft);border:1px solid var(--t-notice-border);color:#b45309}
+:root[data-theme=dark] .rp-detail{color:#f0a24b}
+.rp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rp-chips button{font:inherit;font-size:13.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg-2);cursor:pointer}
+.rp-chips button:hover,.rp-chips button:focus-visible{background:var(--t-surface-3)}
+.rp-chips button.on{background:var(--t-accent-soft);border-color:var(--t-brand);color:var(--t-brand-fg)}
+.rp-box textarea{font:inherit;font-size:14px;color:var(--t-fg);background:var(--t-surface);border:1px solid var(--t-border);border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box;resize:vertical}
+.rp-err{font-size:13px;color:var(--bear-text)}
+.rp-btns{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.rp-btn{font:inherit;font-size:14px;font-weight:600;height:36px;padding:0 16px;border-radius:10px;border:1px solid var(--t-border-strong);background:var(--t-surface);color:var(--t-fg);cursor:pointer}
+.rp-btn.dark{background:var(--t-inverse);color:var(--t-on-inverse);border-color:var(--t-inverse)}
+.rp-btn:disabled{opacity:.6;cursor:default}
+.rp-link{margin-left:auto;font-size:13px;color:var(--t-brand-fg)}
+@media(max-width:640px){.rp-box{padding:16px;border-radius:18px}.rp-link{margin-left:0;width:100%}}

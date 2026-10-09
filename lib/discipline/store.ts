@@ -217,3 +217,43 @@ export async function saveReview(d:Db,userId:string,tradeId:string,input:ReviewI
  for(const r of reasons)await d.prepare('UPDATE trade_violations SET reasoned_at=IF(reason_code<=>? AND reason_text<=>?,reasoned_at,?),reason_code=?,reason_text=? WHERE user_id=? AND trade_id=? AND rule=? AND needs_reason=1').bind(r.code,r.text||null,now,r.code,r.text||null,userId,tradeId,r.rule).run();
  return {rating,strategyId,reason,emotions,lesson,customBroken};
 }
+
+// --- výzvy ke zdůvodnění a nastavení upozornění ---
+export type PendingReason={id:number;tradeId:string;rule:string;detail:Record<string,unknown>;created:string;trade:{symbol:string;side:string|null;closeTs:number|null;net:number|null;currency:string|null}};
+/** Porušení čekající na zdůvodnění (nejstarší první, max. 20) s údaji o obchodě; ruční obchody tato pravidla nemají. */
+export async function pendingReasons(d:Db,userId:string):Promise<PendingReason[]>{
+ const rows=(await d.prepare("SELECT v.id,v.trade_id,v.rule,v.detail,v.created,p.symbol,p.side,p.close_ts,p.net,a.currency FROM trade_violations v JOIN mt_positions p ON v.trade_id=CONCAT('mt:',p.id) JOIN mt_accounts a ON a.id=p.account_id AND a.user_id=v.user_id WHERE v.user_id=? AND v.needs_reason=1 AND v.reason_code IS NULL ORDER BY v.id LIMIT 20").bind(userId).all<{id:number;trade_id:string;rule:string;detail:string;created:string;symbol:string;side:string;close_ts:number|null;net:number|null;currency:string|null}>()).results;
+ return rows.map(v=>({id:Number(v.id),tradeId:v.trade_id,rule:v.rule,detail:parseObj(v.detail),created:v.created,trade:{symbol:v.symbol,side:v.side,closeTs:num(v.close_ts),net:num(v.net),currency:v.currency||null}}));
+}
+/** Skutečný počet čekajících zdůvodnění (bez limitu 20). */
+export async function pendingCount(d:Db,userId:string):Promise<number>{
+ const r=await d.prepare("SELECT COUNT(*) AS n FROM trade_violations v JOIN mt_positions p ON v.trade_id=CONCAT('mt:',p.id) JOIN mt_accounts a ON a.id=p.account_id AND a.user_id=v.user_id WHERE v.user_id=? AND v.needs_reason=1 AND v.reason_code IS NULL").bind(userId).first<{n:number}>();
+ return Number(r?.n||0);
+}
+/** Zdůvodní porušení (kód i text ověřené stejně jako v saveReview). false = neexistuje / cizí / už zdůvodněno. */
+export async function saveViolationReason(d:Db,userId:string,id:number,code:unknown,text:unknown):Promise<boolean>{
+ if(!Number.isInteger(id)||id<1)return false;
+ if(typeof code!=='string'||!REASONS.some(x=>x.id===code))throw new Error('Neplatný důvod zdůvodnění.');
+ const t=text===undefined||text===null?'':optText(text,REVIEW_LIMITS.reasonText,'Text zdůvodnění');
+ if(code==='other'&&!t)throw new Error('U důvodu „Jiné“ napiš, co se stalo.');
+ const r=await d.prepare('UPDATE trade_violations SET reason_code=?,reason_text=?,reasoned_at=? WHERE id=? AND user_id=? AND needs_reason=1 AND reason_code IS NULL').bind(code,t||null,nowSql(),id,userId).run();
+ return r.meta.changes>0;
+}
+export type Notify={popup:boolean;mail:boolean;push:boolean;snoozeUntil:number|null};
+const sqlMs=(s:string|null)=>{if(!s)return null;const t=Date.parse(String(s).replace(' ','T')+'Z');return Number.isFinite(t)?t:null};
+export async function getNotify(d:Db,userId:string):Promise<Notify>{
+ const r=await d.prepare('SELECT popup,mail,push,snooze_until FROM notify_settings WHERE user_id=?').bind(userId).first<{popup:number;mail:number;push:number;snooze_until:string|null}>();
+ return r?{popup:!!Number(r.popup),mail:!!Number(r.mail),push:!!Number(r.push),snoozeUntil:sqlMs(r.snooze_until)}:{popup:true,mail:true,push:false,snoozeUntil:null};
+}
+export async function setNotify(d:Db,userId:string,p:{popup?:unknown;mail?:unknown;push?:unknown}):Promise<Notify>{
+ const cur=await getNotify(d,userId),pick=(v:unknown,c:boolean,what:string)=>{if(v===undefined)return c;if(typeof v!=='boolean')throw new Error(`Nastavení „${what}“ musí být ano / ne.`);return v};
+ const popup=pick(p?.popup,cur.popup,'okno'),mail=pick(p?.mail,cur.mail,'e-mail'),push=pick(p?.push,cur.push,'push');
+ await d.prepare('INSERT INTO notify_settings(user_id,popup,mail,push,updated) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE popup=VALUES(popup),mail=VALUES(mail),push=VALUES(push),updated=VALUES(updated)').bind(userId,popup?1:0,mail?1:0,push?1:0,nowSql()).run();
+ return {popup,mail,push,snoozeUntil:cur.snoozeUntil};
+}
+/** Odloží okno o `hours` hodin (výchozí 4); vrací čas konce odložení v ms. */
+export async function snooze(d:Db,userId:string,hours=4):Promise<number>{
+ const until=Date.now()+hours*3600000,sql=new Date(until).toISOString().slice(0,19).replace('T',' ');
+ await d.prepare('INSERT INTO notify_settings(user_id,snooze_until,updated) VALUES(?,?,?) ON DUPLICATE KEY UPDATE snooze_until=VALUES(snooze_until),updated=VALUES(updated)').bind(userId,sql,nowSql()).run();
+ return Math.floor(until/1000)*1000;
+}
