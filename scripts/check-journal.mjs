@@ -1,8 +1,8 @@
 // Kontrola deníku obchodů: node --experimental-strip-types scripts/check-journal.mjs
 import {toJournalTrades,mtRowToTrade,manualRowToTrade,cleanTags,cleanNote,parseJournalId,checkUpload,splitTags} from '../lib/journal/rows.ts';
-import {fmtHold,fmtR,fmtDate,pragueOffsetMs,tradesWord} from '../lib/journal/format.ts';
+import {fmtHold,fmtR,fmtDate,pragueOffsetMs,tradesWord,plural} from '../lib/journal/format.ts';
 import {makeRates} from '../lib/fx.ts';
-import {currentStreak,periodRange,filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER} from '../lib/journal/stats.ts';
+import {currentStreak,periodRange,filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER,mondayOf,isBestPeriod,drawdownPct} from '../lib/journal/stats.ts';
 import {chartTime,snapper,candles,levelSteps,tradeMarkers,pricePrecision} from '../lib/journal/chart-data.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -142,4 +142,17 @@ check('týden od pondělí',JSON.stringify(periodRange(F({period:'week'}),Date.U
 check('týden: neděle patří k týdnu od pondělí',periodRange(F({period:'week'}),Date.UTC(2026,9,11,20))[0]==='2026-10-05');
 check('týden: pondělí po půlnoci v Praze',periodRange(F({period:'week'}),Date.UTC(2026,9,11,22,30))[0]==='2026-10-12');
 check('týden přes změnu času',periodRange(F({period:'week'}),Date.UTC(2026,9,26,10))[0]==='2026-10-26');
+// --- Můj trading: množná čísla, nejlepší měsíc/týden, drawdown v %
+const W3=['výhra','výhry','výher'];
+check('plural',[0,1,2,4,5,11].map(n=>plural(n,W3)).join()==='výher,výhra,výhry,výhry,výher,výher');
+check('pondělí týdne',mondayOf('2026-10-11')==='2026-10-05'&&mondayOf('2026-10-05')==='2026-10-05'&&mondayOf('2026-01-01')==='2025-12-29',[mondayOf('2026-10-11'),mondayOf('2026-01-01')]);
+const bm=(d,pnl)=>({date:d,pnl});
+const hist=[bm('2026-07-03',100),bm('2026-08-10',300),bm('2026-08-11',-50),bm('2026-09-02',200)];
+check('nejlepší měsíc: vyšší než všechny',isBestPeriod([...hist,bm('2026-10-02',260)],'month','2026-10-09'));
+check('nejlepší měsíc: rovnost nestačí',!isBestPeriod([...hist,bm('2026-10-02',250)],'month','2026-10-09'));
+check('nejlepší měsíc: málo historie',!isBestPeriod([bm('2026-09-02',10),bm('2026-10-02',500)],'month','2026-10-09'));
+check('nejlepší měsíc: ztráta není nejlepší',!isBestPeriod([bm('2026-08-02',-300),bm('2026-09-02',-200),bm('2026-10-02',-10)],'month','2026-10-09'));
+check('nejlepší měsíc: bez obchodů tento měsíc',!isBestPeriod(hist,'month','2026-10-09'));
+check('nejlepší týden',isBestPeriod([bm('2026-09-21',50),bm('2026-09-28',80),bm('2026-10-04',10),bm('2026-10-06',60),bm('2026-10-08',40)],'week','2026-10-09'));
+check('drawdown v %',drawdownPct([{value:100},{value:200},{value:150}],50)===25&&drawdownPct([{value:-10}],10)===null&&drawdownPct([],0)===null);
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

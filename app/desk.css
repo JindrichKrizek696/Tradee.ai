@@ -133,13 +133,40 @@
 /* Můj trading: výběr účtu + období, 5 ukazatelů, P&L období a celkový zisk vedle sebe */
 .d-dash .d-mt-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .d-dash .d-mt-acc{height:32px;max-width:220px;padding:0 10px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);font:inherit;font-size:12.5px;font-weight:500;color:var(--t-fg)}
-.d-dash .d-mt-kpi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;margin:0;border-radius:14px;overflow:hidden;background:var(--t-border);border:1px solid var(--t-border)}
-.d-dash .d-mt-kpi>div{display:flex;flex-direction:column;gap:4px;min-width:0;padding:14px 16px;background:var(--t-surface-2)}
-.d-dash .d-mt-kpi dt{font-size:12px;color:var(--t-muted);white-space:nowrap}
-.d-dash .d-mt-kpi dd{margin:0;font-size:clamp(17px,1.7vw,24px);font-weight:600;letter-spacing:-.03em;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--t-fg);overflow-wrap:anywhere}
+.d-dash .d-mt{--mt-amber:#f59e0b;--mt-amber-text:#b45309}
+:root[data-theme=dark] .d-dash .d-mt{--mt-amber:#fbbf24;--mt-amber-text:#fcd34d}
+.d-dash .d-mt-who{display:flex;align-items:center;gap:12px;min-width:0}
+.d-dash .d-mt-mascot{height:52px;width:auto;flex:none;filter:drop-shadow(0 4px 6px color-mix(in srgb,var(--t-fg) 12%,transparent))}
+.d-dash .d-mt-who h2{margin:0}
+.d-dash .d-mt-mood{margin:2px 0 0;font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--t-fg)}
+.d-dash .d-mt-mood.up{color:var(--bull-text)}.d-dash .d-mt-mood.down{color:var(--bear-text)}
+.d-dash .d-mt-best{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--mt-amber-text);background:color-mix(in srgb,var(--mt-amber) 16%,var(--t-surface));border:1px solid color-mix(in srgb,var(--mt-amber) 35%,var(--t-surface))}
+.d-dash .d-mt-kpi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0}
+.d-dash .d-mt-tile{--c:var(--t-muted-2);--ct:var(--t-fg-2);position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px 16px;border-radius:14px;background:linear-gradient(140deg,color-mix(in srgb,var(--c) 15%,var(--t-surface)),color-mix(in srgb,var(--c) 4%,var(--t-surface)));border:1px solid color-mix(in srgb,var(--c) 24%,var(--t-surface))}
+.d-dash .d-mt-tile.pnl.up,.d-dash .d-mt-tile.wr.up{--c:var(--bull);--ct:var(--bull-text)}
+.d-dash .d-mt-tile.pnl.down,.d-dash .d-mt-tile.wr.down,.d-dash .d-mt-tile.dd{--c:var(--bear);--ct:var(--bear-text)}
+.d-dash .d-mt-tile.cnt{--c:var(--t-brand);--ct:var(--t-brand-fg)}
+.d-dash .d-mt-tile.wr.mid,.d-dash .d-mt-tile.streak{--c:var(--mt-amber);--ct:var(--mt-amber-text)}
+.d-dash .d-mt-kpi dt{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--t-fg-2);white-space:nowrap}
+.d-dash .d-mt-ico{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:8px;color:var(--ct);background:color-mix(in srgb,var(--c) 20%,var(--t-surface))}
+.d-dash .d-mt-kpi dd{margin:0;font-size:clamp(17px,1.7vw,24px);font-weight:650;letter-spacing:-.03em;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--t-fg);overflow-wrap:anywhere}
 .d-dash .d-mt-kpi dd.up{color:var(--bull-text)}.d-dash .d-mt-kpi dd.down{color:var(--bear-text)}
-.d-dash .d-mt-kpi small{font-size:12px;line-height:1.35;color:var(--t-muted-2);min-width:0}
-.d-dash .d-mt-kpi .d-delta{padding:2px 8px 2px 5px;font-size:11.5px;color:var(--t-fg)}
+.d-dash .d-mt-kpi dd.d-mt-sub{font-size:12px;font-weight:400;letter-spacing:0;line-height:1.35;color:var(--t-muted);min-width:0;font-variant-numeric:normal}
+.d-dash .d-mt-kpi .d-delta{padding:2px 8px 2px 5px;font-size:11.5px;color:var(--t-fg);letter-spacing:0}
+.d-dash .d-mt-split{display:flex;height:6px;margin:2px 0 6px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--t-fg) 8%,transparent)}
+.d-dash .d-mt-split i{display:block;height:100%}.d-dash .d-mt-split .w{background:var(--bull)}.d-dash .d-mt-split .l{background:var(--bear)}
+.d-dash .d-mt-split.dd .l{border-radius:999px}
+.d-dash .d-mt-wr{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.d-dash .d-mt-ring{width:38px;height:38px;flex:none;margin:-8px 0}
+.d-dash .d-mt-ring circle{fill:none;stroke-width:5;stroke:color-mix(in srgb,var(--c) 18%,transparent)}
+.d-dash .d-mt-ring circle+circle{stroke:var(--c);stroke-linecap:round;transition:stroke-dasharray .5s ease}
+.d-dash .d-mt-tile.wr dd:not(.d-mt-sub){color:var(--ct)}
+.d-dash .d-mt-flames{display:inline-flex;align-items:center;gap:6px}
+.d-dash .d-mt-flames>span{display:inline-flex;font-size:.8em;letter-spacing:-.12em}
+.d-dash .d-mt-flames i{display:inline-block;font-style:normal;transform-origin:50% 90%}
+.d-dash .d-mt-tile.hot .d-mt-flames i{animation:d-mt-flicker 1.4s ease-in-out infinite alternate}
+@keyframes d-mt-flicker{0%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.12,1.18) rotate(2deg)}100%{transform:scale(.96,1.05) rotate(-1deg)}}
+@media(prefers-reduced-motion:reduce){.d-dash .d-mt-tile.hot .d-mt-flames i{animation:none}.d-dash .d-mt-ring circle+circle{transition:none}}
 .d-dash .d-mt-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:20px}
 .d-dash .d-mt-charts>:only-child{grid-column:1/-1}
 .d-dash .d-mt-chart{min-width:0}
@@ -150,6 +177,7 @@
 .d-dash .d-mt-cta{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.d-dash .d-mt-cta a{text-decoration:none}
 .d-dash .d-mt>.d-pnlwrap{min-height:190px}
 @media(max-width:1199px){.d-dash .d-mt-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.d-dash .d-mt-kpi>div:last-child{grid-column:span 2}}
+@media(max-width:560px){.d-dash .d-mt-mascot{height:44px}.d-dash .d-mt-mood{font-size:13px}}
 @media(max-width:860px){.d-dash .d-mt-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.d-dash .d-mt-kpi>div:first-child{grid-column:1/-1}.d-dash .d-mt-kpi>div:last-child{grid-column:auto}.d-dash .d-mt-charts{grid-template-columns:1fr}}
 
 /* Watchlist signálů */

@@ -78,3 +78,14 @@ export function breakdown(trades:JournalTrade[],by:BreakdownBy):Group[]{
  const out=[...m].map(([key,{label,list}])=>{const w=list.filter(t=>t.pnl>0).length,rs=list.filter(t=>t.r!==null);return {key,label,count:list.length,winRate:r2(100*w/list.length),total:r2(list.reduce((s,t)=>s+t.pnl,0)),expectancyR:rs.length?r2(rs.reduce((s,t)=>s+(t.r as number),0)/rs.length):null}});
  return by==='weekday'||by==='hour'||by==='hold'||by==='checklist'?out.sort((a,b)=>Number(a.key)-Number(b.key)):out.sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'cs'));
 }
+// pondělí týdne (RRRR-MM-DD) pro datum RRRR-MM-DD
+export const mondayOf=(d:string)=>{const t=Date.parse(d+'T12:00:00Z');return new Date(t-((new Date(t).getUTCDay()+6)%7)*DAY).toISOString().slice(0,10)};
+// nejlepší měsíc / týden: aktuální je v zisku a vyšší než každý dřívější (aspoň 2 dřívější s obchody)
+export function isBestPeriod(trades:{date:string;pnl:number}[],unit:'month'|'week',today:string){
+ const key=(d:string)=>unit==='month'?d.slice(0,7):mondayOf(d),cur=key(today),m=new Map<string,number>();
+ for(const t of trades)if(t.date<=today)m.set(key(t.date),(m.get(key(t.date))||0)+t.pnl);
+ const now=r2(m.get(cur)??0),prev=[...m].filter(([k])=>k<cur).map(([,v])=>r2(v));
+ return m.has(cur)&&now>0&&prev.length>=2&&prev.every(v=>now>v);
+}
+// pokles jako % z maxima kumulovaného zisku (null, když zisk nikdy nebyl nad nulou)
+export function drawdownPct(curve:{value:number}[],dd:number){const peak=Math.max(0,...curve.map(p=>p.value));return peak>0?Math.min(100,Math.round(dd/peak*100)):null}
