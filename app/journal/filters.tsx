@@ -1,7 +1,7 @@
 'use client';
 import type {JournalAccount,JournalTrade} from '@/lib/journal/types';
 import {DEFAULT_FILTER,type Filter,type Period} from '@/lib/journal/stats';
-const PERIODS:[Period,string][]=[['month','Tento měsíc'],['30d','30 dní'],['90d','90 dní'],['year','Tento rok'],['all','Vše'],['custom','Vlastní']];
+const PERIODS:[Period,string][]=[['week','Tento týden'],['month','Tento měsíc'],['30d','30 dní'],['90d','90 dní'],['year','Tento rok'],['all','Vše'],['custom','Vlastní']];
 type Opt=[string,string];
 export function Filters({filter,onChange,trades,accounts}:{filter:Filter;onChange:(f:Filter)=>void;trades:JournalTrade[];accounts:JournalAccount[]}){
  const set=(p:Partial<Filter>)=>onChange({...filter,...p});

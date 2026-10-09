@@ -107,7 +107,6 @@
 
 /* P&L: období, sloupce + kumulativní křivka, ukazatele */
 .d-dash .d-seg.sm button{height:26px;padding:0 11px;font-size:12px}
-.d-dash .d-big .d-meta{margin-left:auto}
 .d-dash .d-pnlwrap{position:relative;padding-top:12px}
 .d-dash .d-pnlchart{display:block;width:100%;height:150px;overflow:visible}
 .d-dash .d-pnl-up{fill:var(--bull)}.d-dash .d-pnl-down{fill:var(--bear)}
@@ -126,14 +125,8 @@
 .d-dash .d-btn:hover{background:var(--t-surface-3)}
 .d-dash .d-ticks{display:flex;gap:0;padding-top:6px}
 .d-dash .d-ticks span{flex:1;text-align:center;white-space:nowrap}
-.d-dash .d-kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:16px 0 0;border-radius:14px;overflow:hidden;background:var(--t-border);border:1px solid var(--t-border)}
-.d-dash .d-kv div{padding:10px 12px;background:var(--t-surface-2);min-width:0}
-.d-dash .d-kv dt{font-size:11.5px;color:var(--t-muted);white-space:nowrap}
-.d-dash .d-kv dd{margin:3px 0 0;font-size:15px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* P&L */
-.d-dash .d-big{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.d-dash .d-big b{font-size:48px;font-weight:600;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
 .d-dash .d-delta{display:inline-flex;align-items:center;gap:3px;padding:5px 10px 5px 7px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--t-surface-3)}
 .d-dash .d-delta.up{background:color-mix(in srgb,var(--bull) 13%,transparent)}.d-dash .d-delta.down{background:color-mix(in srgb,var(--bear) 13%,transparent)}
 
@@ -143,9 +136,9 @@
 .d-dash .d-mt-kpi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;margin:0;border-radius:14px;overflow:hidden;background:var(--t-border);border:1px solid var(--t-border)}
 .d-dash .d-mt-kpi>div{display:flex;flex-direction:column;gap:4px;min-width:0;padding:14px 16px;background:var(--t-surface-2)}
 .d-dash .d-mt-kpi dt{font-size:12px;color:var(--t-muted);white-space:nowrap}
-.d-dash .d-mt-kpi dd{margin:0;font-size:24px;font-weight:600;letter-spacing:-.03em;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--t-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-dash .d-mt-kpi dd{margin:0;font-size:clamp(17px,1.7vw,24px);font-weight:600;letter-spacing:-.03em;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--t-fg);overflow-wrap:anywhere}
 .d-dash .d-mt-kpi dd.up{color:var(--bull-text)}.d-dash .d-mt-kpi dd.down{color:var(--bear-text)}
-.d-dash .d-mt-kpi small{font-size:12px;color:var(--t-muted-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-dash .d-mt-kpi small{font-size:12px;line-height:1.35;color:var(--t-muted-2);min-width:0}
 .d-dash .d-mt-kpi .d-delta{padding:2px 8px 2px 5px;font-size:11.5px;color:var(--t-fg)}
 .d-dash .d-mt-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:20px}
 .d-dash .d-mt-charts>:only-child{grid-column:1/-1}
@@ -156,7 +149,8 @@
 .d-dash .d-mt-chart .j-curvewrap{margin-top:12px}
 .d-dash .d-mt-cta{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.d-dash .d-mt-cta a{text-decoration:none}
 .d-dash .d-mt>.d-pnlwrap{min-height:190px}
-@media(max-width:860px){.d-dash .d-mt-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.d-dash .d-mt-kpi>div:first-child{grid-column:1/-1}.d-dash .d-mt-charts{grid-template-columns:1fr}}
+@media(max-width:1199px){.d-dash .d-mt-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.d-dash .d-mt-kpi>div:last-child{grid-column:span 2}}
+@media(max-width:860px){.d-dash .d-mt-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.d-dash .d-mt-kpi>div:first-child{grid-column:1/-1}.d-dash .d-mt-kpi>div:last-child{grid-column:auto}.d-dash .d-mt-charts{grid-template-columns:1fr}}
 
 /* Watchlist signálů */
 .d-dash .d-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--t-surface-3)}
@@ -322,12 +316,10 @@
  .d-dash .d-card{padding:18px;border-radius:18px}
  .d-dash .d-bleed{margin:auto -18px -18px}
  .d-dash .d-axis{padding:8px 18px 12px}
- .d-dash .d-big b{font-size:40px}
  .d-dash .d-watchlist li button{grid-template-columns:44px minmax(0,1fr) 64px;gap:10px}
  .d-dash .d-watchlist .d-spark,.d-dash .d-brows .d-spark{display:none}
  .d-dash .d-brows li>button,.d-dash .d-brow-flat{grid-template-columns:44px minmax(0,1fr) 64px;gap:10px}
  .d-dash .d-brow-flat>span:nth-child(3){display:none}
- .d-dash .d-kv{grid-template-columns:repeat(2,minmax(0,1fr))}
  .d-dash .d-vbars{gap:2px;min-height:240px}
  .d-dash .t-cal-d,.d-dash .t-cal-w{min-height:50px;padding:4px 5px;border-radius:8px}
  .d-dash .t-cal-d small,.d-dash .t-cal-w small{display:none}
