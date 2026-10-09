@@ -1,14 +1,15 @@
 'use client';
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
 import {useId,useRef,useState} from 'react';
-import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,ArrowUpRight,ArrowDownRight,RotateCcw,Plus} from 'lucide-react';
+import {MyTrading} from './my-trading';
+import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
 import {groups} from '@/lib/markets';
-import {TradeCalendar,useTrades,months,todayIso,plural} from './trade-calendar';
+import {TradeCalendar,useTrades,months,todayIso} from './trade-calendar';
 import {EventRow} from './calendar';
 import {upcomingCalendar,flaggedMarkets,relative as until,type CalendarEvent} from '@/lib/calendar';
-import {monthStats,fmtMoney,periodStats,type Period,type Bucket} from '@/lib/trades';
+import {monthStats,fmtMoney} from '@/lib/trades';
 import type {View} from './shell';
 import {greeting,vocative,breadth,topSignals,sessions,dataHealth,recentChanges,scoreSeries,bullishTrail,bearishTrail,type Row,type HistoryLike} from '@/lib/dashboard';
 const fmt=(n:number|null,d=1)=>n===null?'—':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:d});
@@ -62,35 +63,6 @@ function NetBars({values,bull,bear,ats}:{values:number[];bull:number[];bear:numb
   <div className="d-netdays" aria-hidden="true">{days.map((d,i)=><span key={i}>{d}</span>)}</div>
  </div>;
 }
-const GHOST:Bucket[]=[14,-6,22,9,-12,18,26,-4,12,30,-9,16,24,8].map((pnl,i,a)=>({label:'',pnl,future:false,cum:a.slice(0,i+1).reduce((s,x)=>s+x,0)}));
-// Sloupec od nulové osy: zakulacený jen na vnějším konci (u nuly rovný).
-function barPath(x:number,y:number,w:number,h:number,up:boolean){const r=Math.min(4,w/3,h);return up?`M${x} ${y+h}V${y+r}Q${x} ${y} ${x+r} ${y}H${x+w-r}Q${x+w} ${y} ${x+w} ${y+r}V${y+h}Z`:`M${x} ${y}H${x+w}V${y+h-r}Q${x+w} ${y+h} ${x+w-r} ${y+h}H${x+r}Q${x} ${y+h} ${x} ${y+h-r}Z`}
-// Denní (u roku měsíční) výsledek jako sloupce od nuly + kumulativní křivka; ghost = zástupný graf pro prázdný stav.
-// Najetím myší (nebo prstem) se ukáže výsledek a průběžný součet daného dne/měsíce.
-function PnlChart({buckets,ghost,currency='USD',title}:{buckets:Bucket[];ghost?:boolean;currency?:string;title?:(b:Bucket,i:number)=>string}){
- const id=useId(),[hover,setHover]=useState<number|null>(null),w=600,h=150,n=buckets.length,step=w/n,bw=Math.max(3,Math.min(22,step*.56));
- const cums=buckets.filter(b=>b.cum!==null).map(b=>b.cum as number),hi=Math.max(0,...cums),lo=Math.min(0,...cums),span=(hi-lo)||1,yl=(v:number)=>14+(hi-v)/span*(h-28),y0=yl(0);
- const k=(h*.42)/Math.max(1,...buckets.map(b=>Math.abs(b.pnl)));
- const pts=buckets.flatMap((b,i)=>b.cum===null?[]:[[i*step+step/2,yl(b.cum)] as [number,number]]);
- const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' '),last=pts.at(-1);
- const pick=(e:React.PointerEvent<HTMLDivElement>)=>{const r=e.currentTarget.getBoundingClientRect();setHover(Math.max(0,Math.min(n-1,Math.floor((e.clientX-r.left)/r.width*n))))};
- const hb=hover===null||ghost?null:buckets[hover],hx=hover===null?0:(hover+.5)/n*100;
- return <div className="d-pnlhover" onPointerMove={ghost?undefined:pick} onPointerLeave={()=>setHover(null)}>
-  <svg className={'d-pnlchart'+(ghost?' ghost':'')} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-   <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{stopColor:'var(--t-fg)',stopOpacity:.1}}/><stop offset="1" style={{stopColor:'var(--t-fg)',stopOpacity:0}}/></linearGradient></defs>
-   {hb&&<rect x={hover!*step} y="0" width={step} height={h} className="d-pnl-band"/>}
-   <line x1="0" x2={w} y1={y0} y2={y0} className="d-zero" vectorEffect="non-scaling-stroke"/>
-   {buckets.map((b,i)=>{const x=i*step+(step-bw)/2;if(b.future||!b.pnl)return <rect key={i} x={x+bw/2-1.5} y={y0-1.5} width="3" height="3" rx="1.5" className="d-pnl-dot"/>;const hh=Math.max(2,b.pnl>0?Math.min(b.pnl*k,y0-4):Math.min(-b.pnl*k,h-y0-4));return <path key={i} d={barPath(x,b.pnl>0?y0-hh:y0,bw,hh,b.pnl>0)} className={b.pnl>0?'d-pnl-up':'d-pnl-down'}/>})}
-   {pts.length>1&&<><path d={`${line} L${pts[pts.length-1][0]} ${h} L${pts[0][0]} ${h} Z`} fill={`url(#${id})`}/><path d={line} fill="none" className="d-pnl-line" vectorEffect="non-scaling-stroke"/></>}
-   {last&&!ghost&&<circle cx={last[0]} cy={last[1]} r="4" className="d-pnl-end"/>}
-  </svg>
-  {hb&&<div className="d-pnltip" role="status" style={{left:hx+'%',transform:`translateX(${hx<18?'-12%':hx>82?'-88%':'-50%'})`}}>
-   <b>{title?title(hb,hover!):hb.label}</b>
-   {hb.future?<span>Ještě nenastalo</span>:<><span>Výsledek <em className={hb.pnl>0?'up':hb.pnl<0?'down':''}>{hb.pnl?fmtMoney(hb.pnl,currency):'bez obchodů'}</em></span>{hb.cum!==null&&<span>Celkem <em className={hb.cum>0?'up':hb.cum<0?'down':''}>{fmtMoney(hb.cum,currency)}</em></span>}</>}
-  </div>}
- </div>;
-}
-
 // Lišta zapuštěná do okraje okna: v klidu vystupuje jen úzký pruh s ikonami, po najetí se roztáhne.
 function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail:React.ReactNode;children:React.ReactNode}){
  const ref=useRef<HTMLElement>(null),inner=useRef<HTMLDivElement>(null);
@@ -101,13 +73,12 @@ function Notch({side,label,rail,children}:{side:'left'|'right';label:string;rail
 
 export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
- const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[period,setPeriod]=useState<Period>('month');
+ const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0);
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
  const events=upcomingCalendar(calendar,now,6),next=events.find(e=>Date.parse(e.at)>=now&&(e.signal===3||e.global))||events.find(e=>Date.parse(e.at)>=now);
- const today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7)),stats=monthStats(trades,y,mo),month=months[mo-1].toLowerCase(),ps=periodStats(trades,period,today);
+ const today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7)),stats=monthStats(trades,y,mo),month=months[mo-1].toLowerCase();
  const bullT=bullishTrail(history,24),bearT=bearishTrail(history,24),net=bullT.map((v,i)=>v-(bearT[i]??0)),index=b.scored?Math.round(100*(b.bull-b.bear)/b.scored):0;
  const delta=(t:number[])=>t.length>1?t[t.length-1]-t[t.length-2]:0,signed=(n:number)=>n>0?'+'+n:n<0?'−'+-n:'0';
- const periodLabel=period==='week'?'tento týden':period==='month'?months[mo-1]+' '+y:String(y);
  const signalGroups=SIGNAL_GROUPS.filter(g=>rows.some(r=>r.group===g&&r.r.score)),list=topSignals(group==='all'?rows:rows.filter(r=>r.group===group),6)[side];
  const ccy=rows.filter(r=>r.group==='currency'&&r.r.score!==null).sort((a,c)=>(c.r.score as number)-(a.r.score as number)),ccyScale=Math.max(10,...ccy.map(r=>Math.abs(r.r.score as number)))*1.15;
  const watched=rows.filter(r=>FLAGS.includes(flags[r.id])).sort((a,c)=>FLAGS.indexOf(flags[a.id])-FLAGS.indexOf(flags[c.id])||a.name.localeCompare(c.name)),count=(f:string)=>watched.filter(r=>flags[r.id]===f).length;
@@ -128,7 +99,9 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
   </header>
 
   <div className="d-bento">
-   <section className="d-card d-pulse" style={tile(0)}>
+   <MyTrading now={now} rev={rev} style={tile(0)} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+
+   <section className="d-card d-pulse" style={tile(1)}>
     <div className="d-head"><h2>Šíře trhu</h2><span className="d-meta">{b.scored?b.scored+' trhů se skóre':'Podklady jsou starší než limit'}{trail.length?' · snímek '+day(trail[trail.length-1].at):''}</span></div>
     <div className="d-pulse-body">
      <div className="d-gaugebox">
@@ -149,7 +122,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     {net.length>1&&<div className="d-bleed d-netwrap"><NetBars values={net} bull={bullT} bear={bearT} ats={trail.map(t=>t.at)}/><div className="d-axis d-netcap"><span>Čistá převaha bullish − bearish · {net.length} snímků · najeď na sloupec pro detail</span></div></div>}
    </section>
 
-   {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(1)}>
+   {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(2)}>
     <div className="d-head"><h2>Co se dnes hýbe</h2><LiveBadge live={liveData} quote={newest(liveData)}/></div>
     <div className="d-mv-cols">
      {([['Rostou',rise],['Padají',fall]] as const).map(([label,list])=><div key={label} className="d-mv-col"><h3>{label}</h3>
@@ -160,21 +133,6 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
      <ul>{strength.map(({r,v})=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><b>{r.id}</b><span className="d-hbar"><i className={v>0?'pos':v<0?'neg':'zero'} style={{'--w':Math.abs(v)/strScale*50+'%'} as React.CSSProperties}/></span><LiveChange pct={v}/></button></li>)}</ul>
     </div>}
    </section>}
-
-   <section className="d-card d-pnl" style={tile(2)}>
-    <div className="d-head"><h2>P&amp;L</h2><div className="d-seg sm" role="tablist" aria-label="Období">{([['week','Týden'],['month','Měsíc'],['year','Rok']] as const).map(([p,l])=><button key={p} type="button" role="tab" aria-selected={period===p} className={period===p?'on':''} onClick={()=>setPeriod(p)}>{l}</button>)}</div></div>
-    <div className="d-big"><b className={tradesReady&&!tradeError?tone(ps.total):''}>{tradesReady&&!tradeError?fmtMoney(ps.total,currency):'—'}</b>{ps.count>0&&<span className={'d-delta '+tone(ps.total)}>{ps.total>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{Math.round(ps.winRate)} % úspěšnost</span>}<span className="d-meta">{periodLabel}</span></div>
-    <div className="d-bleed d-pnlwrap">
-     {tradesReady&&!tradeError&&ps.count?<PnlChart buckets={ps.buckets} currency={currency} title={(b,i)=>period==='year'?months[i]+' '+y:period==='month'?`${b.label}. ${mo}. ${y}`:['Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota','Neděle'][i]||b.label}/>:<><PnlChart buckets={GHOST} ghost/><div className="d-ghostmsg">{tradeError?<><span>Deník obchodů se nepodařilo načíst.</span><button type="button" className="d-btn" onClick={()=>reloadTrades()}><RotateCcw size={14}/>Zkusit znovu</button></>:!tradesReady?<span>Načítám obchody…</span>:<><span>V tomto období zatím žádné obchody.</span><button type="button" className="d-btn" onClick={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}><Plus size={14}/>Zapsat obchod</button></>}</div></>}
-     <div className="d-axis d-ticks">{ps.buckets.map((x,i)=><span key={i}>{period!=='month'||i===0||(i+1)%5===0||(i===ps.buckets.length-1&&(i+1)%5>=3)?x.label:''}</span>)}</div>
-    </div>
-    <dl className="d-kv">
-     <div><dt>Obchody</dt><dd>{ps.count||'—'}</dd></div>
-     <div><dt>Profit factor</dt><dd>{ps.profitFactor===null?(ps.wins?'∞':'—'):ps.profitFactor.toLocaleString('cs-CZ',{maximumFractionDigits:2})}</dd></div>
-     <div><dt>Ø zisk</dt><dd className={ps.avgWin===null?'':'up'}>{ps.avgWin===null?'—':fmtMoney(ps.avgWin,currency)}</dd></div>
-     <div><dt>Ø ztráta</dt><dd className={ps.avgLoss===null?'':'down'}>{ps.avgLoss===null?'—':fmtMoney(ps.avgLoss,currency)}</dd></div>
-    </dl>
-   </section>
 
    <section className="d-card d-watch" style={tile(3)}>
     <div className="d-head">
@@ -198,7 +156,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     </button>})}</div>:<p className="d-empty">Indexy měn zatím nemají skóre.</p>}
    </section>
 
-   <div className="d-cal" style={tile(5)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={reloadTrades}/></div>
+   <div className="d-cal" style={tile(5)}><TradeCalendar now={now} trades={trades} currency={currency} ready={tradesReady} loadError={tradeError} reload={async()=>{await reloadTrades();setRev(r=>r+1)}}/></div>
 
    <section className="d-card d-perf" style={tile(6)}>
     <div className="d-head"><h2>Statistiky · {month}</h2></div>

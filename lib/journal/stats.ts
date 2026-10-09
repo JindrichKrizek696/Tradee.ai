@@ -1,13 +1,14 @@
 // Filtry a statistiky deníku (počítá se v prohlížeči z celého seznamu obchodů).
 import {pragueDate} from '../mt/trades.ts';
 import type {JournalTrade,JournalAccount} from './types.ts';
-export type Period='month'|'30d'|'90d'|'year'|'all'|'custom';
+export type Period='week'|'month'|'30d'|'90d'|'year'|'all'|'custom';
 export type Filter={account:string;period:Period;from:string;to:string;symbol:string;tag:string;side:'all'|'buy'|'sell';result:'all'|'win'|'loss';source:'all'|'mt'|'manual'};
 export const DEFAULT_FILTER:Filter={account:'all',period:'all',from:'',to:'',symbol:'all',tag:'all',side:'all',result:'all',source:'all'};
 const DAY=86400000,r2=(n:number)=>Math.round(n*100)/100;
 // rozsah dat (RRRR-MM-DD, včetně krajů) podle pražského kalendáře
 export function periodRange(f:Filter,now:number):[string,string]{
  const today=pragueDate(now);
+ if(f.period==='week'){const wd=(new Date(today+'T12:00:00Z').getUTCDay()+6)%7;return [pragueDate(Date.parse(today+'T12:00:00Z')-wd*DAY),today]}
  if(f.period==='month')return [today.slice(0,8)+'01',today];
  if(f.period==='year')return [today.slice(0,5)+'01-01',today];
  if(f.period==='30d')return [pragueDate(now-29*DAY),today];
@@ -37,7 +38,14 @@ const byClose=(a:JournalTrade,b:JournalTrade)=>a.closeTs-b.closeTs||a.id.localeC
 export function equityCurve(trades:JournalTrade[]){let s=0;return [...trades].sort(byClose).map(t=>({ts:t.closeTs,value:r2(s+=t.pnl)}))}
 // největší pokles od maxima kumulovaného výsledku (začíná se od nuly)
 export function maxDrawdown(curve:{value:number}[]){let peak=0,dd=0;for(const p of curve){peak=Math.max(peak,p.value);dd=Math.max(dd,peak-p.value)}return r2(dd)}
-export function streaks(trades:JournalTrade[]){let w=0,l=0,mw=0,ml=0;for(const t of [...trades].sort(byClose)){if(t.pnl>0){w++;l=0}else if(t.pnl<0){l++;w=0}else{w=0;l=0}mw=Math.max(mw,w);ml=Math.max(ml,l)}return {maxWinStreak:mw,maxLossStreak:ml}}
+export function streaks(trades:JournalTrade[]){let w=0,l=0,mw=0,ml=0;for(const t of [...trades].sort(byClose)){if(t.pnl>0){w++;l=0}else if(t.pnl<0){l++;w=0}mw=Math.max(mw,w);ml=Math.max(ml,l)}return {maxWinStreak:mw,maxLossStreak:ml}}
+// aktuální série od posledního obchodu (nulové obchody se přeskakují)
+export function currentStreak(trades:JournalTrade[]):{kind:'win'|'loss'|null;count:number}{
+ const s=[...trades].sort(byClose).filter(t=>t.pnl!==0);if(!s.length)return {kind:null,count:0};
+ const kind=s[s.length-1].pnl>0?'win' as const:'loss' as const;let count=0;
+ for(let i=s.length-1;i>=0&&(s[i].pnl>0)===(kind==='win');i--)count++;
+ return {kind,count};
+}
 export type Summary={count:number;wins:number;losses:number;winRate:number|null;total:number;grossWin:number;grossLoss:number;profitFactor:number|null;expectancy:number|null;avgWin:number|null;avgLoss:number|null;best:number|null;worst:number|null;expectancyR:number|null;rCount:number;noRisk:number;avgHoldMs:number|null;maxWinStreak:number;maxLossStreak:number;maxDrawdown:number};
 export function summary(trades:JournalTrade[]):Summary{
  const n=trades.length,wins=trades.filter(t=>t.pnl>0),losses=trades.filter(t=>t.pnl<0),gw=wins.reduce((s,t)=>s+t.pnl,0),gl=-losses.reduce((s,t)=>s+t.pnl,0);

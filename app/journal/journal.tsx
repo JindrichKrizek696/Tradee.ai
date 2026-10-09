@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import type {JournalList} from '@/lib/journal/types';
+import {readAccount,writeAccount} from './account-pref';
 import {DEFAULT_FILTER,filterTrades,sanitizeFilter,type Filter} from '@/lib/journal/stats';
 import {Filters} from './filters';
 import {TradesTable} from './trades-table';
@@ -13,12 +14,14 @@ function saved(key:string):{filter:Filter;tab:Tab}{try{const v=JSON.parse(localS
 const hashId=()=>{const h=location.hash;if(!h.startsWith('#journal/'))return null;try{return decodeURIComponent(h.slice(9))}catch{return null}};
 export function Journal({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const q=viewAs?'?as='+encodeURIComponent(viewAs.id):'',KEY=viewAs?'tradee.journal.admin':'tradee.journal';
- const [data,setData]=useState<JournalList|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>saved(KEY).filter),[tab,setTab]=useState<Tab>(()=>saved(KEY).tab),[detail,setDetail]=useState<string|null>(()=>hashId()),[now]=useState(()=>Date.now());
+ const [data,setData]=useState<JournalList|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved(KEY).filter;return viewAs?f:{...f,account:readAccount()}}),[tab,setTab]=useState<Tab>(()=>saved(KEY).tab),[detail,setDetail]=useState<string|null>(()=>hashId()),[now]=useState(()=>Date.now());
  async function reload(){try{const r=await fetch('/api/journal'+q,{cache:'no-store'});const j=await r.json() as JournalList&{error?:string};if(!r.ok)throw Error(j.error||'');setData(j);setError('')}catch(e){setError((e as Error).message||'Deník se nepodařilo načíst. Zkus obnovit stránku.')}}
  useEffect(()=>{reload();const on=()=>setDetail(hashId());window.addEventListener('hashchange',on);
   return()=>{window.removeEventListener('hashchange',on);if(location.hash.startsWith('#journal'))history.replaceState(null,'',location.pathname+location.search)}},[]);
  // po načtení dat zrušit části filtru, které odkazují na smazaný účet, tag nebo pár
  useEffect(()=>{if(data)setFilter(f=>{const s=sanitizeFilter(f,data.trades,data.accounts);return JSON.stringify(s)===JSON.stringify(f)?f:s})},[data]);
+ // vlastní deník: účet sdílený s Dashboardem (i po vrácení neexistujícího účtu na „all“)
+ useEffect(()=>{if(!viewAs)writeAccount(filter.account)},[filter.account,viewAs]);
  useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify({filter,tab}))}catch{}},[filter,tab,KEY]);
  const trades=useMemo(()=>data?.trades||[],[data]),list=useMemo(()=>filterTrades(trades,filter,now),[trades,filter,now]);
  const allTags=useMemo(()=>[...new Set(trades.flatMap(t=>t.tags))].sort(),[trades]);
