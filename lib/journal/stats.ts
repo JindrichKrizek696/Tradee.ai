@@ -1,5 +1,6 @@
 // Filtry a statistiky deníku (počítá se v prohlížeči z celého seznamu obchodů).
 import {pragueDate} from '../mt/trades.ts';
+import {completionGroup} from '../checklists/core.ts';
 import type {JournalTrade,JournalAccount} from './types.ts';
 export type Period='week'|'month'|'30d'|'90d'|'year'|'all'|'custom';
 export type Filter={account:string;period:Period;from:string;to:string;symbol:string;tag:string;side:'all'|'buy'|'sell';result:'all'|'win'|'loss';source:'all'|'mt'|'manual'};
@@ -56,16 +57,18 @@ export function summary(trades:JournalTrade[]):Summary{
 }
 const hourFmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Prague',hour:'2-digit',hourCycle:'h23'});
 export const pragueHour=(ms:number)=>Number(hourFmt.format(ms));
-export type BreakdownBy='tag'|'symbol'|'side'|'weekday'|'hour'|'hold';
+export type BreakdownBy='tag'|'symbol'|'side'|'weekday'|'hour'|'hold'|'checklist';
 export type Group={key:string;label:string;count:number;winRate:number;total:number;expectancyR:number|null};
 const WEEKDAYS=['Po','Út','St','Čt','Pá','So','Ne'];
 const HOLD:[number,string][]=[[15*60000,'< 15 min'],[3600000,'15 min – 1 h'],[4*3600000,'1–4 h'],[24*3600000,'4–24 h'],[7*DAY,'1–7 d'],[Infinity,'> 7 d']];
+const CHK={full:['0','Splněno úplně'],most:['1','Z většiny (≥ 70 %)'],less:['2','Méně'],none:['3','Bez checklistu']} as const;
 function keysOf(t:JournalTrade,by:BreakdownBy):[string,string][]{
  if(by==='tag')return t.tags.length?t.tags.map(x=>[x,'#'+x]):[['','bez tagu']];
  if(by==='symbol')return [[t.symbol,t.symbol]];
  if(by==='side')return t.side?[[t.side,t.side==='buy'?'Buy':'Sell']]:[];
  if(by==='weekday'){const d=t.openTs!==null?pragueDate(t.openTs):t.date,i=(new Date(d+'T12:00:00Z').getUTCDay()+6)%7;return [[String(i),WEEKDAYS[i]]]}
  if(by==='hour'){if(t.openTs===null)return [];const h=String(pragueHour(t.openTs)).padStart(2,'0');return [[h,h+':00']]}
+ if(by==='checklist')return [[...CHK[completionGroup(t.checklist)]]];
  if(t.holdMs===null)return [];
  const i=HOLD.findIndex(([lim])=>(t.holdMs as number)<lim);return [[String(i),HOLD[i][1]]];
 }
@@ -73,5 +76,5 @@ export function breakdown(trades:JournalTrade[],by:BreakdownBy):Group[]{
  const m=new Map<string,{label:string;list:JournalTrade[]}>();
  for(const t of trades)for(const [k,label] of keysOf(t,by)){const g=m.get(k)||{label,list:[]};g.list.push(t);m.set(k,g)}
  const out=[...m].map(([key,{label,list}])=>{const w=list.filter(t=>t.pnl>0).length,rs=list.filter(t=>t.r!==null);return {key,label,count:list.length,winRate:r2(100*w/list.length),total:r2(list.reduce((s,t)=>s+t.pnl,0)),expectancyR:rs.length?r2(rs.reduce((s,t)=>s+(t.r as number),0)/rs.length):null}});
- return by==='weekday'||by==='hour'||by==='hold'?out.sort((a,b)=>Number(a.key)-Number(b.key)):out.sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'cs'));
+ return by==='weekday'||by==='hour'||by==='hold'||by==='checklist'?out.sort((a,b)=>Number(a.key)-Number(b.key)):out.sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'cs'));
 }

@@ -1,6 +1,8 @@
 import {db} from '@/lib/server';
 import {parseBatch,snapshotEvents,eventPosition,MAX_BYTES,type BarsEvent,type MtEvent,type OrderEvent} from '@/lib/mt/protocol';
 import {upsertAccount,insertEvents,upsertOrders,insertSnapshot,rebuildPositions,upsertBars} from '@/lib/mt/store';
+import {snapshotNewPositions} from '@/lib/checklists/store';
+import {instruments} from '@/lib/markets';
 import {authKey,mtJson} from '@/lib/mt/http';
 // Příjem dávky z EA. Chyba DB → 503, aby EA dávku podržel a poslal znovu (400 by ji zahodil).
 export async function POST(req:Request){
@@ -22,6 +24,7 @@ export async function POST(req:Request){
   // neúspěšné přepočty se logují a opraví je: node --experimental-strip-types scripts/mt-rebuild.mjs <account>
   // dealy a posuny SL/TP se přepočítají i jako duplicity (dávka zopakovaná po výpadku uprostřed přepočtu); ostatní jen nové
   await rebuildPositions(d,accountId,[...r.fresh,...events.filter(e=>e.type==='deal'||e.type==='position_modify')].map(eventPosition));
+  try{await snapshotNewPositions(d,a.userId,accountId,Date.now(),instruments.map(i=>i.id))}catch(e){console.error('checklist snapshot',accountId,e)}
   if(bars.length)await upsertBars(d,accountId,bars);
   if(snapshot)try{await insertSnapshot(d,accountId,snapshot)}catch(e){console.error('mt snapshot',accountId,e)}
   return mtJson({ok:true,accepted:r.accepted+bars.length,duplicates:r.duplicates});

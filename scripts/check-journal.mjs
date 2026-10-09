@@ -62,7 +62,7 @@ check('offset Praha přes přechod',pragueOffsetMs(Date.UTC(2026,2,29,0,30))===3
 check('slova',tradesWord(1)==='obchod je'&&tradesWord(3)==='obchody jsou'&&tradesWord(5)==='obchodů je');
 
 // --- statistiky
-const base={source:'mt',accountId:'a1',account:'Demo',symbol:'EURUSD',side:'buy',volume:1,net:0,accountCurrency:'USD',converted:true,rr:null,riskPct:null,mfeR:null,maeR:null,tags:[],hasNote:false,files:0};
+const base={source:'mt',accountId:'a1',account:'Demo',symbol:'EURUSD',side:'buy',volume:1,net:0,accountCurrency:'USD',converted:true,rr:null,riskPct:null,mfeR:null,maeR:null,tags:[],hasNote:false,files:0,checklist:null};
 const mk=(id,day,pnl,x={})=>{const closeTs=Date.UTC(2026,9,day,10);return {...base,id,date:new Date(closeTs).toISOString().slice(0,10),openTs:closeTs-3600000,closeTs,holdMs:3600000,pnl,r:null,...x}};
 const A=mk('a',1,100,{r:1,tags:['breakout']}),B=mk('b',2,-50,{r:-0.5,tags:['breakout','london'],side:'sell'}),C=mk('c',3,-50,{symbol:'GBPUSD'}),Dm={...mk('d',4,200),source:'manual',accountId:'manual',side:null,openTs:null,holdMs:null},E=mk('e',5,0,{r:0});
 const list=[E,Dm,C,B,A];
@@ -90,6 +90,10 @@ const bh=breakdown([A,Dm],'hour');
 check('rozpad hodina jen MT',bh.length===1&&bh[0].label==='11:00',bh);
 const hold=[1,14.99,15,59,60,239,240,1439,1440,10079,10080].map(m=>({...A,id:'h'+m,holdMs:m*60000}));
 check('rozpad držení',breakdown(hold,'hold').map(g=>g.label+':'+g.count).join()==='< 15 min:2,15 min – 1 h:2,1–4 h:2,4–24 h:2,1–7 d:2,> 7 d:1',breakdown(hold,'hold'));
+
+const bc=breakdown([1,0.8,0.2,null].map((c,i)=>mk('k'+i,1+i,10,{checklist:c})),'checklist');
+check('rozpad checklist: 4 skupiny v pořadí',bc.map(g=>g.label+':'+g.count).join()==='Splněno úplně:1,Z většiny (≥ 70 %):1,Méně:1,Bez checklistu:1',bc);
+check('deník: checklist z mapy',toJournalTrades([mtRow],[],'USD',rates,{['mt:'+mtRow.id]:0.5})[0].checklist===0.5&&toJournalTrades([mtRow],[],'USD',rates)[0].checklist===null);
 
 // --- filtry a řazení
 const now=Date.UTC(2026,9,7,10);

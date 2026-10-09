@@ -8,15 +8,15 @@ export const splitTags=(...s:string[])=>[...new Set(s.join(',').split(',').map(t
 export function mtRowToTrade(r:MtJournalRow,currency:string,rates:Rates):JournalTrade{
  const close=Number(r.close_ts),open=Number(r.open_ts),date=pragueDate(close),net=Number(r.net),conv=convert(net,r.acc_currency,currency,date,rates),risk=num(r.risk_money);
  const perR=(v:number|null)=>v!==null&&risk!==null&&risk>0?r2(v/risk):null;
- return {id:'mt:'+r.id,source:'mt',accountId:r.account_id,account:r.acc_name||'••••'+String(r.acc_login).slice(-4),symbol:r.symbol,side:r.side==='sell'?'sell':'buy',openTs:open,closeTs:close,date,volume:Number(r.volume_max),net,accountCurrency:r.acc_currency,pnl:conv??net,converted:conv!==null,r:num(r.r_result),rr:num(r.rr_planned),riskPct:num(r.risk_pct),mfeR:perR(num(r.mfe_money)),maeR:perR(num(r.mae_money)),holdMs:Math.max(0,close-open),tags:splitTags(r.tags,r.tags_manual),hasNote:Number(r.has_note)>0,files:Number(r.files)};
+ return {id:'mt:'+r.id,source:'mt',accountId:r.account_id,account:r.acc_name||'••••'+String(r.acc_login).slice(-4),symbol:r.symbol,side:r.side==='sell'?'sell':'buy',openTs:open,closeTs:close,date,volume:Number(r.volume_max),net,accountCurrency:r.acc_currency,pnl:conv??net,converted:conv!==null,r:num(r.r_result),rr:num(r.rr_planned),riskPct:num(r.risk_pct),mfeR:perR(num(r.mfe_money)),maeR:perR(num(r.mae_money)),holdMs:Math.max(0,close-open),tags:splitTags(r.tags,r.tags_manual),hasNote:Number(r.has_note)>0,files:Number(r.files),checklist:null};
 }
 // ruční zápis: jen datum, trh, výsledek, poznámka; čas = poledne UTC daného dne (kvůli řazení)
 export function manualRowToTrade(r:ManualJournalRow):JournalTrade{
  const date=String(r.date).slice(0,10);
- return {id:'man:'+r.id,source:'manual',accountId:'manual',account:'Ručně',symbol:r.instrument,side:null,openTs:null,closeTs:Date.parse(date+'T12:00:00Z'),date,volume:null,net:null,accountCurrency:null,pnl:Number(r.pnl),converted:true,r:null,rr:null,riskPct:null,mfeR:null,maeR:null,holdMs:null,tags:[],hasNote:!!r.note,files:0,note:r.note||''};
+ return {id:'man:'+r.id,source:'manual',accountId:'manual',account:'Ručně',symbol:r.instrument,side:null,openTs:null,closeTs:Date.parse(date+'T12:00:00Z'),date,volume:null,net:null,accountCurrency:null,pnl:Number(r.pnl),converted:true,r:null,rr:null,riskPct:null,mfeR:null,maeR:null,holdMs:null,tags:[],hasNote:!!r.note,files:0,checklist:null,note:r.note||''};
 }
-export function toJournalTrades(mt:MtJournalRow[],manual:ManualJournalRow[],currency:string,rates:Rates):JournalTrade[]{
- return [...mt.map(r=>mtRowToTrade(r,currency,rates)),...manual.map(manualRowToTrade)].sort((a,b)=>b.closeTs-a.closeTs||a.id.localeCompare(b.id));
+export function toJournalTrades(mt:MtJournalRow[],manual:ManualJournalRow[],currency:string,rates:Rates,checklists:Record<string,number|null>={}):JournalTrade[]{
+ return [...mt.map(r=>mtRowToTrade(r,currency,rates)),...manual.map(manualRowToTrade)].map(t=>({...t,checklist:checklists[t.id]??null})).sort((a,b)=>b.closeTs-a.closeTs||a.id.localeCompare(b.id));
 }
 // ruční tagy: bez #, malá písmena, 2–30 znaků, max 10; neplatný tag = chyba (uživatel ho napsal)
 export function cleanTags(v:unknown):string[]{

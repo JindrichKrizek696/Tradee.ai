@@ -89,6 +89,13 @@ export async function snapshotTrade(d:Db,userId:string,tradeId:string,instrument
  const r=await d.prepare('INSERT IGNORE INTO trade_checklists(user_id,trade_id,instrument,snapshot,completion,created,updated) VALUES(?,?,?,?,?,?,?)').bind(userId,tradeId,instrument,JSON.stringify(snap),completion(snap),now,now).run();
  return r.meta.changes>0?snap:null;
 }
+// snímek pro pozice účtu otevřené v poslední hodině, které ještě snímek nemají
+export async function snapshotNewPositions(d:Db,userId:string,accountId:string,now:number,ids:readonly string[]){
+ const rows=(await d.prepare("SELECT p.id,p.symbol FROM mt_positions p WHERE p.account_id=? AND p.open_ts>=? AND NOT EXISTS(SELECT 1 FROM trade_checklists t WHERE t.user_id=? AND t.trade_id=CONCAT('mt:',p.id))").bind(accountId,now-60*60000,userId).all<{id:string;symbol:string}>()).results;
+ if(!rows.length)return;
+ const map=await symbolMap(d,userId);
+ for(const r of rows){const inst=mapSymbol(r.symbol,ids,map);if(inst)await snapshotTrade(d,userId,'mt:'+r.id,inst)}
+}
 // tvar snímku od klienta → očištěný snímek, nebo text chyby
 export function cleanSnapshot(v:unknown):SnapshotList[]|string{
  const bad='Neplatný snímek checklistu.';
