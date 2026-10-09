@@ -46,4 +46,23 @@ const [x,y]=await Promise.all([getCandles(f.db,'EUR/USD','H1',now+40*60000,slow)
 check('store: souběh = jeden fetch',f.fetches===2&&[x,y].filter(v=>v.stale).length===1,[x,y]);
 r=await getCandles(f.db,'USD','H1',now,ok1);
 check('store: měnový index nepodporován',r.unsupported===true&&r.candles.length===0,r);
+// ---- vrstvy grafu
+{const {snapTo,newsLayer,tradeMarkers,scoreBand,sessionBands,withAlpha,instrumentMarkets,sortMarkers}=await import('../lib/chart/layers.ts');
+const T=[0,3600,7200,10800,86400];
+check('layers: snap uvnitř svíčky',snapTo(T,3600,4000)===3600,snapTo(T,3600,4000));
+check('layers: snap v mezeře → další svíčka',snapTo(T,3600,20000)===86400,snapTo(T,3600,20000));
+check('layers: snap mimo rozsah',snapTo(T,3600,-1)===null&&snapTo(T,3600,90000)===null,null);
+check('layers: trhy instrumentu',JSON.stringify([instrumentMarkets('EUR/USD'),instrumentMarkets('BTC-USD'),instrumentMarkets('^NDX'),instrumentMarkets('AAPL')])==='[["EUR","USD"],["BTC"],["INDEX"],["AAPL"]]',null);
+const base=Date.UTC(2026,0,5,0)/1000,times=Array.from({length:24},(_,i)=>base+i*3600),at=h=>new Date((base+h*3600-3600)*1000).toISOString(); // zima: Praha = UTC+1
+const ev=[{id:'a',at:at(14.5),timeKnown:true,title:'CPI',markets:['USD'],signal:3,global:false},{id:'b',at:at(10),timeKnown:true,title:'GBP x',markets:['GBP'],signal:3,global:false},{id:'c',at:at(9),timeKnown:true,title:'slabá',markets:['EUR'],signal:1,global:false},{id:'d',at:at(8),timeKnown:true,title:'FOMC',markets:[],signal:2,global:true}];
+const nl=newsLayer(ev,'EUR/USD',times,3600);
+check('layers: zprávy – měny páru, signál ≥ 2, globální',nl.map(n=>n.event.id).join()==='a,d'&&nl[0].time===base+14*3600,nl);
+const tr=[{id:'mt:1',side:'buy',openTs:(base+2*3600-3600)*1000+60000,closeTs:(base+5*3600-3600)*1000,date:'2026-01-05',openPrice:1.1,closePrice:1.2,pnl:50,currency:'USD',r:1.5,source:'mt'},{id:'m:1',side:null,openTs:null,closeTs:0,date:'2026-01-05',openPrice:null,closePrice:null,pnl:-10,currency:'USD',r:null,source:'manual'}];
+const tm=sortMarkers(tradeMarkers(tr,times,3600,{bull:'#0f0',bear:'#f00'}));
+check('layers: obchod = vstup ▲ + výstup, ruční kroužek na začátku dne',tm.length===3&&tm[0].time===base&&tm[0].shape==='circle'&&tm[1].shape==='arrowUp'&&tm[1].time===base+2*3600&&tm[1].price===1.1&&tm[2].text==='+1,5 R',tm);
+const sb=scoreBand([{at:at(3.5),score:40},{at:at(6),score:-80}],times,3600,{bull:'#00ff00',bear:'#ff0000'});
+check('layers: pás skóre schodovitě, mezera před prvním snímkem',sb[2].value===undefined&&sb[3].value===40&&sb[5].value===40&&sb[6].value===-80&&sb[6].color==='rgba(255,0,0,0.85)',sb.slice(2,7));
+const ses=sessionBands(times,.1);
+check('layers: seance podle pražské hodiny',ses[3].color===withAlpha('#f59e0b',.1)&&ses[9].color===withAlpha('#3b82f6',.1)&&ses[14].color===withAlpha('#8b5cf6',.1)&&ses[18].color===withAlpha('#10b981',.1)&&ses[23].value===undefined,ses.map(s=>s.color));
+check('layers: alfa barvy',withAlpha('#abc',.5)==='rgba(170,187,204,0.5)'&&withAlpha('rgb(1, 2, 3)',.2)==='rgba(1,2,3,0.2)',null);}
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
