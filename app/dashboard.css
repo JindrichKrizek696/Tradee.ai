@@ -8,6 +8,8 @@
 .t-nav button svg{width:16px;height:16px}
 .t-nav button:hover{color:var(--t-fg)}
 .t-nav button.active{background:var(--t-surface);color:var(--t-fg);box-shadow:0 1px 2px #0b0c0e14,0 0 0 1px var(--t-border)}
+.t-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;font-size:11px;font-weight:700;line-height:1;background:var(--t-warn-soft);border:1px solid var(--t-notice-border);color:#b45309}
+:root[data-theme=dark] .t-badge{color:#f0a24b}
 .t-actions{display:flex;align-items:center;gap:6px;justify-self:end}
 .t-icon-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--t-fg-2);border:1px solid transparent;background:transparent}
 .t-icon-btn svg{width:17px;height:17px}
