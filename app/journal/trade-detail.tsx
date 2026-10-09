@@ -56,10 +56,11 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
  const p=d?.position;
  if(!d||!p)return <div className="j-detail">{head}{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám obchod…</p>}</div>;
  const cur=p.acc_currency,money=(v:number|null)=>v===null?'–':fmtMoney(v,cur),inR=(v:number|null)=>v!==null&&p.risk_money?` (${fmtR(Math.round(v/p.risk_money*100)/100)})`:'';
+ const open=p.status==='open';
  const rows:[string,string][]=[
-  ['Vstup',fmtNum(p.open_price)],['Výstup (průměr)',fmtNum(p.close_price_avg)],['Objem (max.)',fmtNum(p.volume_max,2)],
-  ['Výsledek',money(p.net)+(trade&&trade.converted&&cur!==currency?` · ${fmtMoney(trade.pnl,currency)}`:'')],
-  ['Zisk / komise / swap',`${money(p.profit)} / ${money(p.commission)} / ${money(p.swap)}`],
+  ['Vstup',fmtNum(p.open_price)],['Výstup (průměr)',open?'otevřená':fmtNum(p.close_price_avg)],['Objem (max.)',fmtNum(p.volume_max,2)],
+  ['Výsledek',open?'otevřená':money(p.net)+(trade&&trade.converted&&cur!==currency?` · ${fmtMoney(trade.pnl,currency)}`:'')],
+  ['Zisk / komise / swap',open?'–':`${money(p.profit)} / ${money(p.commission)} / ${money(p.swap)}`],
   ['SL / TP na začátku',`${fmtNum(p.sl_initial)} / ${fmtNum(p.tp_initial)}`],['SL / TP na konci',`${fmtNum(p.sl_last)} / ${fmtNum(p.tp_last)}`],
   ['Riziko',p.risk_money===null?'bez stop lossu':money(-p.risk_money)+(p.risk_pct!==null?` (${fmtNum(p.risk_pct,2)} % účtu)`:'')],
   ['R:R plán / výsledek',`${p.rr_planned===null?'–':fmtNum(p.rr_planned,2)} / ${fmtR(p.r_result)}`],
@@ -71,7 +72,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
  return <div className="j-detail">{head}
   <h1 className="j-title">{p.symbol} <span className={'j-side '+p.side}>{p.side==='buy'?'Buy':'Sell'}</span> <small>{p.acc_name} · {fmtDateTime(p.open_ts)} → {p.close_ts?fmtDateTime(p.close_ts):'otevřená'}</small></h1>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  <section className="j-card">{d.bars&&d.bars.data.length?<><TradeChart bars={d.bars.data} position={p} changes={d.changes}/><small className="j-muted">Svíčky {d.bars.tf} · čas Europe/Praha · tečkovaně nejlepší (MFE) a nejhorší (MAE) cena</small></>:<p className="j-muted">Graf není k dispozici – svíčky posílá EA od verze 1.1 a jen pro obchody z posledních 30 dní.</p>}</section>
+  <section className="j-card">{d.bars&&d.bars.data.length?<><TradeChart bars={d.bars.data} position={p} changes={d.changes}/><small className="j-muted">Svíčky {d.bars.tf} · čas Europe/Praha · tečkovaně nejlepší (MFE) a nejhorší (MAE) cena</small></>:<p className="j-muted">{open?'Graf bude k dispozici po uzavření obchodu.':'Graf není k dispozici – svíčky posílá EA od verze 1.1 a jen pro obchody z posledních 30 dní.'}</p>}</section>
   <div className="j-grid">
    <section className="j-card"><h2>Čísla</h2><dl className="j-dl">{rows.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></section>
    <section className="j-card"><h2>Průběh</h2><ol className="j-timeline">{d.changes.map((c,i)=><li key={i}><time>{fmtDateTime(c.ts)}</time><b>{KIND[c.kind]||c.kind}</b><span>{describe(c)}</span></li>)}</ol></section>

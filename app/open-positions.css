@@ -19,14 +19,14 @@
 .op-side.buy{color:var(--bull-text);background:color-mix(in srgb,var(--bull) 14%,var(--t-surface))}.op-side.sell{color:var(--bear-text);background:color-mix(in srgb,var(--bear) 14%,var(--t-surface))}
 .op-px{min-width:0;color:var(--t-fg-2)}.op-px b{color:var(--t-fg);font-weight:600}
 .op-lv{display:flex;flex-direction:column;gap:6px;min-width:0}.op-lv small{display:flex;justify-content:space-between;gap:8px}
-.op-bar{position:relative;display:block;height:6px;margin:5px 4px 0;border-radius:999px;background:color-mix(in srgb,var(--t-fg) 9%,transparent)}
+.op-bar{position:relative;display:block;height:6px;margin:5px 7px 0;border-radius:999px;background:color-mix(in srgb,var(--t-fg) 9%,transparent)}
 .op-bar i{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%}
 .op-bar .op-fill{transform:translateY(-50%);height:100%;border-radius:999px;opacity:.55}
 .op-fill.up{background:var(--bull)}.op-fill.down{background:var(--bear)}
 .op-sl,.op-tp{width:9px;height:9px;box-shadow:0 0 0 2px var(--t-surface)}.op-sl{background:var(--bear)}.op-tp{background:var(--bull)}
 .op-bar .op-entry{width:2px;height:14px;border-radius:1px;background:var(--t-muted)}
 .op-price{width:13px;height:13px;background:var(--t-surface);border:3px solid var(--t-fg)}.op-price.up{border-color:var(--bull)}.op-price.down{border-color:var(--bear)}
-.op-pnl{text-align:right}.op-pnl b{font-size:15px;font-weight:650}
+.op-pnl{text-align:right}.op-row.stale .op-pnl b{opacity:.55}.op-pnl b{font-size:15px;font-weight:650}
 .op-row .up,.op-banner .up{color:var(--bull-text)}.op-row .down,.op-banner .down{color:var(--bear-text)}
 .op-time{display:flex;flex-direction:column;align-items:flex-end;gap:3px;color:var(--t-fg-2);font-size:12.5px}.op-time>span{display:flex;align-items:center;gap:4px}
 .op-stale{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-style:normal;font-weight:600;color:var(--t-fg);background:var(--t-warn-soft);border:1px solid color-mix(in srgb,var(--bear) 25%,var(--t-surface));white-space:nowrap}
@@ -39,7 +39,7 @@
 .op-banner small{display:inline;font-size:12.5px;color:var(--t-muted)}.op-banner svg:last-child{flex:none;color:var(--t-muted)}
 .op-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--t-brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--t-brand) 25%,transparent)}
 
-@media(max-width:1100px){.op-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) minmax(0,.9fr) 16px}.op-px,.op-time{display:none}}
+@media(max-width:1100px){.op-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) minmax(0,.9fr) auto 16px}.op-px{display:none}}
 @media(max-width:640px){
  .op-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'name pnl' 'px time' 'lv lv';gap:8px 12px;padding:12px}
  .op-name{grid-area:name}.op-pnl{grid-area:pnl}.op-lv{grid-area:lv}

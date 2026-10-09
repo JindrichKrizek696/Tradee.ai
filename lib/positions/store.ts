@@ -33,7 +33,7 @@ export async function openPositions(d:Db,userId:string,ids:readonly string[],now
   const sl=has?lvl(st!.sl):r.sl_last===null?null:Number(r.sl_last),tp=has?lvl(st!.tp):r.tp_last===null?null:Number(r.tp_last);
   return {id:r.id,accountId:r.account_id,account:r.acc_name||'••••'+String(r.acc_login).slice(-4),symbol:r.symbol,instrument:mapSymbol(r.symbol,ids,map),side:r.side,
    volume:has&&num(st!.volume)?num(st!.volume)!:Number(r.volume_max),openPrice:Number(r.open_price),price:has?lvl(st!.priceCurrent):null,sl,tp,profit:floating,accountCurrency:r.acc_currency,
-   pnl:floating===null?null:conv??floating,converted:floating===null||conv!==null,riskMoney:risk,r:rMultiple(floating===null?null:conv,risk),
+   pnl:floating===null?null:conv??floating,converted:floating===null||conv!==null,riskMoney:risk,r:rMultiple(floating,r.risk_money===null?null:Number(r.risk_money)),
    openTs:Number(r.open_ts),updated,stale:isStale(updated,now)};
  });
  return {currency,positions,summary:summarize(positions)};

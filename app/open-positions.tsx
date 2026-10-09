@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Activity,Wallet,ShieldAlert,ShieldOff,Clock,CircleAlert,ChevronRight,type LucideIcon} from 'lucide-react';
 import {levelBar,summarize,type OpenPosition} from '@/lib/positions/open';
-import {fmtHold,plural} from '@/lib/journal/format';
+import {fmtHold,fmtR,plural} from '@/lib/journal/format';
 import {fmtMoney,fmtAmount} from '@/lib/trades';
 import {fmtPrice} from './live';
 import './open-positions.css';
@@ -45,12 +45,12 @@ function Levels({p}:{p:OpenPosition}){
 
 // Seznam pozic: řádky na desktopu, karty na mobilu; klik otevře detail obchodu v Deníku
 export function OpenPositionsList({positions,currency,now,onOpen=openTrade}:{positions:OpenPosition[];currency:string;now:number;onOpen?:(id:string)=>void}){
- return <ul className="op-list">{positions.map(p=><li key={p.id}><button type="button" className="op-row" onClick={()=>onOpen(p.id)}>
+ return <ul className="op-list">{positions.map(p=><li key={p.id}><button type="button" className={'op-row'+(p.stale?' stale':'')} onClick={()=>onOpen(p.id)}>
   <span className="op-name"><b>{p.symbol}</b><em className={'op-side '+p.side}>{p.side}</em><small>{lots(p.volume)} · {p.account}</small></span>
   <span className="op-px"><small>Vstup → cena</small>{fmtPrice(p.openPrice)} → <b>{p.price===null?'—':fmtPrice(p.price)}</b></span>
   <span className="op-lv"><Levels p={p}/><small><span>SL {p.sl===null?'—':fmtPrice(p.sl)}</span><span>TP {p.tp===null?'—':fmtPrice(p.tp)}</span></small></span>
-  <span className="op-pnl"><b className={tone(p.pnl)}>{money(p,currency)}</b><small className={tone(p.r)}>{p.r===null?'bez SL':(p.r>0?'+':'')+p.r.toLocaleString('cs-CZ',{maximumFractionDigits:2})+' R'}</small></span>
-  <span className="op-time"><span><Clock size={12}/>{fmtHold(Math.max(0,now-p.openTs))}</span>{p.stale?<em className="op-stale"><CircleAlert size={12}/>EA neběží</em>:<small>{p.updated===null?'':ago(Math.max(0,now-p.updated))}</small>}</span>
+  <span className="op-pnl"><b className={tone(p.pnl)}>{money(p,currency)}</b><small className={tone(p.r)}>{p.sl===null?'bez SL':p.r===null?'– R':fmtR(p.r)}</small></span>
+  <span className="op-time"><span><Clock size={12}/>{fmtHold(Math.max(0,now-p.openTs))}</span>{p.stale?<em className="op-stale"><CircleAlert size={12}/>EA neběží{p.updated!==null&&' · '+ago(Math.max(0,now-p.updated))}</em>:<small>{p.updated===null?'':ago(Math.max(0,now-p.updated))}</small>}</span>
   <ChevronRight size={16} className="op-go" aria-hidden="true"/>
  </button></li>)}</ul>;
 }
@@ -58,7 +58,7 @@ export function OpenPositionsList({positions,currency,now,onOpen=openTrade}:{pos
 // Souhrnné dlaždice: počet, plovoucí P&L, riziko, pozice bez SL
 function Summary({list,currency}:{list:OpenPosition[];currency:string}){
  const s=summarize(list);
- const tiles:[string,string,LucideIcon,string,string?][]=[['Pozice','cnt',Activity,String(s.count)],['Plovoucí P&L','pnl '+tone(s.pnl),Wallet,(s.converted?'':'≈ ')+fmtMoney(s.pnl,currency),s.converted?undefined:'část pozic bez kurzu – v měně účtu u řádku'],['Riziko','risk',ShieldAlert,s.risk?fmtAmount(s.risk,currency):'—','součet rizika do SL']];
+ const tiles:[string,string,LucideIcon,string,string?][]=[['Pozice','cnt',Activity,String(s.count)],['Plovoucí P&L','pnl '+tone(s.pnl),Wallet,list.every(p=>p.pnl===null)?'—':(s.converted?'':'≈ ')+fmtMoney(s.pnl,currency),s.converted?undefined:'část pozic bez kurzu – v měně účtu u řádku'],['Riziko','risk',ShieldAlert,s.risk?fmtAmount(s.risk,currency):'—','součet rizika do SL']];
  if(s.noSl)tiles.push(['Bez SL','nosl',ShieldOff,String(s.noSl),plural(s.noSl,['pozice nemá stop loss','pozice nemají stop loss','pozic nemá stop loss'])]);
  return <dl className="op-sum">{tiles.map(([k,cls,Icon,v,title])=><div key={k} className={'op-tile '+cls} title={title}><dt><i className="op-ico"><Icon size={14}/></i>{k}</dt><dd>{v}</dd></div>)}</dl>;
 }
@@ -86,9 +86,9 @@ export function OpenPositionsTab({data,now,account,onOpen}:{data:Data|null;now:n
 export function MarketPositionBanner({instrument}:{instrument:string}){
  const {data,now}=useOpenPositions(),list=useMemo(()=>(data?.positions||[]).filter(p=>p.instrument===instrument),[data,instrument]);
  if(!data||!list.length)return null;
- return <div className="op-banner" role="status">{list.map(p=><button key={p.id} type="button" onClick={()=>openTrade(p.id)}>
+ return <div className="op-banner">{list.map(p=><button key={p.id} type="button" onClick={()=>openTrade(p.id)}>
   <span className="op-dot" aria-hidden="true"/>
-  <span>Máš otevřenou pozici: <b className={'op-side '+p.side}>{p.side}</b> {lots(p.volume)} · <b className={tone(p.pnl)}>{money(p,data.currency)}</b> · SL {p.sl===null?'—':fmtPrice(p.sl)} · TP {p.tp===null?'—':fmtPrice(p.tp)}{p.stale&&<em className="op-stale"><CircleAlert size={12}/>EA neběží</em>}{!p.stale&&p.updated!==null&&<small> · {ago(Math.max(0,now-p.updated))}</small>}</span>
+  <span>Máš otevřenou pozici: <b className={'op-side '+p.side}>{p.side}</b> {lots(p.volume)} · <b className={tone(p.pnl)}>{money(p,data.currency)}</b> · SL {p.sl===null?'—':fmtPrice(p.sl)} · TP {p.tp===null?'—':fmtPrice(p.tp)}{p.stale&&<em className="op-stale"><CircleAlert size={12}/>EA neběží{p.updated!==null&&' · '+ago(Math.max(0,now-p.updated))}</em>}{!p.stale&&p.updated!==null&&<small> · {ago(Math.max(0,now-p.updated))}</small>}</span>
   <ChevronRight size={16} aria-hidden="true"/>
  </button>)}</div>;
 }
