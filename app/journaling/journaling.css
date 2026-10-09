@@ -1,0 +1,75 @@
+.jg-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--t-surface-3)}
+.jg-seg button{height:30px;padding:0 14px;border:0;border-radius:999px;background:none;font:inherit;font-size:13px;font-weight:500;color:var(--t-muted);cursor:pointer}
+.jg-seg button.on{background:var(--t-surface);color:var(--t-fg);box-shadow:0 1px 2px #0b0c0e1a,0 0 0 1px var(--t-border)}
+.jg-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0}
+.jg-tile{display:grid;align-content:start;gap:4px;margin:0;padding:14px 16px;text-align:left;font:inherit;color:var(--t-fg);background:var(--t-surface);border:1px solid var(--t-border);border-radius:18px;--c:var(--t-muted);--ct:var(--t-fg)}
+.jg-tile dt{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--t-muted)}
+.jg-tile dt i{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--t-surface-3);color:var(--c)}
+.jg-tile dd{margin:0;font-size:26px;font-weight:600;line-height:1.15;color:var(--ct);display:flex;align-items:center;gap:8px;flex-wrap:wrap;overflow-wrap:anywhere}
+.jg-tile dd.jg-sub{font-size:12.5px;font-weight:400;color:var(--t-muted);display:block}
+.jg-tile.disc.up{--c:var(--bull);--ct:var(--bull-text)}
+.jg-tile.disc.down{--c:var(--bear);--ct:var(--bear-text)}
+.jg-tile.top dd:not(.jg-sub){font-size:18px}
+.jg-tile.todo{cursor:pointer}
+.jg-tile.todo:hover{background:var(--t-surface-2)}
+.jg-tile.todo.active{border-color:var(--t-brand);box-shadow:0 0 0 1px var(--t-brand)}
+.jg-delta{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--t-muted)}
+.jg-delta.up{color:var(--bull-text)}.jg-delta.down{color:var(--bear-text)}
+.jg-strat caption{caption-side:top;text-align:left;font-weight:600;font-size:14px;padding:10px 8px 4px}
+.jg-toggles{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+.jg-check{display:inline-flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.jg-check input{width:16px;height:16px;accent-color:var(--t-brand)}
+.jg-stars{display:inline-flex;gap:1px;color:var(--t-muted-2);--star:#d99a0b}
+.jg-stars i,.jg-stars button{display:inline-flex;font-style:normal}
+.jg-stars svg.on{color:var(--star)}
+.jg-stars.pick button{all:unset;cursor:pointer;display:inline-flex;padding:2px;border-radius:6px;color:var(--t-muted-2)}
+.jg-stars.pick button:hover,.jg-stars.pick button:focus-visible{background:var(--t-surface-3)}
+:root[data-theme=dark] .jg-stars{--star:#f0b43c}
+.jg-tags{white-space:normal!important}
+.jg-tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;margin:0 4px 4px 0;border:1px solid transparent}
+.jg-tag.bad{background:color-mix(in srgb,var(--bear) 13%,transparent);color:var(--bear-text)}
+.jg-tag.warn{background:var(--t-warn-soft);border-color:var(--t-notice-border);color:#b45309}
+:root[data-theme=dark] .jg-tag.warn{color:#f0a24b}
+.jg-table tbody tr.sel{background:var(--t-accent-soft)}
+.jg-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.jg-layout.has-panel{grid-template-columns:minmax(0,1fr) 440px}
+.jg-panel{position:sticky;top:76px;max-height:calc(100vh - 92px);overflow:auto;display:grid;gap:14px;align-content:start;background:var(--t-surface);border:1px solid var(--t-border);border-radius:18px;padding:16px 18px}
+.jg-phead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.jg-ptitle{display:flex;align-items:center;gap:10px;font-size:18px;flex-wrap:wrap}
+.jg-res.pos{color:var(--bull-text)}.jg-res.neg{color:var(--bear-text)}
+.jg-x{all:unset;cursor:pointer;display:inline-grid;place-items:center;width:32px;height:32px;border-radius:10px;color:var(--t-fg-2)}
+.jg-x:hover,.jg-x:focus-visible{background:var(--t-surface-3)}
+.jg-prev{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--t-muted)}
+.jg-prev b{color:var(--t-fg);font-weight:600}
+.jg-prev a{display:inline-flex;align-items:center;gap:4px;color:var(--t-brand-fg);margin-left:auto}
+.jg-form{display:grid;gap:16px;border:0;margin:0;padding:0;min-width:0}
+.jg-form section{display:grid;gap:8px;min-width:0}
+.jg-form h3{margin:0;font-size:14px}
+.jg-lab{font-size:14px;font-weight:600}
+.jg-form select,.jg-form input[type=text],.jg-form input:not([type]),.jg-form textarea{font:inherit;font-size:14px;color:var(--t-fg);background:var(--t-surface);border:1px solid var(--t-border);border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box;min-width:0}
+.jg-form textarea{resize:vertical}
+.jg-form :disabled{opacity:.7}
+.jg-rate{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.jg-rate small{color:var(--t-muted)}
+.jg-viol{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--bear) 8%,var(--t-surface));border:1px solid color-mix(in srgb,var(--bear) 22%,var(--t-border))}
+.jg-viol b{color:var(--bear-text);font-size:14px}
+.jg-viol p{margin:0;font-size:13px;color:var(--t-fg-2)}
+.jg-why{display:grid;gap:6px}
+.jg-unmet,.jg-custom{display:grid;gap:6px;font-size:13px}
+.jg-unmet ul{margin:2px 0 0;padding-left:18px;color:var(--t-fg-2)}
+.jg-unmet small{color:var(--t-muted)}
+.jg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.jg-chips button{font:inherit;font-size:13px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg-2);border-radius:999px;padding:5px 12px;cursor:pointer}
+.jg-chips button.on{background:var(--t-inverse);color:var(--t-on-inverse);border-color:var(--t-inverse)}
+.jg-foot{position:sticky;bottom:-16px;display:grid;gap:8px;padding:12px 0 4px;background:var(--t-surface);border-top:1px solid var(--t-border)}
+.jg-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jg-btns .j-btn:disabled{opacity:.5;cursor:default}
+.jg-state{font-size:13px;color:var(--t-muted)}
+.jg-err{margin:0;font-size:13px;color:var(--bear-text)}
+@media (max-width:1099px){
+ .jg-layout.has-panel{grid-template-columns:minmax(0,1fr)}
+ .jg-panel{position:fixed;inset:0;z-index:200;max-height:none;border-radius:0;border:0;padding:16px 16px 0}
+ .jg-foot{bottom:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+}
+@media (max-width:900px){.jg-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.jg-tiles{gap:8px}.jg-tile{padding:12px}.jg-tile dd{font-size:22px}.jg-seg button{padding:0 10px}}
