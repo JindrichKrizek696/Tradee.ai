@@ -136,7 +136,7 @@
 .d-dash .d-mt{--mt-amber:#f59e0b;--mt-amber-text:#b45309}
 :root[data-theme=dark] .d-dash .d-mt{--mt-amber:#fbbf24;--mt-amber-text:#fcd34d}
 .d-dash .d-mt-who{display:flex;align-items:center;gap:12px;min-width:0}
-.d-dash .d-mt-mascot{height:52px;width:auto;flex:none;filter:drop-shadow(0 4px 6px color-mix(in srgb,var(--t-fg) 12%,transparent))}
+.d-dash .d-mt-mascot{height:64px;width:auto;flex:none;filter:drop-shadow(0 4px 6px color-mix(in srgb,var(--t-fg) 12%,transparent))}
 .d-dash .d-mt-who h2{margin:0}
 .d-dash .d-mt-mood{margin:2px 0 0;font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--t-fg)}
 .d-dash .d-mt-mood.up{color:var(--bull-text)}.d-dash .d-mt-mood.down{color:var(--bear-text)}
@@ -177,7 +177,7 @@
 .d-dash .d-mt-cta{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.d-dash .d-mt-cta a{text-decoration:none}
 .d-dash .d-mt>.d-pnlwrap{min-height:190px}
 @media(max-width:1199px){.d-dash .d-mt-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.d-dash .d-mt-kpi>div:last-child{grid-column:span 2}}
-@media(max-width:560px){.d-dash .d-mt-mascot{height:44px}.d-dash .d-mt-mood{font-size:13px}}
+@media(max-width:560px){.d-dash .d-mt-mascot{height:52px}.d-dash .d-mt-mood{font-size:13px}}
 @media(max-width:860px){.d-dash .d-mt-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.d-dash .d-mt-kpi>div:first-child{grid-column:1/-1}.d-dash .d-mt-kpi>div:last-child{grid-column:auto}.d-dash .d-mt-charts{grid-template-columns:1fr}}
 
 /* Watchlist signálů */
