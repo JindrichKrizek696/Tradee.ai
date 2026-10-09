@@ -11,7 +11,7 @@ export function Shell({wide,view,setView,busy,onRefresh,userName,palette,onPalet
  return <div className="t-app">
   <header className="t-top">
    <a className="t-brand" href="#dashboard" onClick={e=>{e.preventDefault();setView('dashboard')}}><img src="/favicon.svg" alt=""/><span>Tradee</span></a>
-   <nav className="t-nav" aria-label="Hlavní navigace">{items.map(([id,label,Icon])=><button key={id} className={view===id?'active':''} aria-current={view===id?'page':undefined} onClick={()=>setView(id)}><Icon size={17}/>{label}{id==='journaling'&&pending>0&&<span className="t-badge" role="status" aria-label={`${pending} k zdůvodnění`}>{pending>99?'99+':pending}</span>}</button>)}</nav>
+   <nav className="t-nav" aria-label="Hlavní navigace">{items.map(([id,label,Icon])=><button key={id} className={view===id?'active':''} aria-current={view===id?'page':undefined} aria-label={id==='journaling'&&pending>0?`Journaling, ${pending} ${pending===1?'výzva':pending<5?'výzvy':'výzev'} ke zdůvodnění`:undefined} onClick={()=>setView(id)}><Icon size={17}/>{label}{id==='journaling'&&pending>0&&<span className="t-badge" aria-hidden="true">{pending>99?'99+':pending}</span>}</button>)}</nav>
    <div className="t-actions">
     <ThemeToggle/>
     <button className={'t-icon-btn'+(busy?' spin':'')} onClick={onRefresh} disabled={busy} aria-label="Obnovit podklady" title="Obnovit podklady"><RefreshCw size={17}/></button>

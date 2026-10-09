@@ -27,12 +27,16 @@ export function DisciplineTile({now,account,period='month',rev=0,style}:{now:num
  },[data,account,period,now]);
  const go=()=>{location.hash='journaling'};
  const body=!ov?<p className="dt-muted">{error?'Disciplínu se nepodařilo načíst.':'Načítám…'}</p>
-  :ov.discipline===null?<p className="dt-muted">Zatím žádné obchody k posouzení. <a href="/pravidla" onClick={e=>e.stopPropagation()}>Nastav si pravidla</a></p>
+  :ov.discipline===null?<p className="dt-muted">Zatím žádné obchody k posouzení. <a href="/pravidla">Nastav si pravidla</a></p>
   :<><p className={'dt-pct '+(ov.discipline>=80?'up':ov.discipline>=50?'mid':'down')}>{ov.discipline} %</p>
    <p className="dt-sub">{ov.clean} {plural(ov.clean,TRADES)} bez porušení z {ov.judged}</p>
    {ov.top&&<p className="dt-top">Nejčastěji: <b>{ruleLabel(ov.top.rule,data!.custom)}</b> ({ov.top.count}×)</p>}
    {ov.needReason>0&&<span className="dt-chip">{ov.needReason} {plural(ov.needReason,PROMPTS)}</span>}</>;
+ const key=(e:React.KeyboardEvent)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
+ const nodata=!!ov&&ov.discipline===null;
+ const head=<h2><ShieldCheck size={16}/>Disciplína <span>· {PW[period]}</span></h2>;
  return <section className="d-card d-disc" style={style}>
-  <button type="button" className="dt-main" onClick={go} aria-label={'Disciplína, '+PW[period]+'. Otevřít Journaling'}><h2><ShieldCheck size={16}/>Disciplína <span>· {PW[period]}</span></h2>{body}</button>
+  {nodata?<div className="dt-main">{head}{body}</div>
+  :<div className="dt-main" role="link" tabIndex={0} onClick={go} onKeyDown={key} aria-label={'Disciplína, '+PW[period]+'. Otevřít Journaling'}>{head}{body}</div>}
  </section>;
 }

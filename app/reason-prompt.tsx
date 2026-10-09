@@ -10,14 +10,15 @@ const detail=(p:Pending)=>{const d=p.detail,num=(v:unknown)=>typeof v==='number'
  if(p.rule==='no_sl_widen'){const a=num(d.from),b=num(d.to);return a&&b?`SL ${a} → ${b}`:a||b?`SL → ${b||a}`:''}
  return p.rule==='no_early_close'?'Pozice zavřena ručně dřív, než ji vyřídil SL nebo TP.':''};
 // Okno s výzvami ke zdůvodnění porušení: po jedné, „Později“ odloží okno na serveru na 4 h.
-export function ReasonPrompt({items,onClose}:{items:Pending[];onClose:()=>void}){
- const [i,setI]=useState(0),[code,setCode]=useState(''),[text,setText]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),box=useRef<HTMLDivElement>(null);
+export function ReasonPrompt({items:initial,onClose}:{items:Pending[];onClose:()=>void}){
+ const [items]=useState(initial),[i,setI]=useState(0),[code,setCode]=useState(''),[text,setText]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),box=useRef<HTMLDivElement>(null);
  const p=items[i];
  useEffect(()=>{box.current?.focus()},[i]);
- async function later(){
-  if(busy)return;setBusy(true);
-  try{await fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'snooze'})})}catch{}
-  onClose();
+ async function later():Promise<boolean>{
+  if(busy)return false;setBusy(true);
+  try{const r=await fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'snooze'})});if(!r.ok)throw Error()}
+  catch{setBusy(false);setError('Odložení se nepodařilo, zkus to znovu.');return false}
+  onClose();return true;
  }
  const laterRef=useRef(later);laterRef.current=later;
  useEffect(()=>{const k=(e:KeyboardEvent)=>{if(e.key==='Escape')laterRef.current()};document.addEventListener('keydown',k);return()=>document.removeEventListener('keydown',k)},[]);
@@ -51,6 +52,6 @@ export function ReasonPrompt({items,onClose}:{items:Pending[];onClose:()=>void})
   <div className="rp-chips" role="radiogroup" aria-label="Důvod">{REASONS.map(x=><button key={x.id} type="button" role="radio" aria-checked={code===x.id} className={code===x.id?'on':''} onClick={()=>{setCode(x.id);setError('')}}>{x.label}</button>)}</div>
   <textarea rows={3} maxLength={REVIEW_LIMITS.reasonText} value={text} onChange={e=>setText(e.target.value)} aria-label={code==='other'?'Důvod (povinné)':'Poznámka (nepovinná)'} placeholder={code==='other'?'Co se stalo? (povinné)':'Poznámka (nepovinná)'}/>
   {error&&<p role="alert" className="rp-err">{error}</p>}
-  <div className="rp-btns"><button type="button" className="rp-btn dark" disabled={busy} onClick={save}>{busy?'Ukládám…':'Uložit'}</button><button type="button" className="rp-btn" disabled={busy} onClick={later}>Později</button><a className="rp-link" href={'#journaling/'+encodeURIComponent(p.tradeId)} onClick={()=>{void later()}}>Otevřít v Journalingu</a></div>
+  <div className="rp-btns"><button type="button" className="rp-btn dark" disabled={busy} onClick={save}>{busy?'Ukládám…':'Uložit'}</button><button type="button" className="rp-btn" disabled={busy} onClick={later}>Později</button><a className="rp-link" href={'#journaling/'+encodeURIComponent(p.tradeId)} onClick={e=>{e.preventDefault();void later().then(ok=>{if(ok)location.hash='journaling/'+encodeURIComponent(p.tradeId)})}}>Otevřít v Journalingu</a></div>
  </div></div>;
 }

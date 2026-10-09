@@ -222,14 +222,13 @@ export async function saveReview(d:Db,userId:string,tradeId:string,input:ReviewI
 export type PendingReason={id:number;tradeId:string;rule:string;detail:Record<string,unknown>;created:string;trade:{symbol:string;side:string|null;closeTs:number|null;net:number|null;currency:string|null}};
 /** Porušení čekající na zdůvodnění (nejstarší první, max. 20) s údaji o obchodě; ruční obchody tato pravidla nemají. */
 export async function pendingReasons(d:Db,userId:string):Promise<PendingReason[]>{
- const vs=(await d.prepare('SELECT id,trade_id,rule,detail,created FROM trade_violations WHERE user_id=? AND needs_reason=1 AND reason_code IS NULL ORDER BY id LIMIT 20').bind(userId).all<{id:number;trade_id:string;rule:string;detail:string;created:string}>()).results;
- const ids=[...new Set(vs.filter(v=>v.trade_id.startsWith('mt:')).map(v=>v.trade_id.slice(3)))];
- const pos=new Map<string,{symbol:string;side:string;close_ts:number|null;net:number|null;currency:string|null}>();
- if(ids.length)for(const r of (await d.prepare(`SELECT p.id,p.symbol,p.side,p.close_ts,p.net,a.currency FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE a.user_id=? AND p.id IN (${ids.map(()=>'?').join(',')})`).bind(userId,...ids).all<{id:string;symbol:string;side:string;close_ts:number|null;net:number|null;currency:string|null}>()).results)pos.set(r.id,r);
- return vs.flatMap(v=>{
-  const p=pos.get(v.trade_id.slice(3));if(!p)return [];
-  return [{id:Number(v.id),tradeId:v.trade_id,rule:v.rule,detail:parseObj(v.detail),created:v.created,trade:{symbol:p.symbol,side:p.side,closeTs:num(p.close_ts),net:num(p.net),currency:p.currency||null}}];
- });
+ const rows=(await d.prepare("SELECT v.id,v.trade_id,v.rule,v.detail,v.created,p.symbol,p.side,p.close_ts,p.net,a.currency FROM trade_violations v JOIN mt_positions p ON v.trade_id=CONCAT('mt:',p.id) JOIN mt_accounts a ON a.id=p.account_id AND a.user_id=v.user_id WHERE v.user_id=? AND v.needs_reason=1 AND v.reason_code IS NULL ORDER BY v.id LIMIT 20").bind(userId).all<{id:number;trade_id:string;rule:string;detail:string;created:string;symbol:string;side:string;close_ts:number|null;net:number|null;currency:string|null}>()).results;
+ return rows.map(v=>({id:Number(v.id),tradeId:v.trade_id,rule:v.rule,detail:parseObj(v.detail),created:v.created,trade:{symbol:v.symbol,side:v.side,closeTs:num(v.close_ts),net:num(v.net),currency:v.currency||null}}));
+}
+/** Skutečný počet čekajících zdůvodnění (bez limitu 20). */
+export async function pendingCount(d:Db,userId:string):Promise<number>{
+ const r=await d.prepare("SELECT COUNT(*) AS n FROM trade_violations v JOIN mt_positions p ON v.trade_id=CONCAT('mt:',p.id) JOIN mt_accounts a ON a.id=p.account_id AND a.user_id=v.user_id WHERE v.user_id=? AND v.needs_reason=1 AND v.reason_code IS NULL").bind(userId).first<{n:number}>();
+ return Number(r?.n||0);
 }
 /** Zdůvodní porušení (kód i text ověřené stejně jako v saveReview). false = neexistuje / cizí / už zdůvodněno. */
 export async function saveViolationReason(d:Db,userId:string,id:number,code:unknown,text:unknown):Promise<boolean>{
