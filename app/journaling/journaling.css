@@ -1,4 +1,5 @@
 .jg-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--t-surface-3)}
+.jg-titlebar{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap}
 .jg-seg button{height:30px;padding:0 14px;border:0;border-radius:999px;background:none;font:inherit;font-size:13px;font-weight:500;color:var(--t-muted);cursor:pointer}
 .jg-seg button.on{background:var(--t-surface);color:var(--t-fg);box-shadow:0 1px 2px #0b0c0e1a,0 0 0 1px var(--t-border)}
 .jg-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0}

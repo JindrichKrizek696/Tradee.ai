@@ -10,21 +10,25 @@ import type {RuleSettings} from '@/lib/discipline/rules';
 import {fmtMoney} from '@/lib/trades';
 import {fmtDateTime,fmtDate,fmtNum,plural} from '@/lib/journal/format';
 import {ReviewPanel,Stars,ruleLabel,type Strat,type Custom} from './review-panel';
+import {Backtest} from './backtest/backtest';
 import '../journal/journal.css';
 import './journaling.css';
 type Rv=ReviewLite&{customBroken:string[]};
 type Meta={reviews:Record<string,Rv>;violations:Record<string,ViolationLite[]>;custom:Custom[];strategies:Strat[];rules:RuleSettings};
 const PERIODS:[Period,string][]=[['week','Týden'],['month','Měsíc'],['year','Rok'],['all','Vše']],KEY='tradee.journaling',PAGE=50;
-const hashId=()=>{const h=location.hash;if(!h.startsWith('#journaling/'))return null;try{return decodeURIComponent(h.slice(12))}catch{return null}};
+// #journaling = obchody, #journaling/<id> = detail obchodu, #journaling/backtest = záložka Backtest
+const BT_HASH='#journaling/backtest';
+const hashId=()=>{const h=location.hash;if(!h.startsWith('#journaling/')||h===BT_HASH)return null;try{return decodeURIComponent(h.slice(12))}catch{return null}};
+const hashTab=():'trades'|'backtest'=>location.hash===BT_HASH?'backtest':'trades';
 const addDays=(iso:string,d:number)=>new Date(Date.parse(iso+'T12:00:00Z')+d*864e5).toISOString().slice(0,10);
 function saved():{filter:Filter;only:{todo:boolean;viol:boolean}}{try{const v=JSON.parse(localStorage.getItem(KEY)||'{}');return {filter:{...DEFAULT_FILTER,period:'month',...(v.filter||{})},only:{todo:!!v.only?.todo,viol:!!v.only?.viol}}}catch{return {filter:{...DEFAULT_FILTER,period:'month'},only:{todo:false,viol:false}}}}
 export function Journaling({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const q=viewAs?'?as='+encodeURIComponent(viewAs.id):'';
- const [data,setData]=useState<JournalList|null>(null),[meta,setMeta]=useState<Meta|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved().filter;return viewAs?f:{...f,account:readAccount()}}),[only,setOnly]=useState(()=>saved().only),[detail,setDetail]=useState<string|null>(()=>hashId()),[page,setPage]=useState(0),[now]=useState(()=>Date.now());
- const dirty=useRef(false);
+ const [data,setData]=useState<JournalList|null>(null),[meta,setMeta]=useState<Meta|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved().filter;return viewAs?f:{...f,account:readAccount()}}),[only,setOnly]=useState(()=>saved().only),[detail,setDetail]=useState<string|null>(()=>hashId()),[page,setPage]=useState(0),[now]=useState(()=>Date.now()),[tab,setTab]=useState(()=>viewAs?'trades':hashTab());
+ const dirty=useRef(false),btDirty=useRef(false);
  async function load(){try{const [a,b]=await Promise.all([fetch('/api/journal'+q,{cache:'no-store'}),fetch('/api/journaling'+q,{cache:'no-store'})]);const j=await a.json() as JournalList&{error?:string},m=await b.json() as Meta&{error?:string};if(!a.ok)throw Error(j.error||'');if(!b.ok)throw Error(m.error||'');setData(j);setMeta(m);setError('')}catch(e){setError((e as Error).message||'Journaling se nepodařilo načíst. Zkus obnovit stránku.')}}
  async function reloadMeta(){try{const b=await fetch('/api/journaling'+q,{cache:'no-store'});if(b.ok)setMeta(await b.json() as Meta)}catch{}}
- useEffect(()=>{load();const on=()=>setDetail(hashId());addEventListener('hashchange',on);
+ useEffect(()=>{load();const on=()=>{setDetail(hashId());if(!viewAs)setTab(hashTab())};addEventListener('hashchange',on);
   return()=>{removeEventListener('hashchange',on);if(/^#journaling(\/|$)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}},[]);
  useEffect(()=>{if(data)setFilter(f=>{const s=sanitizeFilter(f,data.trades,data.accounts);return JSON.stringify(s)===JSON.stringify(f)?f:s})},[data]);
  useEffect(()=>{if(!viewAs)writeAccount(filter.account)},[filter.account,viewAs]);
@@ -48,13 +52,16 @@ export function Journaling({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const nextId=useMemo(()=>{if(!detail)return null;const from=idx<0?0:idx+1;return list.slice(from).find(t=>reviews[t.id]?.rating==null&&t.id!==detail)?.id??null},[list,idx,detail,reviews]);
  const open=(id:string)=>{if(id===detail)return;if(dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;location.hash='journaling/'+encodeURIComponent(id)};
  const close=()=>{location.hash='journaling'};
- if(!data||!meta)return <div className="j-page">{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám Journaling…</p>}</div>;
+ const go=(t:'trades'|'backtest')=>{if(t===tab)return;if(t==='backtest'&&dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;if(t==='trades'&&btDirty.current&&!confirm('Pravidla backtestu mají neuložené změny. Opravdu odejít a změny zahodit?'))return;location.hash=t==='backtest'?BT_HASH.slice(1):'journaling'};
+ const head=(extra?:React.ReactNode)=><div className="j-head"><div className="jg-titlebar"><h1>Journaling</h1>{!viewAs&&<div className="jg-seg" role="tablist" aria-label="Sekce Journalingu">{([['trades','Obchody'],['backtest','Backtest']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={tab===k} className={tab===k?'on':''} onClick={()=>go(k)}>{l}</button>)}</div>}</div>{extra}</div>;
+ if(tab==='backtest'&&!viewAs)return <div className="j-page">{head()}<Backtest dirtyRef={btDirty}/></div>;
+ if(!data||!meta)return <div className="j-page">{head()}{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám Journaling…</p>}</div>;
  const cur=data.currency,d=ov.discipline,tr=trend(d,prev),pages=Math.max(1,Math.ceil(list.length/PAGE)),p=Math.min(page,pages-1),shown=list.slice(p*PAGE,p*PAGE+PAGE);
  const dtone=d===null?'':d>=80?'up':d<60?'down':'mid',topName=ov.top?ruleLabel(ov.top.rule,custom):null;
  const tile=(cls:string,Icon:typeof ShieldCheck,k:string,v:React.ReactNode,sub:React.ReactNode,extra?:React.ReactNode)=><div className={'jg-tile '+cls}><dt><i><Icon size={15}/></i>{k}</dt><dd>{v}</dd><dd className="jg-sub">{sub}</dd>{extra}</div>;
  return <div className="j-page">
   {viewAs&&<p className="j-viewas" role="status">Prohlížíš Journaling: <b>{viewAs.name}</b> · jen pro čtení</p>}
-  <div className="j-head"><h1>Journaling</h1><div className="jg-seg" role="tablist" aria-label="Období">{PERIODS.map(([k,l])=><button key={k} type="button" role="tab" aria-selected={filter.period===k} className={filter.period===k?'on':''} onClick={()=>setFilter(f=>({...f,period:k}))}>{l}</button>)}</div></div>
+  {head(<div className="jg-seg" role="tablist" aria-label="Období">{PERIODS.map(([k,l])=><button key={k} type="button" role="tab" aria-selected={filter.period===k} className={filter.period===k?'on':''} onClick={()=>setFilter(f=>({...f,period:k}))}>{l}</button>)}</div>)}
   {error&&<p role="alert" className="s-notice">{error}</p>}
   {!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – obchody se sem pak zapíšou samy a půjdou vyhodnotit.</p></div>:<>
   <dl className="jg-tiles">
