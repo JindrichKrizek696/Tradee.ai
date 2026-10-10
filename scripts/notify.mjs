@@ -12,13 +12,13 @@ const sqlMs=s=>{if(!s)return null;const t=Date.parse(String(s).replace(' ','T')+
 const pushOn=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT),mailOn=!!env.RESEND_API_KEY;
 if(pushOn)webpush.setVapidDetails(env.VAPID_SUBJECT,env.VAPID_PUBLIC_KEY,env.VAPID_PRIVATE_KEY);else console.log('push vypnutý – chybí VAPID klíče');
 if(!mailOn)console.log('mail vypnutý – chybí klíč');
-const rows=(await d.prepare("SELECT v.id,v.user_id,v.trade_id,v.rule,v.detail,v.notified_mail,v.notified_push,p.symbol,p.net,a.currency,m.email,m.name,COALESCE(n.mail,1) AS s_mail,COALESCE(n.push,0) AS s_push,n.last_mail FROM trade_violations v JOIN mt_positions p ON v.trade_id=CONCAT('mt:',p.id) JOIN mt_accounts a ON a.id=p.account_id AND a.user_id=v.user_id JOIN members m ON m.id=v.user_id LEFT JOIN notify_settings n ON n.user_id=v.user_id WHERE v.needs_reason=1 AND v.reason_code IS NULL AND v.created>=UTC_TIMESTAMP()-INTERVAL 7 DAY AND (v.notified_push IS NULL OR v.notified_mail IS NULL) ORDER BY v.user_id,v.id LIMIT 500").all()).results;
+const rows=(await d.prepare("SELECT v.id,v.user_id,v.trade_id,v.rule,v.detail,v.notified_mail,v.notified_push,p.symbol,p.net,a.currency,m.email,m.name,COALESCE(n.mail,1) AS s_mail,COALESCE(n.push,0) AS s_push,n.last_mail FROM trade_violations v JOIN mt_positions p ON v.trade_id=CONCAT('mt:',p.id) JOIN mt_accounts a ON a.id=p.account_id AND a.user_id=v.user_id JOIN members m ON m.id=v.user_id LEFT JOIN notify_settings n ON n.user_id=v.user_id WHERE v.needs_reason=1 AND v.dismissed=0 AND v.reason_code IS NULL AND v.created>=UTC_TIMESTAMP()-INTERVAL 7 DAY AND (v.notified_push IS NULL OR v.notified_mail IS NULL) ORDER BY v.user_id,v.id LIMIT 500").all()).results;
 const byUser=new Map();for(const r of rows){if(!byUser.has(r.user_id))byUser.set(r.user_id,[]);byUser.get(r.user_id).push(r)}
 let mailBlocked=false;
 const S={users:byUser.size,push:0,pushGone:0,pushFail:0,mails:0,mailItems:0,mailFail:0,errors:0};
 const item=r=>({id:Number(r.id),tradeId:r.trade_id,rule:r.rule,trade:{symbol:r.symbol,net:r.net===null?null:Number(r.net),currency:r.currency||null}});
 // označení „vezmu si to“: jen když porušení stále čeká a nikdo jiný ho neoznačil (druhý běh ani pozdní zdůvodnění nic nepošlou)
-const claim=async(col,id)=>(await d.prepare(`UPDATE trade_violations SET ${col}=? WHERE id=? AND ${col} IS NULL AND reason_code IS NULL`).bind(now(),id).run()).meta.changes>0;
+const claim=async(col,id)=>(await d.prepare(`UPDATE trade_violations SET ${col}=? WHERE id=? AND ${col} IS NULL AND reason_code IS NULL AND dismissed=0`).bind(now(),id).run()).meta.changes>0;
 for(const [userId,list] of byUser){try{
  const first=list[0],wantPush=Number(first.s_push)===1,wantMail=Number(first.s_mail)===1;
  // push: jedno upozornění na porušení, do všech zařízení; vypnutý push / žádný odběr = jen označit

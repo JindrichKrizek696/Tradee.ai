@@ -76,4 +76,4 @@ export function evaluate(t:EvalTrade,day:EvalTrade[],s:RuleSettings,news:{at:num
 // Journaling: emoce a důvody zdůvodnění porušení (klient je potřebuje, server je validuje)
 export const EMOTIONS=[{id:'calm',label:'Klid'},{id:'confident',label:'Sebevědomí'},{id:'fear',label:'Strach'},{id:'fomo',label:'FOMO'},{id:'boredom',label:'Nuda'},{id:'tired',label:'Únava'},{id:'revenge',label:'Pomsta'},{id:'greed',label:'Chamtivost'}] as const;
 export const REASONS=[{id:'market',label:'Změnil se trh'},{id:'news',label:'Zprávy / událost'},{id:'target',label:'Splněný cíl'},{id:'fear',label:'Strach'},{id:'tired',label:'Únava'},{id:'plan',label:'Chyba v plánu'},{id:'other',label:'Jiné'}] as const;
-export const REVIEW_LIMITS={text:2000,reasonText:500};
+export const REVIEW_LIMITS={text:2000,reasonText:500,dismissNote:300};

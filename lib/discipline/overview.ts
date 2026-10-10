@@ -1,7 +1,7 @@
 // Journaling: výpočty přehledu disciplíny. Čisté funkce bez DB – testy scripts/check-journaling.mjs.
 import type {JournalTrade} from '../journal/types.ts';
 export type ReviewLite={rating:number|null;strategyId:string|null;emotions:string[]};
-export type ViolationLite={rule:string;needsReason:boolean;reasoned:boolean};
+export type ViolationLite={rule:string;needsReason:boolean;reasoned:boolean;dismissed?:boolean};
 export type CustomBroken=string[];
 export type StrategyRow={id:string|null;name:string;trades:number;winRate:number;pnl:number;avgRating:number|null};
 export type Overview={discipline:number|null;judged:number;clean:number;top:{rule:string;count:number}|null;avgRating:number|null;toReview:number;needReason:number;byStrategy:StrategyRow[]};
@@ -13,7 +13,7 @@ export function overview(trades:JournalTrade[],reviews:Record<string,ReviewLite>
  const counts=new Map<string,number>(),ratings:number[]=[];
  const groups=new Map<string|null,JournalTrade[]>();
  for(const t of trades){
-  const rev=has(reviews,t.id)?reviews[t.id]:null,vs=has(violations,t.id)?violations[t.id]:[],cb=has(custom,t.id)?custom[t.id]:[];
+  const rev=has(reviews,t.id)?reviews[t.id]:null,vs=(has(violations,t.id)?violations[t.id]:[]).filter(v=>!v.dismissed),cb=has(custom,t.id)?custom[t.id]:[];
   if(!rev||rev.rating===null)toReview++;else ratings.push(rev.rating);
   for(const v of vs)if(v.needsReason&&!v.reasoned)needReason++;
   if(t.source==='mt'||rev){

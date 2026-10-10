@@ -55,6 +55,12 @@
 .jg-viol{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--bear) 8%,var(--t-surface));border:1px solid color-mix(in srgb,var(--bear) 22%,var(--t-border))}
 .jg-viol b{color:var(--bear-text);font-size:14px}
 .jg-viol p{margin:0;font-size:13px;color:var(--t-fg-2)}
+.jg-vhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.jg-vbtn{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.jg-vbtn:hover{border-color:var(--t-fg-2)}
+.jg-viol.dismissed{background:var(--t-surface);border-color:var(--t-border)}
+.jg-viol.dismissed b,.jg-viol.dismissed p{text-decoration:line-through;color:var(--t-fg-2)}
+.jg-vnote{font-size:12px;color:var(--t-fg-2)}
 .jg-why{display:grid;gap:6px}
 .jg-unmet,.jg-custom{display:grid;gap:6px;font-size:13px}
 .jg-unmet ul{margin:2px 0 0;padding-left:18px;color:var(--t-fg-2)}

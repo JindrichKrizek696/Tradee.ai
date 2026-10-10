@@ -9,9 +9,9 @@ import {fmtR,fmtHold,fmtNum,fmtDateTime,fmtDate} from '@/lib/journal/format';
 export type Strat={id:string;name:string;archived:boolean};
 export type Custom={id:string;text:string};
 type Review={rating:number|null;strategyId:string|null;reason:string;emotions:string[];lesson:string;customBroken:string[]};
-type Viol={id:number;rule:string;detail:Record<string,unknown>;needsReason:boolean;reasonCode:string|null;reasonText:string|null};
+type Viol={id:number;rule:string;detail:Record<string,unknown>;needsReason:boolean;reasonCode:string|null;reasonText:string|null;dismissed:boolean;dismissedNote:string|null};
 type Rev={review:Review;violations:Viol[];checklist?:SnapshotList[]|null};
-type Form={rating:number|null;strategyId:string;newName:string;reason:string;lesson:string;emotions:string[];custom:string[];reasons:Record<string,{code:string;text:string}>};
+type Form={rating:number|null;strategyId:string;newName:string;reason:string;lesson:string;emotions:string[];custom:string[];reasons:Record<string,{code:string;text:string}>;dismiss:Record<string,{on:boolean;note:string}>};
 const NEW='__new';
 const n=(v:unknown,d=2)=>fmtNum(typeof v==='number'?v:Number(v),d);
 // lidský popis automatického porušení (detail z vyhodnocení pravidla)
@@ -34,7 +34,7 @@ export function Stars({value,size=14,onPick,label}:{value:number|null;size?:numb
  return <span className={'jg-stars'+(onPick?' pick':'')} role={onPick?'radiogroup':'img'} aria-label={label||(value?`Hodnocení ${value} z 5`:'Nevyhodnoceno')}>{[1,2,3,4,5].map(i=>{const on=!!value&&i<=value,s=<Star size={size} className={on?'on':''} fill={on?'currentColor':'none'} aria-hidden="true"/>;
   return onPick?<button key={i} type="button" role="radio" aria-checked={value===i} aria-label={`${i} z 5`} onClick={()=>onPick(i)}>{s}</button>:<i key={i}>{s}</i>})}</span>;
 }
-const toForm=(r:Rev):Form=>({rating:r.review.rating,strategyId:r.review.strategyId||'',newName:'',reason:r.review.reason,lesson:r.review.lesson,emotions:r.review.emotions,custom:r.review.customBroken,reasons:Object.fromEntries(r.violations.filter(v=>v.needsReason).map(v=>[v.rule,{code:v.reasonCode||'',text:v.reasonText||''}]))});
+const toForm=(r:Rev):Form=>({rating:r.review.rating,strategyId:r.review.strategyId||'',newName:'',reason:r.review.reason,lesson:r.review.lesson,emotions:r.review.emotions,custom:r.review.customBroken,reasons:Object.fromEntries(r.violations.filter(v=>v.needsReason).map(v=>[v.rule,{code:v.reasonCode||'',text:v.reasonText||''}])),dismiss:Object.fromEntries(r.violations.map(v=>[v.rule,{on:v.dismissed,note:v.dismissedNote||''}]))});
 export function ReviewPanel({id,trade,currency,strategies,custom,readOnly,query,nextId,dirtyRef,onClose,onOpen,onSaved}:{id:string;trade?:JournalTrade;currency:string;strategies:Strat[];custom:Custom[];readOnly:boolean;query:string;nextId:string|null;dirtyRef:{current:boolean};onClose:()=>void;onOpen:(id:string)=>void;onSaved:()=>void}){
  const [rev,setRev]=useState<Rev|null>(null),[form,setForm]=useState<Form|null>(null),[base,setBase]=useState(''),[error,setError]=useState(''),[state,setState]=useState<'idle'|'saving'|'saved'>('idle'),[loadErr,setLoadErr]=useState('');
  const top=useRef<HTMLDivElement>(null);
@@ -51,10 +51,11 @@ export function ReviewPanel({id,trade,currency,strategies,custom,readOnly,query,
  const leave=(fn:()=>void)=>{if(dirty&&!readOnly&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;fn()};
  async function save(andNext:boolean){
   if(!form||!rev||state==='saving')return;
-  for(const v of rev.violations)if(v.needsReason){const r=form.reasons[v.rule];if(r?.code==='other'&&!r.text.trim()){setError(`U pravidla „${ruleLabel(v.rule,custom)}“ napiš, proč jsi zvolil „Jiné“.`);return}}
+  for(const v of rev.violations)if(v.needsReason&&!form.dismiss[v.rule]?.on){const r=form.reasons[v.rule];if(r?.code==='other'&&!r.text.trim()){setError(`U pravidla „${ruleLabel(v.rule,custom)}“ napiš, proč jsi zvolil „Jiné“.`);return}}
   setState('saving');setError('');
+  const dismiss=Object.fromEntries(rev.violations.filter(v=>{const o=form.dismiss[v.rule]||{on:false,note:''};return o.on!==v.dismissed||(o.on&&o.note.trim()!==(v.dismissedNote||''))}).map(v=>{const o=form.dismiss[v.rule];return [v.rule,{dismissed:o.on,note:o.on?o.note.trim():''}]}));
   const reasons=Object.fromEntries(Object.entries(form.reasons).filter(([,r])=>r.code).map(([k,r])=>[k,{code:r.code,text:r.text.trim()}]));
-  const body={rating:form.rating,...(form.strategyId===NEW?(form.newName.trim()?{strategyName:form.newName.trim()}:{strategyId:null}):{strategyId:form.strategyId||null}),reason:form.reason,lesson:form.lesson,emotions:form.emotions,customBroken:form.custom,reasons};
+  const body={rating:form.rating,...(form.strategyId===NEW?(form.newName.trim()?{strategyName:form.newName.trim()}:{strategyId:null}):{strategyId:form.strategyId||null}),reason:form.reason,lesson:form.lesson,emotions:form.emotions,customBroken:form.custom,reasons,dismiss};
   try{
    const r=await fetch('/api/reviews/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    const j=await r.json() as Rev&{error?:string};if(!r.ok)throw Error(j.error||'');
@@ -77,8 +78,10 @@ export function ReviewPanel({id,trade,currency,strategies,custom,readOnly,query,
    <section><label className="jg-lab" htmlFor="jg-why">Proč jsem šel dovnitř</label><textarea id="jg-why" rows={3} maxLength={REVIEW_LIMITS.text} value={form.reason} onChange={e=>set({reason:e.target.value})} placeholder="Setup, důvod, co jsem čekal…"/></section>
    <section><h3>Pravidla</h3>
     {!rev.violations.length&&!custom.length&&!unmet.length&&<p className="j-muted">Žádná porušení ani vlastní pravidla.</p>}
-    {rev.violations.map(v=>{const r=form.reasons[v.rule]||{code:'',text:''};return <div key={v.id} className="jg-viol"><b>{ruleLabel(v.rule,custom)}</b><p>{violationText(v.rule,v.detail)}</p>
-     {v.needsReason&&<div className="jg-why"><select aria-label={`Důvod porušení: ${ruleLabel(v.rule,custom)}`} value={r.code} onChange={e=>set({reasons:{...form.reasons,[v.rule]:{...r,code:e.target.value}}})}><option value="">Vyber důvod…</option>{REASONS.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
+    {rev.violations.map(v=>{const r=form.reasons[v.rule]||{code:'',text:''},ds=form.dismiss[v.rule]||{on:false,note:''},setDs=(p:Partial<typeof ds>)=>set({dismiss:{...form.dismiss,[v.rule]:{...ds,...p}}});
+     return <div key={v.id} className={'jg-viol'+(ds.on?' dismissed':'')}><div className="jg-vhead"><b>{ruleLabel(v.rule,custom)}</b>{!readOnly&&(ds.on?<button type="button" className="jg-vbtn" onClick={()=>setDs({on:false,note:''})}>Obnovit</button>:<button type="button" className="jg-vbtn" onClick={()=>setDs({on:true})}>Neplatí</button>)}</div><p>{violationText(v.rule,v.detail)}</p>
+     {ds.on&&<><small className="jg-vnote">Označeno jako neplatné – nepočítá se do disciplíny.</small><input placeholder="Proč to neplatí? (nepovinná poznámka)" maxLength={REVIEW_LIMITS.dismissNote} value={ds.note} onChange={e=>setDs({note:e.target.value})} aria-label={`Poznámka k neplatnému porušení: ${ruleLabel(v.rule,custom)}`}/></>}
+     {v.needsReason&&!ds.on&&<div className="jg-why"><select aria-label={`Důvod porušení: ${ruleLabel(v.rule,custom)}`} value={r.code} onChange={e=>set({reasons:{...form.reasons,[v.rule]:{...r,code:e.target.value}}})}><option value="">Vyber důvod…</option>{REASONS.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
       <input placeholder={r.code==='other'?'Důvod (povinné)':'Poznámka (nepovinná)'} maxLength={REVIEW_LIMITS.reasonText} value={r.text} onChange={e=>set({reasons:{...form.reasons,[v.rule]:{...r,text:e.target.value}}})} aria-label="Text zdůvodnění"/></div>}</div>})}
     {unmet.length>0&&<div className="jg-unmet"><b>Nesplněno při vstupu</b>{unmet.map(l=><div key={l.name}><small>{l.name}</small><ul>{l.items.map(i=><li key={i.id}>{i.text}</li>)}</ul></div>)}</div>}
     {custom.length>0&&<div className="jg-custom"><b>Vlastní pravidla</b>{custom.map(c=><label key={c.id} className="jg-check"><input type="checkbox" checked={form.custom.includes(c.id)} onChange={()=>set({custom:toggle(form.custom,c.id)})}/><span>Porušil jsem: {c.text}</span></label>)}</div>}

@@ -25,6 +25,11 @@ o=overview(trades,reviews,{},{},strategies);
 check('byStrategy pořadí a Bez strategie poslední',JSON.stringify(o.byStrategy.map(s=>[s.id,s.trades]))===JSON.stringify([['s1',2],['s2',1],[null,2]]),o.byStrategy);
 const b=o.byStrategy;
 check('byStrategy winRate/pnl/avgRating',b[0].winRate===100&&b[0].pnl===17&&b[0].avgRating===4.5&&b[1].winRate===0&&b[1].avgRating===null&&b[2].winRate===50&&b[2].name==='Bez strategie',b);
+// označené jako „neplatí“ se nepočítají (disciplína, top, needReason)
+o=overview(trades,reviews,{'mt:2':[{rule:'sl_required',needsReason:false,reasoned:false,dismissed:true}]},{},strategies);
+check('dismissed → čistý obchod, discipline 100, bez top',o.clean===4&&o.discipline===100&&o.top===null,o);
+o=overview(trades,reviews,{'mt:2':[{rule:'sl_required',needsReason:false,reasoned:false},{rule:'no_early_close',needsReason:true,reasoned:false,dismissed:true}]},{},strategies);
+check('dismissed se nepočítá do needReason ani top',o.needReason===0&&o.top?.rule==='sl_required'&&o.clean===3,o);
 o=overview([T('man:9','manual',1)],{},{},{},[]);
 check('judged 0 → discipline null',o.discipline===null&&o.judged===0&&o.top===null&&o.avgRating===null&&o.toReview===1,o);
 o=overview([T('mt:1','mt',1)],{'mt:1':{rating:null,strategyId:'zmizela',emotions:[]}},{},{},strategies);
