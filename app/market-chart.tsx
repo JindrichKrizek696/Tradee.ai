@@ -7,6 +7,7 @@ import {TF_SEC,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionB
 import {SESSIONS} from '@/lib/journal/analytics';
 import {scoreSeries,type HistoryLike} from '@/lib/dashboard';
 import type {CalendarEvent} from '@/lib/calendar';
+import {forecastLine} from '@/lib/calendar-ff';
 import type {Candle,Tf} from '@/lib/chart/candles';
 import type {ChartTrade} from '@/lib/chart/trades';
 import {fmtMoney} from '@/lib/trades';
@@ -80,7 +81,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    const id=objectId(p);
    if(!id||!p.point){setTip(null);return}
    let text:string[]=[];
-   if(id.startsWith('n:')){const e=L.news.get(id.slice(2));if(e)text=[e.title,eventTime(e)+(e.signal>=3?' · silný signál':'')]}
+   if(id.startsWith('n:')){const e=L.news.get(id.slice(2));if(e)text=[e.title,eventTime(e)+(e.signal>=3?' · silný signál':''),forecastLine(e)].filter(Boolean)}
    else if(id.startsWith('t:')){const t=L.trades.get(id.slice(2));if(t)text=[(t.side==='buy'?'Buy':t.side==='sell'?'Sell':'Ruční obchod')+' · '+tradeResult(t)+(t.r!==null?' · '+fmtMoney(t.pnl,t.currency):''),(t.openPrice!==null?'Vstup '+fmtPrice(t.openPrice):'')+(t.closePrice!==null?' → výstup '+fmtPrice(t.closePrice):''),'Klikni pro detail v Deníku'].filter(Boolean)}
    const w=el.current?.clientWidth||0;setTip(text.length?{x:p.point.x,y:p.point.y,flip:p.point.x>w*.6,lines:text}:null);
   });
@@ -154,7 +155,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const loading=data.status==='loading',empty=data.status==='error'&&!bars.length;
  return <section className="s-card mc" aria-busy={loading}>
   <div className="mc-head">
-   <div className="mc-title"><h2>Graf trhu</h2><p className="mc-ohlc" aria-live="off">{shown&&<><b>{barLabel(shown.time,tf)}</b><span>O <em>{fmtPrice(shown.open)}</em></span><span>H <em>{fmtPrice(shown.high)}</em></span><span>L <em>{fmtPrice(shown.low)}</em></span><span>C <em>{fmtPrice(shown.close)}</em></span>{prev&&<span className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</span>}{hoverScore!==null&&<span>Skóre <em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</>}</p><p className="mc-news-line" title={hoverNews.map(e=>e.title).join(' · ')||undefined}>{hoverNews.map(e=>e.title).join(' · ')}</p></div>
+   <div className="mc-title"><h2>Graf trhu</h2><p className="mc-ohlc" aria-live="off">{shown&&<><b>{barLabel(shown.time,tf)}</b><span>O <em>{fmtPrice(shown.open)}</em></span><span>H <em>{fmtPrice(shown.high)}</em></span><span>L <em>{fmtPrice(shown.low)}</em></span><span>C <em>{fmtPrice(shown.close)}</em></span>{prev&&<span className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</span>}{hoverScore!==null&&<span>Skóre <em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</>}</p><p className="mc-news-line" title={hoverNews.map(e=>e.title+(forecastLine(e)?' ('+forecastLine(e)+')':'')).join(' · ')||undefined}>{hoverNews.map(e=>e.title+(forecastLine(e)?' ('+forecastLine(e)+')':'')).join(' · ')}</p></div>
    <div className="mc-controls">
     <div className="mc-seg" role="group" aria-label="Časový rámec">{TFS.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update({tf:t})}>{t}</button>)}</div>
     <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.map(([k,label])=>{const off=k==='sessions'&&tf!=='H1';return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>

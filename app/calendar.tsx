@@ -3,6 +3,7 @@ import {Fragment,useEffect,useMemo,useRef,useState} from 'react';
 import {SlidersHorizontal} from 'lucide-react';
 import {pairs} from '@/lib/score-engine';
 import {categories,marketLabels,signalLabels,defaultFilters,filterEvents,flaggedMarkets,readFilters,relative,sourceUrl,type CalendarEvent,type Category,type Filters,type Signal} from '@/lib/calendar';
+import {forecastLine} from '@/lib/calendar-ff';
 const KEY='tradee.calendar.filters',TZ='Europe/Prague';
 const time=(s:string)=>new Date(s).toLocaleTimeString('cs-CZ',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});
 const dayName=(s:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:TZ,weekday:'long',day:'numeric',month:'long'});
@@ -16,7 +17,7 @@ export function EventRow({e,now,mine,open,onToggle,compact}:{e:CalendarEvent;now
  return <div className={'c-row'+(past?' c-past':'')+(open?' c-open':'')+(compact?' c-compact':'')} role={onToggle?'button':undefined} tabIndex={onToggle?0:undefined} aria-expanded={onToggle?!!open:undefined} onClick={onToggle} onKeyDown={k=>{if(onToggle&&(k.key==='Enter'||k.key===' ')){k.preventDefault();onToggle()}}}>
   <span className="c-strength" title={signalLabels[e.signal]}><SignalBars signal={e.signal}/>{!compact&&signalLabels[e.signal]}</span>
   <span className="c-when"><b>{e.timeKnown?time(e.at):'—'}</b><small>{compact?new Date(e.at).toLocaleDateString('cs-CZ',{timeZone:TZ,day:'numeric',month:'numeric'})+' · ':''}{relative(e.at,now)}</small></span>
-  <span className="c-title">{e.title}</span>
+  <span className="c-title">{e.title}{forecastLine(e)&&<small className="c-fc">{forecastLine(e)}</small>}</span>
   {!compact&&<span className="c-tags">{e.global&&<span className="c-tag c-all">VŠE</span>}{e.markets.map(m=><span key={m} className="c-tag">{marketLabels[m]??m}</span>)}{watched&&<span className="c-tag c-mine">sleduješ</span>}</span>}
   {compact?e.global&&<span className="c-tag c-all">VŠE</span>:<span className={'c-ver'+(e.verified?'':' c-no')} title={e.verified?'Ověřeno agentem':'Zatím jen termín z oficiálního kalendáře'}>{e.verified?'✓':'○'}</span>}
  </div>;
@@ -27,7 +28,7 @@ function EventDetail({e,flags,now}:{e:CalendarEvent;flags:Record<string,string>;
  const followed=affected.filter(p=>flags[p]&&flags[p]!=='none');
  return <div className="c-detail">
   <div><h4>Na co se dívat</h4><p>{e.watch||'Agent zatím nedoplnil.'}</p>{affected.length>0&&<small>Dotčené páry: {affected.slice(0,8).join(', ')}{affected.length>8?' …':''}{followed.length>0&&<> · sleduješ: <b>{followed.join(', ')}</b></>}</small>}</div>
-  <div><h4>Očekávání · předchozí</h4><p><b>{e.consensus||'zatím neznámé'}</b></p><small>předchozí: {e.previous||'—'}</small><h4>Výsledek</h4><p>{e.actual||(Date.parse(e.at)<now?'čeká na ověření':'zatím neznámý')}</p></div>
+  <div><h4>Očekávání · předchozí</h4><p><b>{e.consensus||e.forecast||'zatím neznámé'}</b></p><small>předchozí: {e.previous||'—'}{!e.consensus&&e.forecast&&' · odhad ForexFactory'}</small><h4>Výsledek</h4><p>{e.actual||(Date.parse(e.at)<now?'čeká na ověření':'zatím neznámý')}</p></div>
   <div><h4>Zdroj</h4>{e.source&&sourceUrl(e.source)?<a href={e.source} target="_blank" rel="noreferrer" onClick={x=>x.stopPropagation()}>{sourceUrl(e.source)}</a>:<p>—</p>}<small>{e.verified?'ověřeno agentem'+(e.verifiedAt?' '+stamp(e.verifiedAt):''):'jen termín z oficiálního kalendáře'}{!e.timeKnown&&' · přesný čas neověřen'}</small></div>
  </div>;
 }
@@ -63,6 +64,6 @@ export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEven
     {open===e.id&&<EventDetail e={e} flags={flags} now={now}/>}
    </Fragment>)}
   </Fragment>)}</div>:<div className="t-card c-empty"><p>Filtrům neodpovídá žádná událost.</p><button type="button" className="c-chip on" onClick={()=>update(defaultFilters)}>Zrušit filtry</button></div>}
-  <p className="c-note"><span className="c-ver">✓</span> ověřeno agentem · <span className="c-ver c-no">○</span> zatím jen termín z oficiálního kalendáře · <span className="c-tag c-all">VŠE</span> hýbe všemi trhy · <span className="c-tag c-mine">sleduješ</span> týká se trhu s tvou vlaječkou</p>
+  <p className="c-note"><span className="c-ver">✓</span> ověřeno agentem · <span className="c-ver c-no">○</span> zatím jen termín z oficiálního kalendáře · <span className="c-tag c-all">VŠE</span> hýbe všemi trhy · <span className="c-tag c-mine">sleduješ</span> týká se trhu s tvou vlaječkou · Odhady: ForexFactory</p>
  </div>;
 }
