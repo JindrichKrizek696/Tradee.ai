@@ -1,6 +1,6 @@
 'use client';
 // Sdílené typy a pomocníci záložky Backtest (tvary odpovědí /api/backtest, formátování, číselné pole).
-import {useEffect,useState} from 'react';
+import {createContext,useContext,useEffect,useId,useState} from 'react';
 import type {StrategyRules,Condition} from '@/lib/backtest/rules';
 import type {BacktestTrade,EquityPoint,MarketResult,Coverage,BtTf,ExitReason} from '@/lib/backtest/engine';
 import type {BacktestSummary} from '@/lib/backtest/metrics';
@@ -52,11 +52,15 @@ export function condText(c:Condition):string{
  }
 }
 export const rulesText=(r:StrategyRules)=>r.entry.map(condText).join(' · ')||'bez podmínek';
+// neplatná číselná pole hlásí rodiči (id pole, je neplatné) – záložka podle toho zablokuje spuštění
+export const InvalidCtx=createContext<((id:string,bad:boolean)=>void)|null>(null);
 // číselné pole: drží rozepsaný text (čárka i tečka), ven pošle jen platné číslo; prázdné → null (když allowEmpty)
 export function NumInput({value,onChange,min,max,step,allowEmpty,label,placeholder,disabled,wide}:{value:number|null;wide?:boolean;onChange:(v:number|null)=>void;min?:number;max?:number;step?:number;allowEmpty?:boolean;label:string;placeholder?:string;disabled?:boolean}){
- const [text,setText]=useState(value===null?'':String(value).replace('.',','));
+ const [text,setText]=useState(value===null?'':String(value).replace('.',',')),id=useId(),report=useContext(InvalidCtx);
  useEffect(()=>{setText(t=>{const n=Number(t.replace(',','.'));return (t.trim()===''&&value===null)||(t.trim()!==''&&n===value)?t:value===null?'':String(value).replace('.',',')})},[value]);
  const n=Number(text.replace(',','.')),bad=text.trim()===''?!allowEmpty:!Number.isFinite(n)||(min!==undefined&&n<min)||(max!==undefined&&n>max);
+ useEffect(()=>{report?.(id,bad)},[report,id,bad]);
+ useEffect(()=>()=>report?.(id,false),[report,id]);
  return <input type="text" inputMode="decimal" className={'bt-num'+(wide?' wide':'')+(bad?' bad':'')} value={text} aria-label={label} aria-invalid={bad||undefined} placeholder={placeholder} disabled={disabled} data-step={step}
   onChange={e=>{const t=e.target.value;setText(t);if(t.trim()===''){if(allowEmpty)onChange(null);return}const v=Number(t.replace(',','.'));if(Number.isFinite(v)&&(min===undefined||v>=min)&&(max===undefined||v<=max))onChange(v)}}/>;
 }

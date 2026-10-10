@@ -3,7 +3,7 @@ import type {StrategyRules} from './rules.ts';
 import {normalizeRules} from './rules.ts';
 import type {BtTf} from './engine.ts';
 
-export const MAX_MARKETS=30,MAX_RUNS=50,MAX_TRADES_STORED=20000,MAX_EQUITY_POINTS=5000;
+export const MAX_MARKETS=30,MAX_RUNS=50,MAX_TRADES_STORED=5000,MAX_EQUITY_POINTS=5000;
 export const MAX_SPAN_DAYS:Record<BtTf,number>={H1:730,D1:25*366};
 export const MIN_CAPITAL=100,MAX_CAPITAL=1e9;
 const DAY=86400000;
@@ -49,13 +49,14 @@ export const warmupMs=(r:StrategyRules,tf:BtTf)=>warmupBars(r)*(tf==='H1'?360000
 
 // ---- plán vs. realita
 export type PlanTrade={id:string;closeTs:number;instrument:string|null;pnl:number;r:number|null};
-export type PlanVsReality={trades:number;wins:number;winRate:number|null;avgR:number|null;totalR:number;pnl:number;withR:number;violations:number;tradesWithViolations:number;currency:string};
-export function planVsReality(trades:PlanTrade[],reviews:Record<string,{strategyId:string|null}|undefined>,violations:Record<string,unknown[]|undefined>,strategyId:string,from:number,to:number,currency:string):PlanVsReality{
- const mine=trades.filter(t=>t.closeTs>=from&&t.closeTs<to&&reviews[t.id]?.strategyId===strategyId);
+export type PlanVsReality={trades:number;wins:number;winRate:number|null;avgR:number|null;totalR:number;pnl:number;withR:number;violations:number;tradesWithViolations:number;otherMarkets:number;currency:string}; // otherMarkets = obchody se strategií v období na trzích mimo testované
+export function planVsReality(trades:PlanTrade[],reviews:Record<string,{strategyId:string|null}|undefined>,violations:Record<string,unknown[]|undefined>,strategyId:string,from:number,to:number,markets:string[],currency:string):PlanVsReality{
+ const inPeriod=trades.filter(t=>t.closeTs>=from&&t.closeTs<to&&reviews[t.id]?.strategyId===strategyId),tested=new Set(markets);
+ const mine=inPeriod.filter(t=>t.instrument!==null&&tested.has(t.instrument));
  const wins=mine.filter(t=>t.pnl>0).length,rs=mine.filter(t=>t.r!==null&&Number.isFinite(t.r)).map(t=>t.r as number);
  const totalR=Math.round(rs.reduce((s,x)=>s+x,0)*100)/100,vio=mine.map(t=>violations[t.id]?.length||0);
  return {trades:mine.length,wins,winRate:mine.length?Math.round(1000*wins/mine.length)/10:null,avgR:rs.length?Math.round(100*totalR/rs.length)/100:null,totalR,
-  pnl:Math.round(mine.reduce((s,t)=>s+t.pnl,0)*100)/100,withR:rs.length,violations:vio.reduce((s,x)=>s+x,0),tradesWithViolations:vio.filter(x=>x>0).length,currency};
+  pnl:Math.round(mine.reduce((s,t)=>s+t.pnl,0)*100)/100,withR:rs.length,violations:vio.reduce((s,x)=>s+x,0),tradesWithViolations:vio.filter(x=>x>0).length,otherMarkets:inPeriod.length-mine.length,currency};
 }
 
 // řidší křivka pro uložení/odpověď: zachová první a poslední bod

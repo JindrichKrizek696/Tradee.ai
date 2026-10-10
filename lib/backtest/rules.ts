@@ -1,6 +1,7 @@
 // Pravidla strategie pro backtest: typy, výchozí hodnoty, normalizace, parametry trhu (velikost bodu, výchozí spread).
 // Čisté funkce – testy scripts/check-backtest.mjs.
 import type {SessionKey} from '../journal/analytics.ts';
+import {fxCurrencies} from '../markets.ts';
 export type Cmp='>'|'<';
 export type MaKind='sma'|'ema';
 export type Condition=
@@ -59,12 +60,14 @@ export const SPREAD_UNIT:Record<SpreadGroup,'pips'|'points'|'pct'>={fx_major:'pi
 export const SPREAD_LABELS:Record<SpreadGroup,string>={fx_major:'FX majors',fx_jpy:'JPY páry',fx_other:'Ostatní FX',metal:'Kovy',index:'Indexy',stock:'Akcie',crypto:'Krypto'};
 const MAJORS=new Set(['EUR/USD','GBP/USD','USD/JPY','USD/CHF','USD/CAD','AUD/USD','NZD/USD']);
 const FX=/^([A-Z]{3})\/([A-Z]{3})$/,METAL=/^(XAU|XAG|XPT|XPD)|^(GC|SI|PL|PA)=F$/;
+const CCY_INDEX=new Set(fxCurrencies);
+export const isCurrencyIndex=(id:string)=>CCY_INDEX.has(id); // měnové indexy (skupina 'currency' v lib/markets.ts); jiné tříznakové tickery (JPM) jsou akcie
 export type InstrumentSpec={group:SpreadGroup;pip:number;base:string|null;quote:string|null};
 export function instrumentSpec(id:string):InstrumentSpec{
  const m=id.match(FX);
  if(m){const jpy=m[1]==='JPY'||m[2]==='JPY';return {group:MAJORS.has(id)?'fx_major':jpy?'fx_jpy':'fx_other',pip:jpy?0.01:0.0001,base:m[1],quote:m[2]}}
  if(METAL.test(id))return {group:'metal',pip:0.01,base:null,quote:null};
- if(id.startsWith('^')||/^[A-Z]{3}$/.test(id))return {group:'index',pip:1,base:null,quote:null}; // ^NDX, ^GSPC; měnové indexy (USD, EUR…)
+ if(id.startsWith('^')||isCurrencyIndex(id))return {group:'index',pip:1,base:null,quote:null}; // ^NDX, ^GSPC; měnové indexy (USD, EUR…)
  if(id.endsWith('-USD'))return {group:'crypto',pip:1,base:null,quote:null};
  return {group:'stock',pip:1,base:null,quote:null};
 }

@@ -30,7 +30,7 @@ function Plan({run}:{run:Run}){
  if(!p)return null;
  const row=(k:string,a:React.ReactNode,b:React.ReactNode)=><tr><th scope="row">{k}</th><td>{a}</td><td>{b}</td></tr>;
  return <section className="j-card"><h2>Plán vs. realita</h2>
-  {!p.trades?<p className="j-muted">Ve stejném období ({fmtPeriod(run.params.from,run.params.to)}) nemáš žádný obchod označený touto strategií. Strategii přiřadíš u obchodu v záložce Obchody.</p>:<>
+  {!p.trades?<p className="j-muted">Ve stejném období ({fmtPeriod(run.params.from,run.params.to)}) nemáš na testovaných trzích žádný obchod označený touto strategií{p.otherMarkets?<> (+ {p.otherMarkets} {plural(p.otherMarkets,['obchod','obchody','obchodů'])} na jiných trzích)</>:null}. Strategii přiřadíš u obchodu v záložce Obchody.</p>:<>
   <table className="bt-plan"><thead><tr><th/><th>Backtest</th><th>Tvoje obchody</th></tr></thead><tbody>
    {row('Obchody',s.trades,p.trades)}
    {row('Win rate',fmtPct(s.winRate),fmtPct(p.winRate))}
@@ -39,7 +39,8 @@ function Plan({run}:{run:Run}){
    {row('Výsledek',<span className={tone(s.netPnl)}>{fmtMoney(s.netPnl,CUR)}</span>,<span className={tone(p.pnl)}>{fmtMoney(p.pnl,p.currency)}</span>)}
    {row('Porušení pravidel','–',p.violations?<span className="neg">{p.violations}× u {p.tradesWithViolations} {plural(p.tradesWithViolations,['obchodu','obchodů','obchodů'])}</span>:'žádné')}
   </tbody></table>
-  <p className="bt-help">Tvoje obchody jsou ty, které máš v Journalingu označené touto strategií a zavřel jsi je ve stejném období. Výsledek backtestu je na modelovém účtu {fmtAmount(run.params.capital,CUR)}, tvůj ve měně účtu – srovnávej hlavně R a win rate.</p></>}
+  {p.otherMarkets>0&&<p className="bt-help">+ {p.otherMarkets} {plural(p.otherMarkets,['obchod','obchody','obchodů'])} na jiných trzích</p>}
+  <p className="bt-help">Tvoje obchody jsou ty, které máš v Journalingu označené touto strategií a zavřel jsi je ve stejném období na testovaných trzích. Výsledek backtestu je na modelovém účtu {fmtAmount(run.params.capital,CUR)}, tvůj ve měně účtu – srovnávej hlavně R a win rate.</p></>}
  </section>;
 }
 function Trades({trades,truncated}:{trades:BacktestTrade[];truncated:boolean}){

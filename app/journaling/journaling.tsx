@@ -28,7 +28,7 @@ export function Journaling({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const dirty=useRef(false),btDirty=useRef(false);
  async function load(){try{const [a,b]=await Promise.all([fetch('/api/journal'+q,{cache:'no-store'}),fetch('/api/journaling'+q,{cache:'no-store'})]);const j=await a.json() as JournalList&{error?:string},m=await b.json() as Meta&{error?:string};if(!a.ok)throw Error(j.error||'');if(!b.ok)throw Error(m.error||'');setData(j);setMeta(m);setError('')}catch(e){setError((e as Error).message||'Journaling se nepodařilo načíst. Zkus obnovit stránku.')}}
  async function reloadMeta(){try{const b=await fetch('/api/journaling'+q,{cache:'no-store'});if(b.ok)setMeta(await b.json() as Meta)}catch{}}
- useEffect(()=>{load();const on=()=>{setDetail(hashId());if(!viewAs)setTab(hashTab())};addEventListener('hashchange',on);
+ useEffect(()=>{load();const on=()=>{if(btDirty.current&&location.hash!==BT_HASH){if(!confirm('Pravidla backtestu mají neuložené změny. Opravdu odejít a změny zahodit?')){location.hash=BT_HASH.slice(1);return}}setDetail(hashId());if(!viewAs)setTab(hashTab())};addEventListener('hashchange',on);
   return()=>{removeEventListener('hashchange',on);if(/^#journaling(\/|$)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}},[]);
  useEffect(()=>{if(data)setFilter(f=>{const s=sanitizeFilter(f,data.trades,data.accounts);return JSON.stringify(s)===JSON.stringify(f)?f:s})},[data]);
  useEffect(()=>{if(!viewAs)writeAccount(filter.account)},[filter.account,viewAs]);
@@ -52,7 +52,7 @@ export function Journaling({viewAs}:{viewAs?:{id:string;name:string}}={}){
  const nextId=useMemo(()=>{if(!detail)return null;const from=idx<0?0:idx+1;return list.slice(from).find(t=>reviews[t.id]?.rating==null&&t.id!==detail)?.id??null},[list,idx,detail,reviews]);
  const open=(id:string)=>{if(id===detail)return;if(dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;location.hash='journaling/'+encodeURIComponent(id)};
  const close=()=>{location.hash='journaling'};
- const go=(t:'trades'|'backtest')=>{if(t===tab)return;if(t==='backtest'&&dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;if(t==='trades'&&btDirty.current&&!confirm('Pravidla backtestu mají neuložené změny. Opravdu odejít a změny zahodit?'))return;location.hash=t==='backtest'?BT_HASH.slice(1):'journaling'};
+ const go=(t:'trades'|'backtest')=>{if(t===tab)return;if(t==='backtest'&&dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;location.hash=t==='backtest'?BT_HASH.slice(1):'journaling'};
  const head=(extra?:React.ReactNode)=><div className="j-head"><div className="jg-titlebar"><h1>Journaling</h1>{!viewAs&&<div className="jg-seg" role="tablist" aria-label="Sekce Journalingu">{([['trades','Obchody'],['backtest','Backtest']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={tab===k} className={tab===k?'on':''} onClick={()=>go(k)}>{l}</button>)}</div>}</div>{extra}</div>;
  if(tab==='backtest'&&!viewAs)return <div className="j-page">{head()}<Backtest dirtyRef={btDirty}/></div>;
  if(!data||!meta)return <div className="j-page">{head()}{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám Journaling…</p>}</div>;

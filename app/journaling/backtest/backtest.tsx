@@ -1,6 +1,6 @@
 'use client';
 // Záložka Backtest v Journalingu: strategie → pravidla → nastavení běhu → výsledek; uložené běhy a porovnání dvou.
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Play,Save,Trash2,FolderOpen,GitCompare,LoaderCircle} from 'lucide-react';
 import {rulesIssues,type StrategyRules} from '@/lib/backtest/rules';
 import {fmtNum,fmtDateTime,plural} from '@/lib/journal/format';
@@ -8,7 +8,7 @@ import {RuleEditor} from './rule-editor';
 import {RunPanel,periodOf,sanitizeSettings,type RunSettings} from './run-panel';
 import {Results} from './results';
 import {Compare} from './compare';
-import {call,fmtPct,fmtPeriod,marketsText,rulesText,sqlMs,tone,type Run,type RunRow,type Strategy} from './shared';
+import {call,InvalidCtx,fmtPct,fmtPeriod,marketsText,rulesText,sqlMs,tone,type Run,type RunRow,type Strategy} from './shared';
 import './backtest.css';
 const KEY='tradee.backtest';
 type Loaded={sid:string;saved:StrategyRules;draft:StrategyRules};
@@ -19,7 +19,7 @@ export function Backtest({dirtyRef}:{dirtyRef?:React.MutableRefObject<boolean>})
  const [want,setSid]=useState(()=>stored().sid),[settings,setSettings]=useState<RunSettings>(()=>stored().settings);
  const [rules,setRules]=useState<Loaded|null>(null),[rulesErr,setRulesErr]=useState(''),[saving,setSaving]=useState<'idle'|'saving'|'saved'>('idle'),[saveErr,setSaveErr]=useState('');
  const [runs,setRuns]=useState<RunRow[]|null>(null),[runsErr,setRunsErr]=useState(''),[view,setView]=useState<View>(null),[pick,setPick]=useState<string[]>([]),[busyId,setBusyId]=useState<string|null>(null);
- const [running,setRunning]=useState(false),[elapsed,setElapsed]=useState(0),[runErr,setRunErr]=useState('');
+ const [running,setRunning]=useState(false),[invalid,setInvalid]=useState<ReadonlySet<string>>(new Set()),[elapsed,setElapsed]=useState(0),[runErr,setRunErr]=useState('');
  const cache=useRef(new Map<string,Run>()),out=useRef<HTMLDivElement>(null),alive=useRef(true);
  useEffect(()=>{alive.current=true;call<{strategies:Strategy[]}>('/api/strategies').then(j=>{if(alive.current)setStrats(j.strategies)}).catch((e:Error)=>{if(alive.current)setLoadErr(e.message||'Strategie se nepodařilo načíst.')});return()=>{alive.current=false}},[]);
  const active=useMemo(()=>(strats||[]).filter(s=>!s.archived),[strats]);
@@ -38,13 +38,14 @@ export function Backtest({dirtyRef}:{dirtyRef?:React.MutableRefObject<boolean>})
  useEffect(()=>{if(dirtyRef)dirtyRef.current=dirty;if(!dirty)return;const f=(e:BeforeUnloadEvent)=>{e.preventDefault()};addEventListener('beforeunload',f);return()=>removeEventListener('beforeunload',f)},[dirty,dirtyRef]);
  useEffect(()=>()=>{if(dirtyRef)dirtyRef.current=false},[dirtyRef]);
  useEffect(()=>{if(!running)return;const t0=Date.now(),t=setInterval(()=>setElapsed(Math.round((Date.now()-t0)/1000)),500);return()=>clearInterval(t)},[running]);
+ const report=useCallback((id:string,bad:boolean)=>setInvalid(s=>{if(s.has(id)===bad)return s;const n=new Set(s);if(bad)n.add(id);else n.delete(id);return n}),[]);
  const issues=useMemo(()=>rules?rulesIssues(rules.draft):[],[rules]);
  const edit=(draft:StrategyRules)=>{setRules(r=>r&&{...r,draft});setSaving('idle')};
  function choose(id:string){if(id===sid)return;if(dirty&&!confirm('Pravidla mají neuložené změny. Opravdu přepnout strategii a změny zahodit?'))return;setSid(id)}
  async function save(){if(!rules)return;const s0=rules.sid;setSaving('saving');setSaveErr('');
   try{const j=await call<{rules:StrategyRules}>(`/api/strategies/${encodeURIComponent(s0)}/rules`,'PUT',{rules:rules.draft});if(!alive.current)return;setRules(r=>r&&r.sid===s0?{sid:s0,saved:j.rules,draft:JSON.stringify(r.draft)===JSON.stringify(rules.draft)?j.rules:r.draft}:r);setSaving('saved')}
   catch(e){if(alive.current){setSaving('idle');setSaveErr((e as Error).message)}}}
- const badPeriod=periodOf(settings,0),blocker=!rules?'':issues.length?'Nejdřív oprav pravidla (viz výše).':!settings.markets.length?'Vyber aspoň jeden trh.':typeof badPeriod==='string'?badPeriod:'';
+ const badPeriod=periodOf(settings,0),blocker=!rules?'':issues.length?'Nejdřív oprav pravidla (viz výše).':invalid.size?'Oprav červeně označená pole s neplatnou hodnotou.':!settings.markets.length?'Vyber aspoň jeden trh.':typeof badPeriod==='string'?badPeriod:'';
  async function run(){
   const period=periodOf(settings,Date.now());
   if(!rules||blocker||running||typeof period==='string')return;
@@ -69,7 +70,7 @@ export function Backtest({dirtyRef}:{dirtyRef?:React.MutableRefObject<boolean>})
  if(!strats)return <p className="j-muted">Načítám strategie…</p>;
  if(!active.length)return <div className="j-card j-empty"><p>Backtest testuje pravidla strategie. Zatím nemáš žádnou aktivní strategii.</p><p>Založ ji na stránce <a href="/pravidla">Pravidla a strategie</a> a pak se sem vrať.</p></div>;
  const viewId=view?.kind==='run'?view.run.id:null,idx=(id:string)=>pick.indexOf(id);
- return <div className="bt">
+ return <InvalidCtx.Provider value={report}><div className="bt">
   <div className="j-card bt-bar">
    <label className="j-field bt-strat"><span>Strategie</span><select value={sid} onChange={e=>choose(e.target.value)}>{active.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
    <p className="j-muted">Nastav pravidla vstupu a výstupu, vyber trhy a období a projeď je nad historickými svíčkami. Výsledek porovnáš se svými skutečnými obchody.</p>
@@ -109,5 +110,5 @@ export function Backtest({dirtyRef}:{dirtyRef?:React.MutableRefObject<boolean>})
    </div>
   </div>
   <div ref={out} className="bt-out">{view?.kind==='run'?<Results key={view.run.id} run={view.run}/>:view?.kind==='compare'?<Compare runs={view.runs} onClose={()=>setView(null)}/>:null}</div>
- </div>;
+ </div></InvalidCtx.Provider>;
 }

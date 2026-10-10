@@ -26,6 +26,7 @@ check('highest(2) klesající řada',arrEq(highest([5,4,3,2],2),[N,5,4,3]));
 check('bod: EUR/USD 0,0001, USD/JPY 0,01, ^NDX 1',instrumentSpec('EUR/USD').pip===0.0001&&instrumentSpec('USD/JPY').pip===0.01&&instrumentSpec('^NDX').pip===1);
 const ds=id=>{const d=defaultSpread(id);return d.group+':'+d.value+d.unit};
 check('výchozí spread podle skupiny',[ds('EUR/USD'),ds('USD/JPY'),ds('EUR/JPY'),ds('EUR/GBP'),ds('XAUUSD'),ds('^GSPC'),ds('AAPL'),ds('BTC-USD')].join()==='fx_major:1pips,fx_major:1pips,fx_jpy:1.5pips,fx_other:2pips,metal:3pips,index:1points,stock:0.05pct,crypto:0.1pct',[ds('EUR/USD'),ds('EUR/JPY'),ds('XAUUSD'),ds('AAPL')]);
+check('JPM není měnový index: akcie se spreadem 0,05 %, pip 1',ds('JPM')==='stock:0.05pct'&&instrumentSpec('JPM').group==='stock'&&instrumentSpec('USD').group==='index'&&near(spreadPrice('JPM',200,DEFAULT_RULES),0.1),ds('JPM'));
 check('spread v ceně: EUR/USD 1 pip, EUR/JPY 1,5 × 0,01, AAPL 0,05 % z 200, přepis skupiny',near(spreadPrice('EUR/USD',1.1,DEFAULT_RULES),0.0001)&&near(spreadPrice('EUR/JPY',160,DEFAULT_RULES),0.015)&&near(spreadPrice('AAPL',200,DEFAULT_RULES),0.1)&&near(spreadPrice('EUR/USD',1.1,{costs:{commissionPct:0,spread:{fx_major:0.5}}}),0.00005));
 const nr=normalizeRules({entry:[{type:'rsi',period:'7',op:'cross_up',value:130},{type:'nesmysl'},{type:'session',sessions:['london','xx']},{type:'weekday',days:['0',4,9]}],direction:'x',exit:{sl:{type:'pips',value:-5},tp:{type:'signal'},maxBars:'12'},sizing:{riskPct:2},costs:{commissionPct:5,spread:{fx_major:0.8,bad:3}}});
 check('normalizeRules: ořez, neznámé pryč, výchozí',nr.entry.length===3&&nr.entry[0].period===7&&nr.entry[0].value===100&&nr.entry[1].sessions.join()==='london'&&nr.entry[2].days.join()==='0,4'&&nr.direction==='long'&&nr.exit.sl.type==='pips'&&nr.exit.sl.value===0.0001&&nr.exit.tp.type==='signal'&&nr.exit.maxBars===12&&nr.sizing.riskPct===2&&nr.sizing.capital===10000&&nr.costs.commissionPct===5&&JSON.stringify(nr.costs.spread)==='{"fx_major":0.8}',nr);
@@ -146,6 +147,35 @@ const scoreUp={type:'score',op:'>',value:10,days:5};
  check('období: konec → výstup end na close poslední svíčky, kapitál z inputu',r.trades.length===1&&t.reason==='end'&&t.exitT===tOf(11)&&t.risk===50&&r.equity[0].t===tOf(3)&&r.perMarket[0].bars===9,r);
  const e=runBacktest({rules:base({entry:[maX]}),markets:[{instrument:'^TST',bars:mkBars(crossUp)}],tf:'H1',from:tOf(50),to:tOf(60)});
  check('trh bez svíček v období → varování',e.trades.length===0&&e.warnings[0]==='^TST: ve zvoleném období nejsou žádné svíčky.',e.warnings);
+}
+
+// ---- engine: ATR SL, procentní spread, den v týdnu, síla měn, COT
+{
+ // ATR(14) = 2 (každá svíčka h−l = 2) → SL = 1,5 × 2 = 3 pod vstupem 10
+ const over={};for(let i=0;i<40;i++)over[i]={h:11,l:9};
+ const t=run(base({entry:[scoreUp],exit:{sl:{type:'atr',value:1.5},tp:{type:'r',value:2},maxBars:null}}),[{instrument:'^TST',bars:mkBars(flat(40,10),over)}],{context:sigCtx({'^TST':[20]})}).trades[0];
+ check('SL podle ATR: vzdálenost 1,5 × ATR = 3, TP 2R = 6',t&&t.entryPrice===10&&t.sl===7&&t.tp===16,t);
+}
+{
+ const st=run(base({entry:[scoreUp],exit:{sl:{type:'pips',value:10},tp:{type:'r',value:2},maxBars:null}}),[{instrument:'AAPL',bars:mkBars(flat(30,200))}],{context:sigCtx({AAPL:[20]})}).trades[0];
+ check('procentní spread akcie: 0,05 % z 200 → vstup 200,05, výstup 199,95',st&&near(st.entryPrice,200.05)&&near(st.exitPrice,199.95),st);
+ const cr=run(base({entry:[scoreUp],exit:{sl:{type:'pct',value:2},tp:{type:'r',value:2},maxBars:null}}),[{instrument:'BTC-USD',bars:mkBars(flat(30,50000))}],{context:sigCtx({'BTC-USD':[20]})}).trades[0];
+ check('procentní spread krypto: 0,1 % z 50 000 → vstup 50 025',cr&&near(cr.entryPrice,50025),cr);
+}
+{
+ const bars=mkBars(flat(48,6)),wd=days=>run(base({entry:[{type:'weekday',days}],exit:{sl:{type:'pips',value:2},tp:{type:'r',value:2},maxBars:1}}),[{instrument:'^TST',bars}]).trades.map(t=>(t.entryT-T0)/HR);
+ const mon=wd([0]),tue=wd([1]);
+ check('den v týdnu: pondělí = 0 (T0 je pondělí; pražský den končí svíčkou 22)',mon.length>0&&mon[0]===1&&Math.max(...mon)===22&&tue[0]===23,{mon,tue});
+}
+{
+ const eu=(strength,op='>',value=0)=>run(base({entry:[{type:'strength',op,value}],exit:{sl:{type:'pips',value:10},tp:{type:'r',value:2},maxBars:1}}),[{instrument:'EUR/USD',bars:mkBars(flat(30,1.1))}],{context:{strength:(c,t)=>strength[c]}}).trades.length;
+ check('síla měn: base − quote (EUR 3, USD 1 → +2 > 0)',eu({EUR:3,USD:1})>0&&eu({EUR:1,USD:3})===0&&eu({EUR:1,USD:3},'<')>0&&eu({EUR:3,USD:1},'>',5)===0);
+ check('síla měn bez dat jedné strany = bez obchodu',eu({EUR:3})===0&&eu({USD:1})===0);
+}
+{
+ const ct=(cot,op,value=0)=>run(base({entry:[{type:'cot',op,value}],exit:{sl:{type:'pips',value:2},tp:{type:'r',value:2},maxBars:1}}),[{instrument:'^TST',bars:mkBars(flat(30,6))}],{context:{cot:()=>cot}}).trades.length;
+ check('COT long/short podle znaménka netto pozice',ct({net:5,change:1},'long')>0&&ct({net:-5,change:1},'long')===0&&ct({net:-5,change:1},'short')>0&&ct({net:5,change:1},'short')===0);
+ check('COT změna > / < hodnota, bez dat = bez obchodu',ct({net:5,change:10},'>',5)>0&&ct({net:5,change:3},'>',5)===0&&ct({net:5,change:3},'<',5)>0&&ct(undefined,'long')===0);
 }
 
 // ---- metriky

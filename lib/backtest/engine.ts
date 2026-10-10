@@ -51,6 +51,8 @@ export type BacktestResult={trades:BacktestTrade[];equity:EquityPoint[];perMarke
 
 export const BAR_MS:Record<BtTf,number>={H1:3600000,D1:86400000};
 const DAY=86400000;
+// ceny do uložených obchodů na 6 platných číslic (R a P&L se počítají z nezaokrouhlených hodnot)
+const sig6=(n:number)=>Number.isFinite(n)&&n!==0?Number(n.toPrecision(6)):n;
 const r2=(n:number)=>Math.round(n*100)/100,r4=(n:number)=>Math.round(n*10000)/10000;
 const DATA_LABEL:Record<DataKey,string>={score:CONDITION_LABELS.score,strength:CONDITION_LABELS.strength,cot:CONDITION_LABELS.cot,news:'Zprávy'};
 
@@ -140,7 +142,7 @@ export function runBacktest(input:BacktestInput):BacktestResult{
  const close=(mk:Mk,i:number,mid:number,reason:ExitReason)=>{
   const p=mk.pos!,dir=p.side==='long'?1:-1,fill=mid-dir*p.half;
   const r=r4(dir*(fill-p.fill)/p.riskUnit-commR),pnl=r2(r*p.risk);
-  trades.push({instrument:mk.inst,side:p.side,entryT:p.entryT,entryPrice:p.fill,sl:p.sl,tp:p.tp,exitT:mk.bars[i].t,exitPrice:fill,reason,r,pnl,risk:r2(p.risk),bars:i-p.entryIdx+1});
+  trades.push({instrument:mk.inst,side:p.side,entryT:p.entryT,entryPrice:sig6(p.fill),sl:sig6(p.sl),tp:p.tp===null?null:sig6(p.tp),exitT:mk.bars[i].t,exitPrice:sig6(fill),reason,r,pnl,risk:r2(p.risk),bars:i-p.entryIdx+1});
   equity=r2(equity+pnl);equityPts.push({t:mk.bars[i].t,equity});
   mk.res.trades++;if(pnl>0)mk.res.wins++;mk.res.totalR+=r;mk.res.pnl+=pnl;
   if(equity<=0&&!broke){broke=true;warnings.push('Účet klesl na nulu – další obchody se neotevírají.')}

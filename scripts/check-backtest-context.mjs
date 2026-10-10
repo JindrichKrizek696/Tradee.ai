@@ -33,11 +33,11 @@ const market={cot:{
 }};
 const cot=cotLookup(market);
 const rel=d=>T(d+'T00:00:00Z')+COT_LAG_MS;
-check('release = pátek 21:00 UTC po úterním datu',new Date(rel('2026-09-08')).toISOString()==='2026-09-11T21:00:00.000Z',new Date(rel('2026-09-08')).toISOString());
+check('release = pondělí 21:00 UTC po úterním datu (konzervativně, i při svátku)',new Date(rel('2026-09-08')).toISOString()==='2026-09-14T21:00:00.000Z',new Date(rel('2026-09-08')).toISOString());
 check('v den pozorování (úterý) ještě nic nevíme',cot('EUR/CAD',T('2026-09-08T12:00:00Z'))===undefined&&cot('EUR/USD',T('2026-09-08T12:00:00Z'))===undefined);
 check('první řádek nemá změnu → bez dat i po zveřejnění',cot('EUR/USD',rel('2026-09-01')+H)===undefined);
-check('pátek 20:59 UTC: předchozí týden stále platí',cot('EUR/USD',rel('2026-09-08')-1)===undefined&&cot('EUR/USD',rel('2026-09-15')-1)?.net===160);
-check('pátek 21:00 UTC: nový řádek',cot('EUR/USD',rel('2026-09-08'))?.net===160&&cot('EUR/USD',rel('2026-09-08'))?.change===60);
+check('pondělí 20:59 UTC: předchozí týden stále platí',cot('EUR/USD',rel('2026-09-08')-1)===undefined&&cot('EUR/USD',rel('2026-09-15')-1)?.net===160);
+check('pondělí 21:00 UTC: nový řádek',cot('EUR/USD',rel('2026-09-08'))?.net===160&&cot('EUR/USD',rel('2026-09-08'))?.change===60);
 check('COT mezi reporty drží poslední zveřejněný',cot('EUR/USD',rel('2026-09-08')+5*D)?.net===160);
 check('COT starší než 14 dní bez nového řádku = bez dat',cot('EUR/USD',rel('2026-09-15')+15*D)===undefined&&cot('EUR/USD',rel('2026-09-15')+13*D)?.net===150);
 check('USD/XXX má opačné znaménko',cot('USD/JPY',rel('2026-09-08'))?.net===6&&cot('USD/JPY',rel('2026-09-08'))?.change===-(-6-(-5)));
@@ -52,6 +52,9 @@ check('po konci kalendáře = bez dat',news('EUR/USD',T('2026-09-21T00:00:00Z'),
 check('v okně ±15 min před i po',news('EUR/USD',T('2026-09-10T12:30:00Z')-15*m,15,3)===true&&news('EUR/USD',T('2026-09-10T12:30:00Z')+15*m,15,3)===true);
 check('těsně mimo okno',news('EUR/USD',T('2026-09-10T12:30:00Z')-15*m-1,15,3)===false&&news('EUR/USD',T('2026-09-10T12:30:00Z')+15*m+1,15,3)===false);
 check('jiná měna se nepočítá, ne-FX počítá USD',news('EUR/GBP',T('2026-09-10T12:30:00Z'),15,3)===false&&news('^NDX',T('2026-09-10T12:30:00Z'),15,3)===true);
+check('akcie JPM (tři písmena) není měnový index: USD zprávy ji ovlivní, EUR ne, COT nemá',news('JPM',T('2026-09-10T12:30:00Z'),15,3)===true&&news('JPM',T('2026-09-12T08:00:00Z'),15,1)===false&&cot('JPM',rel('2026-09-08'))===undefined);
+check('měnový index USD/EUR bere jen zprávy své měny',news('EUR',T('2026-09-12T08:00:00Z'),15,1)===true&&news('EUR',T('2026-09-10T12:30:00Z'),15,3)===false);
+check('okno přesahující kalendář = bez dat',news('EUR/USD',T('2026-09-05T00:00:00Z')+5*m,15,3)===undefined&&news('EUR/USD',T('2026-09-20T00:00:00Z')-5*m,15,3)===undefined&&news('EUR/USD',T('2026-09-05T00:00:00Z')+15*m,15,3)===false);
 check('minSignal filtruje slabé zprávy',news('EUR/GBP',T('2026-09-12T08:00:00Z'),15,2)===false&&news('EUR/GBP',T('2026-09-12T08:00:00Z'),15,1)===true);
 
 // ---- požadavek
@@ -73,10 +76,10 @@ check('rezerva zahřátí = nejdelší perioda × 3 + 50',warmupBars(r2)===200*3
 // ---- plán vs. realita
 const trades=[{id:'a',closeTs:100,instrument:'EUR/USD',pnl:50,r:1},{id:'b',closeTs:200,instrument:'EUR/USD',pnl:-20,r:-0.5},{id:'c',closeTs:300,instrument:null,pnl:10,r:null},{id:'d',closeTs:999,instrument:null,pnl:5,r:1},{id:'e',closeTs:150,instrument:null,pnl:5,r:1}];
 const rv={a:{strategyId:'s1'},b:{strategyId:'s1'},c:{strategyId:'s1'},d:{strategyId:'s1'},e:{strategyId:'s2'}};
-const p=planVsReality(trades,rv,{b:[{},{}],c:[{}]},'s1',0,500,'CZK');
-check('plán vs. realita: jen strategie a období',p.trades===3&&p.wins===2&&p.winRate===66.7&&p.pnl===40,p);
-check('plán vs. realita: R a porušení',p.avgR===0.25&&p.totalR===0.5&&p.withR===2&&p.violations===3&&p.tradesWithViolations===2,p);
-check('plán vs. realita: prázdné',planVsReality([],{},{},'s1',0,1,'CZK').winRate===null);
+const p=planVsReality(trades,rv,{b:[{},{}],c:[{}]},'s1',0,500,['EUR/USD'],'CZK');
+check('plán vs. realita: jen strategie a období',p.trades===2&&p.wins===1&&p.winRate===50&&p.pnl===30&&p.otherMarkets===1,p);
+check('plán vs. realita: R a porušení',p.avgR===0.25&&p.totalR===0.5&&p.withR===2&&p.violations===2&&p.tradesWithViolations===1,p);
+check('plán vs. realita: prázdné',planVsReality([],{},{},'s1',0,1,[],'CZK').winRate===null);
 check('thin zachová krajní body',(()=>{const a=Array.from({length:1000},(_,i)=>i),t=thin(a,10);return t.length===10&&t[0]===0&&t[9]===999})());
 
 if(fails.length){console.log('\nSELHALO: '+fails.length);process.exit(1)}console.log('\nvše ok');

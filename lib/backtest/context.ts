@@ -1,15 +1,15 @@
 // Kontext pro podmínky s daty Tradee (skóre, síla měn, COT, zprávy) – čisté funkce nad JSON daty, bez DB.
 // Všechny funkce vrací jen to, co bylo známé k času t (krokové funkce, žádný pohled do budoucna):
 //  - skóre / síla: poslední snapshot z data/score-history.json s časem ≤ t; starší než SCORE_MAX_AGE_MS = bez dat
-//  - COT: týdenní řádek platí od zveřejnění (CFTC: pátek po úterním datu), ne od data pozorování
+//  - COT: týdenní řádek platí od zveřejnění (CFTC: běžně pátek po úterním datu; počítáme konzervativně až pondělí), ne od data pozorování
 //  - zprávy: kalendář je dopředu známý, ale pokrývá jen své období; mimo něj bez dat
 import type {BacktestContext,CotPoint} from './engine.ts';
-import {instrumentSpec} from './rules.ts';
+import {instrumentSpec,isCurrencyIndex} from './rules.ts';
 import {mergeCalendar,eventMarkets,type AutoEvent,type CuratedEvent} from '../calendar.ts';
 
 export const SCORE_MAX_AGE_MS=72*3600000; // snapshoty chodí několikrát denně; delší mezera = data chybí
 export const COT_MAX_AGE_MS=14*86400000; // týdenní report; po dvou týdnech bez nového řádku už neplatí
-export const COT_LAG_MS=3*86400000+21*3600000; // úterý + 3 dny = pátek 21:00 UTC (CFTC zveřejňuje 15:30 ET, tj. 19:30/20:30 UTC)
+export const COT_LAG_MS=6*86400000+21*3600000; // úterý + 6 dní = následující pondělí 21:00 UTC; konzervativně pokrývá i report zpožděný svátkem (běžně pátek 15:30 ET)
 export const COT_GROUP='leveraged'; // spekulanti (stejná skupina jako skóre Tradee)
 
 export type HistoryData={snapshots:{at:string;scores:Record<string,{score:number|null}|undefined>}[]};
@@ -66,7 +66,7 @@ export function cotLookup(market:MarketCot|undefined){
    const a=get(sp.base)?.(t),b=get(sp.quote)?.(t);
    return a&&b?{net:a.net-b.net,change:a.change-b.change}:undefined;
   }
-  if(/^[A-Z]{3}$/.test(instrument))return get(instrument)?.(t);
+  if(isCurrencyIndex(instrument))return get(instrument)?.(t);
   return undefined;
  };
 }
@@ -81,12 +81,13 @@ export function newsItems(auto:AutoEvent[],curated:CuratedEvent[],sources?:Recor
  }
  return out.sort((a,b)=>a.at-b.at);
 }
-const currenciesOfInstrument=(id:string)=>{const sp=instrumentSpec(id);return sp.base&&sp.quote?[sp.base,sp.quote]:/^[A-Z]{3}$/.test(id)?[id]:['USD']}; // indexy, akcie, krypto: dopad USD zpráv
+const currenciesOfInstrument=(id:string)=>{const sp=instrumentSpec(id);return sp.base&&sp.quote?[sp.base,sp.quote]:isCurrencyIndex(id)?[id]:['USD']}; // indexy, akcie, krypto: dopad USD zpráv
 export function newsLookup(items:NewsItem[]){
  const ev=[...items].sort((a,b)=>a.at-b.at),first=ev.length?ev[0].at:null,last=ev.length?ev[ev.length-1].at:null,times=ev.map(e=>e.at);
  return (instrument:string,t:number,minutes:number,minSignal:number):boolean|undefined=>{
-  if(first===null||last===null||t<first||t>last)return undefined; // kalendář pokrývá jen své období
-  const w=minutes*60000,cur=currenciesOfInstrument(instrument);
+  const w=minutes*60000;
+  if(first===null||last===null||t-w<first||t+w>last)return undefined; // celé okno musí ležet v období, které kalendář pokrývá
+  const cur=currenciesOfInstrument(instrument);
   let i=lastIndexAtOrBefore(times,t-w-1)+1;
   for(;i<ev.length&&ev[i].at<=t+w;i++)if(ev[i].signal>=minSignal&&ev[i].currencies.some(c=>cur.includes(c)))return true;
   return false;
