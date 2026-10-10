@@ -33,7 +33,7 @@ const scoreFmt=(v:number)=>(v>0?'+':'')+v.toLocaleString('cs-CZ',{maximumFractio
 const pct=(a:number,b:number)=>{const v=(b-a)/a*100;return (v>0?'+':'')+v.toLocaleString('cs-CZ',{maximumFractionDigits:2})+' %'};
 const precision=(v:number)=>Math.abs(v)<10?5:Math.abs(v)<1000?2:0;
 
-export function MarketChart({instrument,name,history,method,events}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[]}){
+export function MarketChart({instrument,name,history,method,events,height,headExtra}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode}){
  const [prefs,setPrefs]=useState<Prefs>(DEFAULT),[ready,setReady]=useState(false);
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
  const [trades,setTrades]=useState<ChartTrade[]>([]),[tradesError,setTradesError]=useState(false);
@@ -158,13 +158,13 @@ export function MarketChart({instrument,name,history,method,events}:{instrument:
    <div className="mc-controls">
     <div className="mc-seg" role="group" aria-label="Časový rámec">{TFS.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update({tf:t})}>{t}</button>)}</div>
     <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.map(([k,label])=>{const off=k==='sessions'&&tf!=='H1';return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>
-    <button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
+    {headExtra}<button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
    </div>
   </div>
   <div className="mc-body">
   {draw.toolbar}
   <div className="mc-wrap">
-   <div ref={el} className="mc-chart" data-drawing={draw.drawing?'1':undefined} role="img" aria-label={`Svíčkový graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}`}/>
+   <div ref={el} className="mc-chart" style={height?{'--mc-h':height} as React.CSSProperties:undefined} data-drawing={draw.drawing?'1':undefined} role="img" aria-label={`Svíčkový graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}`}/>
    {loading&&<div className="mc-skeleton" aria-label="Načítám svíčky"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>}
    {empty&&<div className="mc-empty" role="status"><p>{data.message||'Ceny teď nejsou k dispozici.'}</p><button type="button" className="mc-chip" onClick={()=>setReload(n=>n+1)}>Zkusit znovu</button></div>}
    {tip&&!draw.drawing&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}

@@ -13,7 +13,7 @@ import './nastaveni.css';
 const move=<T,>(a:T[],i:number,d:number)=>{const j=i+d;if(j<0||j>=a.length)return a;const b=[...a];[b[i],b[j]]=[b[j],b[i]];return b};
 function Navigation(){
  const {nav,change,status}=useNav(),drag=useRef<View|null>(null),[dragging,setDragging]=useState<View|null>(null),list=useRef<HTMLUListElement>(null);
- const preview:Nav={order:nav.order,hidden:nav.hidden},isDefault=JSON.stringify(nav)===JSON.stringify(defaultNav());
+ const preview:Nav={order:nav.order,hidden:nav.hidden,merge:nav.merge},isDefault=JSON.stringify(nav)===JSON.stringify(defaultNav());
  const shift=(i:number,d:number)=>change({...nav,order:move(nav.order,i,d)});
  const toggle=(id:View)=>{if(id==='dashboard')return;change({...nav,hidden:nav.hidden.includes(id)?nav.hidden.filter(x=>x!==id):[...nav.hidden,id]})};
  // Tažení přes pointer events (myš i dotyk): ukazatel drží celý seznam, pod prstem se hledá řádek a přetahovaná položka se na jeho místo hned přesune.
@@ -24,13 +24,14 @@ function Navigation(){
   <div className="nv-title"><h2>Navigace</h2><span className={'nv-status'+(status==='err'?' err':'')} role="status" aria-live="polite">{status==='saving'?'Ukládám…':status==='saved'?'Uloženo':status==='err'?'Uložení se nepovedlo. Změna platí jen v tomto prohlížeči.':''}</span></div>
   <p className="mt-lead">Přetažením změníš pořadí položek v horní liště, přepínačem je schováš. Dashboard zůstává vždy.</p>
   <div className="nv-stage"><NavBar nav={preview} view="dashboard" preview/></div>
-  <ul className="nv-list" ref={list} onPointerMove={over} onPointerUp={end} onPointerCancel={end}>{nav.order.map((id,i)=>{const [label,Icon]=NAV_META[id],off=nav.hidden.includes(id);
+  <div className="nv-line"><span>Sloučit Deník a Journaling<small style={{display:'block',color:'var(--t-muted)',fontSize:13,fontWeight:400}}>V liště zůstane jen Deník, Journaling je v něm jako záložky Vyhodnocení a Backtest.</small></span><button type="button" role="switch" aria-checked={nav.merge} aria-label="Sloučit Deník a Journaling" className="nv-switch" onClick={()=>change({...nav,merge:!nav.merge})}><i aria-hidden="true"/></button></div>
+  <ul className="nv-list" ref={list} onPointerMove={over} onPointerUp={end} onPointerCancel={end}>{nav.order.map((id,i)=>{const [label,Icon]=NAV_META[id],merged=nav.merge&&id==='journaling',off=nav.hidden.includes(id)||merged;
    return <li key={id} data-nav-id={id} className={'nv-row'+(off?' off':'')+(dragging===id?' drag':'')}>
     <span className="nv-grip" role="presentation" onPointerDown={e=>down(e,id)} title="Přetáhni"><GripVertical size={18}/></span>
     <Icon size={17}/><span className="nv-name">{label}</span>
     <button type="button" className="mt-icon" aria-label={`Posunout ${label} nahoru`} disabled={i===0} onClick={()=>shift(i,-1)}><ArrowUp size={14}/></button>
     <button type="button" className="mt-icon" aria-label={`Posunout ${label} dolů`} disabled={i===nav.order.length-1} onClick={()=>shift(i,1)}><ArrowDown size={14}/></button>
-    <button type="button" role="switch" aria-checked={!off} aria-label={`Zobrazit ${label}`} title={id==='dashboard'?'Dashboard nelze schovat':off?'Zobrazit':'Schovat'} disabled={id==='dashboard'} className="nv-switch" onClick={()=>toggle(id)}><i aria-hidden="true"/></button>
+    <button type="button" role="switch" aria-checked={!off} aria-label={`Zobrazit ${label}`} title={id==='dashboard'?'Dashboard nelze schovat':merged?'Sloučeno s Deníkem':off?'Zobrazit':'Schovat'} disabled={id==='dashboard'||merged} className="nv-switch" onClick={()=>toggle(id)}><i aria-hidden="true"/></button>
    </li>})}</ul>
   <div className="nv-foot"><button type="button" className="mt-btn" disabled={isDefault} onClick={()=>change(defaultNav())}><RotateCcw size={15}/> Obnovit výchozí</button></div>
  </section>;

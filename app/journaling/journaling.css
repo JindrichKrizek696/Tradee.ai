@@ -80,3 +80,5 @@
 }
 @media (max-width:900px){.jg-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.jg-tiles{gap:8px}.jg-tile{padding:12px}.jg-tile dd{font-size:22px}.jg-seg button{padding:0 10px}}
+
+.jg-embed{display:grid;gap:16px}

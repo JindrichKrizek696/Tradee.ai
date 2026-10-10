@@ -16,7 +16,7 @@
 .mc-chip:disabled{opacity:.45;cursor:not-allowed}
 .mc-chip:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
 .mc-wrap{position:relative}
-.mc-chart{height:460px;width:100%}
+.mc-chart{height:var(--mc-h,460px);width:100%}
 .mc-skeleton{position:absolute;inset:0;display:flex;align-items:center;gap:3%;padding:0 4%;background:var(--t-surface);border-radius:8px;pointer-events:none}
 .mc-skeleton i{flex:1;border-radius:3px;background:var(--t-surface-3);animation:mc-pulse 1.2s ease-in-out infinite alternate}
 .mc-skeleton i:nth-child(3n){height:38%}.mc-skeleton i:nth-child(3n+1){height:22%}.mc-skeleton i:nth-child(3n+2){height:30%;margin-top:6%}
@@ -37,7 +37,7 @@
 .mc-src{margin-left:auto}
 .mc-src a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 @media (max-width:760px){
- .mc-chart{height:360px}
+ .mc-chart{height:var(--mc-h,360px)}
  .mc-controls{width:100%;justify-content:space-between}
  .mc-src{margin-left:0}
 }
@@ -86,3 +86,6 @@
  .mc-draw-hint{white-space:normal;text-align:center;max-width:90%}
  .mc-sel{max-width:calc(100% - 16px)}
 }
+
+.mc-open{display:inline-flex;align-items:center;gap:4px;text-decoration:none}
+.mc-full .mc-chart{min-height:520px}
