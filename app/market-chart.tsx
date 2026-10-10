@@ -1,5 +1,5 @@
 'use client';
-// Graf trhu v detailu trhu: svíčky H1/H4/D1 (Yahoo přes /api/chart/candles) s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí.
+// Graf trhu v detailu trhu: svíčky H1/H4/D1 (Yahoo přes /api/chart/candles) s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {createChart,CandlestickSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type Time,type UTCTimestamp} from 'lightweight-charts';
 import {candles as toBars} from '@/lib/journal/chart-data';
@@ -12,6 +12,7 @@ import type {ChartTrade} from '@/lib/chart/trades';
 import {fmtMoney} from '@/lib/trades';
 import {useOpenPositions} from './open-positions';
 import {fmtPrice} from './live';
+import {useChartDrawings} from './market-chart-draw';
 import './market-chart.css';
 
 type Layers={trades:boolean;news:boolean;score:boolean;sessions:boolean};
@@ -90,6 +91,7 @@ export function MarketChart({instrument,name,history,method,events}:{instrument:
  },[]);
 
  const bars=useMemo(()=>toBars(data.candles),[data.candles]);
+ const draw=useChartDrawings({chart,series:price,el,bars,tf,instrument,tick});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
  const scores=useMemo(()=>scoreSeries(history,instrument,method,'all',Date.now()),[history,instrument,method]);
  const news=useMemo(()=>newsLayer(events,instrument,times,TF_SEC[tf]),[events,instrument,times,tf]);
@@ -159,17 +161,22 @@ export function MarketChart({instrument,name,history,method,events}:{instrument:
     <button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
    </div>
   </div>
+  <div className="mc-body">
+  {draw.toolbar}
   <div className="mc-wrap">
-   <div ref={el} className="mc-chart" role="img" aria-label={`Svíčkový graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}`}/>
+   <div ref={el} className="mc-chart" data-drawing={draw.drawing?'1':undefined} role="img" aria-label={`Svíčkový graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}`}/>
    {loading&&<div className="mc-skeleton" aria-label="Načítám svíčky"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>}
    {empty&&<div className="mc-empty" role="status"><p>{data.message||'Ceny teď nejsou k dispozici.'}</p><button type="button" className="mc-chip" onClick={()=>setReload(n=>n+1)}>Zkusit znovu</button></div>}
-   {tip&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}
+   {tip&&!draw.drawing&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}
+   {draw.overlay}
+  </div>
   </div>
   <div className="mc-foot">
    {data.stale&&bars.length>0&&<span className="mc-stale" role="status">Ceny mohou být zpožděné{data.updated?' · stav '+new Date(data.updated).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>}
    {tradesError&&layers.trades&&<span className="mc-stale">Obchody se nepodařilo načíst.</span>}
    {layers.news&&<span className="mc-legend"><i className="mc-dot strong"/>silná zpráva <i className="mc-dot"/>střední</span>}
    {layers.sessions&&tf==='H1'&&<span className="mc-legend">{SESSIONS.filter(s=>s.key!=='off').map(s=><span key={s.key}><i className="mc-swatch" style={{background:SESSION_COLORS[s.key as keyof typeof SESSION_COLORS]}}/>{s.label}</span>)}</span>}
+   {draw.status}
    <span className="mc-src">Yahoo Finance · čas Praha · <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">Grafy TradingView Lightweight Charts™</a></span>
   </div>
  </section>;
