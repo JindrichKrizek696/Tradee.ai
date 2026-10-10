@@ -1,13 +1,15 @@
 'use client';
 import {Fragment,useState} from 'react';
-import {CalendarDays,ChevronDown,Landmark,Users} from 'lucide-react';
+import {CalendarDays,ChevronDown,Landmark,ListChecks,Users} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import type {FundamentalData} from '@/lib/fundamentals';
 import {eventMarkets} from '@/lib/calendar';
 import {assetNames} from '@/lib/markets';
 import {stance,mood,nextMeeting,upcoming,isMeeting,parseRetail} from '@/lib/reports';
-import {pairs} from '@/lib/score-engine';
-import {Link} from './score-analyzer';
+import {pairs,type MarketData} from '@/lib/score-engine';
+import {pairBreakdown} from '@/lib/fundamentals/breakdown';
+import {ScoreBreakdown} from './score-breakdown';
+import {Link,Picker} from './score-analyzer';
 
 const date=(s:string,time=false)=>new Date(s).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',...(time?{hour:'2-digit',minute:'2-digit'} as const:{})});
 const day=(s:string)=>new Date(s).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',day:'numeric',month:'numeric'});
@@ -17,8 +19,8 @@ const expected:Record<string,string>={GBP:'Průzkum MaPS uzavřený 4. září: 
 
 function Pill({tone,children,title}:{tone:string;children:React.ReactNode;title?:string}){return <span className={'r-pill '+tone} title={title}>{children}</span>}
 
-export function Reports({data,instrument}:{data:FundamentalData;instrument?:string}){
- const [kind,setKind]=useState('banks'),[cur,setCur]=useState('all'),[open,setOpen]=useState<string|null>(null);
+export function Reports({data,instrument,market,now:at}:{data:FundamentalData;instrument?:string;market?:MarketData;now?:number}){
+ const [kind,setKind]=useState('banks'),[cur,setCur]=useState('all'),[open,setOpen]=useState<string|null>(null),[pair,setPair]=useState('EUR/USD');
  const now=Date.now(),all=Object.keys(data.currencies);
  const selected=instrument?(assetNames[instrument]?all:instrument.split('/')):cur==='all'?all:[cur];
  const link=(s:string)=>data.sources[s]?<Link url={data.sources[s].url}>{data.sources[s].label}</Link>:null;
@@ -37,7 +39,11 @@ export function Reports({data,instrument}:{data:FundamentalData;instrument?:stri
  return <div className="r-page">
   <div className="s-heading"><div><span className="s-kicker">KOMUNIKACE × OČEKÁVÁNÍ</span><h1>Reporty</h1><p>Co banky udělaly, kam míří a co přijde.</p></div></div>
   {!instrument&&<div className="r-chips" role="group" aria-label="Filtr měn">{['all',...all].map(c=><button key={c} type="button" className={cur===c?'active':''} aria-pressed={cur===c} onClick={()=>setCur(c)}>{c==='all'?'Všechny měny':c}</button>)}</div>}
-  <Tabs value={kind} onValueChange={setKind} className="s-tabs"><TabsList><TabsTrigger value="banks"><Landmark size={16}/> Banky a instituce</TabsTrigger><TabsTrigger value="traders"><Users size={16}/> Očekávání obchodníků</TabsTrigger></TabsList>
+  <Tabs value={kind} onValueChange={setKind} className="s-tabs"><TabsList><TabsTrigger value="banks"><Landmark size={16}/> Banky a instituce</TabsTrigger><TabsTrigger value="traders"><Users size={16}/> Očekávání obchodníků</TabsTrigger>{market&&!instrument&&<TabsTrigger value="breakdown"><ListChecks size={16}/> Přehled skóre</TabsTrigger>}</TabsList>
+  {market&&!instrument&&<TabsContent value="breakdown">
+   <div className="r-breakdown-pick"><Picker label="Vybrat pár" value={pair} onChange={setPair} items={pairs.map(p=>({value:p,label:p}))}/></div>
+   {(b=>b?<ScoreBreakdown b={b}/>:<p className="r-muted">Pro tento pár nejsou podklady.</p>)(pairBreakdown(pair,data,market,at??now))}
+  </TabsContent>}
   <TabsContent value="banks">
    <section className="s-card r-section"><div className="r-head"><h2>Centrální banky</h2><span className="r-muted">Kliknutím na řádek zobrazíš detail</span></div>
     <div className="r-table-wrap"><table className="r-banks"><thead><tr><th>Měna</th><th>Banka</th><th>Sazba</th><th>Poslední krok</th><th>Výhled</th><th>Nálada</th><th>Příští zasedání</th><th aria-label="Detail"/></tr></thead><tbody>
