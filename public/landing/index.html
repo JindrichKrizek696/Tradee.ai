@@ -424,8 +424,8 @@ document.querySelectorAll('a.to-top').forEach(a=>a.addEventListener('click',e=>{
 document.querySelectorAll('.faq details').forEach(d=>{const sum=d.querySelector('summary');const box=document.createElement('div');box.className='fq';while(sum.nextSibling)box.appendChild(sum.nextSibling);d.appendChild(box);
  let anim=null;sum.addEventListener('click',e=>{e.preventDefault();if(reduce){d.open=!d.open;return}
   const opening=!d.open||(anim&&anim.closing);if(anim)anim.cancel();
-  if(opening){d.open=true;const h=box.scrollHeight;anim=box.animate([{height:'0px',opacity:0},{height:h+'px',opacity:1}],{duration:320,easing:'cubic-bezier(.32,.72,0,1)'});anim.closing=false;anim.onfinish=()=>{anim=null}}
-  else{const h=box.offsetHeight;anim=box.animate([{height:h+'px',opacity:1},{height:'0px',opacity:0}],{duration:260,easing:'cubic-bezier(.32,.72,0,1)'});anim.closing=true;anim.onfinish=()=>{d.open=false;anim=null}}
+  if(opening){d.open=true;const h=box.scrollHeight;anim=box.animate([{height:'0px',opacity:0},{height:h+'px',opacity:1}],{duration:320,easing:'cubic-bezier(.32,.72,0,1)'});anim.closing=false;const me=anim;anim.onfinish=()=>{if(anim===me)anim=null};setTimeout(()=>{if(anim===me)anim=null},380)}
+  else{const h=box.offsetHeight;anim=box.animate([{height:h+'px',opacity:1},{height:'0px',opacity:0}],{duration:260,easing:'cubic-bezier(.32,.72,0,1)'});anim.closing=true;const me=anim,done=()=>{if(anim===me){d.open=false;anim=null}};anim.onfinish=done;setTimeout(done,320)}
  })});
 })();
 </script>
