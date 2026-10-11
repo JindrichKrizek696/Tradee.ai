@@ -2,16 +2,17 @@
 import {useEffect,useMemo,useState} from 'react';
 import {ShieldCheck} from 'lucide-react';
 import type {JournalList} from '@/lib/journal/types';
-import {DEFAULT_FILTER,filterTrades} from '@/lib/journal/stats';
+import {DEFAULT_FILTER,filterTrades,rangeLabel} from '@/lib/journal/stats';
+import {pragueDate} from '@/lib/mt/trades';
 import {plural} from '@/lib/journal/format';
 import {overview,type ReviewLite,type ViolationLite} from '@/lib/discipline/overview';
 import {ruleLabel,type Custom} from './journaling/review-panel';
 import './discipline-tile.css';
 type Data={trades:JournalList['trades'];reviews:Record<string,ReviewLite&{customBroken?:string[]}>;violations:Record<string,ViolationLite[]>;custom:Custom[];strategies:{id:string;name:string}[]};
-const PW={week:'tento týden',month:'tento měsíc',year:'letos',all:'celou dobu'};
+const PW={week:'tento týden',month:'tento měsíc',prevmonth:'minulý měsíc',year:'letos',all:'celou dobu',custom:''};
 const TRADES=['obchod','obchody','obchodů'] as const,PROMPTS=['výzva ke zdůvodnění','výzvy ke zdůvodnění','výzev ke zdůvodnění'] as const;
 // Dlaždice Disciplína na Dashboardu: účet sdílený s „Můj trading“, období z „Můj trading“ (výchozí Měsíc).
-export function DisciplineTile({now,account,period='month',rev=0,style}:{now:number;account:string;period?:keyof typeof PW;rev?:number;style?:React.CSSProperties}){
+export function DisciplineTile({now,account,period='month',from='',to='',rev=0,style}:{now:number;account:string;period?:keyof typeof PW;from?:string;to?:string;rev?:number;style?:React.CSSProperties}){
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(false);
  useEffect(()=>{let live=true;
   Promise.all([fetch('/api/journal',{cache:'no-store'}),fetch('/api/journaling',{cache:'no-store'})]).then(async([a,b])=>{
@@ -22,9 +23,10 @@ export function DisciplineTile({now,account,period='month',rev=0,style}:{now:num
   return()=>{live=false}},[rev]);
  const ov=useMemo(()=>{
   if(!data)return null;
-  const list=filterTrades(data.trades,{...DEFAULT_FILTER,account,period},now);
+  const list=filterTrades(data.trades,{...DEFAULT_FILTER,account,period,from,to},now);
   return overview(list,data.reviews,data.violations,Object.fromEntries(Object.entries(data.reviews).map(([k,v])=>[k,v.customBroken||[]])),data.strategies);
- },[data,account,period,now]);
+ },[data,account,period,from,to,now]);
+ const word=period==='custom'?rangeLabel(from,to,pragueDate(now)):PW[period];
  const go=()=>{location.hash='journaling'};
  const body=!ov?<p className="dt-muted">{error?'Disciplínu se nepodařilo načíst.':'Načítám…'}</p>
   :ov.discipline===null?<p className="dt-muted">Zatím žádné obchody k posouzení. <a href="/pravidla">Nastav si pravidla</a></p>
@@ -34,9 +36,9 @@ export function DisciplineTile({now,account,period='month',rev=0,style}:{now:num
    {ov.needReason>0&&<span className="dt-chip">{ov.needReason} {plural(ov.needReason,PROMPTS)}</span>}</>;
  const key=(e:React.KeyboardEvent)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
  const nodata=!!ov&&ov.discipline===null;
- const head=<h2><ShieldCheck size={16}/>Disciplína <span>· {PW[period]}</span></h2>;
+ const head=<h2><ShieldCheck size={16}/>Disciplína <span>· {word}</span></h2>;
  return <section className="d-card d-disc" style={style}>
   {nodata?<div className="dt-main">{head}{body}</div>
-  :<div className="dt-main" role="link" tabIndex={0} onClick={go} onKeyDown={key} aria-label={'Disciplína, '+PW[period]+'. Otevřít Journaling'}>{head}{body}</div>}
+  :<div className="dt-main" role="link" tabIndex={0} onClick={go} onKeyDown={key} aria-label={'Disciplína, '+word+'. Otevřít Journaling'}>{head}{body}</div>}
  </section>;
 }

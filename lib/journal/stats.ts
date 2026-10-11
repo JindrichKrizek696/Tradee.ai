@@ -2,15 +2,32 @@
 import {pragueDate} from '../mt/trades.ts';
 import {completionGroup} from '../checklists/core.ts';
 import type {JournalTrade,JournalAccount} from './types.ts';
-export type Period='week'|'month'|'30d'|'90d'|'year'|'all'|'custom';
+export type Period='week'|'month'|'prevmonth'|'30d'|'90d'|'year'|'all'|'custom';
 export type Filter={account:string;period:Period;from:string;to:string;symbol:string;tag:string;side:'all'|'buy'|'sell';result:'all'|'win'|'loss';source:'all'|'mt'|'manual'};
 export const DEFAULT_FILTER:Filter={account:'all',period:'all',from:'',to:'',symbol:'all',tag:'all',side:'all',result:'all',source:'all'};
 const DAY=86400000,r2=(n:number)=>Math.round(n*100)/100;
+// minulý kalendářní měsíc (leden → prosinec předchozího roku) vůči dnešku RRRR-MM-DD
+export function prevMonthRange(today:string):[string,string]{
+ const y=Number(today.slice(0,4)),m=Number(today.slice(5,7)),p=(n:number)=>String(n).padStart(2,'0');
+ const py=m===1?y-1:y,pm=m===1?12:m-1,last=new Date(Date.UTC(py,pm,0)).getUTCDate();
+ return [`${py}-${p(pm)}-01`,`${py}-${p(pm)}-${p(last)}`];
+}
+// vlastní rozsah musí mít obě data a od ≤ do (konec je včetně)
+export const validRange=(from:string,to:string)=>/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(to)&&from<=to;
+// výchozí vlastní rozsah: posledních 30 dní včetně dneška
+export const defaultCustomRange=(now:number):[string,string]=>[pragueDate(now-29*DAY),pragueDate(now)];
+const dm=(iso:string)=>`${Number(iso.slice(8))}. ${Number(iso.slice(5,7))}.`;
+// „1. 9. – 30. 9.“ (s rokem, pokud rozsah není celý v letošním roce)
+export function rangeLabel(from:string,to:string,today:string){
+ const yr=today.slice(0,4),withY=from.slice(0,4)!==yr||to.slice(0,4)!==yr;
+ return withY?`${dm(from)} ${from.slice(0,4)} – ${dm(to)} ${to.slice(0,4)}`:`${dm(from)} – ${dm(to)}`;
+}
 // rozsah dat (RRRR-MM-DD, včetně krajů) podle pražského kalendáře
 export function periodRange(f:Filter,now:number):[string,string]{
  const today=pragueDate(now);
  if(f.period==='week'){const wd=(new Date(today+'T12:00:00Z').getUTCDay()+6)%7;return [pragueDate(Date.parse(today+'T12:00:00Z')-wd*DAY),today]}
  if(f.period==='month')return [today.slice(0,8)+'01',today];
+ if(f.period==='prevmonth')return prevMonthRange(today);
  if(f.period==='year')return [today.slice(0,5)+'01-01',today];
  if(f.period==='30d')return [pragueDate(now-29*DAY),today];
  if(f.period==='90d')return [pragueDate(now-89*DAY),today];

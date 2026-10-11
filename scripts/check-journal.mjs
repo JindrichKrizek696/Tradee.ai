@@ -2,7 +2,7 @@
 import {toJournalTrades,mtRowToTrade,manualRowToTrade,cleanTags,cleanNote,parseJournalId,checkUpload,splitTags} from '../lib/journal/rows.ts';
 import {fmtHold,fmtR,fmtDate,pragueOffsetMs,tradesWord,plural} from '../lib/journal/format.ts';
 import {makeRates} from '../lib/fx.ts';
-import {currentStreak,periodRange,filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER,mondayOf,isBestPeriod,drawdownPct} from '../lib/journal/stats.ts';
+import {currentStreak,periodRange,filterTrades,sanitizeFilter,sortTrades,summary,equityCurve,maxDrawdown,breakdown,pragueHour,DEFAULT_FILTER,mondayOf,isBestPeriod,drawdownPct,prevMonthRange,validRange,defaultCustomRange,rangeLabel} from '../lib/journal/stats.ts';
 import {chartTime,snapper,candles,levelSteps,tradeMarkers,pricePrecision} from '../lib/journal/chart-data.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -154,5 +154,14 @@ check('nejlepší měsíc: málo historie',!isBestPeriod([bm('2026-09-02',10),bm
 check('nejlepší měsíc: ztráta není nejlepší',!isBestPeriod([bm('2026-08-02',-300),bm('2026-09-02',-200),bm('2026-10-02',-10)],'month','2026-10-09'));
 check('nejlepší měsíc: bez obchodů tento měsíc',!isBestPeriod(hist,'month','2026-10-09'));
 check('nejlepší týden',isBestPeriod([bm('2026-09-21',50),bm('2026-09-28',80),bm('2026-10-04',10),bm('2026-10-06',60),bm('2026-10-08',40)],'week','2026-10-09'));
+check('minulý měsíc: říjen → září',JSON.stringify(periodRange(F({period:'prevmonth'}),Date.UTC(2026,9,12,10)))==='["2026-09-01","2026-09-30"]');
+check('minulý měsíc: leden → prosinec loni',JSON.stringify(periodRange(F({period:'prevmonth'}),Date.UTC(2026,0,5,10)))==='["2025-12-01","2025-12-31"]');
+check('minulý měsíc: březen → únor (přestupný rok)',JSON.stringify(prevMonthRange('2024-03-31'))==='["2024-02-01","2024-02-29"]'&&prevMonthRange('2026-03-01')[1]==='2026-02-28');
+check('minulý měsíc: pražská půlnoc přes měsíc',periodRange(F({period:'prevmonth'}),Date.UTC(2026,9,31,23,30))[0]==='2026-10-01');
+{const f=F({period:'custom',from:'2026-09-01',to:'2026-09-30'}),tr=[bm('2026-08-31',1),bm('2026-09-01',2),bm('2026-09-30',3),bm('2026-10-01',4)];
+ check('vlastní období: konec včetně',filterTrades(tr,f,Date.UTC(2026,9,12)).map(t=>t.date).join()==='2026-09-01,2026-09-30');
+ check('vlastní rozsah: validace od ≤ do',validRange('2026-09-01','2026-09-01')&&!validRange('2026-09-02','2026-09-01')&&!validRange('','2026-09-01'));
+ check('vlastní rozsah: výchozích 30 dní',JSON.stringify(defaultCustomRange(Date.UTC(2026,9,12,10)))==='["2026-09-13","2026-10-12"]');
+ check('popisek rozsahu',rangeLabel('2026-09-01','2026-09-30','2026-10-12')==='1. 9. – 30. 9.'&&rangeLabel('2025-12-01','2026-01-05','2026-10-12')==='1. 12. 2025 – 5. 1. 2026');}
 check('drawdown v %',drawdownPct([{value:100},{value:200},{value:150}],50)===25&&drawdownPct([{value:-10}],10)===null&&drawdownPct([],0)===null);
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

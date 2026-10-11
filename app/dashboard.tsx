@@ -1,7 +1,7 @@
 'use client';
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
 import {useEffect,useId,useRef,useState} from 'react';
-import {MyTrading} from './my-trading';
+import {MyTrading,type P,type Range} from './my-trading';
 import {OpenPositionsCard,useOpenPositions} from './open-positions';
 import {useMarkets,railSummary,inTradeText,useChecklistProgress,useNarrow,PositionLine} from './flag-rail';
 import {DisciplineTile} from './discipline-tile';
@@ -78,7 +78,7 @@ function Notch({side,label,rail,children,wide,onOpenChange}:{side:'left'|'right'
 
 export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
- const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0),[account,setAccount]=useState('all'),[period,setPeriod]=useState<'week'|'month'|'year'|'all'>('month');
+ const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0),[account,setAccount]=useState('all'),[period,setPeriod]=useState<P>('month'),[range,setRange]=useState<Range>({from:'',to:''});
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
  const events=upcomingCalendar(calendar,now,6),next=events.find(e=>Date.parse(e.at)>=now&&(e.signal===3||e.global))||events.find(e=>Date.parse(e.at)>=now);
  const today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7)),stats=monthStats(trades,y,mo),month=months[mo-1].toLowerCase();
@@ -105,9 +105,9 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
   </header>
 
   <div className="d-bento">
-   <MyTrading now={now} rev={rev} style={tile(0)} onAccount={setAccount} onPeriod={setPeriod} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
+   <MyTrading now={now} rev={rev} style={tile(0)} onAccount={setAccount} onPeriod={(p,r)=>{setPeriod(p);setRange(r)}} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
    <OpenPositionsCard account={account} style={tile(1)} shared={op}/>
-   <DisciplineTile now={now} account={account} period={period} rev={rev} style={tile(2)}/>
+   <DisciplineTile now={now} account={account} period={period} from={range.from} to={range.to} rev={rev} style={tile(2)}/>
    <RiskTile account={account} style={tile(3)} shared={op}/>
 
    <section className="d-card d-pulse" style={tile(3)}>

@@ -131,7 +131,13 @@
 .d-dash .d-delta.up{background:color-mix(in srgb,var(--bull) 13%,transparent)}.d-dash .d-delta.down{background:color-mix(in srgb,var(--bear) 13%,transparent)}
 
 /* Můj trading: výběr účtu + období, 5 ukazatelů, P&L období a celkový zisk vedle sebe */
-.d-dash .d-mt-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.d-dash .d-mt-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.d-dash .d-mt-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-basis:100%;justify-content:flex-end}
+.d-dash .d-mt-range label{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t-muted)}
+.d-dash .d-mt-range input{height:30px;padding:0 8px;border-radius:8px;border:1px solid var(--t-border);background:var(--t-surface);font:inherit;font-size:12.5px;color:var(--t-fg)}
+.d-dash .d-mt-range input[aria-invalid=true]{border-color:var(--bear)}
+.d-dash .d-mt-rerr{font-size:12px;color:var(--bear-text)}
+@media(max-width:640px){.d-dash .d-mt-ctl .d-seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.d-dash .d-mt-ctl .d-seg::-webkit-scrollbar{display:none}.d-dash .d-mt-ctl .d-seg button{flex:none}.d-dash .d-mt-range{justify-content:flex-start}}
 .d-dash .d-mt-acc{height:32px;max-width:220px;padding:0 10px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);font:inherit;font-size:12.5px;font-weight:500;color:var(--t-fg)}
 .d-dash .d-mt{--mt-amber:#f59e0b;--mt-amber-text:#b45309}
 :root[data-theme=dark] .d-dash .d-mt{--mt-amber:#fbbf24;--mt-amber-text:#fcd34d}
