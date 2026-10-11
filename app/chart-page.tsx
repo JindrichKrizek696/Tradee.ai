@@ -38,7 +38,7 @@ export default function ChartPage({slug}:{slug:string}){
     <div><span className="s-kicker">Graf trhu</span><h1 style={{margin:'4px 0 0'}}>{item?item.name:'Trh nenalezen'}</h1>
      {item&&quote&&<div className="lv-today-head" style={{marginTop:6}}><strong>{item.group==='currency'?null:fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></div>}</div>
     <div className="s-controls" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-     <input type="search" aria-label="Hledat trh" placeholder="Hledat trh…" value={q} onChange={e=>setQ(e.target.value)} style={{height:38,padding:'0 14px',border:'1px solid var(--t-border)',borderRadius:9999,background:'var(--t-surface)',color:'var(--t-fg)',font:'inherit',minWidth:0}}/>
+     <input type="search" aria-label="Hledat trh" placeholder="Hledat trh…" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const hit=shown.find(i=>i.id!==item?.id)||shown[0];if(hit&&hit.id!==item?.id)go(hit.id)}}} title="Enter otevře první nalezený trh" style={{height:38,padding:'0 14px',border:'1px solid var(--t-border)',borderRadius:9999,background:'var(--t-surface)',color:'var(--t-fg)',font:'inherit',minWidth:0}}/>
      <select aria-label="Přepnout trh" value={item?.id||''} onChange={e=>go(e.target.value)} style={{height:38,padding:'0 12px',border:'1px solid var(--t-border)',borderRadius:9999,background:'var(--t-surface)',color:'var(--t-fg)',font:'inherit',maxWidth:'100%'}}>
       {!item&&<option value="">Vyber trh…</option>}
       {item&&!shown.some(i=>i.id===item.id)&&<option value={item.id}>{item.name}</option>}
