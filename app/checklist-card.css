@@ -29,3 +29,7 @@
 .cc-clear{flex:none;font:inherit;font-size:12px;border:0;background:none;color:var(--t-muted);padding:2px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .cc-clear:hover{color:var(--t-fg)}
 @media(max-width:640px){.cc-pts{grid-template-columns:1fr}}
+/* přebití globálních stylů label/span ve .score-v2 */
+.score-v2 .cc-pts .cc-pt{display:flex;flex-direction:row;align-items:center;text-align:left;color:var(--t-fg);margin:0}
+.score-v2 .cc-pts .cc-pt .cc-txt{color:var(--t-fg);font-size:13px;line-height:1.35}
+.score-v2 .cc-pts .cc-pt.on .cc-txt{color:var(--t-fg-2)}
