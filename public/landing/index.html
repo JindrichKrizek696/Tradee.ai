@@ -114,7 +114,14 @@ section{padding:100px 0}
 /* ukázka */
 .tabs{display:inline-flex;gap:4px;background:var(--gray);padding:4px;border-radius:9999px;margin:8px 0 34px}
 .tabs button{border:0;background:none;border-radius:9999px;padding:8px 18px;font:500 14px Inter,sans-serif;cursor:pointer;color:var(--muted)}
+.tabs{position:relative}
+.tabs button{position:relative;z-index:1;transition:color .3s ease}
 .tabs button.on{background:var(--ink);color:#fff}
+/* přejíždějící pilulka aktivní záložky (po načtení JS přebírá podbarvení) */
+.tabs .tpill{position:absolute;left:0;top:4px;height:calc(100% - 8px);width:0;border-radius:9999px;background:var(--ink);z-index:0;transition:transform .45s cubic-bezier(.32,.72,0,1),width .45s cubic-bezier(.32,.72,0,1)}
+.tabs.js button.on{background:transparent}
+#shot{transition:opacity .25s ease}#shot.fade{opacity:0}
+@media(prefers-reduced-motion:reduce){.tabs .tpill,#shot{transition:none}}
 .frame{position:relative;max-width:1020px;margin:0 auto}
 .frame .shot{width:100%;display:block;border-radius:24px;border:1px solid var(--line);box-shadow:0 40px 80px -40px #1b2a5a55}
 .frame .peek{position:absolute;right:-56px;bottom:-40px;width:170px;z-index:2;filter:drop-shadow(0 16px 20px #0003)}
@@ -361,7 +368,11 @@ footer a{color:#fff;text-decoration:none}footer a:hover{text-decoration:underlin
 </div></footer>
 <script>(()=>{const f=document.getElementById('paticka'),set=()=>document.documentElement.style.setProperty('--fh',(matchMedia('(max-width:760px)').matches?0:f.offsetHeight)+'px');set();addEventListener('resize',set);if(window.ResizeObserver)new ResizeObserver(set).observe(f)})();</script>
 <script>
-document.querySelectorAll('.tabs button[data-s]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('shot').src='/landing/img/shot-'+b.dataset.s+'.webp'});
+(()=>{const tabs=document.querySelector('.tabs');if(!tabs)return;const pill=document.createElement('span');pill.className='tpill';pill.setAttribute('aria-hidden','true');tabs.prepend(pill);tabs.classList.add('js');
+const place=()=>{const b=tabs.querySelector('button.on');if(!b)return;pill.style.width=b.offsetWidth+'px';pill.style.transform='translateX('+b.offsetLeft+'px)'};
+const shot=document.getElementById('shot');
+tabs.querySelectorAll('button[data-s]').forEach(b=>b.onclick=()=>{if(b.classList.contains('on'))return;tabs.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');place();const src='/landing/img/shot-'+b.dataset.s+'.webp';shot.classList.add('fade');setTimeout(()=>{shot.onload=()=>shot.classList.remove('fade');shot.src=src;setTimeout(()=>shot.classList.remove('fade'),700)},200)});
+place();addEventListener('resize',place);new MutationObserver(place).observe(tabs,{subtree:true,attributes:true,attributeFilter:['class']});})();
 
 (function(){
  var M={zapsano:['ok','Díky, jsi na seznamu. Ozveme se, až tě pustíme dovnitř.'],cekas:['ok','Tvůj účet čeká na schválení. Ozveme se.'],chyba:['err','Přihlášení se nepovedlo, zkus to prosím znovu.'],neplatny:['err','Zadej prosím platný e-mail.'],pozastaveno:['err','Přístup k tvému účtu je pozastavený. Pokud jde o omyl, napiš nám.']};
