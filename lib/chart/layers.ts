@@ -6,7 +6,9 @@ import {fmtR} from '../journal/format.ts';
 import {fmtMoney} from '../trades.ts';
 import type {Tf} from './candles.ts';
 import type {ChartTrade} from './trades.ts';
-export const TF_SEC:Record<Tf,number>={H1:3600,H4:14400,D1:86400};
+// TF grafu: Yahoo H1/H4/D1, footprint krypta navíc M5/M15
+export type ChartTf=Tf|'M5'|'M15';
+export const TF_SEC:Record<ChartTf,number>={M5:300,M15:900,H1:3600,H4:14400,D1:86400};
 type MarkerBase={time:number;shape:'arrowUp'|'arrowDown'|'circle'|'square';color:string;id:string;text?:string;size?:number};
 export type Marker=(MarkerBase&{position:'aboveBar'|'belowBar'|'inBar'})|(MarkerBase&{position:'atPriceTop'|'atPriceBottom'|'atPriceMiddle';price:number});
 // začátek pražského dne YYYY-MM-DD v čase grafu

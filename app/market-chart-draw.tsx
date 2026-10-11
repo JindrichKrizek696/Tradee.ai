@@ -4,8 +4,7 @@ import {useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from '
 import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
-import {TF_SEC} from '@/lib/chart/layers';
-import type {Tf} from '@/lib/chart/candles';
+import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
 import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
@@ -36,7 +35,6 @@ export const TOOL_GROUPS:{id:string;label:string;tools:DrawType[]}[]=[
  {id:'text',label:'Text',tools:['text']},
 ];
 const LAST_KEY='tradee.chart.tools';
-const TF_LIST=Object.keys(TF_SEC) as Tf[];
 const ONE_CLICK=new Set<DrawType>(['hline','hray','touch']);
 const needOf=(t:DrawType)=>t==='path'?MAX_PATH:t==='channel'||t==='fibext'||t==='pitchfork'?3:2;
 const drawHint=(t:DrawType)=>ONE_CLICK.has(t)||t==='text'?'klikni do grafu':t==='brush'?'kresli tahem myši nebo prstu':t==='path'?'klikej body, dvojklik nebo Enter dokončí':t==='channel'?'klikni dva body čáry a třetí pro šířku kanálu':t==='fibext'?'klikni začátek a konec impulsu a pak bod korekce':t==='pitchfork'?'klikni počátek a pak dva vrcholy (horní a dolní)':t==='gann'?'klikni dva protilehlé rohy (nebo táhni)':t==='long'||t==='short'?'klikni vstup a pak stop-loss (nebo táhni), cíl se nastaví na R:R 2':'klikni na dva body (nebo táhni)';
@@ -46,9 +44,9 @@ const css=(name:string,fallback:string)=>getComputedStyle(document.documentEleme
 let probe:CanvasRenderingContext2D|null=null;
 function norm(c:string,fallback:string){try{probe??=document.createElement('canvas').getContext('2d');if(!probe)return c;probe.fillStyle=fallback;probe.fillStyle=c;return String(probe.fillStyle)}catch{return c}}
 const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-const touchLabel=(sec:number,tf:Tf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
+const touchLabel=(sec:number,tf:ChartTf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
 
-export function useChartDrawings({chart,series,ver,el,bars,tf,instrument,tick}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<SeriesType>|null>;ver:number;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:Tf;instrument:string;tick:number}){
+export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,tick}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<SeriesType>|null>;ver:number;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:ChartTf;tfList:readonly ChartTf[];instrument:string;tick:number}){
  const [tool,setTool]=useState<Tool>('cursor');
  const [drawings,setDrawings]=useState<Drawing[]>([]),[temp,setTemp]=useState<Drawing|null>(null),[selected,setSelected]=useState<string|null>(null);
  const [magnet,setMagnet]=useState(false),[color,setColor]=useState<DrawColor>('brand');
@@ -320,7 +318,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,instrument,tick}:{
    {current.type!=='measure'&&<button type="button" className={'mc-tool sm'+(styleOpen?' on':'')} aria-expanded={styleOpen} aria-controls="mc-style" aria-label="Styl a text kresby" data-tip="Styl, text, viditelnost" onClick={()=>setStyleOpen(o=>!o)}><Settings2 size={15} aria-hidden/></button>}
    {isTemp&&<button type="button" className="mc-chip" onClick={pin}><Pin size={13} aria-hidden/> Připnout</button>}
    <button type="button" className="mc-tool sm danger" aria-label="Smazat kresbu" data-tip="Smazat (Delete)" onClick={()=>remove(current.id)}><Trash2 size={15} aria-hidden/></button>
-   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id} d={current} tf={tf} onPatch={patch} onStyle={patchStyle}/>}
+   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle}/>}
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
   {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}: {drawHint(tool)} · Esc zruší</div>}
@@ -336,7 +334,7 @@ function Seg<T extends string|number>({value,options,onPick,label}:{value:T;opti
  return <span className="mc-seg-sm" role="group" aria-label={label}>{options.map(([v,l])=><button key={String(v)} type="button" className={value===v?'on':''} aria-pressed={value===v} onClick={()=>onPick(v)}>{l}</button>)}</span>;
 }
 // panel stylu vybrané kresby: text/poznámka, čára, průhlednost, výplň, okraj, prodloužení, riziko, viditelnost na TF
-function StylePanel({d,tf,onPatch,onStyle}:{d:Drawing;tf:Tf;onPatch:(p:Partial<Drawing>)=>void;onStyle:(p:Partial<DrawStyle>)=>void}){
+function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>)=>void;onStyle:(p:Partial<DrawStyle>)=>void}){
  const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text';
  const [text,setText]=useState(d.text||''),[risk,setRisk]=useState(st.risk===null?'':String(st.risk));
  const changeText=(v:string)=>{setText(v);if(isText){if(v.trim())onPatch({text:v.slice(0,MAX_TEXT)})}else onPatch({text:v.trim()?v.slice(0,MAX_TEXT):undefined})};

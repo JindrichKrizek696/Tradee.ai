@@ -132,3 +132,10 @@
 select.mc-type{appearance:none;-webkit-appearance:none;height:26px;padding:0 24px 0 10px;font:inherit;font-size:12px;font-weight:600}
 select.mc-type.mc-chip,select.mc-type.mc-chip:hover:not(:disabled){background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px;background-size:4px 4px;background-repeat:no-repeat}
 .mc-ohlc .mc-ha{font-size:11px;font-weight:600;color:var(--t-brand-fg);background:var(--t-accent-soft);border-radius:4px;padding:0 5px}
+
+/* footprint (krypto): nápověda při oddálení a legenda buněk */
+.mc-fp-hint{position:absolute;z-index:3;top:10px;left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:var(--t-surface);border:1px solid var(--t-border-strong);box-shadow:var(--t-shadow);font-size:12px;font-weight:600;color:var(--t-fg-2);pointer-events:none;white-space:nowrap}
+.mc-fp-legend i{display:inline-block;width:14px;height:10px;border-radius:2px;flex-shrink:0}
+.mc-fp-cell{background:linear-gradient(90deg,color-mix(in srgb,var(--bear) 40%,transparent) 50%,color-mix(in srgb,var(--bull) 40%,transparent) 50%)}
+.mc-fp-poc{border:1.5px solid #f59e0b}
+.mc-fp-imb{width:4px!important;margin-left:6px;background:var(--bull);box-shadow:-6px 0 0 var(--bear)}
