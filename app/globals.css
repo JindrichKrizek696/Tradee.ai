@@ -50,3 +50,10 @@
 .s-ro-row span b.positive{color:var(--bull-text,var(--t-fg))}.s-ro-row span b.negative{color:var(--bear-text,var(--t-fg))}
 .s-plot svg:focus-visible{outline:2px solid var(--t-focus,var(--t-fg-2));outline-offset:2px;border-radius:8px}
 @media(max-width:560px){.s-ro-row{grid-template-columns:repeat(2,minmax(0,1fr))}.s-readout{--ro-row:56px}}
+/* Příspěvky ke skóre přímo v kartě skóre (užší sloupec) */
+.s-score-parts{margin-top:22px;padding-top:16px;border-top:1px solid var(--t-border-strong)}
+.score-v2 .s-score-parts h3{margin:0 0 4px;font-size:14px;font-weight:600;color:var(--t-fg)}
+.s-score-parts .s-factor{grid-template-columns:minmax(0,1fr) minmax(56px,90px) 46px;gap:10px;padding:10px 0}
+.s-score-parts .s-factor b{font-size:13px}.s-score-parts .s-factor strong{font-size:17px}
+.s-score-parts .s-factor small{font-size:11px}
+.s-score-parts>small{margin-top:10px}
