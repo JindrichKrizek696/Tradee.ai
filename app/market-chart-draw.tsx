@@ -343,10 +343,10 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle}:{d:Drawing;tf:ChartTf;
   <label className="mc-row mc-row-text"><span>{isText?'Text':'Poznámka'}</span><input type="text" value={text} maxLength={MAX_TEXT} placeholder={isText?'Text kresby…':'Text k nákresu…'} onChange={e=>changeText(e.target.value)}/></label>
   {(isText||text.trim())&&<>
    <div className="mc-row"><span>Umístění</span><Seg label="Umístění textu" value={st.ta} options={[['top','Nahoře'],['middle','Uprostřed'],['bottom','Dole']]} onPick={v=>onStyle({ta:v})}/></div>
-   <div className="mc-row"><span>Velikost</span><Seg label="Velikost textu" value={st.ts} options={[['S','S'],['M','M'],['L','L']]} onPick={v=>onStyle({ts:v})}/></div>
+   <div className="mc-row"><span>Velikost</span><Seg label="Velikost textu" value={st.ts} options={[['S','S'],['M','M'],['L','L'],['XL','XL']]} onPick={v=>onStyle({ts:v})}/></div>
    <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu"/></div>
   </>}
-  {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'1'],[2,'2'],[3,'3']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
+  {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'S'],[2,'M'],[3,'L'],[4,'XL']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
   <label className="mc-row"><span>Průhlednost</span><input type="range" min={10} max={100} step={5} value={Math.round(st.op*100)} aria-valuetext={Math.round(st.op*100)+' %'} onChange={e=>onStyle({op:Number(e.target.value)/100})}/><em>{Math.round(st.op*100)} %</em></label>
   {(caps.fill||caps.border)&&<div className="mc-row">
    {caps.fill&&<label className="mc-check"><input type="checkbox" checked={st.fill} onChange={e=>onStyle({fill:e.target.checked})}/>Pozadí</label>}

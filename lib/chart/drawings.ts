@@ -10,11 +10,11 @@ export const LINE_STYLES=['solid','dashed','dotted'] as const;
 export type LineStyleName=typeof LINE_STYLES[number];
 export const TEXT_ALIGNS=['top','middle','bottom'] as const;
 export type TextAlign=typeof TEXT_ALIGNS[number];
-export const TEXT_SIZES=['S','M','L'] as const;
+export const TEXT_SIZES=['S','M','L','XL'] as const;
 export type TextSize=typeof TEXT_SIZES[number];
 // styl kresby – všechna pole volitelná (staré kresby styl nemají a vykreslí se stejně jako dřív)
 export type DrawStyle={
- lw?:1|2|3;ls?:LineStyleName;op?:number;
+ lw?:1|2|3|4;ls?:LineStyleName;op?:number;
  fill?:boolean;border?:boolean;bc?:DrawColor;
  ta?:TextAlign;ts?:TextSize;tc?:DrawColor;
  extL?:boolean;extR?:boolean;
@@ -49,7 +49,7 @@ export function capsOf(t:DrawType):Caps{
   risk:t==='long'||t==='short',
  };
 }
-export type FullStyle={lw:1|2|3;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null};
+export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null};
 // výchozí styl doplněný o uložené hodnoty (staré kresby: čáry 2 px, zóna s výplní i okrajem 1 px, text bez pozadí; pozice bez okraje)
 export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
  const s=d.s||{},boxy=d.type==='rect'||d.type==='long'||d.type==='short';
@@ -61,7 +61,7 @@ export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
   risk:s.risk??null,
  };
 }
-export const TEXT_PX:Record<TextSize,number>={S:10,M:12,L:16};
+export const TEXT_PX:Record<TextSize,number>={S:10,M:12,L:16,XL:22};
 export const dashOf=(ls:LineStyleName,lw:number):number[]=>ls==='dashed'?[6+lw*2,4+lw]:ls==='dotted'?[.1,3+lw*1.5]:[];
 // viditelnost na časovém rámci (bez seznamu = všude)
 export const visibleOn=(d:Pick<Drawing,'tfs'>,tf:string)=>!d.tfs||d.tfs.includes(tf);
@@ -83,7 +83,7 @@ function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:string}{
  const r=v as Record<string,unknown>,s:DrawStyle={};
  const color=(x:unknown)=>typeof x==='string'&&(DRAW_COLORS as readonly string[]).includes(x);
  const bool=(k:'fill'|'border'|'extL'|'extR')=>{if(r[k]===undefined)return true;if(typeof r[k]!=='boolean')return false;s[k]=r[k] as boolean;return true};
- if(r.lw!==undefined){if(r.lw!==1&&r.lw!==2&&r.lw!==3)return BAD_STYLE;s.lw=r.lw}
+ if(r.lw!==undefined){if(r.lw!==1&&r.lw!==2&&r.lw!==3&&r.lw!==4)return BAD_STYLE;s.lw=r.lw}
  if(r.ls!==undefined){if(!(LINE_STYLES as readonly unknown[]).includes(r.ls))return BAD_STYLE;s.ls=r.ls as LineStyleName}
  if(r.op!==undefined){if(!num(r.op)||r.op<.1||r.op>1)return BAD_STYLE;s.op=Math.round(r.op*100)/100}
  if(!bool('fill')||!bool('border')||!bool('extL')||!bool('extR'))return BAD_STYLE;

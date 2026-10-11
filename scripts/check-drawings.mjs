@@ -24,7 +24,7 @@ check('validace: poznámka u libovolné kresby',parseDrawings([{...line,text:'po
 const styled={...line,s:{lw:3,ls:'dashed',op:.5,fill:false,border:true,bc:'bear',ta:'bottom',ts:'L',tc:'fg',extL:true,extR:false,risk:100,junk:1},tfs:['H1','D1']};
 r=parseDrawings([styled]);
 check('styl: platný styl a TF projdou, cizí klíče pryč',r.ok&&r.drawings[0].s.lw===3&&r.drawings[0].s.ls==='dashed'&&!('junk' in r.drawings[0].s)&&r.drawings[0].tfs.join()==='H1,D1',r);
-for(const [k,v] of [['lw',4],['ls','wavy'],['op',0],['op',1.5],['fill','yes'],['bc','#f00'],['ta','left'],['ts','XL'],['tc','pink'],['risk',-1],['extL',1]])check('styl: odmítne '+k+'='+JSON.stringify(v),!parseDrawings([{...line,s:{[k]:v}}]).ok);
+for(const [k,v] of [['lw',5],['ls','wavy'],['op',0],['op',1.5],['fill','yes'],['bc','#f00'],['ta','left'],['ts','XXL'],['tc','pink'],['risk',-1],['extL',1]])check('styl: odmítne '+k+'='+JSON.stringify(v),!parseDrawings([{...line,s:{[k]:v}}]).ok);
 check('styl: s není objekt',!parseDrawings([{...line,s:'x'}]).ok&&!parseDrawings([{...line,s:[1]}]).ok&&parseDrawings([{...line,s:null}]).ok);
 check('TF: odmítne prázdné, neznámé a duplicitní',!parseDrawings([{...line,tfs:[]}]).ok&&!parseDrawings([{...line,tfs:['X1']}]).ok&&!parseDrawings([{...line,tfs:['H1','H1']}]).ok&&parseDrawings([{...line,tfs:['M15','W1','MN']}]).ok);
 check('styl: prázdný styl se neuloží',!('s' in parseDrawings([{...line,s:{}}]).drawings[0]));
