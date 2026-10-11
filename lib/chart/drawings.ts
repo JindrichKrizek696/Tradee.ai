@@ -1,6 +1,7 @@
 // Kreslení v grafu trhu: typy, validace, styl, Fibonacci, měření, pozice, dotyk ceny, zjednodušení tahu, přichytávání a geometrie pro výběr. Čisté funkce – testy scripts/check-drawings.mjs.
 // Kotvy jsou {t: ms UTC, p: cena}; graf pracuje v „čase grafu“ (sekundy posunuté na pražský čas) a v logických indexech svíček.
 import {pragueOffsetMs} from '../journal/format.ts';
+import {TFS} from './candles.ts';
 export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann'] as const;
 export type DrawType=typeof DRAW_TYPES[number];
 export const DRAW_COLORS=['brand','bull','bear','amber','muted','fg'] as const;
@@ -77,7 +78,7 @@ export function toggleTf(tfs:string[]|undefined,tf:string,all:readonly string[])
 export type Parsed={ok:true;drawings:Drawing[]}|{ok:false;error:string};
 const BAD_STYLE={ok:false as const,error:'Neplatný styl kresby.'};
 // styl: neznámé klíče se zahodí, hodnoty mimo povolené → chyba
-function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:string}{
+export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:string}{
  if(v===undefined||v===null)return {ok:true};
  if(typeof v!=='object'||Array.isArray(v))return BAD_STYLE;
  const r=v as Record<string,unknown>,s:DrawStyle={};
@@ -125,6 +126,95 @@ export function parseDrawings(input:unknown):Parsed{
   ids.add(d.id);out.push(x);
  }
  return {ok:true,drawings:out};
+}
+
+// --- presety a výchozí vzhled nástrojů (per uživatel, /api/chart/prefs) ---
+// vzhled: barva, styl, text, viditelnost na TF a u pozic R:R; preset = pojmenovaný vzhled pro jeden nástroj
+export type Look={color:DrawColor;s?:DrawStyle;text?:string;tfs?:string[];rr?:number};
+export type Preset=Look&{id:string;name:string;tool:DrawType};
+export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>};
+export const MAX_PRESETS=50,MAX_PRESET_NAME=40;
+export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{}});
+const isPos=(t:DrawType)=>t==='long'||t==='short';
+const isTool=(v:unknown):v is DrawType=>typeof v==='string'&&(DRAW_TYPES as readonly string[]).includes(v);
+const isColor=(v:unknown):v is DrawColor=>typeof v==='string'&&(DRAW_COLORS as readonly string[]).includes(v);
+type R<T>={ok:true;v:T}|{ok:false;error:string};
+function parseLook(raw:unknown,tool:DrawType):R<Look>{
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))return {ok:false,error:'Neplatný vzhled kresby.'};
+ const r=raw as Record<string,unknown>;
+ if(!isColor(r.color))return {ok:false,error:'Nepovolená barva kresby.'};
+ const look:Look={color:r.color};
+ const st=parseStyle(r.s);if(!st.ok)return st;if(st.s)look.s=st.s;
+ if(r.text!==undefined&&r.text!==null&&r.text!==''){
+  if(typeof r.text!=='string'||r.text.length>MAX_TEXT)return {ok:false,error:`Text může mít nejvýš ${MAX_TEXT} znaků.`};
+  if(r.text.trim())look.text=r.text;
+ }
+ if(r.tfs!==undefined&&r.tfs!==null){
+  if(!Array.isArray(r.tfs)||!r.tfs.length||!r.tfs.every(v=>typeof v==='string'&&(TFS as readonly string[]).includes(v))||new Set(r.tfs).size!==r.tfs.length)return {ok:false,error:'Neplatné časové rámce.'};
+  look.tfs=TFS.filter(t=>(r.tfs as string[]).includes(t));
+ }
+ if(r.rr!==undefined&&r.rr!==null){
+  if(!num(r.rr)||r.rr<.1||r.rr>100)return {ok:false,error:'Neplatné R:R.'};
+  if(isPos(tool))look.rr=Math.round(r.rr*100)/100;
+ }
+ return {ok:true,v:look};
+}
+function parsePreset(raw:unknown):R<Preset>{
+ if(!raw||typeof raw!=='object')return {ok:false,error:'Neplatný preset.'};
+ const r=raw as Record<string,unknown>;
+ if(typeof r.id!=='string'||!ID.test(r.id))return {ok:false,error:'Neplatné ID presetu.'};
+ const name=typeof r.name==='string'?r.name.trim():'';
+ if(!name||name.length>MAX_PRESET_NAME)return {ok:false,error:`Název presetu musí mít 1–${MAX_PRESET_NAME} znaků.`};
+ if(!isTool(r.tool))return {ok:false,error:'Neznámý nástroj presetu.'};
+ const l=parseLook(r,r.tool);if(!l.ok)return l;
+ return {ok:true,v:{id:r.id,name,tool:r.tool,...l.v}};
+}
+// přísná validace (PUT): jen poslané klíče; neznámé klíče nejvyšší úrovně se zahodí
+export function normalizePrefs(input:unknown):{ok:true;prefs:Partial<DrawPrefs>}|{ok:false;error:string}{
+ if(!input||typeof input!=='object'||Array.isArray(input))return {ok:false,error:'Neplatné nastavení kreslení.'};
+ const r=input as Record<string,unknown>,out:Partial<DrawPrefs>={};
+ if(r.presets!==undefined){
+  if(!Array.isArray(r.presets))return {ok:false,error:'Presety musí být seznam.'};
+  if(r.presets.length>MAX_PRESETS)return {ok:false,error:`Presetů může být nejvýš ${MAX_PRESETS}.`};
+  const list:Preset[]=[],ids=new Set<string>();
+  for(const x of r.presets){const p=parsePreset(x);if(!p.ok)return p;if(ids.has(p.v.id))return {ok:false,error:'Duplicitní ID presetu.'};ids.add(p.v.id);list.push(p.v)}
+  out.presets=list;
+ }
+ if(r.defaults!==undefined){
+  if(!r.defaults||typeof r.defaults!=='object'||Array.isArray(r.defaults))return {ok:false,error:'Neplatné výchozí nastavení nástrojů.'};
+  const d:Partial<Record<DrawType,Look>>={};
+  for(const [k,v] of Object.entries(r.defaults)){if(!isTool(k))return {ok:false,error:'Neznámý nástroj ve výchozím nastavení.'};const l=parseLook(v,k);if(!l.ok)return l;d[k]=l.v}
+  out.defaults=d;
+ }
+ if(!Object.keys(out).length)return {ok:false,error:'Není co uložit.'};
+ return {ok:true,prefs:out};
+}
+// tolerantní načtení z DB: neplatné položky se zahodí, nic nespadne
+export function parsePrefs(raw:unknown):DrawPrefs{
+ const out=emptyPrefs();if(!raw||typeof raw!=='object')return out;
+ const r=raw as Record<string,unknown>;
+ if(Array.isArray(r.presets)){const ids=new Set<string>();for(const x of r.presets){const p=parsePreset(x);if(p.ok&&!ids.has(p.v.id)&&out.presets.length<MAX_PRESETS){ids.add(p.v.id);out.presets.push(p.v)}}}
+ if(r.defaults&&typeof r.defaults==='object')for(const [k,v] of Object.entries(r.defaults)){if(!isTool(k))continue;const l=parseLook(v,k);if(l.ok)out.defaults[k]=l.v}
+ return out;
+}
+// vzhled z existující kresby (Uložit jako preset / Nastavit jako výchozí)
+export function lookOf(d:Drawing):Look{
+ const l:Look={color:d.color};
+ if(d.s)l.s={...d.s};if(d.text)l.text=d.text;
+ if(d.tfs){const t=TFS.filter(x=>d.tfs!.includes(x));if(t.length&&t.length<TFS.length)l.tfs=t}
+ if(isPos(d.type)){const rr=positionStats(d.type as 'long'|'short',d.a).rr;if(rr>=.1&&rr<=100)l.rr=Math.round(rr*100)/100}
+ return l;
+}
+// vzhled na novou kresbu (bez vzhledu zůstane, jak je); u pozice přepočítá cíl podle R:R
+export function applyLook(d:Drawing,look:Look|null|undefined):Drawing{
+ if(!look)return d;
+ const x:Drawing={id:d.id,type:d.type,a:d.a,color:look.color};
+ if(d.ray)x.ray=d.ray;
+ if(look.s)x.s={...look.s};
+ const text=d.type==='text'?d.text||look.text:look.text??d.text;if(text)x.text=text;
+ if(look.tfs)x.tfs=[...look.tfs];
+ if(isPos(d.type)&&look.rr&&d.a.length===3)x.a=withRR(d.type as 'long'|'short',d.a,look.rr);
+ return x;
 }
 export const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 

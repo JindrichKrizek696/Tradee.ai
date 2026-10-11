@@ -1,5 +1,6 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS} from '../lib/chart/drawings.ts';
+import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
 const fails=[];
@@ -201,5 +202,38 @@ check('historie: nová změna smaže „znovu“',record(u.h,['a','b']).future.l
 check('historie: prázdná → null',undoStep(emptyHistory(),[])===null&&redoStep(emptyHistory(),[])===null);
 let big=emptyHistory();for(let i=0;i<130;i++)big=record(big,[String(i)]);
 check('historie: nejvýš 100 kroků (nejstarší pryč)',big.past.length===100&&big.past[0][0]==='30'&&big.past[99][0]==='129');
+// presety a výchozí vzhled nástrojů
+const strongHigh={id:'p1',name:' Strong high ',tool:'hline',color:'bear',s:{ta:'middle',lw:2},text:'strong high'};
+const chM15={id:'p2',name:'Kanál M15/M30',tool:'channel',color:'brand',tfs:['M30','M15']};
+let pr=normalizePrefs({presets:[strongHigh,chM15],defaults:{long:{color:'bull',rr:3},trend:{color:'amber',s:{ls:'dashed'}}},junk:1});
+check('presety: platné projdou, název ořezán, TF seřazené',pr.ok&&pr.prefs.presets[0].name==='Strong high'&&pr.prefs.presets[1].tfs.join()==='M15,M30'&&pr.prefs.defaults.long.rr===3&&!('junk' in pr.prefs),pr);
+check('presety: jen poslané klíče',normalizePrefs({presets:[]}).ok&&!('defaults' in normalizePrefs({presets:[]}).prefs)&&!normalizePrefs({}).ok&&!normalizePrefs(null).ok&&!normalizePrefs([]).ok);
+check('presety: max 50',normalizePrefs({presets:Array.from({length:MAX_PRESETS},(_,i)=>({...strongHigh,id:'p'+i}))}).ok&&!normalizePrefs({presets:Array.from({length:51},(_,i)=>({...strongHigh,id:'p'+i}))}).ok);
+for(const [why,bad] of [['název prázdný',{...strongHigh,name:'  '}],['název > 40',{...strongHigh,name:'x'.repeat(41)}],['neznámý nástroj',{...strongHigh,tool:'circle'}],['špatná barva',{...strongHigh,color:'pink'}],['špatný styl',{...strongHigh,s:{lw:9}}],['text > 200',{...strongHigh,text:'x'.repeat(201)}],['TF mimo seznam',{...strongHigh,tfs:['H3']}],['TF duplicitní',{...strongHigh,tfs:['H1','H1']}],['TF prázdné',{...strongHigh,tfs:[]}],['špatné ID',{...strongHigh,id:'a b'}],['R:R mimo rozsah',{...strongHigh,tool:'long',rr:500}]])
+ check('presety: odmítne '+why,!normalizePrefs({presets:[bad]}).ok);
+check('presety: duplicitní ID',!normalizePrefs({presets:[strongHigh,strongHigh]}).ok);
+check('presety: výchozí – neznámý nástroj / špatný vzhled',!normalizePrefs({defaults:{circle:{color:'brand'}}}).ok&&!normalizePrefs({defaults:{trend:{color:'x'}}}).ok&&!normalizePrefs({defaults:[]}).ok);
+check('presety: R:R jen u pozic',!('rr' in normalizePrefs({defaults:{trend:{color:'brand',rr:2}}}).prefs.defaults.trend));
+const lenient=parsePrefs({presets:[strongHigh,{...strongHigh,id:'p9',tool:'x'},{...strongHigh}],defaults:{trend:{color:'brand'},circle:{color:'brand'},rect:{color:'nope'}}});
+check('presety: tolerantní načtení zahodí neplatné',lenient.presets.length===1&&Object.keys(lenient.defaults).join()==='trend'&&parsePrefs(null).presets.length===0&&parsePrefs('x').presets.length===0,lenient);
+const hl={id:'n1',type:'hline',a:[{t:T,p:1.1}],color:'brand'};
+const applied=applyLook(hl,pr.prefs.presets[0]);
+check('vzhled: preset na novou čáru (barva, styl, text)',applied.color==='bear'&&applied.s.ta==='middle'&&applied.text==='strong high'&&applied.id==='n1'&&applied.a===hl.a&&parseDrawings([applied]).ok);
+check('vzhled: kanál jen na M15/M30',applyLook({id:'c1',type:'channel',a:[{t:T,p:1},{t:T+1,p:2},{t:T,p:3}],color:'brand'},pr.prefs.presets[1]).tfs.join()==='M15,M30');
+check('vzhled: bez vzhledu beze změny',applyLook(hl,null)===hl);
+const lpos={id:'l1',type:'long',a:[{t:0,p:100},{t:5,p:90},{t:5,p:120}],color:'brand'};
+check('vzhled: výchozí long s R:R 3 přepočítá cíl',applyLook(lpos,pr.prefs.defaults.long).a[2].p===130&&applyLook(lpos,pr.prefs.defaults.long).color==='bull');
+check('vzhled: text kresby má přednost před textem presetu',applyLook({id:'t9',type:'text',a:[{t:T,p:1}],color:'fg',text:'můj'},{color:'bear',text:'strong high'}).text==='můj');
+const lk=lookOf({...lpos,s:{op:.5},text:'pozn',tfs:['H1','H4']});
+check('vzhled: z kresby (barva, styl, text, TF, R:R)',lk.color==='brand'&&lk.s.op===.5&&lk.text==='pozn'&&lk.tfs.join()==='H1,H4'&&lk.rr===2&&normalizePrefs({defaults:{long:lk}}).ok,lk);
+check('vzhled: lookOf bez stylu a TF',JSON.stringify(lookOf(hl))==='{"color":"brand"}');
+const prow=new Map();
+const pdb={prepare(sql){const mk=params=>({bind:(...p)=>mk(p),
+ async first(){if(/^SELECT data FROM drawing_prefs/.test(sql)){const v=prow.get(params[0]);return v?{data:v}:null}return null},
+ async run(){if(/^INSERT INTO drawing_prefs/.test(sql)&&/ON DUPLICATE KEY UPDATE/.test(sql)){prow.set(params[0],params[1]);return {meta:{changes:1}}}return {meta:{changes:0}}}});return mk([])}};
+check('úložiště presetů: prázdné',(await loadPrefs(pdb,'u1')).presets.length===0);
+await savePrefs(pdb,'u1',{presets:pr.prefs.presets,defaults:{}},T);
+check('úložiště presetů: per uživatel',(await loadPrefs(pdb,'u1')).presets.length===2&&(await loadPrefs(pdb,'u2')).presets.length===0);
+prow.set('u3','{nejson');check('úložiště presetů: poškozený JSON → prázdné',(await loadPrefs(pdb,'u3')).presets.length===0);
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

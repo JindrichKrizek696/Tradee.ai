@@ -1,11 +1,11 @@
 'use client';
 // Kreslení v grafu trhu: nástroje ve skupinách, výběr a tažení kreseb, panel stylu, ukládání per uživatel × trh (/api/chart/drawings).
-import {useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
+import {Fragment,useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,emptyHistory,record,redoStep,rrOf,undoStep,withRR,type History,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
@@ -14,8 +14,8 @@ type Bar={time:number;open:number;high:number;low:number;close:number};
 type Save='idle'|'saving'|'saved'|'error'|'loaderror';
 type Drag={id:string;temp:boolean;part:'body'|'handle';index:number;start:{l:number;p:number};orig:Drawing;cur:Drawing|null;x:number;y:number;rr:boolean};
 // rozkreslená kresba: pevné body + poslední bod, který sleduje kurzor; štětec sbírá body tahu
-type Draft={id:string;type:DrawType;color:DrawColor;pts:Anchor[];fixed:number;need:number;x:number;y:number;placed:boolean;lastDown:number;px?:Pt[]};
-type Edit={x:number;y:number;anchor:Anchor;id?:string;text:string};
+type Draft={id:string;type:DrawType;color:DrawColor;pts:Anchor[];fixed:number;need:number;x:number;y:number;placed:boolean;lastDown:number;px?:Pt[];look:Look|null};
+type Edit={x:number;y:number;anchor:Anchor;id?:string;text:string;look?:Look|null};
 type Icon=typeof Minus;
 const TOOL_META:Record<DrawType,{Icon:Icon;hint:string}>={
  trend:{Icon:TrendingUp,hint:'2 body'},ray:{Icon:MoveUpRight,hint:'z bodu A přes B doprava'},hline:{Icon:Minus,hint:'1 cena'},hray:{Icon:MoveRight,hint:'1 bod, doprava'},
@@ -59,9 +59,14 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const [last,setLast]=useState<Record<string,DrawType>>(()=>Object.fromEntries(TOOL_GROUPS.map(g=>[g.id,g.tools[0]])));
  const [menu,setMenu]=useState<{group:string;x:number;y:number}|null>(null);
  // aktuální stav pro handlery myši (registrují se jednou)
- const S=useRef({tool,drawings,temp,selected,magnet,color,bars,times:[] as number[],tf,instrument});
+ // presety a výchozí vzhled nástrojů (načtou se jednou; při chybě platí vestavěné výchozí hodnoty)
+ const [prefs,setPrefs]=useState<DrawPrefs>(emptyPrefs),[prefsState,setPrefsState]=useState<'loading'|'ok'|'loaderror'|'error'>('loading');
+ const [presetSel,setPresetSel]=useState<Partial<Record<DrawType,string>>>({});
+ const S=useRef({tool,drawings,temp,selected,magnet,color,bars,times:[] as number[],tf,instrument,prefs,presetSel});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
- useLayoutEffect(()=>{S.current={tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument}});
+ useLayoutEffect(()=>{S.current={tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument,prefs,presetSel}});
+ // vzhled nové kresby: zvolený preset nástroje, jinak uživatelův výchozí, jinak nic (vestavěné hodnoty)
+ const lookFor=(t:DrawType):Look|null=>{const st=S.current,id=st.presetSel[t];return (id&&st.prefs.presets.find(p=>p.id===id&&p.tool===t))||st.prefs.defaults[t]||null};
  const draft=useRef<Draft|null>(null),drag=useRef<Drag|null>(null);
  const dirty=useRef(false),loaded=useRef<string|null>(null),pending=useRef<{instrument:string;drawings:Drawing[]}|null>(null);
  const menuRef=useRef<HTMLDivElement>(null);
@@ -125,7 +130,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const restore=(v:Drawing[])=>{lastGroup.current=null;dirty.current=true;setDrawings(v);setUndoVer(n=>n+1);setSelected(id=>id&&(v.some(d=>d.id===id)||S.current.temp?.id===id)?id:null)};
  const undo=()=>{if(drag.current||draft.current)cancel();const r=undoStep(hist.current,S.current.drawings);if(!r)return;setHist(r.h);restore(r.value)};
  const redo=()=>{if(drag.current||draft.current)cancel();const r=redoStep(hist.current,S.current.drawings);if(!r)return;setHist(r.h);restore(r.value)};
- const build=(dr:Draft):Drawing=>({id:dr.id,type:dr.type,color:dr.color,a:(dr.type==='long'||dr.type==='short')?positionFrom(dr.type,dr.pts[0],dr.pts[1]??dr.pts[0]):dr.pts});
+ const build=(dr:Draft):Drawing=>applyLook({id:dr.id,type:dr.type,color:dr.color,a:(dr.type==='long'||dr.type==='short')?positionFrom(dr.type,dr.pts[0],dr.pts[1]??dr.pts[0]):dr.pts},dr.look);
  const finish=(d:Drawing)=>{
   draft.current=null;prim.draft=null;setTool('cursor');
   if(d.type==='measure'){setTemp(d);setSelected(d.id);return}
@@ -176,9 +181,10 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    }
    if(st.tool!=='cursor'){
     stop(e);const a=st.tool==='brush'?freeAt(p):anchorAt(p);if(!a)return;
-    if(ONE_CLICK.has(st.tool)){finish({id:newId(),type:st.tool,a:[a],color:st.color});return}
-    if(st.tool==='text'){setTool('cursor');setEdit({x:p.x,y:p.y,anchor:a,text:''});return}
-    const d:Draft={id:newId(),type:st.tool,color:st.color,pts:st.tool==='brush'?[a]:[a,a],fixed:1,need:needOf(st.tool),x:p.x,y:p.y,placed:false,lastDown:Date.now(),px:st.tool==='brush'?[p]:undefined};
+    const look=lookFor(st.tool);
+    if(ONE_CLICK.has(st.tool)){finish(applyLook({id:newId(),type:st.tool,a:[a],color:st.color},look));return}
+    if(st.tool==='text'){setTool('cursor');setEdit({x:p.x,y:p.y,anchor:a,text:look?.text||'',look});return}
+    const d:Draft={id:newId(),type:st.tool,color:st.color,pts:st.tool==='brush'?[a]:[a,a],fixed:1,need:needOf(st.tool),x:p.x,y:p.y,placed:false,lastDown:Date.now(),px:st.tool==='brush'?[p]:undefined,look};
     draft.current=d;render(d);return;
    }
    const h=prim.hit(p,touch?14:6);
@@ -286,21 +292,53 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   return()=>{window.removeEventListener('mousedown',close);window.removeEventListener('resize',close);window.removeEventListener('scroll',close,true)};
  },[menu]);
 
+ // presety: načíst jednou na stránku; ukládat 500 ms po poslední změně (PUT jen presets a defaults)
+ const prefsTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ useEffect(()=>{
+  const ac=new AbortController();
+  fetch('/api/chart/prefs',{signal:ac.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{prefs?:unknown}>:Promise.reject()).then(j=>{setPrefs(parsePrefs(j.prefs));setPrefsState('ok')}).catch(()=>{if(!ac.signal.aborted)setPrefsState('loaderror')});
+  return()=>{ac.abort();if(prefsTimer.current)clearTimeout(prefsTimer.current)};
+ },[]);
+ const changePrefs=(next:DrawPrefs)=>{
+  setPrefs(next);
+  // bez načtených presetů neukládat (přepsaly by se uložené); změna platí jen do obnovení stránky
+  if(prefsState==='loaderror'||prefsState==='loading')return;
+  if(prefsTimer.current)clearTimeout(prefsTimer.current);
+  prefsTimer.current=setTimeout(()=>{prefsTimer.current=null;
+   fetch('/api/chart/prefs',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefs:{presets:next.presets,defaults:next.defaults}})}).then(r=>{if(!r.ok)throw Error();setPrefsState('ok')}).catch(()=>setPrefsState('error'));
+  },500);
+ };
+ const presetsOf=(t:DrawType)=>prefs.presets.filter(p=>p.tool===t);
+ const presetName=(t:Tool)=>{if(t==='cursor')return null;const id=presetSel[t];return id?prefs.presets.find(p=>p.id===id&&p.tool===t)?.name??null:null};
+ const savePreset=(d:Drawing,name:string)=>{
+  const n=name.trim().slice(0,MAX_PRESET_NAME);if(!n)return;
+  const same=prefs.presets.find(p=>p.tool===d.type&&p.name.toLowerCase()===n.toLowerCase());
+  const p:Preset={...lookOf(d),id:same?.id??newId(),name:n,tool:d.type};
+  if(!same&&prefs.presets.length>=MAX_PRESETS)return;
+  changePrefs({...prefs,presets:same?prefs.presets.map(x=>x.id===same.id?p:x):[...prefs.presets,p]});
+ };
+ const deletePreset=(id:string)=>{changePrefs({...prefs,presets:prefs.presets.filter(p=>p.id!==id)});setPresetSel(m=>Object.fromEntries(Object.entries(m).filter(([,v])=>v!==id)))};
+ const setDefault=(d:Drawing)=>changePrefs({...prefs,defaults:{...prefs.defaults,[d.type]:lookOf(d)}});
+ const resetDefault=(t:DrawType)=>{const defaults={...prefs.defaults};delete defaults[t];changePrefs({...prefs,defaults})};
+
  // úpravy vybrané kresby
  const current=selected?(temp?.id===selected?temp:drawings.find(d=>d.id===selected))??null:null;
  const patch=(p:Partial<Drawing>,group?:string)=>{if(!current)return;const next={...current,...p};for(const k of Object.keys(next))if((next as Record<string,unknown>)[k]===undefined)delete (next as Record<string,unknown>)[k];if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d),group&&group+':'+current.id)};
  const patchStyle=(p:Partial<DrawStyle>,group?:string)=>{if(!current)return;const s:DrawStyle={...current.s,...p};for(const k of Object.keys(s))if((s as Record<string,unknown>)[k]===undefined)delete (s as Record<string,unknown>)[k];patch({s:Object.keys(s).length?s:undefined},group)};
+ const applyPreset=(p:Preset)=>{if(!current)return;const next=applyLook(current,p);if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d));setUndoVer(n=>n+1)};
  const pickColor=(c:DrawColor)=>{setColor(c);patch({color:c})};
  const pin=()=>{if(!temp)return;if(drawings.length>=MAX_DRAWINGS){setSave('error');setSaveError(`Na jednom trhu může být nejvýš ${MAX_DRAWINGS} kreseb.`);return}commit([...drawings,temp]);setTemp(null)};
  const saveText=(text:string)=>{
   const e=edit;setEdit(null);if(!e)return;const v=text.trim().slice(0,MAX_TEXT);
   if(e.id){if(v)commit(drawings.map(d=>d.id===e.id?{...d,text:v}:d));return}
   if(!v)return;if(drawings.length>=MAX_DRAWINGS){setSave('error');setSaveError(`Na jednom trhu může být nejvýš ${MAX_DRAWINGS} kreseb.`);return}
-  const d:Drawing={id:newId(),type:'text',a:[e.anchor],color,text:v};commit([...drawings,d]);setSelected(d.id);
+  const d:Drawing=applyLook({id:newId(),type:'text',a:[e.anchor],color,text:v},e.look);commit([...drawings,d]);setSelected(d.id);
  };
  const clearAll=()=>{if(!drawings.length&&!temp)return;if(!window.confirm(`Smazat všechny kresby na tomto trhu (${drawings.length})? Vrátit je půjde tlačítkem Zpět (${UNDO_KEY}).`))return;setTemp(null);setSelected(null);commit([])};
- const pickTool=(t:Tool)=>{
-  cancel();setEdit(null);setMenu(null);setTool(t===tool&&t!=='cursor'?'cursor':t);
+ // preset: undefined = ponechat zvolený, null = bez presetu, id = použít preset pro další kresby nástroje
+ const pickTool=(t:Tool,preset?:string|null)=>{
+  if(t!=='cursor'&&preset!==undefined)setPresetSel(m=>{const n={...m};if(preset)n[t]=preset;else delete n[t];return n});
+  cancel();setEdit(null);setMenu(null);setTool(t===tool&&t!=='cursor'&&preset===undefined?'cursor':t);
   if(t!=='cursor'){setSelected(null);setTemp(null);const g=TOOL_GROUPS.find(x=>x.tools.includes(t));
    if(g&&last[g.id]!==t){const next={...last,[g.id]:t};setLast(next);try{localStorage.setItem(LAST_KEY,JSON.stringify(next))}catch{}}}
  };
@@ -312,9 +350,9 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const toolbar=<div className="mc-tools" role="toolbar" aria-label="Kreslení v grafu">
   {toolBtn('cursor','Kurzor',MousePointer2,'výběr a posun kreseb')}
   {TOOL_GROUPS.map(g=>{
-   const active=g.tools.find(t=>t===tool),shown=active??last[g.id]??g.tools[0],{Icon,hint}=TOOL_META[shown],multi=g.tools.length>1;
+   const active=g.tools.find(t=>t===tool),shown=active??last[g.id]??g.tools[0],{Icon,hint}=TOOL_META[shown],multi=g.tools.length>1||g.tools.some(t=>presetsOf(t).length>0),pn=presetName(shown);
    return <div key={g.id} className={'mc-group'+(active?' on':'')}>
-    <button type="button" className={'mc-tool'+(active?' on':'')} aria-pressed={!!active} aria-label={g.label+': '+DRAW_LABELS[shown]} data-tip={DRAW_LABELS[shown]+' · '+hint} disabled={disabled}
+    <button type="button" className={'mc-tool'+(active?' on':'')} aria-pressed={!!active} aria-label={g.label+': '+DRAW_LABELS[shown]+(pn?' (preset '+pn+')':'')} data-tip={DRAW_LABELS[shown]+(pn?' · preset „'+pn+'“':'')+' · '+hint} disabled={disabled}
      onClick={()=>pickTool(shown)} onKeyDown={e=>{if(multi&&(e.key==='ArrowRight'||e.key==='ArrowDown')){e.preventDefault();openMenu(g.id,e.currentTarget)}}}><Icon size={17} strokeWidth={1.8} aria-hidden/></button>
     {multi&&<button type="button" className="mc-caret" aria-label={'Další nástroje: '+g.label} aria-haspopup="menu" aria-expanded={menu?.group===g.id} disabled={disabled} onClick={e=>openMenu(g.id,e.currentTarget.previousElementSibling as HTMLElement)}/>}
    </div>;
@@ -331,7 +369,10 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
     else if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();e.stopPropagation();setMenu(null)}
    }}>
    <div className="mc-menu-title">{menuGroup.label}</div>
-   {menuGroup.tools.map(t=>{const {Icon,hint}=TOOL_META[t];return <button key={t} type="button" role="menuitemradio" aria-checked={tool===t||(!menuGroup.tools.includes(tool as DrawType)&&last[menuGroup.id]===t)} className={'mc-menu-item'+(tool===t?' on':'')} onClick={()=>pickTool(t)}><Icon size={16} strokeWidth={1.8} aria-hidden/><span>{DRAW_LABELS[t]}</span><small>{hint}</small></button>})}
+   {menuGroup.tools.map(t=>{const {Icon,hint}=TOOL_META[t],ps=presetsOf(t),sel=presetSel[t];const cur=tool===t||(!menuGroup.tools.includes(tool as DrawType)&&last[menuGroup.id]===t);return <Fragment key={t}>
+    <button type="button" role="menuitemradio" aria-checked={cur&&!sel} className={'mc-menu-item'+(tool===t&&!sel?' on':'')} onClick={()=>pickTool(t,null)}><Icon size={16} strokeWidth={1.8} aria-hidden/><span>{DRAW_LABELS[t]}</span><small>{hint}{prefs.defaults[t]?' · tvůj výchozí vzhled':''}</small></button>
+    {ps.map(p=><button key={p.id} type="button" role="menuitemradio" aria-checked={cur&&sel===p.id} aria-label={DRAW_LABELS[t]+' – preset '+p.name} className={'mc-menu-item mc-menu-preset'+(tool===t&&sel===p.id?' on':'')} onClick={()=>pickTool(t,p.id)}><i className="mc-preset-dot" style={{background:'var(--mc-c-'+p.color+')'}} aria-hidden/><span>{p.name}</span></button>)}
+   </Fragment>})}
   </div>}
  </div>;
 
@@ -343,12 +384,13 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    {current.type!=='measure'&&<button type="button" className={'mc-tool sm'+(styleOpen?' on':'')} aria-expanded={styleOpen} aria-controls="mc-style" aria-label="Styl a text kresby" data-tip="Styl, text, viditelnost" onClick={()=>setStyleOpen(o=>!o)}><Settings2 size={15} aria-hidden/></button>}
    {isTemp&&<button type="button" className="mc-chip" onClick={pin}><Pin size={13} aria-hidden/> Připnout</button>}
    <button type="button" className="mc-tool sm danger" aria-label="Smazat kresbu" data-tip="Smazat (Delete)" onClick={()=>remove(current.id)}><Trash2 size={15} aria-hidden/></button>
-   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)}/>}
+   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)} presets={presetsOf(current.type)} hasDefault={!!prefs.defaults[current.type]} canSave={prefs.presets.length<MAX_PRESETS||presetsOf(current.type).length>0} prefsOk={prefsState==='ok'||prefsState==='error'} onSavePreset={n=>savePreset(current,n)} onDeletePreset={deletePreset} onApplyPreset={applyPreset} onSetDefault={()=>setDefault(current)} onResetDefault={()=>resetDefault(current.type)}/>}
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
-  {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}: {drawHint(tool)} · Esc zruší</div>}
+  {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}{presetName(tool)?' · preset „'+presetName(tool)+'“':''}: {drawHint(tool)} · Esc zruší</div>}
  </>;
- const status=save!=='idle'?<span className={'mc-saved'+(save==='error'||save==='loaderror'?' err':'')} role="status">{SAVE_TEXT[save]}{save==='error'&&saveError?': '+saveError:''}</span>:null;
+ const status=<>{save!=='idle'&&<span className={'mc-saved'+(save==='error'||save==='loaderror'?' err':'')} role="status">{SAVE_TEXT[save]}{save==='error'&&saveError?': '+saveError:''}</span>}
+  {prefsState==='error'&&<span className="mc-saved err" role="status">Presety se nepodařilo uložit</span>}</>;
  return {toolbar,overlay,status,drawing:tool!=='cursor'};
 }
 
@@ -359,7 +401,8 @@ function Seg<T extends string|number>({value,options,onPick,label}:{value:T;opti
  return <span className="mc-seg-sm" role="group" aria-label={label}>{options.map(([v,l])=><button key={String(v)} type="button" className={value===v?'on':''} aria-pressed={value===v} onClick={()=>onPick(v)}>{l}</button>)}</span>;
 }
 // panel stylu vybrané kresby: text/poznámka, čára, průhlednost, výplň, okraj, prodloužení, riziko, viditelnost na TF
-function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}){
+type PresetProps={presets:Preset[];hasDefault:boolean;canSave:boolean;prefsOk:boolean;onSavePreset:(name:string)=>void;onDeletePreset:(id:string)=>void;onApplyPreset:(p:Preset)=>void;onSetDefault:()=>void;onResetDefault:()=>void};
+function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...pp}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}&PresetProps){
  const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text',pos=d.type==='long'||d.type==='short'?d.type:null;
  const [text,setText]=useState(d.text||''),[risk,setRisk]=useState(st.risk===null?'':String(st.risk));
  const changeText=(v:string)=>{setText(v);if(isText){if(v.trim())onPatch({text:v.slice(0,MAX_TEXT)},'text')}else onPatch({text:v.trim()?v.slice(0,MAX_TEXT):undefined},'text')};
@@ -396,7 +439,33 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR}:{d
   <div className="mc-row" role="group" aria-label="Viditelnost na časových rámcích"><span>Vidět na</span>
    {TF_LIST.map(t=>{const on=visibleOn(d,t),only=on&&(d.tfs?.length===1||TF_LIST.length===1);return <label key={t} className={'mc-check'+(t===tf?' cur':'')}><input type="checkbox" checked={on} disabled={only} title={only?'Aspoň jeden časový rámec':undefined} onChange={()=>onPatch({tfs:toggleTf(d.tfs,t,TF_LIST)})}/>{t}</label>})}
   </div>
+  <PresetRow d={d} {...pp}/>
  </div>;
+}
+// presety v panelu stylu: použít / smazat preset nástroje, uložit vzhled jako preset, nastavit nebo obnovit výchozí vzhled nástroje
+function PresetRow({d,presets,hasDefault,canSave,prefsOk,onSavePreset,onDeletePreset,onApplyPreset,onSetDefault,onResetDefault}:{d:Drawing}&PresetProps){
+ const [naming,setNaming]=useState(false),[name,setName]=useState(''),[note,setNote]=useState('');
+ const tool=DRAW_LABELS[d.type].toLowerCase(),inputRef=useRef<HTMLInputElement>(null),openRef=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{if(naming)inputRef.current?.focus()},[naming]);
+ const done=(msg:string)=>{setNote(msg);setTimeout(()=>setNote(''),2500)};
+ const submit=()=>{const n=name.trim();if(!n)return;onSavePreset(n);setNaming(false);setName('');done(presets.some(p=>p.name.toLowerCase()===n.toLowerCase())?'Preset přepsán':'Preset uložen');setTimeout(()=>openRef.current?.focus())};
+ const close=()=>{setNaming(false);setName('');setTimeout(()=>openRef.current?.focus())};
+ return <>
+  {presets.length>0&&<div className="mc-row" role="group" aria-label="Presety nástroje"><span>Presety</span>
+   {presets.map(p=><span key={p.id} className="mc-preset"><button type="button" title={'Použít preset na tuto kresbu'} onClick={()=>{onApplyPreset(p)}}><i className="mc-preset-dot" style={{background:'var(--mc-c-'+p.color+')'}} aria-hidden/>{p.name}</button><button type="button" className="mc-preset-x" aria-label={'Smazat preset '+p.name} title="Smazat preset" onClick={()=>onDeletePreset(p.id)}>×</button></span>)}
+  </div>}
+  <div className="mc-row mc-row-actions">
+   {naming?<span className="mc-preset-name" role="group" aria-label="Název nového presetu">
+     <input ref={inputRef} type="text" value={name} maxLength={MAX_PRESET_NAME} placeholder="Název presetu, např. Strong high" aria-label="Název presetu" onChange={e=>setName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();submit()}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close()}}}/>
+     <button type="button" className="mc-chip" disabled={!name.trim()} onClick={submit}>Uložit</button>
+     <button type="button" className="mc-chip" onClick={close}>Zrušit</button>
+    </span>
+    :<button ref={openRef} type="button" className="mc-chip" disabled={!canSave} title={canSave?'Uloží barvu, styl, text a viditelnost jako pojmenovaný preset':`Nejvýš ${MAX_PRESETS} presetů`} onClick={()=>setNaming(true)}>Uložit jako preset…</button>}
+   <button type="button" className="mc-chip" title={'Každá nová kresba nástroje '+tool+' dostane tento vzhled'} onClick={()=>{onSetDefault();done('Nastaveno jako výchozí')}}>Nastavit jako výchozí pro {tool}</button>
+   {hasDefault&&<button type="button" className="mc-chip" title={'Nové kresby nástroje '+tool+' budou mít původní vzhled'} onClick={()=>{onResetDefault();done('Výchozí vzhled obnoven')}}>Obnovit výchozí</button>}
+   <span className="mc-note" role="status" aria-live="polite">{note||(!prefsOk?'Presety se nepodařilo načíst – změny platí jen do obnovení stránky.':'')}</span>
+  </div>
+ </>;
 }
 
 function TextInput({edit,onDone,onCancel}:{edit:Edit;onDone:(v:string)=>void;onCancel:()=>void}){
