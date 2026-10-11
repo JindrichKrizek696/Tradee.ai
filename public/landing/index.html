@@ -154,16 +154,30 @@ details p{color:var(--muted);margin-top:10px;max-width:680px}
 .btn[disabled]{opacity:.6;cursor:default}
 /* reveal patička: obsah na konci odjede nahoru a odkryje patičku, která stojí na místě */
 .page{position:relative;z-index:1;background:#fff;margin-bottom:var(--fh,0px);box-shadow:0 30px 60px -30px #0000004d;border-radius:0 0 32px 32px}
-footer{position:fixed;left:0;right:0;bottom:0;z-index:0;background:#0d0e10;color:#a7a9ad;font-size:14px;overflow:hidden}
-footer a{color:#fff;text-decoration:none}footer a:hover{text-decoration:underline;text-underline-offset:4px}
-.ft-top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;padding:56px 0 8px}
-.ft-links{display:flex;gap:22px;flex-wrap:wrap;font-size:15px}
-.ft-links a{display:inline-flex;align-items:center;gap:8px}.ft-links svg{width:18px;height:18px}
-.ft-pals{width:150px;height:auto;filter:drop-shadow(0 10px 20px #0008)}
-.ft-word{font:600 clamp(72px,19vw,300px)/.82 Outfit,Inter,sans-serif;letter-spacing:-.04em;color:#fff;margin:18px 0 0;white-space:nowrap;user-select:none}
-.ft-word b{color:#2a5cf5;font-weight:inherit}
-.ft-bottom{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 0 26px;border-top:1px solid #ffffff1a;margin-top:18px;font-size:13px}
-@media(max-width:760px){.page{margin-bottom:0;border-radius:0;box-shadow:none}footer{position:static}.ft-pals{width:110px}}
+footer{position:fixed;left:0;right:0;bottom:0;z-index:0;background:radial-gradient(120% 80% at 80% 0%,#1a2a6b 0%,#0d0e10 55%);color:#a7a9ad;font-size:14px;overflow:hidden}
+footer a{color:#fff;text-decoration:none;transition:color .2s}footer a:hover{color:#8fb0ff}
+.ft-cta{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding:56px 0 40px;border-bottom:1px solid #ffffff1a}
+.ft-cta h2{color:#fff;font-size:clamp(28px,3.4vw,44px);line-height:1.1;margin:0;max-width:640px}
+.ft-cta h2 b{color:#5b86ff;font-weight:inherit}
+.ft-cta .btn{background:#fff;color:var(--ink)}.ft-cta .btn .arr{background:var(--ink)}.ft-cta .btn .arr svg{stroke:#fff}
+.ft-cta .btn .arr:after{filter:invert(1)}
+.ft-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px;padding:40px 0 10px}
+.ft-col h3{font:600 12px Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7d8088;margin:0 0 14px}
+.ft-col ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;font-size:15px}
+.ft-brand{display:flex;flex-direction:column;gap:14px}
+.ft-brand .mk{display:flex;align-items:center;gap:10px;color:#fff;font:600 20px Outfit,Inter,sans-serif;letter-spacing:.08em}
+.ft-brand .mk svg{width:36px;height:auto;color:#fff}
+.ft-brand p{margin:0;max-width:300px;line-height:1.6;color:#a7a9ad}
+.ft-ig{display:inline-flex;align-items:center;gap:10px;padding:10px 16px 10px 10px;border:1px solid #ffffff26;border-radius:9999px;font-weight:600}
+.ft-ig i{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:linear-gradient(45deg,#f9a825,#e91e63 50%,#7b1fa2)}
+.ft-ig svg{width:18px;height:18px;color:#fff}
+.ft-ig:hover{border-color:#fff}
+.ft-art{position:relative;padding-top:10px}
+.ft-word{font:700 clamp(80px,21vw,330px)/.78 Outfit,Inter,sans-serif;letter-spacing:-.045em;margin:0;white-space:nowrap;user-select:none;pointer-events:none;background:linear-gradient(180deg,#ffffff 30%,#ffffff22 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ft-word b{font-weight:inherit;background:linear-gradient(180deg,#5b86ff 30%,#2a5cf522 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ft-pals{position:absolute;right:2%;bottom:18%;width:min(240px,22vw);height:auto;pointer-events:none;filter:drop-shadow(0 18px 30px #000a)}
+.ft-bottom{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 0 24px;border-top:1px solid #ffffff1a;font-size:13px;position:relative}
+@media(max-width:760px){.page{margin-bottom:0;border-radius:0;box-shadow:none}footer{position:static}.ft-grid{grid-template-columns:1fr 1fr}.ft-brand{grid-column:1/-1}.ft-pals{width:120px;bottom:30%}}
 
 .viz{position:relative;height:196px;display:grid;place-items:center;padding:50px 22px 18px}
 .v1{background:linear-gradient(160deg,#eef3fd,#f8faff)}
@@ -354,19 +368,18 @@ footer a{color:#fff;text-decoration:none}footer a:hover{text-decoration:underlin
 
 </div>
 <footer id="paticka"><div class="wrap">
- <div class="ft-top">
-  <div class="ft-links">
-   <a href="https://instagram.com/tradee.eu" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg>Instagram</a>
-   <a href="https://dejny.eu" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>dejny.eu</a>
-   <a href="/soukromi">Zásady ochrany osobních údajů</a>
-   <a href="/auth/google">Přihlásit</a>
-  </div>
-  <img class="ft-pals" src="/landing/img/mascots-wave.webp" alt="Býk a medvěd mávají" loading="lazy">
+ <div class="ft-cta"><h2>Obchoduj podle <b>dat</b>, ne podle pocitů.</h2><a class="btn" href="#prihlaska">Chci přístup <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a></div>
+ <div class="ft-grid">
+  <div class="ft-col ft-brand"><span class="mk"><svg viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>TRADEE</span><p>Síla měn, pozice velkých hráčů a cena v jednom skóre – s důvody u každého čísla.</p>
+   <a class="ft-ig" href="https://instagram.com/tradee.eu" target="_blank" rel="noopener"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg></i>@tradee.eu</a></div>
+  <div class="ft-col"><h3>Produkt</h3><ul><li><a href="#jak">Jak to funguje</a></li><li><a href="#ukazka">Ukázka</a></li><li><a href="#faq">FAQ</a></li><li><a href="/auth/google">Přihlásit</a></li></ul></div>
+  <div class="ft-col"><h3>Sledujte nás</h3><ul><li><a href="https://instagram.com/tradee.eu" target="_blank" rel="noopener">Instagram</a></li></ul></div>
+  <div class="ft-col"><h3>Info</h3><ul><li><a href="/soukromi">Zásady ochrany osobních údajů</a></li><li><a href="https://dejny.eu" target="_blank" rel="noopener">Portfolio dejny.eu</a></li></ul></div>
  </div>
- <p class="ft-word" aria-hidden="true">TRADE<b>E</b></p>
+ <div class="ft-art"><p class="ft-word" aria-hidden="true">TRADE<b>E</b></p><img class="ft-pals" src="/landing/img/mascots-wave.webp" alt="" loading="lazy"></div>
  <div class="ft-bottom"><span>© 2026 Tradee · Nejde o investiční doporučení.</span><span>Vytvořil <a href="https://dejny.eu" target="_blank" rel="noopener">dejny.eu</a></span></div>
 </div></footer>
-<script>(()=>{const f=document.getElementById('paticka'),set=()=>document.documentElement.style.setProperty('--fh',(matchMedia('(max-width:760px)').matches?0:f.offsetHeight)+'px');set();addEventListener('resize',set);if(window.ResizeObserver)new ResizeObserver(set).observe(f)})();</script>
+<script>(()=>{const f=document.getElementById('paticka'),set=()=>{const small=matchMedia('(max-width:760px)').matches;f.style.position='';const tall=f.offsetHeight>innerHeight-40;if(tall&&!small)f.style.position='static';document.documentElement.style.setProperty('--fh',(small||tall?0:f.offsetHeight)+'px')};set();addEventListener('resize',set);if(window.ResizeObserver)new ResizeObserver(set).observe(f)})();</script>
 <script>
 (()=>{const tabs=document.querySelector('.tabs');if(!tabs)return;const pill=document.createElement('span');pill.className='tpill';pill.setAttribute('aria-hidden','true');tabs.prepend(pill);tabs.classList.add('js');
 const place=()=>{const b=tabs.querySelector('button.on');if(!b)return;pill.style.width=b.offsetWidth+'px';pill.style.transform='translateX('+b.offsetLeft+'px)'};
