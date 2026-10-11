@@ -45,9 +45,14 @@ p{margin:0}
 /* tlačítka à la dreamrental */
 .btn{display:inline-flex;align-items:center;gap:14px;height:48px;padding:0 8px 0 22px;border-radius:9999px;background:var(--ink);color:#fdfdfd;font:500 16px Inter,sans-serif;text-decoration:none;border:0;cursor:pointer;white-space:nowrap}
 .btn .arr{width:32px;height:32px;border-radius:9999px;background:#fff;display:grid;place-items:center}
-.btn .arr{overflow:hidden}
-.btn .arr svg{width:16px;height:16px;stroke:var(--ink);transition:transform .25s ease}
-.btn:hover .arr svg,.btn:focus-visible .arr svg{transform:translateX(3px)}
+.btn .arr{overflow:hidden;position:relative}
+/* šipka při najetí vyjede doprava a zleva najede nová */
+.btn .arr:after{content:'';position:absolute;inset:0;margin:auto;width:16px;height:16px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23212121' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/16px no-repeat;transform:translateX(-32px);transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.btn .arr svg{width:16px;height:16px;stroke:var(--ink);transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.btn:hover .arr svg,.btn:focus-visible .arr svg{transform:translateX(32px)}
+.btn:hover .arr:after,.btn:focus-visible .arr:after{transform:none}
+.btn[disabled] .arr:after{transform:translateX(-32px)}
+@media(prefers-reduced-motion:reduce){.btn .arr svg,.btn .arr:after{transition:none}}
 .btn[disabled] .arr svg{transform:none}
 .btn-light{background:#fff;color:var(--ink);border:1px solid var(--line);padding:0 20px}
 /* nav */
@@ -75,7 +80,8 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:7
 .hero-art .c2{width:260px;height:120px;right:-4%;bottom:60px;z-index:3}
 .hero-art .c3{width:180px;height:80px;left:0;top:30px;opacity:.9}
 .form{display:flex;gap:10px;flex-wrap:wrap;margin:28px 0 14px;max-width:520px}
-.form input{flex:1 1 240px;min-width:0;height:48px;padding:0 20px;border:1px solid var(--line);border-radius:9999px;font:16px Inter,sans-serif;background:#fff}
+.form input{flex:1 1 240px;min-width:0;height:48px;padding:0 20px;border:2px solid var(--ink);border-radius:9999px;font:16px Inter,sans-serif;background:#fff;color:var(--ink)}
+.form input:focus{outline:none;box-shadow:0 0 0 4px #2a5cf533}
 .rating{margin-top:18px;font-size:14px;color:var(--muted);line-height:1.8}
 .rating b{color:var(--ink)}
 /* sekce */
