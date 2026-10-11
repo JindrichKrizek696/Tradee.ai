@@ -136,9 +136,12 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   const point=(e:MouseEvent|TouchEvent)=>{const t='touches' in e?e.touches[0]??e.changedTouches[0]:e;return t?pos(t.clientX,t.clientY):null};
   const stop=(e:Event)=>{e.stopPropagation();if(e.cancelable)e.preventDefault()};
   const render=(dr:Draft)=>{prim.draft=build(dr);prim.update()};
+  // Shift drží čáru vodorovně: bod převezme cenu referenčního bodu (předchozího / druhého konce)
+  const shiftOf=(e?:MouseEvent|TouchEvent)=>!!e&&!('touches' in e)&&e.shiftKey;
+  const level=(a:Anchor,ref:Anchor|undefined,on:boolean):Anchor=>on&&ref?{t:a.t,p:ref.p}:a;
   // další bod rozkreslené kresby (klik nebo puštění po tahu)
-  const advance=(dr:Draft,p:Pt)=>{
-   const a=anchorAt(p);if(!a)return;
+  const advance=(dr:Draft,p:Pt,shift=false)=>{
+   const a0=anchorAt(p);if(!a0)return;const a=level(a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shift);
    if(Math.hypot(p.x-dr.x,p.y-dr.y)<=3){dr.placed=false;return}
    dr.pts[dr.fixed]=a;dr.fixed++;
    if(dr.fixed>=dr.need){finish(build({...dr,pts:dr.pts.slice(0,dr.need)}));return}
@@ -153,7 +156,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
     stop(e);const now=Date.now();
     // dvojklik / dvojí ťuknutí dokončí lomenou čáru
     if(dr.type==='path'&&now-dr.lastDown<400&&Math.hypot(p.x-dr.x,p.y-dr.y)<12){finishPath();return}
-    dr.lastDown=now;advance(dr,p);return;
+    dr.lastDown=now;advance(dr,p,shiftOf(e));return;
    }
    if(st.tool!=='cursor'){
     stop(e);const a=st.tool==='brush'?freeAt(p):anchorAt(p);if(!a)return;
@@ -179,13 +182,13 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(dr){
     if('touches' in e&&e.cancelable)e.preventDefault();
     if(dr.type==='brush'){const lp=dr.px![dr.px!.length-1];if(Math.hypot(p.x-lp.x,p.y-lp.y)<2||dr.px!.length>=5000)return;const a=freeAt(p);if(!a)return;dr.px!.push(p);dr.pts.push(a);render(dr);return}
-    const a=anchorAt(p);if(!a)return;dr.pts[dr.pts.length-1]=a;if(Math.hypot(p.x-dr.x,p.y-dr.y)>3)dr.placed=true;render(dr);return;
+    const a0=anchorAt(p);if(!a0)return;const a=level(a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shiftOf(e));dr.pts[dr.pts.length-1]=a;if(Math.hypot(p.x-dr.x,p.y-dr.y)>3)dr.placed=true;render(dr);return;
    }
    const g=drag.current;if(!g)return;
    if('touches' in e&&e.cancelable)e.preventDefault();
    if(!g.cur&&Math.hypot(p.x-g.x,p.y-g.y)<3)return;
    let next:Drawing|null=null;
-   if(g.part==='handle'){const a=anchorAt(p);if(a)next=moveHandle(g.orig,g.index,a)}
+   if(g.part==='handle'){const a0=anchorAt(p);if(a0){const pts=g.orig.a,ref=pts.length>1?pts[g.index===0?1:g.index-1]:undefined;next=moveHandle(g.orig,g.index,level(a0,ref,shiftOf(e)))}}
    else{const r=raw(p);if(r)next=translate(g.orig,Math.round(r.l-g.start.l),r.p-g.start.p,conv.toL,t=>Math.round(conv.fromL(t)))}
    if(!next)return;g.cur=next;
    const pr=prim;
@@ -195,7 +198,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   function up(e:MouseEvent|TouchEvent){
    const dr=draft.current;
    // štětec končí puštěním; u ostatních tah (stisk–táhnout–pustit) přidá bod, klik nechá čekat na další
-   if(dr){if(dr.type==='brush')finishBrush();else if(dr.placed){const p=point(e);if(p)advance(dr,p)}return}
+   if(dr){if(dr.type==='brush')finishBrush();else if(dr.placed){const p=point(e);if(p)advance(dr,p,shiftOf(e))}return}
    const g=drag.current;if(!g)return;drag.current=null;
    if(g.cur){if(g.temp)setTemp(g.cur);else commit(S.current.drawings.map(d=>d.id===g.id?g.cur!:d))}
   }
