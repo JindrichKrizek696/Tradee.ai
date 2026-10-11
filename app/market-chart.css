@@ -150,7 +150,8 @@ select.mc-tfsel{display:none}
 
 /* /graf: přepínač trhu v hlavičce karty grafu, kompaktní horní lišta se živou cenou */
 .mc-market{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
-.mc-market-q{width:150px;min-width:0;font-weight:500;color:var(--t-fg);cursor:text}
+.mc-market input.mc-market-q{width:150px;min-width:0;height:auto;padding:4px 12px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);font:inherit;font-size:12px;font-weight:500;color:var(--t-fg);cursor:text}
+.mc-market input.mc-market-q:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
 .mc-market-q::placeholder{color:var(--t-muted)}
 .mc-market-sel{max-width:200px;padding-right:24px;appearance:none;-webkit-appearance:none}
 .mc-page-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
@@ -162,7 +163,7 @@ select.mc-tfsel{display:none}
 .mc-missing h1{margin:0;font-size:22px}
 @media (max-width:760px){
  .mc-market{width:100%}
- .mc-market-q{flex:1 1 120px}
+ .mc-market input.mc-market-q{flex:1 1 120px}
  .mc-market-sel{flex:1 1 140px;max-width:none}
 }
 
@@ -181,3 +182,7 @@ select.mc-tfsel{display:none}
 .mc-row-actions .mc-chip{font-weight:500}
 .mc-preset-name{display:flex;flex:1 1 100%;gap:6px;align-items:center;flex-wrap:wrap}
 .mc-note{font-size:11px;color:var(--t-muted)}
+.mc-swatches{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.mc-swatch-add{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px dashed var(--t-border-strong);color:var(--t-muted);font-size:13px;line-height:1;text-decoration:none}
+.mc-swatch-add:hover{color:var(--t-fg);border-color:var(--t-fg)}
+.mc-swatch-add:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}

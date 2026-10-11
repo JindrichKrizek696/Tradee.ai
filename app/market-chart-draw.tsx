@@ -5,7 +5,7 @@ import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
@@ -371,7 +371,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    <div className="mc-menu-title">{menuGroup.label}</div>
    {menuGroup.tools.map(t=>{const {Icon,hint}=TOOL_META[t],ps=presetsOf(t),sel=presetSel[t];const cur=tool===t||(!menuGroup.tools.includes(tool as DrawType)&&last[menuGroup.id]===t);return <Fragment key={t}>
     <button type="button" role="menuitemradio" aria-checked={cur&&!sel} className={'mc-menu-item'+(tool===t&&!sel?' on':'')} onClick={()=>pickTool(t,null)}><Icon size={16} strokeWidth={1.8} aria-hidden/><span>{DRAW_LABELS[t]}</span><small>{hint}{prefs.defaults[t]?' · tvůj výchozí vzhled':''}</small></button>
-    {ps.map(p=><button key={p.id} type="button" role="menuitemradio" aria-checked={cur&&sel===p.id} aria-label={DRAW_LABELS[t]+' – preset '+p.name} className={'mc-menu-item mc-menu-preset'+(tool===t&&sel===p.id?' on':'')} onClick={()=>pickTool(t,p.id)}><i className="mc-preset-dot" style={{background:'var(--mc-c-'+p.color+')'}} aria-hidden/><span>{p.name}</span></button>)}
+    {ps.map(p=><button key={p.id} type="button" role="menuitemradio" aria-checked={cur&&sel===p.id} aria-label={DRAW_LABELS[t]+' – preset '+p.name} className={'mc-menu-item mc-menu-preset'+(tool===t&&sel===p.id?' on':'')} onClick={()=>pickTool(t,p.id)}><i className="mc-preset-dot" style={{background:swatchBg(p.color)}} aria-hidden/><span>{p.name}</span></button>)}
    </Fragment>})}
   </div>}
  </div>;
@@ -380,11 +380,11 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const overlay=<>
   {current&&!edit&&<div className="mc-sel" role="group" aria-label={'Vybraná kresba: '+DRAW_LABELS[current.type]}>
    <span className="mc-sel-name">{DRAW_LABELS[current.type]}{isTemp?' · dočasné':''}{hidden&&<span className="mc-sel-hidden"><EyeOff size={12} aria-hidden/> skryto na {tf}</span>}</span>
-   {current.type!=='measure'&&<Swatches value={current.color} onPick={pickColor} label="Barva"/>}
+   {current.type!=='measure'&&<Swatches value={current.color} onPick={pickColor} label="Barva" custom={prefs.colors} add/>}
    {current.type!=='measure'&&<button type="button" className={'mc-tool sm'+(styleOpen?' on':'')} aria-expanded={styleOpen} aria-controls="mc-style" aria-label="Styl a text kresby" data-tip="Styl, text, viditelnost" onClick={()=>setStyleOpen(o=>!o)}><Settings2 size={15} aria-hidden/></button>}
    {isTemp&&<button type="button" className="mc-chip" onClick={pin}><Pin size={13} aria-hidden/> Připnout</button>}
    <button type="button" className="mc-tool sm danger" aria-label="Smazat kresbu" data-tip="Smazat (Delete)" onClick={()=>remove(current.id)}><Trash2 size={15} aria-hidden/></button>
-   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)} presets={presetsOf(current.type)} hasDefault={!!prefs.defaults[current.type]} canSave={prefs.presets.length<MAX_PRESETS||presetsOf(current.type).length>0} prefsOk={prefsState==='ok'||prefsState==='error'} onSavePreset={n=>savePreset(current,n)} onDeletePreset={deletePreset} onApplyPreset={applyPreset} onSetDefault={()=>setDefault(current)} onResetDefault={()=>resetDefault(current.type)}/>}
+   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)} colors={prefs.colors} presets={presetsOf(current.type)} hasDefault={!!prefs.defaults[current.type]} canSave={prefs.presets.length<MAX_PRESETS||presetsOf(current.type).length>0} prefsOk={prefsState==='ok'||prefsState==='error'} onSavePreset={n=>savePreset(current,n)} onDeletePreset={deletePreset} onApplyPreset={applyPreset} onSetDefault={()=>setDefault(current)} onResetDefault={()=>resetDefault(current.type)}/>}
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
   {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}{presetName(tool)?' · preset „'+presetName(tool)+'“':''}: {drawHint(tool)} · Esc zruší</div>}
@@ -394,14 +394,19 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  return {toolbar,overlay,status,drawing:tool!=='cursor'};
 }
 
-function Swatches({value,onPick,label}:{value:DrawColor;onPick:(c:DrawColor)=>void;label:string}){
- return <span className="mc-swatches" role="group" aria-label={label}>{DRAW_COLORS.map(c=><button key={c} type="button" className={'mc-swatch-btn'+(value===c?' on':'')} data-c={c} aria-label={label+': '+COLOR_LABELS[c]} aria-pressed={value===c} title={COLOR_LABELS[c]} onClick={()=>onPick(c)}/>)}</span>;
+// vzorek barvy: vestavěné přes proměnné motivu, vlastní #rrggbb přímo
+const swatchBg=(c:DrawColor)=>isHex(c)?c:'var(--mc-c-'+c+')';
+const colorName=(c:DrawColor)=>isHex(c)?'vlastní '+c.toUpperCase():COLOR_LABELS[c as NamedColor];
+function Swatches({value,onPick,label,custom=[],add=false}:{value:DrawColor;onPick:(c:DrawColor)=>void;label:string;custom?:string[];add?:boolean}){
+ const list:DrawColor[]=[...DRAW_COLORS,...custom.filter(isHex)];
+ return <span className="mc-swatches" role="group" aria-label={label}>{list.map(c=><button key={c} type="button" className={'mc-swatch-btn'+(value===c?' on':'')} data-c={isHex(c)?undefined:c} style={isHex(c)?{background:c}:undefined} aria-label={label+': '+colorName(c)} aria-pressed={value===c} title={colorName(c)} onClick={()=>onPick(c)}/>)}
+  {add&&<a className="mc-swatch-add" href="/nastaveni#barvy" aria-label="Přidat vlastní barvu v Nastavení" title="Vlastní barvy (Nastavení)">+</a>}</span>;
 }
 function Seg<T extends string|number>({value,options,onPick,label}:{value:T;options:[T,string][];onPick:(v:T)=>void;label:string}){
  return <span className="mc-seg-sm" role="group" aria-label={label}>{options.map(([v,l])=><button key={String(v)} type="button" className={value===v?'on':''} aria-pressed={value===v} onClick={()=>onPick(v)}>{l}</button>)}</span>;
 }
 // panel stylu vybrané kresby: text/poznámka, čára, průhlednost, výplň, okraj, prodloužení, riziko, viditelnost na TF
-type PresetProps={presets:Preset[];hasDefault:boolean;canSave:boolean;prefsOk:boolean;onSavePreset:(name:string)=>void;onDeletePreset:(id:string)=>void;onApplyPreset:(p:Preset)=>void;onSetDefault:()=>void;onResetDefault:()=>void};
+type PresetProps={colors:string[];presets:Preset[];hasDefault:boolean;canSave:boolean;prefsOk:boolean;onSavePreset:(name:string)=>void;onDeletePreset:(id:string)=>void;onApplyPreset:(p:Preset)=>void;onSetDefault:()=>void;onResetDefault:()=>void};
 function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...pp}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}&PresetProps){
  const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text',pos=d.type==='long'||d.type==='short'?d.type:null;
  const [text,setText]=useState(d.text||''),[risk,setRisk]=useState(st.risk===null?'':String(st.risk));
@@ -417,14 +422,14 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
   {(isText||text.trim())&&<>
    <div className="mc-row"><span>Umístění</span><Seg label="Umístění textu" value={st.ta} options={[['top','Nahoře'],['middle','Uprostřed'],['bottom','Dole']]} onPick={v=>onStyle({ta:v})}/></div>
    <div className="mc-row"><span>Velikost</span><Seg label="Velikost textu" value={st.ts} options={[['S','S'],['M','M'],['L','L'],['XL','XL']]} onPick={v=>onStyle({ts:v})}/></div>
-   <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu"/></div>
+   <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu" custom={pp.colors}/></div>
   </>}
   {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'S'],[2,'M'],[3,'L'],[4,'XL']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
   <label className="mc-row"><span>Průhlednost</span><input type="range" min={10} max={100} step={5} value={Math.round(st.op*100)} aria-valuetext={Math.round(st.op*100)+' %'} onChange={e=>onStyle({op:Number(e.target.value)/100},'op')}/><em>{Math.round(st.op*100)} %</em></label>
   {(caps.fill||caps.border)&&<div className="mc-row">
    {caps.fill&&<label className="mc-check"><input type="checkbox" checked={st.fill} onChange={e=>onStyle({fill:e.target.checked})}/>Pozadí</label>}
    {caps.border&&<label className="mc-check"><input type="checkbox" checked={st.border} onChange={e=>onStyle({border:e.target.checked})}/>Okraj</label>}
-   {caps.border&&st.border&&<Swatches value={st.bc} onPick={c=>onStyle({bc:c})} label="Barva okraje"/>}
+   {caps.border&&st.border&&<Swatches value={st.bc} onPick={c=>onStyle({bc:c})} label="Barva okraje" custom={pp.colors}/>}
   </div>}
   {caps.extend&&<div className="mc-row"><span>Prodloužit</span>
    <label className="mc-check"><input type="checkbox" checked={st.extL} onChange={e=>onStyle({extL:e.target.checked})}/>Doleva</label>
@@ -452,7 +457,7 @@ function PresetRow({d,presets,hasDefault,canSave,prefsOk,onSavePreset,onDeletePr
  const close=()=>{setNaming(false);setName('');setTimeout(()=>openRef.current?.focus())};
  return <>
   {presets.length>0&&<div className="mc-row" role="group" aria-label="Presety nástroje"><span>Presety</span>
-   {presets.map(p=><span key={p.id} className="mc-preset"><button type="button" title={'Použít preset na tuto kresbu'} onClick={()=>{onApplyPreset(p)}}><i className="mc-preset-dot" style={{background:'var(--mc-c-'+p.color+')'}} aria-hidden/>{p.name}</button><button type="button" className="mc-preset-x" aria-label={'Smazat preset '+p.name} title="Smazat preset" onClick={()=>onDeletePreset(p.id)}>×</button></span>)}
+   {presets.map(p=><span key={p.id} className="mc-preset"><button type="button" title={'Použít preset na tuto kresbu'} onClick={()=>{onApplyPreset(p)}}><i className="mc-preset-dot" style={{background:swatchBg(p.color)}} aria-hidden/>{p.name}</button><button type="button" className="mc-preset-x" aria-label={'Smazat preset '+p.name} title="Smazat preset" onClick={()=>onDeletePreset(p.id)}>×</button></span>)}
   </div>}
   <div className="mc-row mc-row-actions">
    {naming?<span className="mc-preset-name" role="group" aria-label="Název nového presetu">

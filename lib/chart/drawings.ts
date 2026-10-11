@@ -5,7 +5,17 @@ import {TFS} from './candles.ts';
 export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann'] as const;
 export type DrawType=typeof DRAW_TYPES[number];
 export const DRAW_COLORS=['brand','bull','bear','amber','muted','fg'] as const;
-export type DrawColor=typeof DRAW_COLORS[number];
+export type NamedColor=typeof DRAW_COLORS[number];
+// barva kresby: vestavěná (podle motivu) nebo vlastní #rrggbb z nastavení uživatele
+export type DrawColor=NamedColor|`#${string}`;
+const HEX=/^#[0-9a-f]{6}$/i;
+export const isHex=(v:unknown):v is `#${string}`=>typeof v==='string'&&HEX.test(v);
+// server přijme každou platnou #rrggbb (kresba zůstane platná, i když uživatel barvu ze seznamu odebere)
+export const isDrawColor=(v:unknown):v is DrawColor=>typeof v==='string'&&((DRAW_COLORS as readonly string[]).includes(v)||HEX.test(v));
+const normColor=(v:DrawColor):DrawColor=>isHex(v)?v.toLowerCase() as DrawColor:v;
+// barva pro plátno: vestavěná z palety, vlastní tak, jak je
+export const colorOf=(pal:Record<NamedColor,string>,c:DrawColor)=>isHex(c)?c:pal[c]??pal.brand;
+export const MAX_COLORS=12;
 export type Anchor={t:number;p:number};
 export const LINE_STYLES=['solid','dashed','dotted'] as const;
 export type LineStyleName=typeof LINE_STYLES[number];
@@ -27,7 +37,7 @@ export const MAX_DRAWINGS=200,MAX_TEXT=200,MAX_POINTS=300,MAX_PATH=100,MAX_TOTAL
 export const ANCHORS:Record<DrawType,number|[number,number]>={trend:2,hline:1,rect:2,fib:2,text:1,measure:2,ray:2,hray:1,touch:1,path:[2,MAX_PATH],brush:[2,MAX_POINTS],channel:3,long:3,short:3,prange:2,trange:2,fibext:3,pitchfork:3,gann:2};
 export const anchorRange=(t:DrawType):[number,number]=>{const n=ANCHORS[t];return typeof n==='number'?[n,n]:n};
 export const DRAW_LABELS:Record<DrawType,string>={trend:'Trendová čára',hline:'Horizontála',rect:'Obdélník / zóna',fib:'Fibonacci',text:'Text',measure:'Měření',ray:'Paprsek',hray:'Horizontální paprsek',touch:'Úroveň do dotyku',path:'Lomená čára',brush:'Štětec',channel:'Paralelní kanál',long:'Long pozice',short:'Short pozice',prange:'Cenový rozsah',trange:'Časový rozsah',fibext:'Fibonacci extension',pitchfork:'Andrewsovy vidle',gann:'Gannova mřížka'};
-export const COLOR_LABELS:Record<DrawColor,string>={brand:'Modrá',bull:'Zelená',bear:'Červená',amber:'Oranžová',muted:'Šedá',fg:'Text'};
+export const COLOR_LABELS:Record<NamedColor,string>={brand:'Modrá',bull:'Zelená',bear:'Červená',amber:'Oranžová',muted:'Šedá',fg:'Text'};
 export const FIB_LEVELS=[0,.236,.382,.5,.618,.786,1];
 export const FIB_EXT_LEVELS=[0,.618,1,1.272,1.618,2,2.618];
 export const GANN_DIV=[0,.25,.5,.75,1];
@@ -82,14 +92,14 @@ export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:str
  if(v===undefined||v===null)return {ok:true};
  if(typeof v!=='object'||Array.isArray(v))return BAD_STYLE;
  const r=v as Record<string,unknown>,s:DrawStyle={};
- const color=(x:unknown)=>typeof x==='string'&&(DRAW_COLORS as readonly string[]).includes(x);
+ const color=isDrawColor;
  const bool=(k:'fill'|'border'|'extL'|'extR')=>{if(r[k]===undefined)return true;if(typeof r[k]!=='boolean')return false;s[k]=r[k] as boolean;return true};
  if(r.lw!==undefined){if(r.lw!==1&&r.lw!==2&&r.lw!==3&&r.lw!==4)return BAD_STYLE;s.lw=r.lw}
  if(r.ls!==undefined){if(!(LINE_STYLES as readonly unknown[]).includes(r.ls))return BAD_STYLE;s.ls=r.ls as LineStyleName}
  if(r.op!==undefined){if(!num(r.op)||r.op<.1||r.op>1)return BAD_STYLE;s.op=Math.round(r.op*100)/100}
  if(!bool('fill')||!bool('border')||!bool('extL')||!bool('extR'))return BAD_STYLE;
- if(r.bc!==undefined){if(!color(r.bc))return BAD_STYLE;s.bc=r.bc as DrawColor}
- if(r.tc!==undefined){if(!color(r.tc))return BAD_STYLE;s.tc=r.tc as DrawColor}
+ if(r.bc!==undefined){if(!color(r.bc))return BAD_STYLE;s.bc=normColor(r.bc as DrawColor)}
+ if(r.tc!==undefined){if(!color(r.tc))return BAD_STYLE;s.tc=normColor(r.tc as DrawColor)}
  if(r.ta!==undefined){if(!(TEXT_ALIGNS as readonly unknown[]).includes(r.ta))return BAD_STYLE;s.ta=r.ta as TextAlign}
  if(r.ts!==undefined){if(!(TEXT_SIZES as readonly unknown[]).includes(r.ts))return BAD_STYLE;s.ts=r.ts as TextSize}
  if(r.risk!==undefined){if(!num(r.risk)||r.risk<0||r.risk>1e9)return BAD_STYLE;s.risk=r.risk}
@@ -108,8 +118,8 @@ export function parseDrawings(input:unknown):Parsed{
   const type=d.type as DrawType,[min,max]=anchorRange(type);
   if(!Array.isArray(d.a)||d.a.length<min||d.a.length>max||!d.a.every(anchorOk))return {ok:false,error:'Kresba má neplatné body (čas nebo cenu).'};
   points+=d.a.length;if(points>MAX_TOTAL_POINTS)return {ok:false,error:'Kresby mají dohromady příliš mnoho bodů.'};
-  if(typeof d.color!=='string'||!(DRAW_COLORS as readonly string[]).includes(d.color))return {ok:false,error:'Nepovolená barva kresby.'};
-  const x:Drawing={id:d.id,type,a:(d.a as Anchor[]).map(a=>({t:a.t,p:a.p})),color:d.color as DrawColor};
+  if(!isDrawColor(d.color))return {ok:false,error:'Nepovolená barva kresby.'};
+  const x:Drawing={id:d.id,type,a:(d.a as Anchor[]).map(a=>({t:a.t,p:a.p})),color:normColor(d.color)};
   // text: povinný u textu, u ostatních kreseb volitelná poznámka
   if(type==='text'&&(typeof d.text!=='string'||!d.text.trim()))return {ok:false,error:'Text kresby nesmí být prázdný.'};
   if(d.text!==undefined&&d.text!==null&&d.text!==''){
@@ -132,18 +142,18 @@ export function parseDrawings(input:unknown):Parsed{
 // vzhled: barva, styl, text, viditelnost na TF a u pozic R:R; preset = pojmenovaný vzhled pro jeden nástroj
 export type Look={color:DrawColor;s?:DrawStyle;text?:string;tfs?:string[];rr?:number};
 export type Preset=Look&{id:string;name:string;tool:DrawType};
-export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>};
+export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>;colors:string[]};
 export const MAX_PRESETS=50,MAX_PRESET_NAME=40;
-export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{}});
+export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{},colors:[]});
 const isPos=(t:DrawType)=>t==='long'||t==='short';
 const isTool=(v:unknown):v is DrawType=>typeof v==='string'&&(DRAW_TYPES as readonly string[]).includes(v);
-const isColor=(v:unknown):v is DrawColor=>typeof v==='string'&&(DRAW_COLORS as readonly string[]).includes(v);
+const isColor=isDrawColor;
 type R<T>={ok:true;v:T}|{ok:false;error:string};
 function parseLook(raw:unknown,tool:DrawType):R<Look>{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))return {ok:false,error:'Neplatný vzhled kresby.'};
  const r=raw as Record<string,unknown>;
  if(!isColor(r.color))return {ok:false,error:'Nepovolená barva kresby.'};
- const look:Look={color:r.color};
+ const look:Look={color:normColor(r.color)};
  const st=parseStyle(r.s);if(!st.ok)return st;if(st.s)look.s=st.s;
  if(r.text!==undefined&&r.text!==null&&r.text!==''){
   if(typeof r.text!=='string'||r.text.length>MAX_TEXT)return {ok:false,error:`Text může mít nejvýš ${MAX_TEXT} znaků.`};
@@ -186,6 +196,12 @@ export function normalizePrefs(input:unknown):{ok:true;prefs:Partial<DrawPrefs>}
   for(const [k,v] of Object.entries(r.defaults)){if(!isTool(k))return {ok:false,error:'Neznámý nástroj ve výchozím nastavení.'};const l=parseLook(v,k);if(!l.ok)return l;d[k]=l.v}
   out.defaults=d;
  }
+ if(r.colors!==undefined){
+  if(!Array.isArray(r.colors))return {ok:false,error:'Barvy musí být seznam.'};
+  if(r.colors.length>MAX_COLORS)return {ok:false,error:`Vlastních barev může být nejvýš ${MAX_COLORS}.`};
+  if(!r.colors.every(isHex))return {ok:false,error:'Barva musí být ve tvaru #RRGGBB.'};
+  out.colors=[...new Set(r.colors.map(c=>c.toLowerCase()))];
+ }
  if(!Object.keys(out).length)return {ok:false,error:'Není co uložit.'};
  return {ok:true,prefs:out};
 }
@@ -195,6 +211,7 @@ export function parsePrefs(raw:unknown):DrawPrefs{
  const r=raw as Record<string,unknown>;
  if(Array.isArray(r.presets)){const ids=new Set<string>();for(const x of r.presets){const p=parsePreset(x);if(p.ok&&!ids.has(p.v.id)&&out.presets.length<MAX_PRESETS){ids.add(p.v.id);out.presets.push(p.v)}}}
  if(r.defaults&&typeof r.defaults==='object')for(const [k,v] of Object.entries(r.defaults)){if(!isTool(k))continue;const l=parseLook(v,k);if(l.ok)out.defaults[k]=l.v}
+ if(Array.isArray(r.colors))out.colors=[...new Set(r.colors.filter(isHex).map(c=>c.toLowerCase()))].slice(0,MAX_COLORS);
  return out;
 }
 // vzhled z existující kresby (Uložit jako preset / Nastavit jako výchozí)

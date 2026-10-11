@@ -1,10 +1,10 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,positionLines,styleOf,visibleOn,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 
-export type DrawPalette=Record<DrawColor,string>&{bg:string;text:string};
+export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
 export type DrawEnv={
  project:(a:Anchor)=>Pt|null;price:(p:number)=>string;
  // popisky měření, cenového a časového rozsahu
@@ -43,7 +43,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  priceAxisViews(){return this.axis}
  private rebuildAxis(){
   const s=this.param?.series;
-  this.axis=this.all().filter(d=>d.type==='hline'||d.type==='hray'||d.type==='touch').map(d=>{const c=this.palette[d.color];return {
+  this.axis=this.all().filter(d=>d.type==='hline'||d.type==='hray'||d.type==='touch').map(d=>{const c=colorOf(this.palette,d.color);return {
    coordinate:()=>s?.priceToCoordinate(d.a[0].p)??-1e6,text:()=>s?s.priceFormatter().format(d.a[0].p):this.env.price(d.a[0].p),textColor:()=>ink(c),backColor:()=>c,
   }});
  }
@@ -104,7 +104,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
   });
  }
  private paint(ctx:CanvasRenderingContext2D,{d,shape,st}:Item,w:number,h:number,sel:boolean){
-  const P=this.palette,c=P[d.color],bc=P[st.bc],[a,b]=shape.pts;
+  const P=this.palette,c=colorOf(P,d.color),bc=colorOf(P,st.bc),[a,b]=shape.pts;
   const lw=st.lw+(sel?.5:0),dash=dashOf(st.ls,st.lw);
   ctx.globalAlpha=st.op;ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=lw;ctx.setLineDash(dash);
   const line=(p:Pt,q:Pt)=>{ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()};
@@ -186,7 +186,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     if(st.fill){ctx.fillStyle=withAlpha(c,.16);pill(ctx,bx.x,bx.y,bx.w,bx.h,4);ctx.fill()}
     if(st.border){ctx.setLineDash([]);ctx.lineWidth=1;ctx.strokeStyle=bc;pill(ctx,bx.x,bx.y,bx.w,bx.h,4);ctx.stroke()}
     else if(sel){ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(bx.x,bx.y,bx.w,bx.h);ctx.setLineDash([])}
-    ctx.font=this.font(st);ctx.fillStyle=P[st.tc];label(d.text||'',bx.x+4,bx.y+bx.h/2,'left','middle');
+    ctx.font=this.font(st);ctx.fillStyle=colorOf(P,st.tc);label(d.text||'',bx.x+4,bx.y+bx.h/2,'left','middle');
     break;
    }
    case 'long':case 'short':{
@@ -221,7 +221,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
   if(d.type!=='text'&&d.text&&shape.label){
    const bx=shape.label;ctx.setLineDash([]);
    if(st.ta==='middle'){ctx.fillStyle=P.bg;pill(ctx,bx.x,bx.y,bx.w,bx.h,4);ctx.fill()}
-   ctx.font=this.font(st);ctx.fillStyle=P[st.tc];label(d.text,bx.x+bx.w/2,bx.y+bx.h/2,'center','middle');
+   ctx.font=this.font(st);ctx.fillStyle=colorOf(P,st.tc);label(d.text,bx.x+bx.w/2,bx.y+bx.h/2,'center','middle');
   }
   // úchyty vybrané kresby
   ctx.globalAlpha=1;ctx.setLineDash([]);

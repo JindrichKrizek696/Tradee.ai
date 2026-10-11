@@ -42,3 +42,15 @@
 .p-picker.nv-embed .ns{margin-top:0;padding-top:0;border-top:0;max-width:420px}
 .p-picker.nv-embed .ns>b{display:none}
 @media(max-width:640px){.nv-row{gap:6px;padding:8px}.nv-line{align-items:flex-start}.nv-stage{justify-content:flex-start}}
+/* barvy kreseb (vlastní #RRGGBB uživatele) */
+.dc-list{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.dc-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--t-border);border-radius:12px;background:var(--t-surface)}
+.dc-item code{flex:1;font-size:13px;font-variant-numeric:tabular-nums;color:var(--t-fg-2)}
+.dc-swatch{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 1px var(--t-border-strong);flex:none}
+.dc-empty{margin:0 0 12px;color:var(--t-muted);font-size:14px}
+.dc-add{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.dc-pick{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--t-fg-2)}
+.dc-pick input[type=color]{width:40px;height:32px;padding:2px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface);cursor:pointer}
+.dc-pick input[type=color]:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
+.dc-pick code{font-size:13px;color:var(--t-muted)}
+.mt-card label.dc-pick{display:inline-flex;flex-direction:row;align-items:center;gap:8px;margin:0}

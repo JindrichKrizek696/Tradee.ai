@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -15,7 +15,7 @@ check('validace: není seznam',!parseDrawings({}).ok&&parseDrawings({}).error===
 check('validace: neznámý typ',!parseDrawings([{...line,type:'circle'}]).ok&&parseDrawings([{...line,type:'circle'}]).error==='Neznámý typ kresby.');
 check('validace: počet bodů podle typu',!parseDrawings([{...line,type:'hline'}]).ok&&parseDrawings([{...line,type:'hline',a:[line.a[0]]}]).ok);
 check('validace: nekonečná cena',!parseDrawings([{...line,a:[{t:T,p:Infinity},line.a[1]]}]).ok&&!parseDrawings([{...line,a:[{t:'x',p:1},line.a[1]]}]).ok&&!parseDrawings([{...line,a:[{t:T,p:NaN},line.a[1]]}]).ok);
-check('validace: barva z povolených',!parseDrawings([{...line,color:'#ff0000'}]).ok&&parseDrawings([{...line,color:'amber'}]).ok);
+check('validace: barva z povolených nebo #RRGGBB',parseDrawings([{...line,color:'#FF0000'}]).drawings[0].color==='#ff0000'&&parseDrawings([{...line,color:'amber'}]).ok&&!parseDrawings([{...line,color:'red'}]).ok&&!parseDrawings([{...line,color:'#ff00'}]).ok&&!parseDrawings([{...line,color:'#gg0000'}]).ok);
 const txt={id:'t1',type:'text',a:[{t:T,p:1}],color:'fg',text:'Support'};
 check('validace: text',parseDrawings([txt]).ok&&!parseDrawings([{...txt,text:''}]).ok&&!parseDrawings([{...txt,text:'x'.repeat(201)}]).ok&&parseDrawings([{...txt,text:'x'.repeat(200)}]).ok);
 check('validace: max 200',parseDrawings(Array.from({length:MAX_DRAWINGS},(_,i)=>({...txt,id:'t'+i}))).ok&&!parseDrawings(Array.from({length:201},(_,i)=>({...txt,id:'t'+i}))).ok);
@@ -235,5 +235,15 @@ check('úložiště presetů: prázdné',(await loadPrefs(pdb,'u1')).presets.len
 await savePrefs(pdb,'u1',{presets:pr.prefs.presets,defaults:{}},T);
 check('úložiště presetů: per uživatel',(await loadPrefs(pdb,'u1')).presets.length===2&&(await loadPrefs(pdb,'u2')).presets.length===0);
 prow.set('u3','{nejson');check('úložiště presetů: poškozený JSON → prázdné',(await loadPrefs(pdb,'u3')).presets.length===0);
+// vlastní barvy
+const cols=normalizePrefs({colors:['#AABBCC','#aabbcc','#112233']});
+check('barvy: #RRGGBB, malá písmena, bez duplicit',cols.ok&&cols.prefs.colors.join()==='#aabbcc,#112233'&&!('presets' in cols.prefs),cols);
+check('barvy: max 12',normalizePrefs({colors:Array.from({length:MAX_COLORS},(_,i)=>'#0000'+String(i).padStart(2,'0'))}).ok&&!normalizePrefs({colors:Array.from({length:13},(_,i)=>'#0000'+String(i).padStart(2,'0'))}).ok);
+check('barvy: odmítne neplatné',!normalizePrefs({colors:['#abc']}).ok&&!normalizePrefs({colors:['red']}).ok&&!normalizePrefs({colors:'#aabbcc'}).ok&&!normalizePrefs({colors:[1]}).ok);
+check('barvy: tolerantní načtení',parsePrefs({colors:['#AABBCC','x','#aabbcc']}).colors.join()==='#aabbcc'&&parsePrefs({}).colors.length===0);
+check('barvy: styl a preset s vlastní barvou',parseDrawings([{...line,s:{bc:'#123456',tc:'#ABCDEF'}}]).drawings[0].s.tc==='#abcdef'&&normalizePrefs({presets:[{...strongHigh,color:'#123456'}]}).ok&&!parseDrawings([{...line,s:{tc:'#12345'}}]).ok);
+check('barvy: colorOf',colorOf({brand:'#245bff',bull:'g'},'#123456')==='#123456'&&colorOf({brand:'#245bff',bull:'g'},'bull')==='g'&&isDrawColor('fg')&&!isDrawColor('#12'));
+await savePrefs(pdb,'u4',{presets:[],defaults:{},colors:['#aabbcc']},T);
+check('úložiště presetů: barvy',(await loadPrefs(pdb,'u4')).colors.join()==='#aabbcc');
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

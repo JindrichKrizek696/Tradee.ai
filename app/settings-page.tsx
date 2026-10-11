@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowUp,ArrowDown,GripVertical,Moon,Sun,RotateCcw} from 'lucide-react';
+import {ArrowLeft,ArrowUp,ArrowDown,GripVertical,Moon,Sun,RotateCcw,Plus,X} from 'lucide-react';
+import {MAX_COLORS,isHex} from '@/lib/chart/drawings';
 import {CURRENCIES} from '@/lib/fx';
 import {VIEWS,defaultNav,type Nav,type View} from '@/lib/nav';
 import {PalettePicker,usePalette} from './palette';
@@ -58,14 +59,36 @@ function Summary(){
   <select aria-label="Měna souhrnu" value={cur} disabled={!cur} onChange={e=>choose(e.target.value)}>{!cur&&<option value="">…</option>}{CURRENCIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
  </section>;
 }
+// vlastní barvy kreseb v grafu trhu (drawing_prefs.colors); nabízí je panel stylu kresby
+function DrawColors(){
+ const [colors,setColors]=useState<string[]|null>(null),[pick,setPick]=useState('#7c3aed'),[st,setSt]=useState<'idle'|'saved'|'err'|'loaderr'>('idle');
+ useEffect(()=>{let live=true;fetch('/api/chart/prefs',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{prefs?:{colors?:unknown}}>:Promise.reject()).then(j=>{if(live)setColors(Array.isArray(j.prefs?.colors)?j.prefs!.colors.filter(isHex).map(c=>c.toLowerCase()):[])}).catch(()=>{if(live)setSt('loaderr')});return()=>{live=false}},[]);
+ useEffect(()=>{if(location.hash==='#barvy')document.getElementById('barvy')?.scrollIntoView({block:'start'})},[colors]);
+ const save=(next:string[])=>{const prev=colors;setColors(next);setSt('idle');fetch('/api/chart/prefs',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefs:{colors:next}})}).then(r=>{if(!r.ok)throw Error();setSt('saved')}).catch(()=>{setColors(prev);setSt('err')})};
+ const list=colors||[],c=pick.toLowerCase(),dup=list.includes(c),full=list.length>=MAX_COLORS;
+ return <section className="mt-card" id="barvy">
+  <div className="nv-title"><h2>Barvy kreseb</h2><span className={'nv-status'+(st==='err'||st==='loaderr'?' err':'')} role="status" aria-live="polite">{st==='saved'?'Uloženo':st==='err'?'Barvy se nepodařilo uložit.':st==='loaderr'?'Barvy se nepodařilo načíst.':''}</span></div>
+  <p className="mt-lead">Vlastní barvy se v grafu trhu nabídnou vedle vestavěných (u kresby, textu i okraje). Nejvýš {MAX_COLORS}. Odebraná barva u už nakreslených kreseb zůstane.</p>
+  {list.length>0?<ul className="dc-list" aria-label="Vlastní barvy">{list.map((x,i)=><li key={x} className="dc-item">
+   <i className="dc-swatch" style={{background:x}} aria-hidden="true"/><code>{x.toUpperCase()}</code>
+   <button type="button" className="mt-icon" aria-label={`Posunout ${x.toUpperCase()} dopředu`} disabled={i===0} onClick={()=>save(move(list,i,-1))}><ArrowUp size={14}/></button>
+   <button type="button" className="mt-icon" aria-label={`Posunout ${x.toUpperCase()} dozadu`} disabled={i===list.length-1} onClick={()=>save(move(list,i,1))}><ArrowDown size={14}/></button>
+   <button type="button" className="mt-icon" aria-label={`Odebrat barvu ${x.toUpperCase()}`} onClick={()=>save(list.filter(y=>y!==x))}><X size={14}/></button>
+  </li>)}</ul>:colors&&<p className="dc-empty">Zatím žádné vlastní barvy.</p>}
+  <div className="dc-add">
+   <label className="dc-pick"><span>Nová barva</span><input type="color" value={pick} onChange={e=>setPick(e.target.value)} disabled={!colors}/><code aria-hidden="true">{pick.toUpperCase()}</code></label>
+   <button type="button" className="mt-btn" disabled={!colors||dup||full||!isHex(c)} title={full?`Nejvýš ${MAX_COLORS} barev`:dup?'Tahle barva už v seznamu je':undefined} onClick={()=>save([...list,c])}><Plus size={15}/> Přidat barvu</button>
+  </div>
+ </section>;
+}
 export default function SettingsPage(){
  usePalette(); // barvy signálu podle nastavení uživatele hned po načtení
  return <div className="mt-page">
   <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
   <main className="mt-main">
    <h1>Nastavení</h1>
-   <p className="mt-lead">Navigace, vzhled, upozornění a měna souhrnu na jednom místě. Změny se ukládají k tvému účtu.</p>
-   <Navigation/><Look/><Alerts/><Summary/>
+   <p className="mt-lead">Navigace, vzhled, upozornění, měna souhrnu a barvy kreseb na jednom místě. Změny se ukládají k tvému účtu.</p>
+   <Navigation/><Look/><Alerts/><Summary/><DrawColors/>
   </main>
  </div>;
 }
