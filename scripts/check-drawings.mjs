@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid} from '../lib/chart/drawings.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
 const fails=[];
@@ -159,5 +159,29 @@ check('úložiště: poškozený záznam → jen platné',(await loadDrawings(db
 rows.set('u1|BAD2','{nejson');check('úložiště: neplatný JSON → []',(await loadDrawings(db,'u1','BAD2')).length===0);
 await saveDrawings(db,'u1','EUR/USD',[],T);
 check('úložiště: prázdný seznam smaže řádek',!rows.has('u1|EUR/USD'));
+// Fibonacci extension, Andrewsovy vidle, Gannova mřížka
+check('nové nástroje: počty bodů',['fibext','pitchfork'].every(t=>parseDrawings([mk(t,3)]).ok&&!parseDrawings([mk(t,2)]).ok)&&parseDrawings([mk('gann',2)]).ok&&!parseDrawings([mk('gann',3)]).ok);
+const fe=fibExtLevels({t:0,p:100},{t:1,p:200},{t:2,p:150});
+check('extension: hladiny 0 … 2,618',FIB_EXT_LEVELS.join()==='0,0.618,1,1.272,1.618,2,2.618'&&fe.length===7,fe);
+check('extension: c + (b − a) × úroveň',fe[0].price===150&&fe[2].price===250&&Math.abs(fe[1].price-211.8)<1e-9&&Math.abs(fe[4].price-311.8)<1e-9&&Math.abs(fe[6].price-411.8)<1e-9,fe);
+const feDown=fibExtLevels({t:0,p:200},{t:1,p:100},{t:2,p:150});
+check('extension: sestupný impuls',feDown[2].price===50&&Math.abs(feDown[3].price-22.8)<1e-9,feDown);
+check('extension: rozsah hladin',fibExtSpan({x:0,y:0},{x:100,y:0},{x:150,y:0},500,false,false).join()==='150,250'&&fibExtSpan({x:0,y:0},{x:10,y:0},{x:150,y:0},500,false,true).join()==='150,500'&&fibExtSpan({x:0,y:0},{x:10,y:0},{x:150,y:0},500,true,false).join()==='0,190');
+const pf=pitchfork({x:0,y:50},{x:100,y:0},{x:100,y:100});
+check('vidle: medián přes střed b–c',pf.m.x===100&&pf.m.y===50&&pf.mid[1].x===100&&pf.mid[1].y===50,pf);
+check('vidle: rovnoběžky přes b a c',pf.upper[0].y===0&&pf.upper[1].x===200&&pf.upper[1].y===0&&pf.lower[1].x===200&&pf.lower[1].y===100,pf);
+const pf2=pitchfork({x:0,y:0},{x:10,y:10},{x:10,y:30});
+check('vidle: šikmý medián – stejný směr všech tří',pf2.m.y===20&&pf2.upper[1].x===20&&pf2.upper[1].y===30&&pf2.lower[1].y===50,pf2);
+const pfs={type:'pitchfork',pts:[{x:0,y:50},{x:100,y:0},{x:100,y:100}],extR:true};
+check('zásah: vidle – medián, rovnoběžka, prodloužení',hitShape(pfs,{x:150,y:51},300,300)?.part==='body'&&hitShape(pfs,{x:250,y:2},300,300)?.part==='body'&&hitShape({...pfs,extR:false},{x:250,y:2},300,300)===null&&hitShape(pfs,{x:150,y:25},300,300)===null);
+check('zásah: vidle – úchyty',hitShape(pfs,{x:101,y:99},300,300)?.index===2);
+const gg=gannGrid({x:0,y:0},{x:100,y:200});
+check('Gann: dělení po čtvrtinách',gg.xs.join()==='0,25,50,75,100'&&gg.ys.join()==='0,50,100,150,200',gg);
+check('Gann: úhlopříčky',gg.diag.length===2&&gg.diag[0][1].x===100&&gg.diag[0][1].y===200&&gg.diag[1][0].y===200&&gg.diag[1][1].x===100&&gg.diag[1][1].y===0,gg.diag);
+check('Gann: obrácené rohy',gannGrid({x:100,y:200},{x:0,y:0}).xs.join()==='100,75,50,25,0');
+check('zásah: Gann uvnitř a mimo',hitShape({type:'gann',pts:[{x:10,y:10},{x:60,y:40}]},{x:30,y:25},200,200)?.part==='body'&&hitShape({type:'gann',pts:[{x:10,y:10},{x:60,y:40}]},{x:90,y:25},200,200)===null);
+const fes={type:'fibext',pts:[{x:0,y:100},{x:50,y:0},{x:80,y:50}],levels:[50,-11.8,-50]};
+check('zásah: extension hladina a spojnice',hitShape(fes,{x:110,y:51},300,300)?.part==='body'&&hitShape(fes,{x:25,y:52},300,300)?.part==='body'&&hitShape(fes,{x:200,y:50},300,300)===null);
+check('styl: vidle prodloužené doprava, schopnosti',styleOf({type:'pitchfork',color:'brand'}).extR&&capsOf('pitchfork').extend&&capsOf('fibext').fill&&capsOf('gann').fill&&!capsOf('gann').extend&&capsOf('gann').line);
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

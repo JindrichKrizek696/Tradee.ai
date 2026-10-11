@@ -1,7 +1,7 @@
 // Kreslení v grafu trhu: typy, validace, styl, Fibonacci, měření, pozice, dotyk ceny, zjednodušení tahu, přichytávání a geometrie pro výběr. Čisté funkce – testy scripts/check-drawings.mjs.
 // Kotvy jsou {t: ms UTC, p: cena}; graf pracuje v „čase grafu“ (sekundy posunuté na pražský čas) a v logických indexech svíček.
 import {pragueOffsetMs} from '../journal/format.ts';
-export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange'] as const;
+export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann'] as const;
 export type DrawType=typeof DRAW_TYPES[number];
 export const DRAW_COLORS=['brand','bull','bear','amber','muted','fg'] as const;
 export type DrawColor=typeof DRAW_COLORS[number];
@@ -23,11 +23,13 @@ export type DrawStyle={
 export type Drawing={id:string;type:DrawType;a:Anchor[];color:DrawColor;text?:string;ray?:boolean;s?:DrawStyle;tfs?:string[]};
 export const MAX_DRAWINGS=200,MAX_TEXT=200,MAX_POINTS=300,MAX_PATH=100,MAX_TOTAL_POINTS=20000;
 // počet kotev: pevný, nebo rozsah [min,max] (lomená čára, štětec)
-export const ANCHORS:Record<DrawType,number|[number,number]>={trend:2,hline:1,rect:2,fib:2,text:1,measure:2,ray:2,hray:1,touch:1,path:[2,MAX_PATH],brush:[2,MAX_POINTS],channel:3,long:3,short:3,prange:2,trange:2};
+export const ANCHORS:Record<DrawType,number|[number,number]>={trend:2,hline:1,rect:2,fib:2,text:1,measure:2,ray:2,hray:1,touch:1,path:[2,MAX_PATH],brush:[2,MAX_POINTS],channel:3,long:3,short:3,prange:2,trange:2,fibext:3,pitchfork:3,gann:2};
 export const anchorRange=(t:DrawType):[number,number]=>{const n=ANCHORS[t];return typeof n==='number'?[n,n]:n};
-export const DRAW_LABELS:Record<DrawType,string>={trend:'Trendová čára',hline:'Horizontála',rect:'Obdélník / zóna',fib:'Fibonacci',text:'Text',measure:'Měření',ray:'Paprsek',hray:'Horizontální paprsek',touch:'Úroveň do dotyku',path:'Lomená čára',brush:'Štětec',channel:'Paralelní kanál',long:'Long pozice',short:'Short pozice',prange:'Cenový rozsah',trange:'Časový rozsah'};
+export const DRAW_LABELS:Record<DrawType,string>={trend:'Trendová čára',hline:'Horizontála',rect:'Obdélník / zóna',fib:'Fibonacci',text:'Text',measure:'Měření',ray:'Paprsek',hray:'Horizontální paprsek',touch:'Úroveň do dotyku',path:'Lomená čára',brush:'Štětec',channel:'Paralelní kanál',long:'Long pozice',short:'Short pozice',prange:'Cenový rozsah',trange:'Časový rozsah',fibext:'Fibonacci extension',pitchfork:'Andrewsovy vidle',gann:'Gannova mřížka'};
 export const COLOR_LABELS:Record<DrawColor,string>={brand:'Modrá',bull:'Zelená',bear:'Červená',amber:'Oranžová',muted:'Šedá',fg:'Text'};
 export const FIB_LEVELS=[0,.236,.382,.5,.618,.786,1];
+export const FIB_EXT_LEVELS=[0,.618,1,1.272,1.618,2,2.618];
+export const GANN_DIV=[0,.25,.5,.75,1];
 // časové rámce: dnešní i budoucí (M5, M15, H1, H4, D1, W1, MN)
 const TF_RE=/^(?:[MHDW]\d{1,2}|MN)$/;
 const ID=/^[A-Za-z0-9_-]{1,40}$/;
@@ -37,13 +39,13 @@ const anchorOk=(a:unknown):a is Anchor=>!!a&&typeof a==='object'&&num((a as Anch
 
 // --- schopnosti stylu podle typu (co nabídnout v panelu) ---
 export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean};
-const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange'];
+const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange','fibext','pitchfork','gann'];
 export function capsOf(t:DrawType):Caps{
  return {
   line:LINEISH.includes(t)||t==='rect'||t==='long'||t==='short',
-  fill:['rect','channel','fib','text','long','short','prange','trange'].includes(t),
+  fill:['rect','channel','fib','text','long','short','prange','trange','fibext','pitchfork','gann'].includes(t),
   border:['rect','long','short','text'].includes(t),
-  extend:['trend','ray','channel','fib','rect'].includes(t),
+  extend:['trend','ray','channel','fib','rect','fibext','pitchfork'].includes(t),
   risk:t==='long'||t==='short',
  };
 }
@@ -55,7 +57,7 @@ export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
   lw:s.lw??(boxy?1:2),ls:s.ls??'solid',op:s.op??1,
   fill:s.fill??d.type!=='text',border:s.border??d.type==='rect',bc:s.bc??d.color,
   ta:s.ta??(d.type==='text'?'middle':'top'),ts:s.ts??'M',tc:s.tc??d.color,
-  extL:s.extL??false,extR:s.extR??(d.ray===true||d.type==='ray'),
+  extL:s.extL??false,extR:s.extR??(d.ray===true||d.type==='ray'||d.type==='pitchfork'),
   risk:s.risk??null,
  };
 }
@@ -148,6 +150,25 @@ export function timeOfLogical(times:number[],tfSec:number,l:number):number{
 // --- Fibonacci: 1 u prvního bodu, 0 u druhého ---
 export function fibLevels(a:Anchor,b:Anchor){return FIB_LEVELS.map(level=>({level,price:b.p+(a.p-b.p)*level}))}
 export const fibLabel=(level:number)=>level.toLocaleString('cs-CZ',{maximumFractionDigits:3});
+// --- Fibonacci extension: a→b je impuls, c bod korekce; hladina = c + (b − a) × úroveň ---
+export function fibExtLevels(a:Anchor,b:Anchor,c:Anchor){return FIB_EXT_LEVELS.map(level=>({level,price:c.p+(b.p-a.p)*level}))}
+
+// vodorovný rozsah hladin extension (px): od bodu c doprava o šířku impulsu (aspoň 40 px), volitelně k okrajům
+export function fibExtSpan(a:Pt,b:Pt,c:Pt,w:number,extL:boolean,extR:boolean):[number,number]{
+ const x0=extL?0:c.x,x1=extR?w:c.x+Math.max(40,Math.abs(b.x-a.x));
+ return [Math.min(x0,x1),Math.max(x0,x1)];
+}
+// --- Andrewsovy vidle (pixely): medián z a přes střed b–c, rovnoběžky přes b a c; vrací úsečky [začátek, konec] stejné délky jako a→střed ---
+export type Seg=[Pt,Pt];
+export function pitchfork(a:Pt,b:Pt,c:Pt):{mid:Seg;upper:Seg;lower:Seg;m:Pt}{
+ const m={x:(b.x+c.x)/2,y:(b.y+c.y)/2},dx=m.x-a.x,dy=m.y-a.y;
+ return {m,mid:[a,m],upper:[b,{x:b.x+dx,y:b.y+dy}],lower:[c,{x:c.x+dx,y:c.y+dy}]};
+}
+// --- Gannova mřížka (pixely): obdélník z rohů a, b; dělení po čtvrtinách a obě úhlopříčky ---
+export function gannGrid(a:Pt,b:Pt):{xs:number[];ys:number[];diag:Seg[]}{
+ const xs=GANN_DIV.map(k=>a.x+(b.x-a.x)*k),ys=GANN_DIV.map(k=>a.y+(b.y-a.y)*k);
+ return {xs,ys,diag:[[a,b],[{x:a.x,y:b.y},{x:b.x,y:a.y}]]};
+}
 
 // --- měření ---
 export type Measure={dp:number;pct:number;bars:number;ms:number};
@@ -302,6 +323,17 @@ export function hitShape(s:Shape,p:Pt,w:number,h:number,tol=6):Hit|null{
    return body((s.levels||[]).some(y=>Math.abs(p.y-y)<=tol));
   }
   case 'text':return body(!!s.box&&inBox(p,s.box,tol));
+  case 'fibext':{
+   const c=s.pts[2]??b,[x0,x1]=fibExtSpan(a,b,c,w,extL,extR);
+   if(seg(a,b)||seg(b,c))return {part:'body'};
+   if(p.x<x0-tol||p.x>x1+tol)return null;
+   return body((s.levels||[]).some(y=>Math.abs(p.y-y)<=tol));
+  }
+  case 'pitchfork':{
+   const f=pitchfork(a,b,s.pts[2]??b),ln=(g:Seg)=>{const [x,y]=extendSeg(g[0],g[1],w,h,extL,extR);return seg(x,y)};
+   return body(ln(f.mid)||ln(f.upper)||ln(f.lower)||seg(b,s.pts[2]??b));
+  }
+  case 'gann':return body(inBox(p,rectOf(a,b),tol));
  }
 }
 // nejvyšší zasažená kresba (poslední nakreslená je nahoře)

@@ -1,8 +1,8 @@
 'use client';
 // Kreslení v grafu trhu: nástroje ve skupinách, výběr a tažení kreseb, panel stylu, ukládání per uživatel × trh (/api/chart/drawings).
 import {useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
-import type {IChartApi,ISeriesApi,Logical} from 'lightweight-charts';
-import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff} from 'lucide-react';
+import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
+import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC} from '@/lib/chart/layers';
 import type {Tf} from '@/lib/chart/candles';
@@ -23,12 +23,13 @@ const TOOL_META:Record<DrawType,{Icon:Icon;hint:string}>={
  touch:{Icon:ArrowRightToLine,hint:'čára doprava do prvního dotyku ceny'},path:{Icon:Waypoints,hint:'body klikáním, dvojklik / Enter dokončí'},
  channel:{Icon:Equal,hint:'3 body'},fib:{Icon:AlignVerticalDistributeCenter,hint:'2 body'},rect:{Icon:RectangleHorizontal,hint:'2 rohy'},brush:{Icon:Brush,hint:'kresli tahem'},
  long:{Icon:SquareArrowUp,hint:'vstup a stop-loss'},short:{Icon:SquareArrowDown,hint:'vstup a stop-loss'},
+ fibext:{Icon:Rows4,hint:'3 body: impuls a korekce'},pitchfork:{Icon:GitFork,hint:'3 body: počátek a dva vrcholy'},gann:{Icon:Grid3x3,hint:'2 rohy'},
  measure:{Icon:Ruler,hint:'2 body, neukládá se'},prange:{Icon:MoveVertical,hint:'2 body'},trange:{Icon:MoveHorizontal,hint:'2 body'},text:{Icon:Type,hint:'1 bod'},
 };
 export const TOOL_GROUPS:{id:string;label:string;tools:DrawType[]}[]=[
  {id:'lines',label:'Čáry',tools:['trend','ray','hline','hray','touch','path']},
- {id:'channels',label:'Kanály',tools:['channel']},
- {id:'fib',label:'Fibonacci',tools:['fib']},
+ {id:'channels',label:'Kanály a vidle',tools:['channel','pitchfork']},
+ {id:'fib',label:'Fibonacci a Gann',tools:['fib','fibext','gann']},
  {id:'shapes',label:'Tvary',tools:['rect','brush']},
  {id:'pos',label:'Pozice',tools:['long','short']},
  {id:'measure',label:'Měření',tools:['measure','prange','trange']},
@@ -37,8 +38,8 @@ export const TOOL_GROUPS:{id:string;label:string;tools:DrawType[]}[]=[
 const LAST_KEY='tradee.chart.tools';
 const TF_LIST=Object.keys(TF_SEC) as Tf[];
 const ONE_CLICK=new Set<DrawType>(['hline','hray','touch']);
-const needOf=(t:DrawType)=>t==='path'?MAX_PATH:t==='channel'?3:2;
-const drawHint=(t:DrawType)=>ONE_CLICK.has(t)||t==='text'?'klikni do grafu':t==='brush'?'kresli tahem myši nebo prstu':t==='path'?'klikej body, dvojklik nebo Enter dokončí':t==='channel'?'klikni dva body čáry a třetí pro šířku kanálu':t==='long'||t==='short'?'klikni vstup a pak stop-loss (nebo táhni), cíl se nastaví na R:R 2':'klikni na dva body (nebo táhni)';
+const needOf=(t:DrawType)=>t==='path'?MAX_PATH:t==='channel'||t==='fibext'||t==='pitchfork'?3:2;
+const drawHint=(t:DrawType)=>ONE_CLICK.has(t)||t==='text'?'klikni do grafu':t==='brush'?'kresli tahem myši nebo prstu':t==='path'?'klikej body, dvojklik nebo Enter dokončí':t==='channel'?'klikni dva body čáry a třetí pro šířku kanálu':t==='fibext'?'klikni začátek a konec impulsu a pak bod korekce':t==='pitchfork'?'klikni počátek a pak dva vrcholy (horní a dolní)':t==='gann'?'klikni dva protilehlé rohy (nebo táhni)':t==='long'||t==='short'?'klikni vstup a pak stop-loss (nebo táhni), cíl se nastaví na R:R 2':'klikni na dva body (nebo táhni)';
 const SAVE_TEXT:Record<Exclude<Save,'idle'>,string>={saving:'Ukládám kresby…',saved:'Uloženo',error:'Kresby se nepodařilo uložit',loaderror:'Kresby se nepodařilo načíst'};
 const css=(name:string,fallback:string)=>getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback;
 // barvu z CSS (i color-mix, var) převést na #rrggbb / rgba() přes plátno, aby šla průhlednost
@@ -47,7 +48,7 @@ function norm(c:string,fallback:string){try{probe??=document.createElement('canv
 const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 const touchLabel=(sec:number,tf:Tf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
 
-export function useChartDrawings({chart,series,el,bars,tf,instrument,tick}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<'Candlestick'>|null>;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:Tf;instrument:string;tick:number}){
+export function useChartDrawings({chart,series,ver,el,bars,tf,instrument,tick}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<SeriesType>|null>;ver:number;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:Tf;instrument:string;tick:number}){
  const [tool,setTool]=useState<Tool>('cursor');
  const [drawings,setDrawings]=useState<Drawing[]>([]),[temp,setTemp]=useState<Drawing|null>(null),[selected,setSelected]=useState<string|null>(null);
  const [magnet,setMagnet]=useState(false),[color,setColor]=useState<DrawColor>('brand');
@@ -94,7 +95,7 @@ export function useChartDrawings({chart,series,el,bars,tf,instrument,tick}:{char
  const freeAt=(p:Pt):Anchor|null=>{const r=raw(p);return r?{t:Math.round(conv.fromL(r.l)),p:r.p}:null};
 
  // připojení primitiva k sérii svíček
- useEffect(()=>{const s=series.current,pr=prim;s?.attachPrimitive(pr);return()=>{try{s?.detachPrimitive(pr)}catch{}}},[series]);
+ useEffect(()=>{const s=series.current,pr=prim;s?.attachPrimitive(pr);pr.update();return()=>{try{s?.detachPrimitive(pr)}catch{}}},[series,ver]);
  useEffect(()=>{const pr=prim;pr.drawings=drawings;pr.temp=temp;pr.selected=selected;pr.tf=tf;pr.update()},[drawings,temp,selected,times,tf]);
  // po přepnutí TF zrušit výběr kresby, která na něm není vidět
  useEffect(()=>{setSelected(id=>{const d=id?S.current.drawings.find(x=>x.id===id):null;return d&&!visibleOn(d,tf)?null:id})},[tf]);

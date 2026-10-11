@@ -1,6 +1,7 @@
 // Kontrola dat grafu: node --experimental-strip-types scripts/check-chart.mjs
 import {parseYahoo,toH4,stale,TF_SOURCE} from '../lib/chart/candles.ts';
 import {getCandles} from '../lib/chart/store.ts';
+import {heikinAshi,seriesData,isChartType,CHART_TYPES} from '../lib/chart/chart-types.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const t0=Date.UTC(2026,9,9,0,0)/1000;
@@ -65,4 +66,15 @@ check('layers: pás skóre schodovitě, mezera před prvním snímkem',sb[2].val
 const ses=sessionBands(times,.1);
 check('layers: seance podle pražské hodiny',ses[3].color===withAlpha('#f59e0b',.1)&&ses[9].color===withAlpha('#3b82f6',.1)&&ses[14].color===withAlpha('#8b5cf6',.1)&&ses[18].color===withAlpha('#10b981',.1)&&ses[23].value===undefined,ses.map(s=>s.color));
 check('layers: alfa barvy',withAlpha('#abc',.5)==='rgba(170,187,204,0.5)'&&withAlpha('rgb(1, 2, 3)',.2)==='rgba(1,2,3,0.2)',null);}
+// typy grafu a Heikin-Ashi
+const hb=[{time:1,open:10,high:12,low:9,close:11},{time:2,open:11,high:14,low:10,close:13},{time:3,open:13,high:13.5,low:8,close:9}];
+const ha=heikinAshi(hb);
+check('HA: první svíčka',ha[0].open===10.5&&ha[0].close===10.5&&ha[0].high===12&&ha[0].low===9,ha[0]);
+check('HA: open z předchozí HA svíčky',ha[1].open===10.5&&ha[1].close===12&&ha[1].high===14&&ha[1].low===10,ha[1]);
+check('HA: high/low zahrnují HA open',ha[2].open===11.25&&ha[2].close===10.875&&ha[2].high===13.5&&ha[2].low===8&&ha[2].time===3,ha[2]);
+check('HA: high ≥ max(open,close), low ≤ min',heikinAshi([{time:1,open:5,high:5,low:5,close:5},{time:2,open:1,high:1.2,low:0.9,close:1}]).every(b=>b.high>=Math.max(b.open,b.close)&&b.low<=Math.min(b.open,b.close)));
+check('HA: prázdný vstup',heikinAshi([]).length===0);
+check('typy: čára a plocha jen close',seriesData(hb,'line')[1].value===13&&!('open' in seriesData(hb,'area')[0]));
+check('typy: svíčky beze změny, HA přepočteno',seriesData(hb,'candles')[2].close===9&&seriesData(hb,'bars')[0].open===10&&seriesData(hb,'ha')[1].close===12);
+check('typy: seznam a validace',CHART_TYPES.length===6&&isChartType('hollow')&&!isChartType('footprint')&&!isChartType(5));
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

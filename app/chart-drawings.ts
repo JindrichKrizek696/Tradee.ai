@@ -1,7 +1,7 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,hasHandles,hitTest,positionLines,styleOf,visibleOn,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,positionLines,styleOf,visibleOn,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 
 export type DrawPalette=Record<DrawColor,string>&{bg:string;text:string};
@@ -61,6 +61,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
   const pts=d.a.map(a=>this.env.project(a));if(pts.some(p=>!p))return null;
   const P=pts as Pt[],s:Shape={type:d.type,pts:P,ray:d.ray,extL:st.extL,extR:st.extR};
   if(d.type==='fib')s.levels=fibLevels(d.a[0],d.a[1]).map(l=>this.env.project({t:d.a[0].t,p:l.price})?.y??NaN);
+  if(d.type==='fibext')s.levels=fibExtLevels(d.a[0],d.a[1],d.a[2]??d.a[1]).map(l=>this.env.project({t:d.a[0].t,p:l.price})?.y??NaN);
   if(d.type==='touch'){const t=this.env.touch(d);s.touchX=t.x??w}
   if(d.type==='text'){
    ctx.font=this.font(st);const px=TEXT_PX[st.ts],tw=ctx.measureText(d.text||'').width+8,bh=px+10;
@@ -83,7 +84,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
   }else{
    let xs=s.pts.map(p=>p.x),ys=s.pts.map(p=>p.y);
    if(d.type==='channel'){const off=channelOffset(a,b,s.pts[2]??b);xs=[a.x,b.x];ys=[a.y,b.y,a.y+off,b.y+off]}
-   if(d.type==='fib'&&s.levels)ys=s.levels.filter(Number.isFinite);
+   if((d.type==='fib'||d.type==='fibext')&&s.levels)ys=s.levels.filter(Number.isFinite);
    cx=(Math.min(...xs)+Math.max(...xs))/2;top=Math.min(...ys);bottom=Math.max(...ys);
   }
   const y=st.ta==='top'?top-bh-4:st.ta==='bottom'?bottom+4:(top+bottom)/2-bh/2;
@@ -147,6 +148,35 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
      ctx.fillStyle=c;label(fibLabel(lv[i].level)+' ('+this.env.price(lv[i].price)+')',Math.min(a.x,b.x)+4,y-2);
     }
     ctx.save();ctx.setLineDash([4,4]);ctx.lineWidth=1;ctx.globalAlpha=st.op*.6;line(a,b);ctx.restore();
+    break;
+   }
+   case 'fibext':{
+    const c3=shape.pts[2]??b,[x0,x1]=fibExtSpan(a,b,c3,w,st.extL,st.extR),lv=fibExtLevels(d.a[0],d.a[1],d.a[2]??d.a[1]),ys=shape.levels||[];
+    ctx.lineWidth=Math.max(1,st.lw-1+(sel?.5:0));
+    for(let i=0;i<lv.length;i++){const y=ys[i];if(!Number.isFinite(y))continue;
+     if(st.fill&&i<lv.length-1&&Number.isFinite(ys[i+1])){ctx.fillStyle=withAlpha(c,i%2?.05:.09);ctx.fillRect(x0,Math.min(y,ys[i+1]),x1-x0,Math.abs(ys[i+1]-y))}
+     ctx.strokeStyle=c;line({x:x0,y},{x:x1,y});
+     ctx.fillStyle=c;label(fibLabel(lv[i].level)+' ('+this.env.price(lv[i].price)+')',Math.max(x0,Math.min(c3.x,x1))+4,y-2);
+    }
+    ctx.save();ctx.setLineDash([4,4]);ctx.lineWidth=1;ctx.globalAlpha=st.op*.6;line(a,b);line(b,c3);ctx.restore();
+    break;
+   }
+   case 'pitchfork':{
+    const c3=shape.pts[2]??b,f=pitchfork(a,b,c3),ext=(g:[Pt,Pt])=>extendSeg(g[0],g[1],w,h,st.extL,st.extR);
+    const [u0,u1]=ext(f.upper),[l0,l1]=ext(f.lower),[m0,m1]=ext(f.mid);
+    if(st.fill){ctx.fillStyle=withAlpha(c,.08);ctx.beginPath();ctx.moveTo(u0.x,u0.y);ctx.lineTo(u1.x,u1.y);ctx.lineTo(l1.x,l1.y);ctx.lineTo(l0.x,l0.y);ctx.closePath();ctx.fill()}
+    line(m0,m1);line(u0,u1);line(l0,l1);
+    ctx.save();ctx.globalAlpha=st.op*.6;ctx.lineWidth=1;ctx.setLineDash([4,4]);line(b,c3);ctx.restore();
+    break;
+   }
+   case 'gann':{
+    const g=gannGrid(a,b),x0=Math.min(a.x,b.x),y0=Math.min(a.y,b.y),gw=Math.abs(b.x-a.x),gh=Math.abs(b.y-a.y);
+    if(st.fill){ctx.fillStyle=withAlpha(c,.07);ctx.fillRect(x0,y0,gw,gh)}
+    ctx.save();ctx.lineWidth=1;ctx.globalAlpha=st.op*.55;
+    for(let i=1;i<GANN_DIV.length-1;i++){line({x:g.xs[i],y:a.y},{x:g.xs[i],y:b.y});line({x:a.x,y:g.ys[i]},{x:b.x,y:g.ys[i]})}
+    ctx.restore();
+    ctx.strokeRect(x0,y0,gw,gh);for(const [p,q] of g.diag)line(p,q);
+    if(gw>80&&gh>40){ctx.font=FONT;ctx.fillStyle=c;for(let i=1;i<GANN_DIV.length-1;i++)label(fibLabel(GANN_DIV[i]),Math.max(a.x,b.x)+4,g.ys[i]+4,'left','middle')}
     break;
    }
    case 'text':{
