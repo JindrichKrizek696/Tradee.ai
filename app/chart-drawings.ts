@@ -52,8 +52,10 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  // zásah pro kurzor knihovny (ruka/posun); výběr a tažení řeší komponenta přes hit()
  hitTest(x:number,y:number):PrimitiveHoveredItem|null{
   const h=this.hit({x,y},6);if(!h)return null;
-  return {externalId:'d:'+h.id,zOrder:'top',cursorStyle:h.hit.part==='handle'?'grab':'move',itemType:'primitive'};
+  return {externalId:'d:'+h.id,zOrder:'top',cursorStyle:h.hit.part==='handle'?'grab':this.rrAt({x,y})===h.id?'pointer':'move',itemType:'primitive'};
  }
+ // klik na popisek R:R pozice (otevře zadání R:R v panelu stylu)
+ rrAt(p:Pt){for(let i=this.items.length-1;i>=0;i--){const b=this.items[i].shape.rrBox;if(b&&p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)return this.items[i].id}return null}
  hit(p:Pt,tol:number){return hitTest(this.items.filter(i=>i.id!==this.draft?.id).map(i=>({id:i.id,shape:i.shape})),p,this.size.w,this.size.h,tol)}
 
  private font(st:FullStyle,bold=true){return (bold?'600 ':'')+TEXT_PX[st.ts]+'px '+FAMILY}
@@ -112,7 +114,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
    ctx.setLineDash([]);ctx.font=FONT;const lh=16,lwid=Math.max(...lines.map(l=>ctx.measureText(l).width))+16,bh=lines.length*lh+6;
    const lx=Math.max(2,Math.min(w-lwid-2,cx-lwid/2)),ly=Math.max(2,Math.min(h-bh-2,y));
    ctx.fillStyle=tone;pill(ctx,lx,ly,lwid,bh);ctx.fill();ctx.fillStyle=ink(tone);lines.forEach((l,i)=>label(l,lx+lwid/2,ly+3+lh*(i+1)-3,'center','bottom'));
-   return bh;
+   return {x:lx,y:ly,w:lwid,h:bh};
   };
   switch(d.type){
    case 'trend':case 'ray':{const [p,q]=extendSeg(a,b,w,h,st.extL,st.extR);line(p,q);break}
@@ -195,7 +197,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     zone(a.y,tp.y,P.bull);zone(a.y,sl.y,P.bear);
     ctx.setLineDash([]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.5,lw);line({x:x0,y:a.y},{x:x1,y:a.y});
     const L=positionLines(d.type,d.a,this.env.price,st.risk),cx=(x0+x1)/2,up=tp.y<a.y;
-    tag([L.tp],cx,up?tp.y+4:tp.y-26,P.bull);tag([L.sl],cx,up?sl.y-26:sl.y+4,P.bear);tag([L.mid],cx,a.y-11,c);
+    tag([L.tp],cx,up?tp.y+4:tp.y-26,P.bull);tag([L.sl],cx,up?sl.y-26:sl.y+4,P.bear);shape.rrBox=tag([L.mid],cx,a.y-11,c);
     break;
    }
    case 'prange':case 'trange':case 'measure':{

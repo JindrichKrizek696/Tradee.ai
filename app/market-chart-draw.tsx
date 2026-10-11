@@ -2,17 +2,17 @@
 // Kreslení v grafu trhu: nástroje ve skupinách, výběr a tažení kreseb, panel stylu, ukládání per uživatel × trh (/api/chart/drawings).
 import {useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
-import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4} from 'lucide-react';
+import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,emptyHistory,record,redoStep,rrOf,undoStep,withRR,type History,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
 export type Tool='cursor'|DrawType;
 type Bar={time:number;open:number;high:number;low:number;close:number};
 type Save='idle'|'saving'|'saved'|'error'|'loaderror';
-type Drag={id:string;temp:boolean;part:'body'|'handle';index:number;start:{l:number;p:number};orig:Drawing;cur:Drawing|null;x:number;y:number};
+type Drag={id:string;temp:boolean;part:'body'|'handle';index:number;start:{l:number;p:number};orig:Drawing;cur:Drawing|null;x:number;y:number;rr:boolean};
 // rozkreslená kresba: pevné body + poslední bod, který sleduje kurzor; štětec sbírá body tahu
 type Draft={id:string;type:DrawType;color:DrawColor;pts:Anchor[];fixed:number;need:number;x:number;y:number;placed:boolean;lastDown:number;px?:Pt[]};
 type Edit={x:number;y:number;anchor:Anchor;id?:string;text:string};
@@ -43,6 +43,10 @@ const css=(name:string,fallback:string)=>getComputedStyle(document.documentEleme
 // barvu z CSS (i color-mix, var) převést na #rrggbb / rgba() přes plátno, aby šla průhlednost
 let probe:CanvasRenderingContext2D|null=null;
 function norm(c:string,fallback:string){try{probe??=document.createElement('canvas').getContext('2d');if(!probe)return c;probe.fillStyle=fallback;probe.fillStyle=c;return String(probe.fillStyle)}catch{return c}}
+const MAC=typeof navigator!=='undefined'&&/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
+const UNDO_KEY=MAC?'⌘Z':'Ctrl+Z',REDO_KEY=MAC?'⇧⌘Z':'Ctrl+Y';
+const RR_CHIPS=[1,1.5,2,3];
+const fmtRR=(v:number)=>String(Math.round(v*100)/100);
 const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 const touchLabel=(sec:number,tf:ChartTf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'||tf==='W1'||tf==='MN'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
 
@@ -61,6 +65,9 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const draft=useRef<Draft|null>(null),drag=useRef<Drag|null>(null);
  const dirty=useRef(false),loaded=useRef<string|null>(null),pending=useRef<{instrument:string;drawings:Drawing[]}|null>(null);
  const menuRef=useRef<HTMLDivElement>(null);
+ // historie úprav kreseb aktuálního trhu (Zpět / Znovu); group slučuje rychlé změny jednoho pole (psaní, posuvník) do jednoho kroku
+ const hist=useRef<History<Drawing[]>>(emptyHistory()),lastGroup=useRef<{g:string;at:number}|null>(null);
+ const [undoVer,setUndoVer]=useState(0),[canHist,setCanHist]=useState({undo:false,redo:false}),[rrFocus,setRrFocus]=useState<{id:string;n:number}|null>(null);
 
  // převody čas/cena ↔ pixely (logické indexy; mezi svíčkami a mimo rozsah interpolace po TF) a primitivum kreseb
  const [{conv,prim}]=useState(()=>{
@@ -108,7 +115,16 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  // poslední nástroj ve skupině (pamatuje si prohlížeč)
  useEffect(()=>{try{const v=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(v&&typeof v==='object')setLast(old=>({...old,...Object.fromEntries(TOOL_GROUPS.flatMap(g=>typeof v[g.id]==='string'&&g.tools.includes(v[g.id])?[[g.id,v[g.id] as DrawType]]:[]))}))}catch{}},[]);
 
- const commit=(next:Drawing[])=>{dirty.current=true;setDrawings(next)};
+ const commit=(next:Drawing[],group?:string)=>{
+  const now=Date.now(),lg=lastGroup.current;
+  if(!(group&&lg&&lg.g===group&&now-lg.at<1500))setHist(record(hist.current,S.current.drawings));
+  lastGroup.current=group?{g:group,at:now}:null;
+  dirty.current=true;setDrawings(next);
+ };
+ const setHist=(h:History<Drawing[]>)=>{hist.current=h;setCanHist(c=>c.undo===h.past.length>0&&c.redo===h.future.length>0?c:{undo:h.past.length>0,redo:h.future.length>0})};
+ const restore=(v:Drawing[])=>{lastGroup.current=null;dirty.current=true;setDrawings(v);setUndoVer(n=>n+1);setSelected(id=>id&&(v.some(d=>d.id===id)||S.current.temp?.id===id)?id:null)};
+ const undo=()=>{if(drag.current||draft.current)cancel();const r=undoStep(hist.current,S.current.drawings);if(!r)return;setHist(r.h);restore(r.value)};
+ const redo=()=>{if(drag.current||draft.current)cancel();const r=redoStep(hist.current,S.current.drawings);if(!r)return;setHist(r.h);restore(r.value)};
  const build=(dr:Draft):Drawing=>({id:dr.id,type:dr.type,color:dr.color,a:(dr.type==='long'||dr.type==='short')?positionFrom(dr.type,dr.pts[0],dr.pts[1]??dr.pts[0]):dr.pts});
  const finish=(d:Drawing)=>{
   draft.current=null;prim.draft=null;setTool('cursor');
@@ -170,7 +186,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
     stop(e);const isTemp=st.temp?.id===h.id,orig=isTemp?st.temp:st.drawings.find(d=>d.id===h.id);const r=raw(p);
     if(!orig||!r)return;
     if(st.selected!==h.id)setSelected(h.id);
-    drag.current={id:h.id,temp:isTemp,part:h.hit.part,index:h.hit.part==='handle'?h.hit.index:0,start:r,orig,cur:null,x:p.x,y:p.y};
+    drag.current={id:h.id,temp:isTemp,part:h.hit.part,index:h.hit.part==='handle'?h.hit.index:0,start:r,orig,cur:null,x:p.x,y:p.y,rr:h.hit.part==='body'&&prim.rrAt(p)===h.id};
     return;
    }
    if(st.selected!==null)setSelected(null);
@@ -201,6 +217,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(dr){if(dr.type==='brush')finishBrush();else if(dr.placed){const p=point(e);if(p)advance(dr,p,shiftOf(e))}return}
    const g=drag.current;if(!g)return;drag.current=null;
    if(g.cur){if(g.temp)setTemp(g.cur);else commit(S.current.drawings.map(d=>d.id===g.id?g.cur!:d))}
+   // klik (bez tažení) na popisek R:R otevře panel stylu se zadáním R:R
+   else if(g.rr&&!g.temp){setStyleOpen(true);setRrFocus({id:g.id,n:Date.now()})}
   }
   const opt={capture:true,passive:false} as const;
   box.addEventListener('mousedown',down,opt);box.addEventListener('touchstart',down,opt);
@@ -215,6 +233,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  useEffect(()=>{
   const key=(e:KeyboardEvent)=>{
    if(editable(e.target))return;const st=S.current;
+   const mod=e.metaKey||e.ctrlKey,k=e.key.toLowerCase();
+   if(mod&&!e.altKey&&(k==='z'||(k==='y'&&e.ctrlKey&&!e.metaKey))){e.preventDefault();if(k==='y'||e.shiftKey)redo();else undo();return}
    if(e.key==='Enter'&&draft.current?.type==='path'){e.preventDefault();finishPath()}
    else if(e.key==='Escape'&&(st.tool!=='cursor'||draft.current||drag.current||st.selected||st.temp)){cancel();setSelected(null);setTemp(null)}
    else if((e.key==='Delete'||e.key==='Backspace')&&st.selected){e.preventDefault();remove(st.selected)}
@@ -236,7 +256,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  };
  const flush=()=>{if(pending.current)send(pending.current,true)};
  useEffect(()=>{
-  const ac=new AbortController();loaded.current=null;dirty.current=false;
+  const ac=new AbortController();loaded.current=null;dirty.current=false;setHist(emptyHistory());lastGroup.current=null;
   setDrawings([]);setTemp(null);setSelected(null);setEdit(null);setSave('idle');cancel();
   fetch('/api/chart/drawings?instrument='+encodeURIComponent(instrument),{signal:ac.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{drawings?:unknown}>:Promise.reject()).then(j=>{
    const r=parseDrawings(j.drawings??[]);loaded.current=instrument;
@@ -268,8 +288,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
 
  // úpravy vybrané kresby
  const current=selected?(temp?.id===selected?temp:drawings.find(d=>d.id===selected))??null:null;
- const patch=(p:Partial<Drawing>)=>{if(!current)return;const next={...current,...p};for(const k of Object.keys(next))if((next as Record<string,unknown>)[k]===undefined)delete (next as Record<string,unknown>)[k];if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d))};
- const patchStyle=(p:Partial<DrawStyle>)=>{if(!current)return;const s:DrawStyle={...current.s,...p};for(const k of Object.keys(s))if((s as Record<string,unknown>)[k]===undefined)delete (s as Record<string,unknown>)[k];patch({s:Object.keys(s).length?s:undefined})};
+ const patch=(p:Partial<Drawing>,group?:string)=>{if(!current)return;const next={...current,...p};for(const k of Object.keys(next))if((next as Record<string,unknown>)[k]===undefined)delete (next as Record<string,unknown>)[k];if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d),group&&group+':'+current.id)};
+ const patchStyle=(p:Partial<DrawStyle>,group?:string)=>{if(!current)return;const s:DrawStyle={...current.s,...p};for(const k of Object.keys(s))if((s as Record<string,unknown>)[k]===undefined)delete (s as Record<string,unknown>)[k];patch({s:Object.keys(s).length?s:undefined},group)};
  const pickColor=(c:DrawColor)=>{setColor(c);patch({color:c})};
  const pin=()=>{if(!temp)return;if(drawings.length>=MAX_DRAWINGS){setSave('error');setSaveError(`Na jednom trhu může být nejvýš ${MAX_DRAWINGS} kreseb.`);return}commit([...drawings,temp]);setTemp(null)};
  const saveText=(text:string)=>{
@@ -278,7 +298,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   if(!v)return;if(drawings.length>=MAX_DRAWINGS){setSave('error');setSaveError(`Na jednom trhu může být nejvýš ${MAX_DRAWINGS} kreseb.`);return}
   const d:Drawing={id:newId(),type:'text',a:[e.anchor],color,text:v};commit([...drawings,d]);setSelected(d.id);
  };
- const clearAll=()=>{if(!drawings.length&&!temp)return;if(!window.confirm(`Smazat všechny kresby na tomto trhu (${drawings.length})? Tuto akci nelze vrátit.`))return;setTemp(null);setSelected(null);commit([])};
+ const clearAll=()=>{if(!drawings.length&&!temp)return;if(!window.confirm(`Smazat všechny kresby na tomto trhu (${drawings.length})? Vrátit je půjde tlačítkem Zpět (${UNDO_KEY}).`))return;setTemp(null);setSelected(null);commit([])};
  const pickTool=(t:Tool)=>{
   cancel();setEdit(null);setMenu(null);setTool(t===tool&&t!=='cursor'?'cursor':t);
   if(t!=='cursor'){setSelected(null);setTemp(null);const g=TOOL_GROUPS.find(x=>x.tools.includes(t));
@@ -301,6 +321,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   })}
   <span className="mc-tool-sep" aria-hidden/>
   <button type="button" className={'mc-tool'+(magnet?' on':'')} aria-pressed={magnet} aria-label="Magnet" data-tip={'Magnet · přichytit k O/H/L/C svíčky'+(magnet?' (zapnuto)':'')} onClick={()=>setMagnet(m=>!m)}><Magnet size={17} strokeWidth={1.8} aria-hidden/></button>
+  <button type="button" className="mc-tool" aria-label="Zpět" aria-keyshortcuts="Control+Z Meta+Z" data-tip={'Zpět · '+UNDO_KEY} disabled={!canHist.undo} onClick={undo}><Undo2 size={17} strokeWidth={1.8} aria-hidden/></button>
+  <button type="button" className="mc-tool" aria-label="Znovu" aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z" data-tip={'Znovu · '+REDO_KEY} disabled={!canHist.redo} onClick={redo}><Redo2 size={17} strokeWidth={1.8} aria-hidden/></button>
   <button type="button" className="mc-tool" aria-label="Smazat vše" data-tip="Smazat všechny kresby na trhu" disabled={!drawings.length&&!temp} onClick={clearAll}><Eraser size={17} strokeWidth={1.8} aria-hidden/></button>
   {menu&&menuGroup&&<div ref={menuRef} className="mc-menu" role="menu" aria-label={menuGroup.label} style={{left:menu.x,top:menu.y}}
    onKeyDown={e=>{
@@ -321,7 +343,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    {current.type!=='measure'&&<button type="button" className={'mc-tool sm'+(styleOpen?' on':'')} aria-expanded={styleOpen} aria-controls="mc-style" aria-label="Styl a text kresby" data-tip="Styl, text, viditelnost" onClick={()=>setStyleOpen(o=>!o)}><Settings2 size={15} aria-hidden/></button>}
    {isTemp&&<button type="button" className="mc-chip" onClick={pin}><Pin size={13} aria-hidden/> Připnout</button>}
    <button type="button" className="mc-tool sm danger" aria-label="Smazat kresbu" data-tip="Smazat (Delete)" onClick={()=>remove(current.id)}><Trash2 size={15} aria-hidden/></button>
-   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle}/>}
+   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)}/>}
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
   {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}: {drawHint(tool)} · Esc zruší</div>}
@@ -337,11 +359,16 @@ function Seg<T extends string|number>({value,options,onPick,label}:{value:T;opti
  return <span className="mc-seg-sm" role="group" aria-label={label}>{options.map(([v,l])=><button key={String(v)} type="button" className={value===v?'on':''} aria-pressed={value===v} onClick={()=>onPick(v)}>{l}</button>)}</span>;
 }
 // panel stylu vybrané kresby: text/poznámka, čára, průhlednost, výplň, okraj, prodloužení, riziko, viditelnost na TF
-function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>)=>void;onStyle:(p:Partial<DrawStyle>)=>void}){
- const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text';
+function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}){
+ const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text',pos=d.type==='long'||d.type==='short'?d.type:null;
  const [text,setText]=useState(d.text||''),[risk,setRisk]=useState(st.risk===null?'':String(st.risk));
- const changeText=(v:string)=>{setText(v);if(isText){if(v.trim())onPatch({text:v.slice(0,MAX_TEXT)})}else onPatch({text:v.trim()?v.slice(0,MAX_TEXT):undefined})};
- const changeRisk=(v:string)=>{setRisk(v);const n=Number(v.replace(',','.'));onStyle({risk:v.trim()&&Number.isFinite(n)&&n>=0&&n<=1e9?n:undefined})};
+ const changeText=(v:string)=>{setText(v);if(isText){if(v.trim())onPatch({text:v.slice(0,MAX_TEXT)},'text')}else onPatch({text:v.trim()?v.slice(0,MAX_TEXT):undefined},'text')};
+ const changeRisk=(v:string)=>{setRisk(v);const n=Number(v.replace(',','.'));onStyle({risk:v.trim()&&Number.isFinite(n)&&n>=0&&n<=1e9?n:undefined},'risk')};
+ // R:R pozice: zadání přepočítá cíl ze vstupu a stopu; tažení cíle v grafu číslo aktualizuje (pokud se zrovna nepíše)
+ const rrNow=pos?rrOf(d.a):0,[rr,setRr]=useState(fmtRR(rrNow)),rrRef=useRef<HTMLInputElement>(null);
+ useEffect(()=>{if(document.activeElement!==rrRef.current)setRr(fmtRR(rrNow))},[rrNow]);
+ useEffect(()=>{if(!focusRR)return;rrRef.current?.focus();rrRef.current?.select();onFocusedRR()},[focusRR,onFocusedRR]);
+ const changeRR=(v:string,group?:string)=>{setRr(v);const n=Number(v.replace(',','.'));if(pos&&v.trim()&&Number.isFinite(n)&&n>=RR_MIN&&n<=RR_MAX)onPatch({a:withRR(pos,d.a,n)},group)};
  return <div id="mc-style" className="mc-style" role="group" aria-label="Styl kresby" onKeyDown={e=>{if(e.key==='Escape')e.stopPropagation()}}>
   <label className="mc-row mc-row-text"><span>{isText?'Text':'Poznámka'}</span><input type="text" value={text} maxLength={MAX_TEXT} placeholder={isText?'Text kresby…':'Text k nákresu…'} onChange={e=>changeText(e.target.value)}/></label>
   {(isText||text.trim())&&<>
@@ -350,7 +377,7 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle}:{d:Drawing;tf:ChartTf;
    <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu"/></div>
   </>}
   {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'S'],[2,'M'],[3,'L'],[4,'XL']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
-  <label className="mc-row"><span>Průhlednost</span><input type="range" min={10} max={100} step={5} value={Math.round(st.op*100)} aria-valuetext={Math.round(st.op*100)+' %'} onChange={e=>onStyle({op:Number(e.target.value)/100})}/><em>{Math.round(st.op*100)} %</em></label>
+  <label className="mc-row"><span>Průhlednost</span><input type="range" min={10} max={100} step={5} value={Math.round(st.op*100)} aria-valuetext={Math.round(st.op*100)+' %'} onChange={e=>onStyle({op:Number(e.target.value)/100},'op')}/><em>{Math.round(st.op*100)} %</em></label>
   {(caps.fill||caps.border)&&<div className="mc-row">
    {caps.fill&&<label className="mc-check"><input type="checkbox" checked={st.fill} onChange={e=>onStyle({fill:e.target.checked})}/>Pozadí</label>}
    {caps.border&&<label className="mc-check"><input type="checkbox" checked={st.border} onChange={e=>onStyle({border:e.target.checked})}/>Okraj</label>}
@@ -359,6 +386,11 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle}:{d:Drawing;tf:ChartTf;
   {caps.extend&&<div className="mc-row"><span>Prodloužit</span>
    <label className="mc-check"><input type="checkbox" checked={st.extL} onChange={e=>onStyle({extL:e.target.checked})}/>Doleva</label>
    <label className="mc-check"><input type="checkbox" checked={st.extR} onChange={e=>onStyle({extR:e.target.checked})}/>Doprava</label>
+  </div>}
+  {pos&&<div className="mc-row"><label className="mc-row-label" htmlFor="mc-rr">R:R</label>
+   <input id="mc-rr" ref={rrRef} type="number" inputMode="decimal" min={RR_MIN} max={RR_MAX} step={0.1} value={rr} aria-describedby="mc-rr-hint" onChange={e=>changeRR(e.target.value,'rr')} onBlur={()=>setRr(fmtRR(rrOf(d.a)))}/>
+   <span className="mc-seg-sm" role="group" aria-label="Rychlá volba R:R">{RR_CHIPS.map(v=><button key={v} type="button" className={Math.abs(rrNow-v)<.005?'on':''} aria-pressed={Math.abs(rrNow-v)<.005} onClick={()=>changeRR(String(v))}>{v.toLocaleString('cs-CZ')}</button>)}</span>
+   <small id="mc-rr-hint" className="mc-hint">cíl se přepočítá ze vstupu a stopu ({RR_MIN.toLocaleString('cs-CZ')}–{RR_MAX})</small>
   </div>}
   {caps.risk&&<label className="mc-row"><span>Riziko</span><input type="text" inputMode="decimal" value={risk} placeholder="částka (volitelné)" onChange={e=>changeRisk(e.target.value)}/></label>}
   <div className="mc-row" role="group" aria-label="Viditelnost na časových rámcích"><span>Vidět na</span>

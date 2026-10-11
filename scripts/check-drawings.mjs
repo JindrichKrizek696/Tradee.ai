@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory} from '../lib/chart/drawings.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
 const fails=[];
@@ -183,5 +183,23 @@ check('zásah: Gann uvnitř a mimo',hitShape({type:'gann',pts:[{x:10,y:10},{x:60
 const fes={type:'fibext',pts:[{x:0,y:100},{x:50,y:0},{x:80,y:50}],levels:[50,-11.8,-50]};
 check('zásah: extension hladina a spojnice',hitShape(fes,{x:110,y:51},300,300)?.part==='body'&&hitShape(fes,{x:25,y:52},300,300)?.part==='body'&&hitShape(fes,{x:200,y:50},300,300)===null);
 check('styl: vidle prodloužené doprava, schopnosti',styleOf({type:'pitchfork',color:'brand'}).extR&&capsOf('pitchfork').extend&&capsOf('fibext').fill&&capsOf('gann').fill&&!capsOf('gann').extend&&capsOf('gann').line);
+// R:R pozice
+const lp=[{t:0,p:100},{t:5,p:90},{t:5,p:120}];
+check('R:R: long – cíl = vstup + rr × riziko',withRR('long',lp,3)[2].p===130&&withRR('long',lp,1.5)[2].p===115&&withRR('long',lp,3)[2].t===5&&withRR('long',lp,3)[1].p===90);
+const sp=[{t:0,p:100},{t:5,p:104},{t:5,p:96}];
+check('R:R: short – cíl = vstup − rr × riziko',withRR('short',sp,2.5)[2].p===90&&withRR('short',sp,1)[2].p===96);
+check('R:R: výpočet z kotev a po tažení cíle',rrOf(lp)===2&&rrOf(withRR('long',lp,0.5))===0.5&&rrOf([lp[0],lp[1],{t:5,p:125}])===2.5&&rrOf([lp[0],{t:5,p:100},lp[2]])===0);
+check('R:R: nulové riziko nespadne, kladné R:R zachová stranu',withRR('long',[{t:0,p:100},{t:1,p:100},{t:1,p:100}],2)[2].p>100&&withRR('short',lp.map(x=>({...x})),2)[2].p<100);
+check('R:R: stats souhlasí s withRR',Math.abs(positionStats('long',withRR('long',lp,1.7)).rr-1.7)<1e-9&&positionStats('long',withRR('long',lp,1.7)).valid);
+// historie (Zpět / Znovu)
+let hh=emptyHistory();hh=record(hh,['a']);hh=record(hh,['a','b']);
+let u=undoStep(hh,['a','b','c']);
+check('historie: zpět vrátí předchozí stav',u&&u.value.join()==='a,b'&&u.h.future[0].join()==='a,b,c');
+let rd=redoStep(u.h,u.value);
+check('historie: znovu vrátí zpět vrácené',rd&&rd.value.join()==='a,b,c'&&rd.h.past.length===2&&!rd.h.future.length);
+check('historie: nová změna smaže „znovu“',record(u.h,['a','b']).future.length===0);
+check('historie: prázdná → null',undoStep(emptyHistory(),[])===null&&redoStep(emptyHistory(),[])===null);
+let big=emptyHistory();for(let i=0;i<130;i++)big=record(big,[String(i)]);
+check('historie: nejvýš 100 kroků (nejstarší pryč)',big.past.length===100&&big.past[0][0]==='30'&&big.past[99][0]==='129');
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

@@ -204,6 +204,19 @@ export function positionFrom(type:'long'|'short',entry:Anchor,b:Anchor,rr=2):Anc
  const end=b.t===entry.t?b.t+1:b.t;
  return [entry,{t:end,p:entry.p-dir*risk},{t:end,p:entry.p+dir*risk*rr}];
 }
+// R:R pozice: cíl = vstup ± rr × |vstup − stop| (long nahoru, short dolů); rr se ořízne na 0,1–100
+export const RR_MIN=.5,RR_MAX=20;
+export function withRR(type:'long'|'short',a:Anchor[],rr:number):Anchor[]{
+ const [e,sl,tp]=a,k=Math.min(100,Math.max(.1,rr)),risk=Math.abs(e.p-sl.p)||Math.abs(e.p)*.002||1,dir=type==='long'?1:-1;
+ return [e,sl,{t:tp.t,p:e.p+dir*risk*k}];
+}
+export const rrOf=(a:Anchor[])=>{const risk=Math.abs(a[0].p-a[1].p);return risk?Math.abs(a[2].p-a[0].p)/risk:0};
+// historie úprav (undo/redo): stavy před změnou; nová změna smaže „znovu“; nejvýš max kroků
+export type History<T>={past:T[];future:T[]};
+export const emptyHistory=<T,>():History<T>=>({past:[],future:[]});
+export function record<T>(h:History<T>,prev:T,max=100):History<T>{const past=[...h.past,prev];return {past:past.length>max?past.slice(past.length-max):past,future:[]}}
+export function undoStep<T>(h:History<T>,cur:T):{h:History<T>;value:T}|null{if(!h.past.length)return null;return {h:{past:h.past.slice(0,-1),future:[cur,...h.future]},value:h.past[h.past.length-1]}}
+export function redoStep<T>(h:History<T>,cur:T):{h:History<T>;value:T}|null{if(!h.future.length)return null;return {h:{past:[...h.past,cur],future:h.future.slice(1)},value:h.future[0]}}
 export type PosStats={risk:number;reward:number;rr:number;slPct:number;tpPct:number;valid:boolean;amount:number|null;profit:number|null};
 export function positionStats(type:'long'|'short',a:Anchor[],amount:number|null=null):PosStats{
  const [e,sl,tp]=a,risk=Math.abs(e.p-sl.p),reward=Math.abs(tp.p-e.p),dir=type==='long'?1:-1;
@@ -284,7 +297,7 @@ export function channelOffset(a:Pt,b:Pt,c:Pt){
 const inPoly=(p:Pt,poly:Pt[])=>{let ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)ins=!ins}return ins};
 // tvar kresby v pixelech (body podle kotev; fib má navíc y hladin; text box; popisek poznámky; konec úrovně do dotyku)
 export type Box={x:number;y:number;w:number;h:number};
-export type Shape={type:DrawType;pts:Pt[];ray?:boolean;extL?:boolean;extR?:boolean;levels?:number[];box?:Box;label?:Box;touchX?:number};
+export type Shape={type:DrawType;pts:Pt[];ray?:boolean;extL?:boolean;extR?:boolean;levels?:number[];box?:Box;label?:Box;touchX?:number;rrBox?:Box};
 export type Hit={part:'body'}|{part:'handle';index:number};
 const inBox=(p:Pt,b:Box,tol:number)=>p.x>=b.x-tol&&p.x<=b.x+b.w+tol&&p.y>=b.y-tol&&p.y<=b.y+b.h+tol;
 const rectOf=(a:Pt,b:Pt):Box=>({x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)});

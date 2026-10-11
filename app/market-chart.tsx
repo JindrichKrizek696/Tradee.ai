@@ -1,7 +1,7 @@
 'use client';
 // Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {createChart,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
+import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
 import {candles as toBars,chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
 import {SESSIONS} from '@/lib/journal/analytics';
@@ -122,7 +122,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  // graf: vytvoří se jednou, data a vrstvy se nastavují v dalších efektech
  useEffect(()=>{
   if(!el.current)return;
-  const c=createChart(el.current,{autoSize:true,localization:{locale:'cs-CZ'},timeScale:{rightOffset:4,timeVisible:true,secondsVisible:false},rightPriceScale:{scaleMargins:{top:.12,bottom:.08}}});
+  const c=createChart(el.current,{autoSize:true,localization:{locale:'cs-CZ'},crosshair:{mode:CrosshairMode.Normal},timeScale:{rightOffset:4,timeVisible:true,secondsVisible:false},rightPriceScale:{scaleMargins:{top:.12,bottom:.08}}});
   sess.current=c.addSeries(HistogramSeries,{priceScaleId:'sess',lastValueVisible:false,priceLineVisible:false,base:0});
   c.priceScale('sess').applyOptions({visible:false,scaleMargins:{top:0,bottom:0}});
   chart.current=c;

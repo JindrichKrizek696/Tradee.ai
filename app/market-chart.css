@@ -109,8 +109,11 @@
 .mc-sel-hidden{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-weight:500;color:var(--t-muted)}
 .mc-style{flex-basis:100%;display:flex;flex-direction:column;gap:6px;max-height:min(340px,calc(var(--mc-h,460px) - 70px));overflow:auto;padding:8px 2px 4px;border-top:1px solid var(--t-border);margin-top:2px}
 .mc-row{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 8px;min-height:26px;font-size:12px;color:var(--t-fg-2)}
-.mc-row>span:first-child{flex:0 0 84px;color:var(--t-muted);font-weight:500}
+.mc-row>span:first-child,.mc-row>.mc-row-label{flex:0 0 84px;color:var(--t-muted);font-weight:500}
 .mc-row em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--t-fg-2);min-width:38px}
+.mc-row input[type=number]{width:72px;height:28px;padding:0 8px;border:1px solid var(--t-border);border-radius:6px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:12px;font-variant-numeric:tabular-nums}
+.mc-row input[type=number]:focus-visible{outline:2px solid var(--t-brand);outline-offset:0;border-color:transparent}
+.mc-hint{flex-basis:100%;padding-left:92px;font-size:11px;color:var(--t-muted)}
 .mc-row input[type=text]{flex:1 1 160px;min-width:0;height:28px;padding:0 8px;border:1px solid var(--t-border);border-radius:6px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:12px}
 .mc-row input[type=text]:focus-visible{outline:2px solid var(--t-brand);outline-offset:0;border-color:transparent}
 .mc-row input[type=range]{flex:1 1 120px;min-width:90px;height:20px;padding:0;border:0;background:none;accent-color:var(--t-brand)}
@@ -124,7 +127,8 @@
 .mc-check input{accent-color:var(--t-brand);margin:0}
 .mc-check.cur{font-weight:600;color:var(--t-fg)}
 @media (max-width:760px){
- .mc-row>span:first-child{flex-basis:100%}
+ .mc-row>span:first-child,.mc-row>.mc-row-label{flex-basis:100%}
+ .mc-hint{padding-left:0}
  .mc-style{max-height:260px}
 }
 
@@ -143,3 +147,21 @@ select.mc-type.mc-chip,select.mc-type.mc-chip:hover:not(:disabled){background-im
 /* přepínač TF: segmenty na šířku, na úzkých obrazovkách select */
 select.mc-tfsel{display:none}
 @media (max-width:760px){select.mc-tfsel{display:inline-block}.mc-tfseg{display:none}}
+
+/* /graf: přepínač trhu v hlavičce karty grafu, kompaktní horní lišta se živou cenou */
+.mc-market{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.mc-market-q{width:150px;min-width:0;font-weight:500;color:var(--t-fg);cursor:text}
+.mc-market-q::placeholder{color:var(--t-muted)}
+.mc-market-sel{max-width:200px;padding-right:24px;appearance:none;-webkit-appearance:none}
+.mc-page-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+.mc-page-live{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;min-width:0}
+.mc-page-live h1{margin:0;font-size:18px;line-height:1.3}
+.mc-page-live strong{font-size:16px;font-variant-numeric:tabular-nums}
+.mc-page-live span{font-size:13px;color:var(--t-muted);font-variant-numeric:tabular-nums}
+.mc-missing{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.mc-missing h1{margin:0;font-size:22px}
+@media (max-width:760px){
+ .mc-market{width:100%}
+ .mc-market-q{flex:1 1 120px}
+ .mc-market-sel{flex:1 1 140px;max-width:none}
+}

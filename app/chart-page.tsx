@@ -31,22 +31,22 @@ export default function ChartPage({slug}:{slug:string}){
  const method=item?marketScore(data,market,item.id).method:'',quote=item?quotes?.quotes[item.id]:undefined;
  const shown=useMemo(()=>list.filter(i=>matchesText(i.id+' '+i.name,q)),[q]);
  const go=(id:string)=>{location.href='/graf/'+slugOf(id)};
+ // přepínač trhu: hledání + výběr (v hlavičce karty grafu, bez grafu pod nadpisem)
+ const picker=<div className="mc-market" role="search" aria-label="Přepnout trh">
+  <input type="search" className="mc-chip mc-market-q" aria-label="Hledat trh" placeholder="Hledat trh…" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const hit=shown.find(i=>i.id!==item?.id)||shown[0];if(hit&&hit.id!==item?.id)go(hit.id)}}} title="Enter otevře první nalezený trh"/>
+  <select className="mc-chip mc-type mc-market-sel" aria-label="Přepnout trh" value={item?.id||''} onChange={e=>go(e.target.value)}>
+   {!item&&<option value="">Vyber trh…</option>}
+   {item&&!shown.some(i=>i.id===item.id)&&<option value={item.id}>{item.name}</option>}
+   {shown.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
+  </select>
+ </div>;
  return <div className="mt-page score-v2 tradee">
-  <header className="mt-top" style={{maxWidth:'none'}}><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
+  <header className="mt-top mc-page-top" style={{maxWidth:'none'}}><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
+   {item&&<div className="mc-page-live"><h1>{item.name}</h1>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
+  </header>
   <main className="mt-main" style={{maxWidth:'none',paddingBottom:24}}>
-   <div className="s-heading" style={{alignItems:'flex-end',gap:12}}>
-    <div><span className="s-kicker">Graf trhu</span><h1 style={{margin:'4px 0 0'}}>{item?item.name:'Trh nenalezen'}</h1>
-     {item&&quote&&<div className="lv-today-head" style={{marginTop:6}}><strong>{item.group==='currency'?null:fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></div>}</div>
-    <div className="s-controls" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-     <input type="search" aria-label="Hledat trh" placeholder="Hledat trh…" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const hit=shown.find(i=>i.id!==item?.id)||shown[0];if(hit&&hit.id!==item?.id)go(hit.id)}}} title="Enter otevře první nalezený trh" style={{height:38,padding:'0 14px',border:'1px solid var(--t-border)',borderRadius:9999,background:'var(--t-surface)',color:'var(--t-fg)',font:'inherit',minWidth:0}}/>
-     <select aria-label="Přepnout trh" value={item?.id||''} onChange={e=>go(e.target.value)} style={{height:38,padding:'0 12px',border:'1px solid var(--t-border)',borderRadius:9999,background:'var(--t-surface)',color:'var(--t-fg)',font:'inherit',maxWidth:'100%'}}>
-      {!item&&<option value="">Vyber trh…</option>}
-      {item&&!shown.some(i=>i.id===item.id)&&<option value={item.id}>{item.name}</option>}
-      {shown.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
-     </select>
-    </div>
-   </div>
-   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} height="max(520px, calc(100vh - 260px))"/></div>:<p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný v seznamu nahoře.</p>}
+   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} height="max(520px, calc(100vh - 190px))" headExtra={picker}/></div>
+    :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
  </div>;
 }
