@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {ArrowLeft,ArrowUp,ArrowDown,X} from 'lucide-react';
 import {groups} from '@/lib/markets';
+import {matchesText} from '@/lib/market-view';
 import {LIMITS} from '@/lib/checklists/core';
 import {usePalette} from './palette';
 import './mt.css';
@@ -15,7 +16,7 @@ const move=<T,>(a:T[],i:number,d:number)=>{const j=i+d;if(j<0||j>=a.length)retur
 function Editor({draft,markets,onSave,onCancel}:{draft:Draft;markets:Market[];onSave:(d:Draft)=>Promise<void>;onCancel:()=>void}){
  const [d,setD]=useState(draft),[q,setQ]=useState(''),[busy,setBusy]=useState(false),[err,setErr]=useState('');
  const sel=new Set(d.markets),gids=Object.keys(groups).filter(g=>g!=='all'&&markets.some(m=>m.group===g));
- const shown=markets.filter(m=>(m.id+' '+m.name).toLowerCase().includes(q.trim().toLowerCase()));
+ const shown=markets.filter(m=>matchesText(m.id+' '+m.name,q));
  const setItem=(i:number,text:string)=>setD({...d,items:d.items.map((x,k)=>k===i?{...x,text}:x)});
  const toggle=(id:string)=>setD({...d,markets:sel.has(id)?d.markets.filter(x=>x!==id):[...d.markets,id]});
  const groupIds=(g:string)=>markets.filter(m=>m.group===g).map(m=>m.id);

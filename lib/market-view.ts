@@ -36,7 +36,9 @@ export function sortItems(items:MarketItem[],key:SortKey,dir:1|-1){
  });
 }
 
-export const normalize=(s:string)=>s.toUpperCase().replaceAll('/','').replace(/\s+/g,'');
+// hledání trhů: bez ohledu na velikost písmen, mezery, lomítka, pomlčky, tečky a čárky (eurusd = EUR/USD, btcusd = BTC-USD)
+export const normalize=(s:string)=>s.toUpperCase().replace(/[\s/\-._·,^]+/g,'');
+export const matchesText=(text:string,q:string)=>!q.trim()||normalize(text).includes(normalize(q));
 export const matchesQuery=(i:MarketItem,q:string)=>!q.trim()||normalize(i.id+' '+i.name).includes(normalize(q));
 
 export function filterItems(items:MarketItem[],f:{query:string;score:ScoreFilter;flag:string},flags:Record<string,string>){

@@ -13,6 +13,7 @@ import {mergeCalendar,type AutoEvent} from '@/lib/calendar';
 import {marketScore,instruments} from '@/lib/markets';
 import type {HistoryLike} from '@/lib/dashboard';
 import {usePalette} from './palette';
+import {matchesText} from '@/lib/market-view';
 import {MarketChart} from './market-chart';
 import {useLive,LiveChange,LiveBadge,fmtPrice} from './live';
 import './mt.css';
@@ -28,7 +29,7 @@ export default function ChartPage({slug}:{slug:string}){
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
  const quotes=useLive(),calendar=useMemo(()=>mergeCalendar(calendarAuto.events as AutoEvent[],data.events,data.sources),[data]);
  const method=item?marketScore(data,market,item.id).method:'',quote=item?quotes?.quotes[item.id]:undefined;
- const shown=useMemo(()=>{const s=q.trim().toLowerCase();return s?list.filter(i=>i.id.toLowerCase().includes(s)||i.name.toLowerCase().includes(s)):list},[q]);
+ const shown=useMemo(()=>list.filter(i=>matchesText(i.id+' '+i.name,q)),[q]);
  const go=(id:string)=>{location.href='/graf/'+slugOf(id)};
  return <div className="mt-page score-v2 tradee">
   <header className="mt-top" style={{maxWidth:'none'}}><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>

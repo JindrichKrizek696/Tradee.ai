@@ -1,5 +1,5 @@
 // Kontrola seznamu trhů a předvoleb barev: node --experimental-strip-types scripts/check-market-view.mjs
-import {toItem,topSignals,heatmapGroups,sortItems,filterItems,matchesQuery,intensity,textOn,hexContrastOnWhite} from '../lib/market-view.ts';
+import {toItem,topSignals,heatmapGroups,sortItems,filterItems,matchesQuery,matchesText,intensity,textOn,hexContrastOnWhite} from '../lib/market-view.ts';
 import {palettes,getPalette,isPalette,DEFAULT_PALETTE} from '../lib/palettes.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -24,6 +24,7 @@ check('řazení skóre vzestupně, null pořád na konci',sortItems(items,'score
 check('řazení podle názvu',sortItems(items,'name',1)[0].id==='AAPL',sortItems(items,'name',1).map(i=>i.id));
 
 check('hledání ignoruje lomítko a velikost',matchesQuery(it('EUR/USD','fx',1),'eurusd')&&matchesQuery(it('EUR/USD','fx',1),'eur/u')&&!matchesQuery(it('EUR/USD','fx',1),'gbp'),null);
+check('hledání bez lomítka/pomlčky: eurusd, eur usd, btcusd, sp500',matchesText('EUR/USD EUR/USD','eurusd')&&matchesText('EUR/USD','eur usd')&&matchesText('BTC-USD Bitcoin','btcusd')&&matchesText('^GSPC S&P 500','s&p500')&&!matchesText('EUR/USD','gbp'),null);
 check('filtr silné ≥ |40|',filterItems(items,{query:'',score:'strong',flag:'all'},{}).map(i=>i.id).join()==='EUR/USD,GBP/USD,BTC-USD,^NDX,TSLA',filterItems(items,{query:'',score:'strong',flag:'all'},{}).map(i=>i.id));
 check('filtr bez skóre',filterItems(items,{query:'',score:'missing',flag:'all'},{}).map(i=>i.id).join()==='USD/JPY',null);
 check('filtr vlaječky (none = bez vlaječky)',filterItems(items,{query:'',score:'all',flag:'green'},{'EUR/USD':'green'}).map(i=>i.id).join()==='EUR/USD'&&filterItems(items,{query:'',score:'all',flag:'none'},{'EUR/USD':'green'}).length===items.length-1,null);
