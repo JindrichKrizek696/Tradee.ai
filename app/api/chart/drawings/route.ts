@@ -16,7 +16,7 @@ export async function PUT(req:Request){
  try{
   sameOrigin(req);const u=await identity(req),instrument=instrumentOf(req);
   if(!instrument)return bad('Neplatný trh.');
-  const text=await req.text();if(text.length>400000)return bad('Kreseb je příliš mnoho.');
+  const text=await req.text();if(text.length>1500000)return bad('Kreseb je příliš mnoho.');
   let body:unknown;try{body=JSON.parse(text)}catch{return bad('Neplatná data kreseb.')}
   const r=parseDrawings((body as {drawings?:unknown}|null)?.drawings);
   if(!r.ok)return bad(r.error);
