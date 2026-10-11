@@ -3,7 +3,12 @@ import type {Bar,BarTf} from './yahoo.ts';
 type Reader={prepare(sql:string):{bind(...p:unknown[]):{all<T=Record<string,unknown>>():Promise<{results:T[]}>}}};
 export async function loadBars(d:Reader,instrument:string,tf:BarTf,fromMs:number,toMs:number):Promise<Bar[]>{
  const r=await d.prepare('SELECT t,o,h,l,c,v FROM market_bars WHERE instrument=? AND tf=? AND t>=? AND t<? ORDER BY t').bind(instrument,tf,fromMs,toMs).all<Bar>();
- return r.results.map(x=>({t:Number(x.t),o:x.o,h:x.h,l:x.l,c:x.c,v:x.v===null||x.v===undefined?null:x.v}));
+ const rows=r.results.map(x=>({t:Number(x.t),o:x.o,h:x.h,l:x.l,c:x.c,v:x.v===null||x.v===undefined?null:x.v}));
+ // Yahoo FX denní svíčky mají open ≈ close téhož dne (= nahlížení do budoucna v backtestu) → open = close předchozího dne
+ return tf==='D1'&&instrument.includes('/')?fixFxOpen(rows):rows;
+}
+export function fixFxOpen(rows:Bar[]):Bar[]{
+ return rows.map((b,i)=>{if(!i)return b;const o=rows[i-1].c;return {...b,o,h:Math.max(b.h,o),l:Math.min(b.l,o)}});
 }
 // H1 → H4: svíčky seskupené do 4h košů zarovnaných na UTC (00,04,08,…); koš je jedna svíčka z libovolného počtu H1 (neúplné koše zůstávají)
 export function toH4(rows:Bar[]):Bar[]{

@@ -1,6 +1,6 @@
 // Kontrola archivu svíček: node --experimental-strip-types scripts/check-bars.mjs
 import {parseBars,validBar,windows,incrementalPlan,planUrl} from '../lib/bars/yahoo.ts';
-import {loadBars,toH4} from '../lib/bars/query.ts';
+import {loadBars,toH4,fixFxOpen} from '../lib/bars/query.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const T=Date.UTC(2026,9,9,8,0)/1000;
@@ -29,4 +29,5 @@ const calls=[];
 const fake={prepare:sql=>({bind:(...a)=>({all:async()=>{calls.push([sql,a]);return {results:[{t:'5',o:1,h:2,l:0.5,c:1,v:null}]}}})})};
 const lb=await loadBars(fake,'EUR/USD','H1',0,10);
 check('loadBars: jeden dotaz, t číslo',calls.length===1&&/ORDER BY t/.test(calls[0][0])&&lb[0].t===5&&calls[0][1].join()==='EUR/USD,H1,0,10',calls);
+{const r=fixFxOpen([{t:0,o:1,h:1.2,l:.9,c:1.1,v:null},{t:1,o:1.15,h:1.16,l:1.12,c:1.15,v:null}]);check('archiv FX D1: open z předchozího close, low rozšířené',r[1].o===1.1&&r[1].l===1.1&&r[0].o===1,r);}
 console.log(fails.length?`\n${fails.length} selhalo`:'\nvše ok');process.exit(fails.length?1:0);

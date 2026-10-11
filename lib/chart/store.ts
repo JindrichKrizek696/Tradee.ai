@@ -2,7 +2,7 @@
 import type {Db} from '../mysql.ts';
 import {instruments,fxCurrencies} from '../markets.ts';
 import {yahooSymbol} from '../live.ts';
-import {parseYahoo,mergeTail,buildTf,stale,TF_SOURCE,TF_CAP,HISTORY_FROM,type Candle,type Tf} from './candles.ts';
+import {parseYahoo,mergeTail,buildTf,fixFxDailyOpen,stale,TF_SOURCE,TF_CAP,HISTORY_FROM,type Candle,type Tf} from './candles.ts';
 import {loadBars} from '../bars/query.ts';
 export type CandlesResult={candles:Candle[];stale:boolean;updated:number|null;unsupported?:true;error?:string};
 const DAY=86400000,H1_DAYS=729,UA='Mozilla/5.0',LOCK_MS=60000,NONE='Ceny teď nejsou k dispozici.';
@@ -33,6 +33,7 @@ export async function fetchCandles(symbol:string,tf:Tf,ctx?:ArchiveCtx,now=Date.
  try{fresh=await yahoo(symbol,src.interval,arch.length&&src.tail?src.tail:src.range)}catch(e){if(!arch.length)throw e}
  if(!arch.length&&!fresh.length)throw new Error('prázdná odpověď');
  let series=mergeTail(arch,fresh);
+ if(src.base==='D1'&&symbol.endsWith('=X'))series=fixFxDailyOpen(series);
  if(src.base==='D1')series=series.filter(c=>c[0]>=HISTORY_FROM);
  return buildTf(tf,series).slice(-TF_CAP[tf]);
 }

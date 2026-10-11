@@ -42,6 +42,11 @@ const dayIndex=(t:number)=>Math.floor((t+3*H)/DAY);
 export const toW1=(d1:Candle[]):Candle[]=>bucketAggregate(d1,t=>{const d=dayIndex(t);return (d-((d+3)%7))*DAY});
 // D1 → kalendářní měsíce, otevření prvního dne 00:00 UTC
 export const toMN=(d1:Candle[]):Candle[]=>bucketAggregate(d1,t=>{const x=new Date(dayIndex(t)*DAY);return Date.UTC(x.getUTCFullYear(),x.getUTCMonth(),1)});
+// Yahoo u FX párů (symbol …=X) vrací v denních svíčkách open ≈ close téhož dne (svíčky bez těla);
+// forex se obchoduje nepřetržitě, takže open = close předchozího dne a high/low se o něj rozšíří
+export function fixFxDailyOpen(src:Candle[]):Candle[]{
+ return src.map((c,i)=>{if(!i)return c;const o=src[i-1][4];return [c[0],o,Math.max(c[2],o),Math.min(c[3],o),c[4]] as Candle});
+}
 // archiv + čerstvý ocas: ocas přepíše archiv od svého prvního času
 export function mergeTail(base:Candle[],tail:Candle[]):Candle[]{
  if(!tail.length)return base;

@@ -1,5 +1,5 @@
 // Kontrola dat grafu: node --experimental-strip-types scripts/check-chart.mjs
-import {parseYahoo,toH4,toH2,toW1,toMN,bucketAggregate,mergeTail,buildTf,stale,TF_SOURCE,TFS,TF_CAP,HISTORY_FROM} from '../lib/chart/candles.ts';
+import {parseYahoo,toH4,toH2,toW1,toMN,bucketAggregate,mergeTail,buildTf,stale,TF_SOURCE,TFS,TF_CAP,HISTORY_FROM,fixFxDailyOpen} from '../lib/chart/candles.ts';
 import {getCandles} from '../lib/chart/store.ts';
 import {heikinAshi,seriesData,isChartType,CHART_TYPES} from '../lib/chart/chart-types.ts';
 const fails=[];
@@ -100,4 +100,7 @@ check('HA: prázdný vstup',heikinAshi([]).length===0);
 check('typy: čára a plocha jen close',seriesData(hb,'line')[1].value===13&&!('open' in seriesData(hb,'area')[0]));
 check('typy: svíčky beze změny, HA přepočteno',seriesData(hb,'candles')[2].close===9&&seriesData(hb,'bars')[0].open===10&&seriesData(hb,'ha')[1].close===12);
 check('typy: seznam a validace',CHART_TYPES.length===6&&isChartType('hollow')&&!isChartType('footprint')&&!isChartType(5));
+
+{const d=[[0,1.10,1.11,1.09,1.105],[1,1.106,1.12,1.10,1.115],[2,1.30,1.31,1.29,1.30]];const f=fixFxDailyOpen(d);
+check('FX D1: open = close předchozího dne, high/low rozšířené',f[0][1]===1.10&&f[1][1]===1.105&&f[2][1]===1.115&&f[2][3]===1.115&&f[2][2]===1.31,f);}
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
