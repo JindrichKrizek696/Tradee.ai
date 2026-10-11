@@ -141,7 +141,11 @@ details{border-bottom:1px solid var(--line);padding:22px 0}
 summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font:500 19px Outfit,sans-serif}
 summary::after{content:"+";width:32px;height:32px;border-radius:9999px;background:var(--gray);display:grid;place-items:center;font:400 20px Inter}
 details[open] summary::after{content:"–"}
-details p{color:var(--muted);margin-top:10px;max-width:680px}
+details p{color:var(--muted);margin:10px 0 0;max-width:680px}
+details .fq{overflow:hidden}
+summary::after{transition:transform .3s ease}
+details[open] summary::after{transform:rotate(180deg)}
+footer a.mk{text-decoration:none}
 /* závěr */
 .final{text-align:center;background:linear-gradient(180deg,#fff 0%,#eef3fc 55%,#dfe9fb 100%);padding-bottom:0;overflow:hidden}
 .final .lead{margin:0 auto}
@@ -245,8 +249,8 @@ footer a{color:#fff;text-decoration:none;transition:color .2s}footer a:hover{col
 <body>
 <div class="page">
 <nav><div class="wrap">
- <a class="brand" href="/"><svg class="mark" viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>Tradee</a>
- <div class="links"><span class="uline" aria-hidden="true"></span><a class="on m" href="/">Úvod</a><a class="m" href="#jak">Jak to funguje</a><a class="m" href="#ukazka">Ukázka</a><a class="m" href="#faq">FAQ</a></div>
+ <a class="brand to-top" href="#top"><svg class="mark" viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>Tradee</a>
+ <div class="links"><span class="uline" aria-hidden="true"></span><a class="on m to-top" href="#top">Úvod</a><a class="m" href="#jak">Jak to funguje</a><a class="m" href="#ukazka">Ukázka</a><a class="m" href="#faq">FAQ</a></div>
  <a class="btn" href="/auth/google">Přihlásit <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
 </div></nav>
 
@@ -370,7 +374,7 @@ footer a{color:#fff;text-decoration:none;transition:color .2s}footer a:hover{col
 <footer id="paticka"><div class="wrap">
  <div class="ft-cta"><h2>Obchoduj podle <b>dat</b>, ne podle pocitů.</h2><a class="btn" href="#prihlaska">Chci přístup <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a></div>
  <div class="ft-grid">
-  <div class="ft-col ft-brand"><span class="mk"><svg viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>TRADEE</span><p>Síla měn, pozice velkých hráčů a cena v jednom skóre – s důvody u každého čísla.</p></div>
+  <div class="ft-col ft-brand"><a class="mk to-top" href="#top" aria-label="Tradee – nahoru"><svg viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>TRADEE</a><p>Síla měn, pozice velkých hráčů a cena v jednom skóre – s důvody u každého čísla.</p></div>
   <div class="ft-col"><h3>Produkt</h3><ul><li><a href="#jak">Jak to funguje</a></li><li><a href="#ukazka">Ukázka</a></li><li><a href="#faq">FAQ</a></li><li><a href="/auth/google">Přihlásit</a></li></ul></div>
   <div class="ft-col"><h3>Sledujte nás</h3><ul><li><a class="ft-ig" href="https://instagram.com/tradee.eu" target="_blank" rel="noopener"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg></i>@tradee.eu</a></li></ul></div>
   <div class="ft-col"><h3>Info</h3><ul><li><a href="/soukromi">Zásady ochrany osobních údajů</a></li></ul></div>
@@ -410,6 +414,19 @@ let lock=0;links.forEach(a=>a.addEventListener('click',()=>{set(a);lock=Date.now
 const sec=links.map(a=>{const h=a.getAttribute('href');return h.startsWith('#')?document.querySelector(h):document.body});
 const spy=()=>{if(Date.now()-lock<900)return;let cur=links[0];sec.forEach((el,i)=>{if(el&&el!==document.body&&el.getBoundingClientRect().top<innerHeight*.4)cur=links[i]});if(!cur.classList.contains('on'))set(cur)};
 addEventListener('scroll',spy,{passive:true});addEventListener('resize',()=>set(box.querySelector('a.on')));set(box.querySelector('a.on'));
+})();
+</script>
+<script>
+(()=>{const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+// nahoru: logo, Úvod, logo v patičce – plynule bez přenačtení stránky
+document.querySelectorAll('a.to-top').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'',location.pathname+location.search);scrollTo({top:0,behavior:reduce?'auto':'smooth'})}));
+// FAQ: obsah zabalit do .fq a animovat výšku při otevření i zavření
+document.querySelectorAll('.faq details').forEach(d=>{const sum=d.querySelector('summary');const box=document.createElement('div');box.className='fq';while(sum.nextSibling)box.appendChild(sum.nextSibling);d.appendChild(box);
+ let anim=null;sum.addEventListener('click',e=>{e.preventDefault();if(reduce){d.open=!d.open;return}
+  const opening=!d.open||(anim&&anim.closing);if(anim)anim.cancel();
+  if(opening){d.open=true;const h=box.scrollHeight;anim=box.animate([{height:'0px',opacity:0},{height:h+'px',opacity:1}],{duration:320,easing:'cubic-bezier(.32,.72,0,1)'});anim.closing=false;anim.onfinish=()=>{anim=null}}
+  else{const h=box.offsetHeight;anim=box.animate([{height:h+'px',opacity:1},{height:'0px',opacity:0}],{duration:260,easing:'cubic-bezier(.32,.72,0,1)'});anim.closing=true;anim.onfinish=()=>{d.open=false;anim=null}}
+ })});
 })();
 </script>
 </body>
