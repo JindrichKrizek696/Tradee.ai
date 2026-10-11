@@ -2,23 +2,42 @@
 import type {Db} from '../mysql.ts';
 import {instruments,fxCurrencies} from '../markets.ts';
 import {yahooSymbol} from '../live.ts';
-import {parseYahoo,toH4,stale,TF_SOURCE,TF_CAP,type Candle,type Tf} from './candles.ts';
+import {parseYahoo,mergeTail,buildTf,stale,TF_SOURCE,TF_CAP,HISTORY_FROM,type Candle,type Tf} from './candles.ts';
+import {loadBars} from '../bars/query.ts';
 export type CandlesResult={candles:Candle[];stale:boolean;updated:number|null;unsupported?:true;error?:string};
-const UA='Mozilla/5.0',LOCK_MS=60000,NONE='Ceny teď nejsou k dispozici.';
+const DAY=86400000,H1_DAYS=729,UA='Mozilla/5.0',LOCK_MS=60000,NONE='Ceny teď nejsou k dispozici.';
 const sql=(ms:number)=>new Date(ms).toISOString().slice(0,19).replace('T',' ');
 const utc=(s:unknown)=>s?Date.parse(String(s).replace(' ','T')+'Z'):0;
 export function candleSymbol(instrument:string){return instruments.some(i=>i.id===instrument)?yahooSymbol(instrument,fxCurrencies):null}
-export async function fetchCandles(symbol:string,tf:Tf):Promise<Candle[]>{
- const src=TF_SOURCE[tf],ac=new AbortController(),timer=setTimeout(()=>ac.abort(),10000);
+async function yahoo(symbol:string,interval:string,range:string):Promise<Candle[]>{
+ const ac=new AbortController(),timer=setTimeout(()=>ac.abort(),10000);
  try{
-  const r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(symbol)+`?range=${src.range}&interval=${src.interval}`,{headers:{'User-Agent':UA},signal:ac.signal});
+  const r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(symbol)+`?range=${range}&interval=${interval}`,{headers:{'User-Agent':UA},signal:ac.signal});
   if(!r.ok)throw new Error('HTTP '+r.status);
-  const raw=parseYahoo(await r.json());if(!raw.length)throw new Error('prázdná odpověď');
-  return (src.aggregate?toH4(raw):raw).slice(-TF_CAP[tf]);
+  return parseYahoo(await r.json());
  }finally{clearTimeout(timer)}
 }
+// archiv market_bars (H1 poslední 2 roky, D1 od 2020); chyba archivu = jako prázdný archiv
+async function archive(ctx:ArchiveCtx|undefined,base:'H1'|'D1',now:number):Promise<Candle[]>{
+ if(!ctx)return [];
+ try{
+  const from=base==='H1'?now-H1_DAYS*DAY:HISTORY_FROM;
+  return (await loadBars(ctx.db as never,ctx.instrument,base,from,now+DAY)).map(b=>[b.t,b.o,b.h,b.l,b.c] as Candle);
+ }catch(e){console.error('candles archive',ctx.instrument,base,e);return []}
+}
+export type ArchiveCtx={db:Db;instrument:string};
+export async function fetchCandles(symbol:string,tf:Tf,ctx?:ArchiveCtx,now=Date.now()):Promise<Candle[]>{
+ const src=TF_SOURCE[tf];
+ const arch=src.base?await archive(ctx,src.base,now):[];
+ let fresh:Candle[]=[];
+ try{fresh=await yahoo(symbol,src.interval,arch.length&&src.tail?src.tail:src.range)}catch(e){if(!arch.length)throw e}
+ if(!arch.length&&!fresh.length)throw new Error('prázdná odpověď');
+ let series=mergeTail(arch,fresh);
+ if(src.base==='D1')series=series.filter(c=>c[0]>=HISTORY_FROM);
+ return buildTf(tf,series).slice(-TF_CAP[tf]);
+}
 const parse=(s:unknown):Candle[]=>{try{const v=JSON.parse(String(s));return Array.isArray(v)?v:[]}catch{return []}};
-export async function getCandles(d:Db,instrument:string,tf:Tf,now:number,fetcher:(symbol:string,tf:Tf)=>Promise<Candle[]>=fetchCandles):Promise<CandlesResult>{
+export async function getCandles(d:Db,instrument:string,tf:Tf,now:number,fetcher:(symbol:string,tf:Tf)=>Promise<Candle[]>=(sym,t)=>fetchCandles(sym,t,{db:d,instrument},now)):Promise<CandlesResult>{
  const symbol=candleSymbol(instrument);
  if(!symbol)return {candles:[],stale:false,updated:null,unsupported:true};
  const row=await d.prepare('SELECT data,updated FROM market_candles WHERE instrument=? AND tf=?').bind(instrument,tf).first<{data:string;updated:string}>();

@@ -139,3 +139,7 @@ select.mc-type.mc-chip,select.mc-type.mc-chip:hover:not(:disabled){background-im
 .mc-fp-cell{background:linear-gradient(90deg,color-mix(in srgb,var(--bear) 40%,transparent) 50%,color-mix(in srgb,var(--bull) 40%,transparent) 50%)}
 .mc-fp-poc{border:1.5px solid #f59e0b}
 .mc-fp-imb{width:4px!important;margin-left:6px;background:var(--bull);box-shadow:-6px 0 0 var(--bear)}
+
+/* přepínač TF: segmenty na šířku, na úzkých obrazovkách select */
+select.mc-tfsel{display:none}
+@media (max-width:760px){select.mc-tfsel{display:inline-block}.mc-tfseg{display:none}}

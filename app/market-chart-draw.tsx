@@ -44,7 +44,7 @@ const css=(name:string,fallback:string)=>getComputedStyle(document.documentEleme
 let probe:CanvasRenderingContext2D|null=null;
 function norm(c:string,fallback:string){try{probe??=document.createElement('canvas').getContext('2d');if(!probe)return c;probe.fillStyle=fallback;probe.fillStyle=c;return String(probe.fillStyle)}catch{return c}}
 const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-const touchLabel=(sec:number,tf:ChartTf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
+const touchLabel=(sec:number,tf:ChartTf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'||tf==='W1'||tf==='MN'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
 
 export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,tick}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<SeriesType>|null>;ver:number;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:ChartTf;tfList:readonly ChartTf[];instrument:string;tick:number}){
  const [tool,setTool]=useState<Tool>('cursor');

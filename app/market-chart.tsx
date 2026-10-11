@@ -1,14 +1,14 @@
 'use client';
-// Graf trhu v detailu trhu: svíčky H1/H4/D1 (Yahoo přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
+// Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {createChart,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
 import {candles as toBars,chartTime} from '@/lib/journal/chart-data';
-import {TF_SEC,type ChartTf,withAlpha,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
+import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
 import {SESSIONS} from '@/lib/journal/analytics';
 import {scoreSeries,type HistoryLike} from '@/lib/dashboard';
 import type {CalendarEvent} from '@/lib/calendar';
 import {forecastLine} from '@/lib/calendar-ff';
-import type {Candle,Tf} from '@/lib/chart/candles';
+import {TFS,type Candle,type Tf} from '@/lib/chart/candles';
 import type {ChartTrade} from '@/lib/chart/trades';
 import {fmtMoney} from '@/lib/trades';
 import {useOpenPositions} from './open-positions';
@@ -26,9 +26,10 @@ type Fp={tick:number;map:Map<number,FpCandle>;pending:number;error?:string;symbo
 type Loaded={status:'loading'|'ok'|'error'|'unsupported';candles:Candle[];stale:boolean;updated:number|null;message?:string};
 type Bar={time:number;open:number;high:number;low:number;close:number};
 type Tip={x:number;y:number;flip:boolean;lines:string[]};
-const KEY='tradee.chart',TFS:Tf[]=['H1','H4','D1'];
+const KEY='tradee.chart';
 const DEFAULT:Prefs={tf:'H4',layers:{trades:true,news:true,score:true,sessions:true},type:'candles',fpTf:'M15'};
-const ALL_TFS:ChartTf[]=['H1','H4','D1'],CRYPTO_TFS:ChartTf[]=['M5','M15','H1','H4','D1'];
+// denní a delší TF: popisky jen s datem, výřez podle délky svíčky
+const dailyUp=(tf:ChartTf)=>tf==='D1'||tf==='W1'||tf==='MN',VIEW_BARS:Partial<Record<ChartTf,number>>={D1:180,W1:150,MN:60};
 // barvu z CSS převést na #rrggbb / rgba() (kvůli průhlednosti)
 let probe:CanvasRenderingContext2D|null=null;
 function norm(c:string,fallback:string){try{probe??=document.createElement('canvas').getContext('2d');if(!probe)return c;probe.fillStyle=fallback;probe.fillStyle=c;return String(probe.fillStyle)}catch{return c}}
@@ -37,7 +38,7 @@ const css=(name:string,fallback:string)=>getComputedStyle(document.documentEleme
 const dark=()=>document.documentElement.dataset.theme==='dark';
 function readPrefs():Prefs{try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(!v)return DEFAULT;return {tf:TFS.includes(v.tf)?v.tf:DEFAULT.tf,type:isChartType(v.type)||v.type==='footprint'?v.type:DEFAULT.type,fpTf:isFpTf(v.fpTf)?v.fpTf:DEFAULT.fpTf,layers:{...DEFAULT.layers,...Object.fromEntries(Object.entries(v.layers||{}).filter(([k,x])=>k in DEFAULT.layers&&typeof x==='boolean'))}}}catch{return DEFAULT}}
 // čas grafu je pražský čas zakódovaný jako UTC → formátovat v UTC
-const barLabel=(t:number,tf:ChartTf)=>new Date(t*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',year:tf==='D1'?'numeric':undefined,...(tf==='D1'?{}:{hour:'2-digit',minute:'2-digit'} as const)});
+const barLabel=(t:number,tf:ChartTf)=>new Date(t*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',year:dailyUp(tf)?'numeric':undefined,...(dailyUp(tf)?{}:{hour:'2-digit',minute:'2-digit'} as const)});
 const eventTime=(e:CalendarEvent)=>new Date(e.at).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',...(e.timeKnown?{hour:'2-digit',minute:'2-digit'} as const:{})})+(e.timeKnown?'':' · čas neupřesněn');
 const scoreFmt=(v:number)=>(v>0?'+':'')+v.toLocaleString('cs-CZ',{maximumFractionDigits:1});
 const pct=(a:number,b:number)=>{const v=(b-a)/a*100;return (v>0?'+':'')+v.toLocaleString('cs-CZ',{maximumFractionDigits:2})+' %'};
@@ -70,7 +71,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const {layers}=prefs;
  // footprint jen u krypta (BTC, ETH, SOL); jinak se uložená volba chová jako svíčky
  const fpOk=!!fpSymbol(instrument),isFp=prefs.type==='footprint'&&fpOk,type:ChartType=prefs.type==='footprint'?'candles':prefs.type;
- const tf:ChartTf=isFp?prefs.fpTf:prefs.tf,tfButtons:readonly ChartTf[]=isFp?FP_TFS:TFS,tfList=fpOk?CRYPTO_TFS:ALL_TFS;
+ const tf:ChartTf=isFp?prefs.fpTf:prefs.tf,tfButtons:readonly ChartTf[]=isFp?FP_TFS:TFS,tfList:readonly ChartTf[]=TFS,sessOk=SESSION_TFS.includes(tf);
  const [fpPrim]=useState(()=>new FootprintPrimitive(on=>setFpMode(on)));
  const polls=useRef(0),silent=useRef(false),fitted=useRef('');
 
@@ -159,6 +160,8 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const scoreMap=useMemo(()=>new Map(scoreBand(scores,times,TF_SEC[tf],{bull:'#000',bear:'#000'}).flatMap(b=>b.value===undefined?[]:[[b.time,b.value] as const])),[scores,times,tf]);
  const positions=useMemo(()=>(open?.positions||[]).filter(p=>p.instrument===instrument),[open,instrument]);
 
+ // osa času: u denních a delších TF jen data, u intraday i čas
+ useEffect(()=>{chart.current?.applyOptions({timeScale:{timeVisible:!dailyUp(tf)}})},[tf]);
  // barvy a motiv
  useEffect(()=>{
   const c=chart.current,s=price.current;if(!c||!s)return;
@@ -185,7 +188,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  useEffect(()=>{
   const c=chart.current,key=instrument+'|'+tf+'|'+isFp;if(!c||!bars.length||data.status!=='ok'||fitted.current===key)return;
   fitted.current=key;
-  c.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-(isFp?10:tf==='D1'?180:150)),to:bars.length+(isFp?1:3)});
+  c.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-(isFp?10:VIEW_BARS[tf]??150)),to:bars.length+(isFp?1:3)});
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[bars]);
 
@@ -194,7 +197,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   const c=chart.current,s=price.current,ss=sess.current,m=markers.current;if(!c||!s||!ss||!m)return;
   const bull=css('--bull','#16a34a'),bear=css('--bear','#dc2626'),sec=TF_SEC[tf];
   // seance (jen H1)
-  ss.setData(layers.sessions&&tf==='H1'?sessionBands(times,dark()?.13:.08).map(x=>({...x,time:x.time as UTCTimestamp})):[]);
+  ss.setData(layers.sessions&&sessOk?sessionBands(times,dark()?.13:.08).map(x=>({...x,time:x.time as UTCTimestamp})):[]);
   // značky obchodů a zpráv
   const visibleTrades=layers.trades?trades:[];
   lookup.current.trades=new Map(visibleTrades.map(t=>[t.id,t]));
@@ -233,8 +236,9 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    <div className="mc-title"><h2>Graf trhu</h2><p className="mc-ohlc" aria-live="off">{shown&&<><b>{barLabel(shown.time,tf)}</b>{type==='ha'&&<span className="mc-ha" title="Svíčky v grafu jsou Heikin-Ashi, hodnoty O H L C jsou skutečné ceny">HA</span>}<span>O <em>{fmtPrice(shown.open)}</em></span><span>H <em>{fmtPrice(shown.high)}</em></span><span>L <em>{fmtPrice(shown.low)}</em></span><span>C <em>{fmtPrice(shown.close)}</em></span>{prev&&<span className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</span>}{hoverScore!==null&&<span>Skóre <em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</>}</p><p className="mc-news-line" title={line2||undefined}>{line2}</p></div>
    <div className="mc-controls">
     <select className="mc-chip mc-type" aria-label="Typ grafu" value={isFp?'footprint':type} onChange={e=>{const v=e.target.value;if(isChartType(v)||(v==='footprint'&&fpOk))update({type:v})}}>{CHART_TYPES.map(t=><option key={t} value={t}>{CHART_TYPE_LABELS[t]}</option>)}{fpOk&&<option value="footprint">Footprint</option>}</select>
-    <div className="mc-seg" role="group" aria-label="Časový rámec">{tfButtons.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update(isFp?{fpTf:t as FpTf}:{tf:t as Tf})}>{t}</button>)}</div>
-    <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.map(([k,label])=>{const off=k==='sessions'&&tf!=='H1';return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>
+    <select className="mc-chip mc-type mc-tfsel" aria-label="Časový rámec" value={tf} onChange={e=>{const v=e.target.value;update(isFp?(isFpTf(v)?{fpTf:v}:{}):{tf:v as Tf})}}>{tfButtons.map(t=><option key={t} value={t}>{t}</option>)}</select>
+    <div className="mc-seg mc-tfseg" role="group" aria-label="Časový rámec">{tfButtons.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update(isFp?{fpTf:t as FpTf}:{tf:t as Tf})}>{t}</button>)}</div>
+    <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.map(([k,label])=>{const off=k==='sessions'&&!sessOk;return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na M1–H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>
     {headExtra}<button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
    </div>
   </div>
@@ -253,7 +257,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    {data.stale&&bars.length>0&&<span className="mc-stale" role="status">Ceny mohou být zpožděné{data.updated?' · stav '+new Date(data.updated).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>}
    {tradesError&&layers.trades&&<span className="mc-stale">Obchody se nepodařilo načíst.</span>}
    {layers.news&&<span className="mc-legend"><i className="mc-dot strong"/>silná zpráva <i className="mc-dot"/>střední</span>}
-   {layers.sessions&&tf==='H1'&&<span className="mc-legend">{SESSIONS.filter(s=>s.key!=='off').map(s=><span key={s.key}><i className="mc-swatch" style={{background:SESSION_COLORS[s.key as keyof typeof SESSION_COLORS]}}/>{s.label}</span>)}</span>}
+   {layers.sessions&&sessOk&&<span className="mc-legend">{SESSIONS.filter(s=>s.key!=='off').map(s=><span key={s.key}><i className="mc-swatch" style={{background:SESSION_COLORS[s.key as keyof typeof SESSION_COLORS]}}/>{s.label}</span>)}</span>}
    {isFp&&fp?.error&&bars.length>0&&<span className="mc-stale" role="status">{fp.error} Zobrazuji poslední uložená data.</span>}
    {isFp&&<span className="mc-legend mc-fp-legend"><span><i className="mc-fp-cell"/>buňka = prodej × nákup (taker), barva podle delty, sytost podle objemu</span><span><i className="mc-fp-poc"/>POC</span><span><i className="mc-fp-imb"/>nerovnováha ≥ 3 : 1 (diagonálně)</span><span>Δ dole = delta svíčky{fp?.tick?' · krok '+fmtPrice(fp.tick):''}</span>{(fp?.pending||0)>0&&<span>Dopočítávám starší svíčky ({fp?.pending})…</span>}</span>}
    {draw.status}

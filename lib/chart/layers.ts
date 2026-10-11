@@ -6,9 +6,12 @@ import {fmtR} from '../journal/format.ts';
 import {fmtMoney} from '../trades.ts';
 import type {Tf} from './candles.ts';
 import type {ChartTrade} from './trades.ts';
-// TF grafu: Yahoo H1/H4/D1, footprint krypta navíc M5/M15
-export type ChartTf=Tf|'M5'|'M15';
-export const TF_SEC:Record<ChartTf,number>={M5:300,M15:900,H1:3600,H4:14400,D1:86400};
+// TF grafu: M1–MN (footprint krypta je podmnožina M5/M15/H1); MN = 31 dní (svíčky měsíců na sebe navazují, viz snapTo)
+export type ChartTf=Tf;
+export const MN_SEC=31*86400;
+export const TF_SEC:Record<ChartTf,number>={M1:60,M5:300,M15:900,M30:1800,H1:3600,H2:7200,H4:14400,D1:86400,W1:604800,MN:MN_SEC};
+// intraday TF, na kterých se zobrazují seance (M1–H1)
+export const SESSION_TFS:readonly ChartTf[]=['M1','M5','M15','M30','H1'];
 type MarkerBase={time:number;shape:'arrowUp'|'arrowDown'|'circle'|'square';color:string;id:string;text?:string;size?:number};
 export type Marker=(MarkerBase&{position:'aboveBar'|'belowBar'|'inBar'})|(MarkerBase&{position:'atPriceTop'|'atPriceBottom'|'atPriceMiddle';price:number});
 // začátek pražského dne YYYY-MM-DD v čase grafu
@@ -17,7 +20,9 @@ export const dayStart=(iso:string)=>{const [y,m,d]=iso.split('-').map(Number);re
 export function snapTo(times:number[],tfSec:number,t:number):number|null{
  if(!times.length||t<times[0]||t>=times[times.length-1]+tfSec)return null;
  let lo=0,hi=times.length-1,i=0;while(lo<=hi){const m=(lo+hi)>>1;if(times[m]<=t){i=m;lo=m+1}else hi=m-1}
- return t<times[i]+tfSec||i===times.length-1?times[i]:times[i+1];
+ // měsíční svíčky na sebe navazují: končí začátkem další
+ const end=tfSec>=MN_SEC&&i<times.length-1?times[i+1]:times[i]+tfSec;
+ return t<end||i===times.length-1?times[i]:times[i+1];
 }
 // trhy kalendáře k instrumentu (EUR/USD → EUR, USD · BTC-USD → BTC · ^NDX → INDEX · AAPL → AAPL)
 export function instrumentMarkets(id:string){

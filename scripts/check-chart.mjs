@@ -1,5 +1,5 @@
 // Kontrola dat grafu: node --experimental-strip-types scripts/check-chart.mjs
-import {parseYahoo,toH4,stale,TF_SOURCE} from '../lib/chart/candles.ts';
+import {parseYahoo,toH4,toH2,toW1,toMN,bucketAggregate,mergeTail,buildTf,stale,TF_SOURCE,TFS,TF_CAP,HISTORY_FROM} from '../lib/chart/candles.ts';
 import {getCandles} from '../lib/chart/store.ts';
 import {heikinAshi,seriesData,isChartType,CHART_TYPES} from '../lib/chart/chart-types.ts';
 const fails=[];
@@ -20,7 +20,30 @@ check('H4: zarovnání 4/8',c.length===2&&c[0][0]===Date.UTC(2026,9,9,4)&&c[1][0
 const now=Date.UTC(2026,9,9,12);
 check('stale H1 14 min čerstvé',!stale('H1',now-14*60000,now)&&stale('H1',now-15*60000,now)&&stale('H4',now-16*60000,now));
 check('stale D1 6 h',!stale('D1',now-5*3600000,now)&&stale('D1',now-6*3600000,now)&&stale('D1',0,now));
-check('zdroje',TF_SOURCE.H1.interval==='60m'&&TF_SOURCE.H4.aggregate&&TF_SOURCE.D1.range==='2y');
+check('zdroje',TF_SOURCE.H1.interval==='60m'&&TF_SOURCE.H4.agg==='H4'&&TF_SOURCE.D1.base==='D1'&&TF_SOURCE.M1.range==='7d'&&TF_SOURCE.M5.interval==='5m'&&TF_SOURCE.M30.interval==='30m');
+check('TF sada a pořadí',TFS.join()==='M1,M5,M15,M30,H1,H2,H4,D1,W1,MN'&&TFS.every(t=>TF_CAP[t]<=3000&&TF_SOURCE[t]));
+check('stale: M1 1 min, M5 3, M15/M30 5',stale('M1',now-60000,now)&&!stale('M1',now-59000,now)&&!stale('M5',now-179000,now)&&stale('M5',now-180000,now)&&stale('M30',now-5*60000,now)&&!stale('M15',now-299000,now)&&!stale('H2',now-14*60000,now)&&!stale('W1',now-5*3600000,now)&&stale('MN',now-6*3600000,now));
+// H2: sudé hodiny UTC, neúplný poslední koš
+const h2=toH2([h(0,1,2,.5,1.5),h(1,1.5,3,1,2),h(2,2,2.2,1.9,2.1),h(3,2.1,2.4,2,2.3),h(5,2.3,2.5,2.2,2.4)]);
+check('H2: zarovnání na sudé hodiny + OHLC',h2.length===3&&h2[0].join()===[Date.UTC(2026,9,9,0),1,3,.5,2].join()&&h2[1][0]===Date.UTC(2026,9,9,2)&&h2[1][4]===2.3&&h2[2][0]===Date.UTC(2026,9,9,4)&&h2[2][4]===2.4,h2);
+check('H2: lichá hodina začíná koš sudé',toH2([h(5,1,2,1,1.5)])[0][0]===Date.UTC(2026,9,9,4));
+check('H4 = bucketAggregate po 4 h',JSON.stringify(bucketAggregate([h(5,1,2,1,1.5),h(6,1.5,2,1,1.6)],t=>Math.floor(t/14400000)*14400000))===JSON.stringify(toH4([h(5,1,2,1,1.5),h(6,1.5,2,1,1.6)])));
+check('DST: letní/zimní přechod nemění UTC koše',toH4([[Date.UTC(2026,9,25,23),1,1,1,1],[Date.UTC(2026,9,26,0),1,1,1,1]]).length===2&&toH4([[Date.UTC(2026,9,25,22),1,1,1,1],[Date.UTC(2026,9,25,23),1,1,1,1]]).length===1);
+// W1 / MN z denních svíček (FX: čas otevření 22:00 UTC předchozího dne)
+const day=(y,m,d,o,hi,lo,c,hh=0)=>[Date.UTC(y,m-1,d,hh),o,hi,lo,c];
+const d1=[day(2026,10,4,1,2,.9,1.5,22),day(2026,10,5,1.5,3,1,2,22),day(2026,10,6,2,2.5,1.8,2.2,22),day(2026,10,7,2.2,2.3,1.7,1.9,22),day(2026,10,8,1.9,2.1,1.5,1.6,22),day(2026,10,9,1.6,1.7,1.2,1.3,22),day(2026,10,11,1.3,1.4,1.1,1.2,22),day(2026,10,12,1.2,1.5,1.0,1.4,22)];
+const w=toW1(d1);
+check('W1: otevření v pondělí 00:00 UTC (i z 22:00 UTC neděle)',w.length===2&&w[0][0]===Date.UTC(2026,9,5)&&new Date(w[0][0]).getUTCDay()===1&&w[1][0]===Date.UTC(2026,9,12)&&w[1][1]===1.3,w);
+check('W1: OHLC týdne',w[0].join()===[Date.UTC(2026,9,5),1,3,.9,1.3].join(),w[0]);
+check('W1: neúplný poslední týden zůstává',w[1][2]===1.5&&w[1][3]===1.0&&w[1][4]===1.4,w[1]);
+const wst=toW1([day(2026,10,7,1,2,1,1.5,13),day(2026,10,9,1.5,3,1,2,14)]);
+check('W1: akcie 13:30 UTC ve správném týdnu',wst.length===1&&wst[0][0]===Date.UTC(2026,9,5),wst);
+const mn=toMN([day(2026,9,29,1,2,1,1.5),day(2026,9,30,1.5,3,1,2),day(2026,10,1,2,2.5,1.5,2.2),day(2026,10,30,2.2,2.3,1,1.1),day(2026,11,2,1.1,1.2,1,1.15),day(2026,9,30,0,0,0,0,22)]);
+check('MN: kalendářní měsíce 1. den 00:00 UTC',mn.length===3&&mn[0][0]===Date.UTC(2026,8,1)&&mn[1][0]===Date.UTC(2026,9,1)&&mn[2][0]===Date.UTC(2026,10,1),mn);
+check('MN: OHLC měsíce a hranice (22:00 UTC 30.9. = 1.10.)',mn[1][1]===0&&mn[1][4]===1.1,mn[1]);
+check('mergeTail: ocas přepíše archiv',JSON.stringify(mergeTail([[1,0,0,0,0],[2,0,0,0,0],[3,0,0,0,0]],[[3,1,1,1,1],[4,1,1,1,1]]))==='[[1,0,0,0,0],[2,0,0,0,0],[3,1,1,1,1],[4,1,1,1,1]]'&&mergeTail([[1,0,0,0,0]],[]).length===1);
+check('buildTf: H1 beze změny, H4 agreguje',buildTf('H1',[h(5,1,2,1,1.5)]).length===1&&buildTf('H4',[h(4,1,2,1,1.5),h(5,1,2,1,1.5)]).length===1&&buildTf('W1',d1).length===2);
+check('historie od 2020-01-01',HISTORY_FROM===Date.UTC(2020,0,1));
 // store s falešnou DB
 function fakeDb(){const rows=new Map();const st={rows,fetches:0};
  st.db={prepare(sql){const mk=params=>({bind:(...p)=>mk(p),
