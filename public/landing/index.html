@@ -58,7 +58,12 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:7
 .brand .mark{width:34px;height:auto;flex:none;color:var(--ink)}
 .links{display:flex;gap:28px;font-size:15px}
 .links a{text-decoration:none;color:var(--ink)}
-.links a.on{border-bottom:2px solid var(--ink);padding-bottom:3px}
+.links{position:relative}
+.links a{padding-bottom:5px}
+.links a.on{font-weight:600}
+/* podtržení aktivní položky přejíždí mezi odkazy */
+.links .uline{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--ink);border-radius:2px;transition:transform .45s cubic-bezier(.32,.72,0,1),width .45s cubic-bezier(.32,.72,0,1);pointer-events:none}
+@media(prefers-reduced-motion:reduce){.links .uline{transition:none}}
 /* hero */
 .hero{position:relative;overflow:hidden;background:linear-gradient(180deg,#dfe9fb 0%,#eef3fc 45%,#fff 100%);padding:40px 0 70px}
 .hero::before{content:"";position:absolute;right:6%;top:40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,#fff 0%,#fff7 35%,transparent 70%)}
@@ -204,7 +209,7 @@ footer a{color:#fff;text-decoration:none}
 <body>
 <nav><div class="wrap">
  <a class="brand" href="/"><svg class="mark" viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>Tradee</a>
- <div class="links"><a class="on m" href="/">Úvod</a><a class="m" href="#jak">Jak to funguje</a><a class="m" href="#ukazka">Ukázka</a><a class="m" href="#faq">FAQ</a></div>
+ <div class="links"><span class="uline" aria-hidden="true"></span><a class="on m" href="/">Úvod</a><a class="m" href="#jak">Jak to funguje</a><a class="m" href="#ukazka">Ukázka</a><a class="m" href="#faq">FAQ</a></div>
  <a class="btn" href="/auth/google">Přihlásit <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
 </div></nav>
 
@@ -343,6 +348,15 @@ document.querySelectorAll('.tabs button[data-s]').forEach(b=>b.onclick=()=>{docu
     .then(function(){b.disabled=false});
   });
  });
+})();
+</script>
+<script>
+(()=>{const box=document.querySelector('.links');if(!box)return;const line=box.querySelector('.uline'),links=[...box.querySelectorAll('a')];
+const set=a=>{links.forEach(x=>{x.classList.toggle('on',x===a);if(x===a)x.setAttribute('aria-current','true');else x.removeAttribute('aria-current')});if(!a||!a.offsetParent){line.style.width='0';return}line.style.width=a.offsetWidth+'px';line.style.transform='translateX('+a.offsetLeft+'px)'};
+let lock=0;links.forEach(a=>a.addEventListener('click',()=>{set(a);lock=Date.now()}));
+const sec=links.map(a=>{const h=a.getAttribute('href');return h.startsWith('#')?document.querySelector(h):document.body});
+const spy=()=>{if(Date.now()-lock<900)return;let cur=links[0];sec.forEach((el,i)=>{if(el&&el!==document.body&&el.getBoundingClientRect().top<innerHeight*.4)cur=links[i]});if(!cur.classList.contains('on'))set(cur)};
+addEventListener('scroll',spy,{passive:true});addEventListener('resize',()=>set(box.querySelector('a.on')));set(box.querySelector('a.on'));
 })();
 </script>
 </body>
