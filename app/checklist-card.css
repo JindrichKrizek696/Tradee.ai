@@ -1,14 +1,31 @@
-.cc-list{display:grid;gap:14px;margin-top:10px}
+/* Checklist: kompaktní karta – body jako dlaždice se zaškrtnutím, ve sloupcích */
+.cc-card{padding:18px 20px}
+.cc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.score-v2 .cc-top h2{font-size:17px;margin:0;flex:1 1 auto}
+.cc-total{font-size:12px;font-weight:600;color:var(--t-muted);background:var(--t-surface-3);border-radius:9999px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.cc-total.ok{color:var(--bull-text);background:color-mix(in srgb,var(--bull) 14%,var(--t-surface))}
+.cc-edit{font-size:12px;color:var(--t-muted);text-decoration:none}.cc-edit:hover{color:var(--t-fg);text-decoration:underline}
+.cc-empty{margin:8px 0 0;font-size:13px}
+.cc-list{display:grid;gap:14px;margin-top:12px}
 .cc-set{display:grid;gap:8px}
-.cc-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.cc-head h3{margin:0;font-size:15px;flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
-.cc-count{font-size:13px;color:var(--t-muted)}
-.cc-bar{height:6px;border-radius:9999px;background:var(--t-surface-3);overflow:hidden}
-.cc-bar i{display:block;height:100%;background:var(--t-brand);border-radius:9999px;transition:width .2s}
-.cc-pts{display:grid;gap:2px;margin:0;padding:0;list-style:none}
-.cc-pt label{display:flex;gap:10px;align-items:flex-start;padding:6px 2px;font-size:14px;cursor:pointer;overflow-wrap:anywhere}
-.cc-pt input{margin:3px 0 0;flex:none;width:16px;height:16px;accent-color:var(--t-brand)}
-.cc-pt input:disabled{cursor:default}
-.cc-pt label.ro{cursor:default}
-.cc-clear{font:inherit;font-size:13px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg);border-radius:9999px;padding:4px 12px;cursor:pointer}
-.cc-clear:disabled{opacity:.5;cursor:default}
+.cc-head{display:flex;align-items:center;gap:10px;min-width:0}
+.score-v2 .cc-head h3{margin:0;font-size:13px;font-weight:600;color:var(--t-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%}
+.cc-count{font-size:12px;color:var(--t-muted);font-variant-numeric:tabular-nums;flex:none}
+.cc-count.ok{color:var(--bull-text);font-weight:600}
+.cc-bar{flex:1 1 60px;height:4px;border-radius:9999px;background:var(--t-surface-3);overflow:hidden;min-width:40px}
+.cc-bar i{display:block;height:100%;background:var(--t-brand);border-radius:9999px;transition:width .25s ease}
+.cc-set.done .cc-bar i{background:var(--bull)}
+.cc-pts{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.cc-pt{position:relative;display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--t-border);border-radius:10px;background:var(--t-surface);font-size:13px;line-height:1.35;cursor:pointer;transition:background .15s,border-color .15s;overflow-wrap:anywhere}
+.cc-pt:hover{border-color:var(--t-border-strong)}
+.cc-pt input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.cc-box{flex:none;display:grid;place-items:center;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--t-border-strong);background:var(--t-surface);transition:background .15s,border-color .15s}
+.cc-box svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .15s}
+.cc-pt.on{background:color-mix(in srgb,var(--bull) 9%,var(--t-surface));border-color:color-mix(in srgb,var(--bull) 35%,var(--t-border))}
+.cc-pt.on .cc-box{background:var(--bull);border-color:var(--bull)}.cc-pt.on .cc-box svg{opacity:1}
+.cc-pt.on .cc-txt{color:var(--t-fg-2)}
+.cc-pt input:focus-visible+.cc-box{outline:2px solid var(--t-brand);outline-offset:2px}
+.cc-pt.ro{cursor:default}.cc-pt.ro:hover{border-color:var(--t-border)}
+.cc-clear{flex:none;font:inherit;font-size:12px;border:0;background:none;color:var(--t-muted);padding:2px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.cc-clear:hover{color:var(--t-fg)}
+@media(max-width:640px){.cc-pts{grid-template-columns:1fr}}

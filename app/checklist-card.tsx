@@ -9,10 +9,9 @@ async function send(url:string,method:string,body?:unknown):Promise<any>{
 const pct=(c:number,n:number)=>n?Math.round(c/n*100):0;
 // Jeden seznam bodů s ukazatelem; onToggle chybí = jen zobrazení.
 export function CheckSet({name,items,onToggle,extra}:{name:string;items:{id:string;text:string;checked:boolean}[];onToggle?:(id:string)=>void;extra?:React.ReactNode}){
- const c=items.filter(i=>i.checked).length;
- return <div className="cc-set"><div className="cc-head"><h3>{name}</h3><span className="cc-count">{c} / {items.length} splněno</span>{extra}</div>
-  <div className="cc-bar" role="progressbar" aria-label={`Splněno ${c} z ${items.length}`} aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={c}><i style={{width:pct(c,items.length)+'%'}}/></div>
-  <ul className="cc-pts">{items.map(i=><li key={i.id} className="cc-pt"><label className={onToggle?'':'ro'}><input type="checkbox" checked={i.checked} disabled={!onToggle} onChange={()=>onToggle?.(i.id)}/><span>{i.text}</span></label></li>)}</ul></div>;
+ const c=items.filter(i=>i.checked).length,all=items.length>0&&c===items.length;
+ return <div className={'cc-set'+(all?' done':'')}><div className="cc-head"><h3>{name}</h3><span className={'cc-count'+(all?' ok':'')}>{all?'✓ ':''}{c}/{items.length}</span><div className="cc-bar" role="progressbar" aria-label={`Splněno ${c} z ${items.length}`} aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={c}><i style={{width:pct(c,items.length)+'%'}}/></div>{extra}</div>
+  <ul className="cc-pts">{items.map(i=><li key={i.id}><label className={'cc-pt'+(i.checked?' on':'')+(onToggle?'':' ro')}><input type="checkbox" checked={i.checked} disabled={!onToggle} onChange={()=>onToggle?.(i.id)}/><span className="cc-box" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg></span><span className="cc-txt">{i.text}</span></label></li>)}</ul></div>;
 }
 export function ChecklistCard({instrument}:{instrument:string}){
  const [lists,setLists]=useState<Checklist[]|null>(null),[state,setState]=useState<Record<string,string[]>>({}),[error,setError]=useState('');
@@ -32,11 +31,12 @@ export function ChecklistCard({instrument}:{instrument:string}){
   if(!window.confirm(`Vymazat zaškrtnutí v checklistu „${l.name}“?`))return;
   put({...cur.current,[l.id]:[]});setError('');
   queue(()=>send('/api/checklists/state','DELETE',{checklistId:l.id,instrument}))}
- if(lists===null)return <section className="s-card"><h2>Checklist</h2><p className="j-muted">Načítám…</p></section>;
- return <section className="s-card"><h2>Checklist</h2>
+ const tot=(lists||[]).reduce((a,l)=>{const on=new Set(state[l.id]||[]);return [a[0]+l.items.filter(i=>on.has(i.id)).length,a[1]+l.items.length]},[0,0]);
+ if(lists===null)return <section className="s-card cc-card"><div className="cc-top"><h2>Checklist</h2></div><p className="j-muted">Načítám…</p></section>;
+ return <section className="s-card cc-card"><div className="cc-top"><h2>Checklist</h2>{lists.length>0&&<span className={'cc-total'+(tot[0]===tot[1]&&tot[1]?' ok':'')}>{tot[0]} z {tot[1]} bodů</span>}<a className="cc-edit" href="/pravidla">Upravit</a></div>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  {!lists.length?<p className="j-muted">Pro tento trh nemáš checklist. <a href="/pravidla">Nastavit checklisty</a></p>
+  {!lists.length?<p className="j-muted cc-empty">Pro tento trh nemáš checklist. <a href="/pravidla">Nastavit checklisty</a></p>
   :<div className="cc-list">{lists.map(l=>{const on=new Set(state[l.id]||[]);
-   return <CheckSet key={l.id} name={l.name} items={l.items.map(i=>({...i,checked:on.has(i.id)}))} onToggle={id=>toggle(l,id)} extra={l.items.some(i=>on.has(i.id))&&<button type="button" className="cc-clear" onClick={()=>clear(l)}>Vymazat</button>}/>})}</div>}
+   return <CheckSet key={l.id} name={l.name} items={l.items.map(i=>({...i,checked:on.has(i.id)}))} onToggle={id=>toggle(l,id)} extra={l.items.some(i=>on.has(i.id))&&<button type="button" className="cc-clear" onClick={()=>clear(l)} aria-label={'Vymazat zaškrtnutí v checklistu '+l.name} title="Vymazat zaškrtnutí">Vymazat</button>}/>})}</div>}
  </section>;
 }
