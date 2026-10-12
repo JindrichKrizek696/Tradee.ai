@@ -10,6 +10,8 @@ const cache=new Map<string,{until:number;result:StudyResult}>(),TTL=6*3600000;le
 export async function GET(req:Request){try{const u=await labUser(req);if(u instanceof Response)return u;const d=db();
  const q=new URL(req.url).searchParams;
  if(q.get('latest')==='1'){const s=await latestStudy(d,u.id).catch(()=>null);return Response.json({study:s?.result??null,params:s?.params??null},{headers:LAB_HEADERS})}
+ // Výpočet zapisuje do DB a je drahý: jen z vlastní stránky (ne z cizího webu přes odkaz/obrázek)
+ const site=req.headers.get('sec-fetch-site');if(site&&site!=='same-origin')return new Response('Not found',{status:404});
  const p=parseStudyParams(req.url),key=JSON.stringify(p),hit=cache.get(key);
  if(hit&&hit.until>Date.now()&&q.get('fresh')!=='1')return Response.json({study:hit.result,params:p,cached:true},{headers:LAB_HEADERS});
  if(running)return Response.json({error:'Studie se právě počítá, zkus to za chvíli.'},{status:429,headers:LAB_HEADERS});
