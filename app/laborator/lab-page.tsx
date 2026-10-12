@@ -1,7 +1,7 @@
 'use client';
 // Laboratoř (jen vlastník): studie signálů, tester pravidel, poznámky pro AI a jejich souhrn. API /api/laborator/* vrací 404 všem ostatním.
-import {useCallback,useEffect,useMemo,useState} from 'react';
-import {ArrowLeft,AlertTriangle,Plus,Trash2,Copy,Save,Play,X} from 'lucide-react';
+import {Fragment,useCallback,useEffect,useMemo,useState} from 'react';
+import {ArrowLeft,AlertTriangle,Plus,Trash2,Copy,Save,Play,X,RotateCcw,ChevronDown,ChevronRight,LineChart} from 'lucide-react';
 import {usePalette} from '../palette';
 import {EquityChart} from '../journaling/backtest/equity-chart';
 import {fmtNum} from '@/lib/journal/format';
@@ -10,6 +10,7 @@ import {DEFAULT_LAB_RULE,DIRECTION_LABELS,LAB_COND_LABELS,type LabRule,type LabC
 import type {LabNote,LabRuleRow} from '@/lib/lab/core';
 import type {BacktestSummary} from '@/lib/backtest/metrics';
 import type {EquityPoint,MarketResult} from '@/lib/backtest/engine';
+import type {PaperTrade,PaperStats,PaperEquityPoint} from '@/lib/lab/paper';
 import '../mt.css';
 import '../journaling/backtest/backtest.css';
 import './lab.css';
@@ -24,7 +25,7 @@ const pct=(v:number|null,d=2)=>v===null?'–':(v>0?'+':'')+fmtNum(v,d)+' %';
 const num=(v:number|null,d=2)=>v===null?'–':fmtNum(v,d);
 const sgn=(v:number|null)=>v===null?'':v>0?'pos':v<0?'neg':'';
 const day=(t:number|null)=>t===null?'–':new Date(t).toLocaleDateString('cs-CZ');
-const TABS=[['study','Předpovídá to cenu?'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
+const TABS=[['study','Předpovídá to cenu?'],['paper','Simulace'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
 type Tab=typeof TABS[number][0];
 
 export default function LabPage(){
@@ -39,7 +40,7 @@ export default function LabPage(){
    <h1>Laboratoř</h1>
    <p className="mt-lead">Soukromý výzkum – vidíš ho jen ty. Testy běží nad historickými denními svíčkami a vždy jen s daty, která byla v daný den opravdu známá.</p>
    <div className="mt-chips lb-tabs" role="tablist">{TABS.map(([k,l])=><button key={k} role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>
-   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:<Summary/>}
+   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:<Summary/>}
   </main>
  </div>;
 }
@@ -202,13 +203,68 @@ function Notes(){
  </section>;
 }
 
+// ---------------- Simulace 100 000 Kč
+type PaperRow=Omit<PaperTrade,'partsAtEntry'>&{partsAtEntry?:unknown;mark:{price:number;r:number;pnlCzk:number;pct:number;at:number}|null};
+type PaperData={account:{startEquity:number;started:number;rulesVersion:string;active:boolean}|null;stats:PaperStats;equity:PaperEquityPoint[];open:PaperRow[];closed:PaperRow[];log:{at:number;text:string}[];rules:{version:string;text:string[]};names:Record<string,string>;now:number};
+const kc=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(Math.round(v)),0)+' Kč';
+const rr=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(v),2)+' R';
+const px=(v:number|null)=>v===null?'–':fmtNum(v,Math.abs(v)<10?5:Math.abs(v)<1000?3:2);
+const when=(t:number|null)=>t===null?'–':new Date(t).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+const EXIT:Record<string,string>={sl:'SL',tp:'TP',time:'Čas',signal:'Signál'};
+const slug=(id:string)=>'/graf/'+encodeURIComponent(id.replace(/\//g,'-'));
+function Paper(){
+ const [d,setD]=useState<PaperData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[openId,setOpenId]=useState<string|null>(null),[busy,setBusy]=useState(false);
+ const load=useCallback(()=>{call<PaperData>('/api/laborator/paper').then(j=>{setD(j);setErr('')}).catch(e=>{if((e as HttpError).status===503)setMissing(true);else setErr((e as Error).message)})},[]);
+ useEffect(()=>{load();const t=setInterval(()=>{if(document.visibilityState==='visible')load()},5*60000);return()=>clearInterval(t)},[load]);
+ async function reset(){if(!confirm('Restartovat simulaci? Smažou se všechny virtuální obchody, křivka i deník a účet začne znovu se 100 000 Kč.'))return;setBusy(true);try{await call('/api/laborator/paper','POST',{action:'reset',confirm:'RESTART'});load()}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
+ const curve=useMemo(()=>{if(!d?.account)return [] as EquityPoint[];const pts=[{t:d.account.started,equity:d.account.startEquity},...d.equity.filter(p=>p.t>=d.account!.started)];if(pts.length===1)pts.push({t:Math.max(d.now,d.account.started+60000),equity:d.stats.equity});return pts},[d]);
+ if(missing)return <section className="mt-card"><p className="mt-alert">Simulace ještě nejde – chybí migrace databáze (0026_lab_paper.sql).</p></section>;
+ if(!d)return <section className="mt-card">{err?<p className="mt-alert" role="alert">{err}</p>:<p className="mt-empty">Načítám…</p>}</section>;
+ const s=d.stats,name=(id:string)=>d.names[id]||id;
+ const toggle=(id:string)=>setOpenId(o=>o===id?null:id);
+ const notes=(t:PaperRow,cols:number)=>openId===t.id&&<tr className="lb-notesrow"><td colSpan={cols}><div className="lb-paper-notes"><div><h4>Proč jsem do toho šel</h4><p>{t.why}</p></div><div><h4>Výsledek</h4><p>{t.resultNote||(t.mark?`Zatím otevřeno: ${rr(t.mark.r)}, ${kc(t.mark.pnlCzk)} (${fmtNum(t.mark.pct,2)} % ceny) při ceně ${px(t.mark.price)}.`:'Zatím otevřeno, živá cena chybí.')}</p></div><a className="lb-link" href={slug(t.instrument)}><LineChart size={14}/> Graf {name(t.instrument)}</a></div></td></tr>;
+ const mkt=(t:PaperRow)=><td><button className="lb-link lb-exp" aria-expanded={openId===t.id} onClick={()=>toggle(t.id)}>{openId===t.id?<ChevronDown size={14}/>:<ChevronRight size={14}/>}{name(t.instrument)}</button><small><a href={slug(t.instrument)}>graf</a> · {t.rulesVersion}</small></td>;
+ return <>
+  <section className="mt-card">
+   <h2>Simulace 100 000 Kč</h2>
+   <p className="mt-lead">Virtuální účet, který každých 15 minut obchoduje podle nejsilnějších signálů Tradee – bez zásahu, jen podle pevných pravidel. Ke každému obchodu si zapíše, proč do něj šel, jak moc si byl jistý a jak dopadl.{d.account?` Start ${when(d.account.started)}, pravidla ${d.account.rulesVersion}.`:' Spustí se při příštím běhu po živých cenách.'}</p>
+   {err&&<p className="mt-alert" role="alert">{err}</p>}
+   <dl className="bt-tiles">{([
+    ['Equity',fmtNum(Math.round(s.equity),0)+' Kč',`start ${fmtNum(s.startEquity,0)} Kč`,''],
+    ['Výnos od startu',pct(s.returnPct),`uzavřeno ${kc(s.balance-s.startEquity)}`,sgn(s.returnPct)],
+    ['Otevřený P&L',kc(s.openPnl),`${s.open} ${s.open===1?'pozice':s.open>=2&&s.open<=4?'pozice':'pozic'}`,sgn(s.openPnl)],
+    ['Obchody',String(s.trades),`${s.wins} v zisku`,''],
+    ['Win rate',s.winRate===null?'–':num(s.winRate,1)+' %','',''],
+    ['Průměr',rr(s.avgR),`celkem ${rr(s.totalR)}`,sgn(s.avgR)],
+    ['Max. drawdown',num(s.maxDrawdownPct,1)+' %','z equity vč. otevřených',s.maxDrawdownPct<0?'neg':''],
+   ] as [string,string,string,string][]).map(([k,v,sub,cls])=><div key={k} className="bt-tile"><dt>{k}</dt><dd className={cls}>{v}</dd><dd className="sub">{sub}</dd></div>)}</dl>
+   <EquityChart series={[{label:'Equity',points:curve,cls:'a'}]} fmt={v=>fmtNum(Math.round(v),0)+' Kč'} base={s.startEquity}/>
+   <details className="lb-details"><summary>Pravidla {d.rules.version} (uložená u každého obchodu)</summary><ul className="lb-notes">{d.rules.text.map(t=><li key={t}>{t}</li>)}</ul></details>
+  </section>
+  <section className="mt-card">
+   <h2>Otevřené pozice ({d.open.length})</h2>
+   {!d.open.length?<p className="mt-empty">Žádná otevřená pozice.</p>:<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>Směr</th><th>Vstup</th><th>SL</th><th>TP</th><th>Aktuální cena</th><th>P&L</th><th>Jistota</th><th>Otevřeno</th></tr></thead>
+    <tbody>{d.open.map(t=><Fragment key={t.id}><tr>{mkt(t)}<td>{t.direction==='long'?'Long':'Short'}</td><td>{px(t.entry)}</td><td>{px(t.sl)}</td><td>{px(t.tp)}</td><td>{t.mark?px(t.mark.price):'–'}</td><td className={sgn(t.mark?.pnlCzk??null)}>{t.mark?<>{kc(t.mark.pnlCzk)}<small>{rr(t.mark.r)}</small></>:'–'}</td><td>{t.confidence} %</td><td>{when(t.opened)}</td></tr>{notes(t,9)}</Fragment>)}</tbody></table></div>}
+  </section>
+  <section className="mt-card">
+   <h2>Uzavřené obchody ({d.closed.length})</h2>
+   {!d.closed.length?<p className="mt-empty">Zatím žádný uzavřený obchod.</p>:<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>Směr</th><th>Vstup → výstup</th><th>Důvod</th><th>R</th><th>Kč</th><th>% ceny</th><th>Jistota</th><th>Otevřeno → zavřeno</th></tr></thead>
+    <tbody>{d.closed.map(t=><Fragment key={t.id}><tr>{mkt(t)}<td>{t.direction==='long'?'Long':'Short'}</td><td>{px(t.entry)} → {px(t.exit)}</td><td>{EXIT[t.exitReason??'']??'–'}</td><td className={sgn(t.r)}>{rr(t.r)}</td><td className={sgn(t.pnlCzk)}>{kc(t.pnlCzk)}</td><td>{t.pct===null?'–':pct(t.pct)}</td><td>{t.confidence} %</td><td>{when(t.opened)} → {when(t.closed)}</td></tr>{notes(t,9)}</Fragment>)}</tbody></table></div>}
+  </section>
+  <section className="mt-card">
+   <details className="lb-details"><summary>Deník simulace ({d.log.length})</summary>{!d.log.length?<p className="mt-empty">Prázdný.</p>:<ul className="lb-log">{d.log.map((l,i)=><li key={i}><time>{when(l.at)}</time> {l.text}</li>)}</ul>}</details>
+   <div className="lb-form lb-actions"><button className="mt-btn" disabled={busy} onClick={reset}><RotateCcw size={15}/>{busy?'Restartuji…':'Restartovat simulaci'}</button><span className="lb-hint">P&L v Kč = R × riziko (abstrahuje od velikosti kontraktu a převodu měn). Ceny z Yahoo, bez skutečného brokera.</span></div>
+  </section>
+ </>;
+}
+
 // ---------------- Shrnutí pro AI
 function Summary(){
  const [s,setS]=useState<{body:string;updated:string}|null>(null),[err,setErr]=useState(''),[copied,setCopied]=useState(false);
  useEffect(()=>{call<{body:string;updated:string}>('/api/laborator/summary').then(setS).catch(e=>setErr((e as Error).message))},[]);
  return <section className="mt-card">
   <h2>Shrnutí pro AI</h2>
-  <p className="mt-lead">Jen pro čtení: všechny poznámky, uložená pravidla s posledním testem a poslední studie v jednom markdownu. Ukládá se do tabulky <code>lab_summary</code>, odkud si ho Claude přečte.</p>
+  <p className="mt-lead">Jen pro čtení: všechny poznámky, uložená pravidla s posledním testem, poslední studie a stav simulace v jednom markdownu. Ukládá se do tabulky <code>lab_summary</code>, odkud si ho Claude přečte.</p>
   {err&&<p className="mt-alert" role="alert">{err}</p>}
   {!s&&!err&&<p className="mt-empty">Načítám…</p>}
   {s&&<><div className="lb-form"><button className="mt-btn" onClick={()=>{navigator.clipboard?.writeText(s.body).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),1500)}).catch(()=>{})}}><Copy size={15}/>{copied?'Zkopírováno':'Zkopírovat'}</button><span className="lb-meta">Aktualizováno {new Date(s.updated).toLocaleString('cs-CZ')}</span></div>

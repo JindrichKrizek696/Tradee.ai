@@ -1,10 +1,12 @@
 // Laboratoř · databáze (lab_notes, lab_rules, lab_studies, lab_summary, lab_cot). Volá se jen z /api/laborator/* za labGate.
 // Všechny dotazy filtrují user_id přihlášeného vlastníka; nikdy se nepoužívá ?as= (lib/admin/http.ts viewAs).
 import type {Db} from '../mysql.ts';
-import {LAB_LIMITS,parseTagsCol,aiSummary,type LabNote,type LabRuleRow} from './core.ts';
+import {LAB_LIMITS,parseTagsCol,aiSummary,isMissingLabTable,type LabNote,type LabRuleRow} from './core.ts';
 import {normalizeLabRule} from './rules.ts';
 import type {CotSource,ScoreSnap,StudyResult} from './study.ts';
 import {fxCurrencies} from '../markets.ts';
+import {liveQuotes} from '../live-store.ts';
+import {paperSummary} from './paper-store.ts';
 
 const sqlNow=()=>new Date().toISOString().slice(0,19).replace('T',' ');
 const iso=(s:unknown)=>typeof s==='string'&&/^\d{4}-\d\d-\d\d \d/.test(s)?s.replace(' ','T')+'Z':String(s??'');
@@ -55,7 +57,10 @@ export async function latestStudy(d:Db,uid:string):Promise<{params:unknown;resul
 // ---- shrnutí pro AI: uloží se do lab_summary (Claude ho přečte přímo z DB)
 export async function refreshSummary(d:Db,uid:string){
  const [notes,rules,study]=await Promise.all([listNotes(d,uid),listRules(d,uid),latestStudy(d,uid)]);
- const body=aiSummary(notes,rules,study?.result??null),now=sqlNow();
+ // simulace (lab_paper_*): bez migrace 0026 nebo živých cen se jen vynechá
+ let paper='';
+ try{paper=await paperSummary(d,uid,(await liveQuotes(d).catch(()=>({quotes:{}}))).quotes)}catch(e){if(!isMissingLabTable(e))console.error(e)}
+ const body=aiSummary(notes,rules,study?.result??null)+(paper?'\n'+paper:''),now=sqlNow();
  await d.prepare('INSERT INTO lab_summary(user_id,body,updated) VALUES(?,?,?) ON DUPLICATE KEY UPDATE body=VALUES(body),updated=VALUES(updated)').bind(uid,body,now).run();
  return {body,updated:iso(now)};
 }

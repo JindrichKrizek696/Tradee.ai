@@ -30,6 +30,9 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  const item=list.find(i=>slugOf(i.id)===key);
  const [data,setData]=useState({...initialReport,ffMacro,tePmi,retailOfficial} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState(savedHistory as unknown as HistoryLike);
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
+ // vlastník vidí v grafu i vrstvu Simulace z Laboratoře (ostatním se data simulace nikdy nežádají)
+ const [owner,setOwner]=useState(false);
+ useEffect(()=>{let live=true;fetch('/api/watchlist',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{user?:{owner?:boolean}}>:null).then(j=>{if(live)setOwner(j?.user?.owner===true)}).catch(()=>{});return()=>{live=false}},[]);
  const quotes=useLive(),calendar=useMemo(()=>mergeCalendar(calendarAuto.events as AutoEvent[],data.events,data.sources),[data]);
  const method=item?marketScore(data,market,item.id).method:'',quote=item?quotes?.quotes[item.id]:undefined;
  const go=(id:string)=>{location.href='/graf/'+slugOf(id)};
@@ -41,7 +44,7 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
    {item&&<div className="mc-page-live"><h1>{item.name}</h1>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
   </header>
   <main className="mt-main mc-page-main">
-   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker}/></div>
+   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker} owner={owner}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
  </div>;

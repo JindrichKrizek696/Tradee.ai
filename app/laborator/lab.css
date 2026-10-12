@@ -44,3 +44,14 @@
 .lb-editor textarea{min-height:320px;padding:12px;border:1px solid var(--t-border);border-radius:12px;background:var(--t-surface);color:var(--t-fg);font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
 .lb-pre{white-space:pre-wrap;word-break:break-word;background:var(--t-surface-2);border:1px solid var(--t-border);border-radius:12px;padding:14px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:70vh;overflow:auto}
 @media (max-width:760px){.lb-notesgrid{grid-template-columns:1fr}.bt-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.lb-glabel{width:100%}}
+/* Simulace */
+.lb-exp{display:inline-flex;align-items:center;gap:4px}
+.lb-table td small a{color:inherit}
+.lb-table tr.lb-notesrow td{white-space:normal;background:var(--t-surface-2)}
+.lb-paper-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:6px 2px}
+.lb-paper-notes h4{font-size:13px;margin:0 0 6px}
+.lb-paper-notes p{margin:0;white-space:pre-wrap;font-size:13px;line-height:1.55;color:var(--t-fg)}
+.lb-paper-notes a{grid-column:1/-1;display:inline-flex;align-items:center;gap:6px;width:max-content}
+.lb-log{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px;font-size:13px}
+.lb-log time{color:var(--t-muted);font-variant-numeric:tabular-nums;margin-right:6px}
+@media (max-width:760px){.lb-paper-notes{grid-template-columns:1fr}}

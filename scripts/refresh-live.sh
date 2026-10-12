@@ -8,3 +8,13 @@ exec 9>/tmp/tradee-live.lock
 flock -n 9 || { echo "!! $(date -Is) předchozí běh ještě běží"; exit 0; }
 echo "== $(date -Is) live"
 node --experimental-strip-types scripts/refresh-live.mjs
+rc=$?
+# Laboratoř · Simulace (jen vlastník): jeden krok po čerstvých cenách. Vlastní zámek a limit 5 min; selhání nesmí shodit živé ceny.
+if [ -f scripts/lab-paper.mjs ]; then
+  (
+    exec 8>/tmp/tradee-lab-paper.lock
+    flock -n 8 || { echo "!! $(date -Is) lab-paper: předchozí běh ještě běží"; exit 0; }
+    timeout 300 node --experimental-strip-types scripts/lab-paper.mjs
+  ) || echo "!! $(date -Is) lab-paper selhal (živé ceny jsou uložené)"
+fi
+exit $rc
