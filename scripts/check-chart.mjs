@@ -71,7 +71,7 @@ check('store: souběh = jeden fetch',f.fetches===2&&[x,y].filter(v=>v.stale).len
 r=await getCandles(f.db,'USD','H1',now,ok1);
 check('store: měnový index nepodporován',r.unsupported===true&&r.candles.length===0,r);
 // ---- vrstvy grafu
-{const {snapTo,newsLayer,tradeMarkers,scoreBand,sessionBands,withAlpha,instrumentMarkets,sortMarkers}=await import('../lib/chart/layers.ts');
+{const {snapTo,newsLayer,tradeMarkers,scoreBand,sessionBands,withAlpha,instrumentMarkets,sortMarkers,logicalAt,upcomingNews,eventCountry,newsMarkers,newsReaction}=await import('../lib/chart/layers.ts');
 const T=[0,3600,7200,10800,86400];
 check('layers: snap uvnitř svíčky',snapTo(T,3600,4000)===3600,snapTo(T,3600,4000));
 check('layers: snap v mezeře → další svíčka',snapTo(T,3600,20000)===86400,snapTo(T,3600,20000));
@@ -89,7 +89,34 @@ const sb=scoreBand([{at:at(3.5),score:40},{at:at(6),score:-80}],times,3600,{bull
 check('layers: pás skóre schodovitě, mezera před prvním snímkem',sb[2].value===undefined&&sb[3].value===40&&sb[5].value===40&&sb[6].value===-80&&sb[6].color==='rgba(255,0,0,0.85)',sb.slice(2,7));
 const ses=sessionBands(times,.1);
 check('layers: seance podle pražské hodiny',ses[3].color===withAlpha('#f59e0b',.1)&&ses[9].color===withAlpha('#3b82f6',.1)&&ses[14].color===withAlpha('#8b5cf6',.1)&&ses[18].color===withAlpha('#10b981',.1)&&ses[23].value===undefined,ses.map(s=>s.color));
-check('layers: alfa barvy',withAlpha('#abc',.5)==='rgba(170,187,204,0.5)'&&withAlpha('rgb(1, 2, 3)',.2)==='rgba(1,2,3,0.2)',null);}
+check('layers: alfa barvy',withAlpha('#abc',.5)==='rgba(170,187,204,0.5)'&&withAlpha('rgb(1, 2, 3)',.2)==='rgba(1,2,3,0.2)',null);
+// zprávy: proběhlé nad svíčkami, nadcházející v pásu dole (logický index i za poslední svíčkou)
+const now14=Date.parse(at(12));
+check('layers: zprávy do now = proběhlé, bez now všechny',newsLayer(ev,'EUR/USD',times,3600,now14).map(n=>n.event.id).join()==='d'&&newsLayer(ev,'EUR/USD',times,3600).length===2,newsLayer(ev,'EUR/USD',times,3600,now14));
+check('layers: logický index – svíčka, mezera, za koncem, před začátkem',logicalAt(T,3600,4000)===1&&logicalAt(T,3600,20000)===4&&logicalAt(T,3600,86400+3600*5+10)===9&&logicalAt(T,3600,-5)===null&&logicalAt([],3600,1)===null,[logicalAt(T,3600,4000),logicalAt(T,3600,20000),logicalAt(T,3600,86400+3600*5+10)]);
+const late={id:'e',at:at(30),timeKnown:true,title:'USA • NFP',markets:['USD'],signal:3,global:false};
+const up=upcomingNews([late,...ev],'EUR/USD',times,3600,now14);
+check('layers: nadcházející – jen po now, seřazené, za koncem svíček odhad',up.map(u=>u.event.id).join()==='a,e'&&up[0].logical===14&&up[1].logical===30&&up[1].t===base+30*3600,up);
+check('layers: nadcházející – jiné trhy a slabé ne',upcomingNews(ev,'GBP/JPY',times,3600,now14).map(u=>u.event.id).join()===''&&upcomingNews(ev,'GBP/USD',times,3600,0).map(u=>u.event.id).join()==='d,b,a',upcomingNews(ev,'GBP/USD',times,3600,0));
+check('layers: země zprávy – titulek, typ, měna, bez země null',eventCountry({title:'USA • CPI',markets:['USD']})==='US'&&eventCountry({title:'EIA • týdenní zásoby ropy',kind:'eia-oil',markets:['OIL']})==='US'&&eventCountry({title:'RBA • rozhodnutí o sazbách',markets:['AUD']})==='AU'&&eventCountry({title:'Swiss National Bank · rozhodnutí o sazbě',markets:['CHF']})==='CH'&&eventCountry({title:'Eurozóna • zápis ECB',markets:['EUR']})==='EU'&&eventCountry({title:'Bank of England · rozhodnutí',markets:['GBP']})==='GB'&&eventCountry({title:'Zasedání',markets:['JPY']})==='JP'&&eventCountry({title:'OPEC+ • schůzka',kind:'opec',markets:['OIL']})===null&&eventCountry({title:'Federální rozpočet',markets:[]})===null,null);
+const nm=newsMarkers([...nl,{event:{id:'o',at:at(5),timeKnown:true,title:'OPEC+ • schůzka',kind:'opec',markets:['OIL'],signal:2,global:true},time:base+5*3600}],{high:'#f00',mid:'#f80'});
+check('layers: značky zpráv – silná červená, střední oranžová, popisek země',nm[0].color==='#f00'&&nm[0].text==='US'&&nm[0].position==='aboveBar'&&nm[1].color==='#f80'&&nm[1].id==='n:d'&&nm[1].text==='US'&&nm[2].text===undefined,nm);
+// reakce trhu po zprávě: M15 svíčky, open = 100 + i, close = open + 0,5, high = close + 1, low = open − 1
+const m15=Array.from({length:192},(_,i)=>({time:base+i*900,open:100+i,high:101.5+i,low:99+i,close:100.5+i}));
+const cpi={at:at(10),timeKnown:true},far=Date.parse(at(72));
+const rx=newsReaction(m15,cpi,900,far),rk=k=>rx.find(r=>r.key===k);
+check('reakce: 15 min = svíčka se zprávou',rk('15m').status==='ok'&&rk('15m').from===140&&rk('15m').to===140.5&&rk('15m').change===.5&&rk('15m').high===141.5&&rk('15m').low===139,rk('15m'));
+check('reakce: 1 h a 4 h od otevření svíčky se zprávou',rk('1h').change===3.5&&rk('1h').pct===2.5&&rk('4h').to===155.5&&rk('4h').high===156.5&&rk('4h').low===139&&rk('4h').end===base+14*3600,[rk('1h'),rk('4h')]);
+check('reakce: 1 den',rk('1d').status==='ok'&&rk('1d').change===95.5,rk('1d'));
+check('reakce: TF hrubší než horizont',newsReaction(m15,cpi,3600,far).map(r=>r.status).join()==='coarse,ok,ok,ok'&&newsReaction(m15,cpi,604800,far).every(r=>r.status==='coarse'),newsReaction(m15,cpi,3600,far));
+check('reakce: budoucí zpráva',newsReaction(m15,cpi,900,Date.parse(at(9))).every(r=>r.status==='future'),null);
+check('reakce: horizont ještě běží',newsReaction(m15,cpi,900,Date.parse(at(10.5))).map(r=>r.status).join()==='ok,pending,pending,pending',newsReaction(m15,cpi,900,Date.parse(at(10.5))));
+check('reakce: svíčky načtené dřív (asOf) → čeká',newsReaction(m15,cpi,900,far,Date.parse(at(10.3))).map(r=>r.status).join()==='ok,pending,pending,pending',null);
+const rd=newsReaction(m15,{at:at(10),timeKnown:false},900,far);
+check('reakce: bez přesného času jen 1 den od začátku dne',rd.map(r=>r.status).join()==='unknown,unknown,unknown,ok'&&rd[3].from===100&&rd[3].to===195.5,rd);
+check('reakce: zpráva mimo svíčky',newsReaction(m15,{at:at(-5),timeKnown:true},900,far).map(r=>r.status).join()==='nodata,nodata,nodata,nodata',null);
+const gap=m15.filter((_,i)=>i<48||i>=96);
+check('reakce: mezera (zavřený trh) → poslední svíčka před mezerou',newsReaction(gap,{at:at(11),timeKnown:true},900,far).find(r=>r.key==='4h').to===147.5,newsReaction(gap,{at:at(11),timeKnown:true},900,far));}
 // typy grafu a Heikin-Ashi
 const hb=[{time:1,open:10,high:12,low:9,close:11},{time:2,open:11,high:14,low:10,close:13},{time:3,open:13,high:13.5,low:8,close:9}];
 const ha=heikinAshi(hb);

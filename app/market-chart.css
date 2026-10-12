@@ -250,3 +250,39 @@ body.mc-fs-lock{overflow:hidden}
  .mc-page>.mc-page-main{padding:8px 8px 10px}
  .mc.mc-fs{padding:8px 8px 6px}
 }
+
+/* graf: zprávy z kalendáře – síla barvou (červená silná, oranžová střední), štítek země (US, EU…; vlaječky emoji Windows nevykreslí), nadcházející v pásu dole, detail zprávy s reakcí trhu */
+:root{--mc-news-high:#dc2626;--mc-news-mid:#d97706}
+:root[data-theme=dark]{--mc-news-high:#f87171;--mc-news-mid:#fb923c}
+.mc-news-legend .mc-ndot{display:inline-block;width:9px;height:9px;border-radius:50%}
+.mc-ndot.high{background:var(--mc-news-high)}
+.mc-ndot.mid{background:var(--mc-news-mid)}
+.mc-nbadge{display:inline-block;font-style:normal;font-size:9px;font-weight:600;line-height:12px;padding:0 3px;border:1.25px solid var(--mc-news-mid);border-radius:3px;color:var(--t-fg);background:color-mix(in srgb,var(--mc-news-mid) 12%,var(--t-surface))}
+.mc-pop{position:absolute;z-index:5;left:0;top:0;width:min(330px,calc(100% - 8px));max-height:calc(100% - 8px);overflow:auto;padding:10px 12px 12px;border-radius:10px;background:var(--t-surface);border:1px solid var(--t-border-strong);box-shadow:var(--t-shadow),0 12px 32px -14px #0b0c0e55;font-size:12px;line-height:1.45;color:var(--t-fg-2)}
+.mc-pop-head{display:flex;align-items:flex-start;gap:8px}
+.mc-pop-head b{flex:1;min-width:0;color:var(--t-fg);font-size:13px;font-weight:600;line-height:1.35}
+.mc-cc{flex:none;font-size:10px;font-weight:700;letter-spacing:.02em;line-height:16px;padding:0 5px;border-radius:4px;border:1.5px solid var(--mc-news-mid);color:var(--t-fg);background:color-mix(in srgb,var(--mc-news-mid) 14%,var(--t-surface))}
+.mc-cc.high{border-color:var(--mc-news-high);background:color-mix(in srgb,var(--mc-news-high) 16%,var(--t-surface))}
+.mc-pop-x{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin:-3px -5px 0 0;padding:0;border:0;border-radius:6px;background:transparent;color:var(--t-muted);cursor:pointer}
+.mc-pop-x:hover{background:var(--t-surface-3);color:var(--t-fg)}
+.mc-pop-x:focus-visible{outline:2px solid var(--t-brand);outline-offset:0}
+.score-v2 .mc-pop-meta{display:flex;flex-wrap:wrap;gap:2px 10px;margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--t-muted)}
+.mc-imp{font-weight:600}
+.mc-imp.high{color:var(--mc-news-high)}
+.mc-imp.mid{color:var(--mc-news-mid)}
+.mc-pop-vals{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:8px 0 0;padding:6px 8px;border-radius:7px;background:var(--t-surface-2)}
+.mc-pop-vals>div{display:contents}
+.mc-pop-vals dt{color:var(--t-muted)}
+.mc-pop-vals dd{margin:0;color:var(--t-fg);font-variant-numeric:tabular-nums}
+.score-v2 .mc-pop-sub{margin:10px 0 4px;font-size:12px;font-weight:600;line-height:1.4;color:var(--t-fg)}
+.mc-pop-sub span{font-weight:500;color:var(--t-muted)}
+.mc-pop-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.mc-pop-table th,.mc-pop-table td{padding:3px 4px;text-align:right;border-top:1px solid var(--t-border);white-space:nowrap}
+.mc-pop-table th:first-child{padding-left:0;text-align:left;font-weight:500;color:var(--t-fg-2)}
+.mc-pop-table td:last-child{padding-right:0}
+.mc-pop-table thead th{border-top:0;font-size:11px;font-weight:500;color:var(--t-muted)}
+.mc-pop-table td.up{color:var(--bull-text,var(--bull))}
+.mc-pop-table td.down{color:var(--bear-text,var(--bear))}
+.mc-pop-table td.mc-pop-na{text-align:left;color:var(--t-muted)}
+.score-v2 .mc-pop-note{margin:6px 0 0;font-size:11px;line-height:1.4;color:var(--t-muted)}
+.mc-pop-tf{margin-top:8px}

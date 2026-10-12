@@ -33,20 +33,72 @@ export function instrumentMarkets(id:string){
  if(id.startsWith('^'))return ['INDEX'];
  return [id];
 }
-export type NewsEvent={id:string;at:string;timeKnown:boolean;title:string;markets:string[];signal:number;global:boolean};
-// zprávy se signálem ≥ 2 pro trhy instrumentu (globální události vždy) v rozsahu svíček
-export function newsLayer<E extends NewsEvent>(events:E[],instrument:string,times:number[],tfSec:number){
- const mk=instrumentMarkets(instrument),out:{event:E;time:number}[]=[];
+export type NewsEvent={id:string;at:string;timeKnown:boolean;title:string;markets:string[];signal:number;global:boolean;kind?:string};
+// zprávy se signálem ≥ 2 pro trhy instrumentu (globální události vždy)
+const newsFor=(instrument:string)=>{const mk=instrumentMarkets(instrument);return (e:NewsEvent)=>e.signal>=2&&(e.global||e.markets.some(m=>mk.includes(m)))};
+// čas zprávy v čase grafu; bez přesného času začátek pražského dne; nečitelný čas null
+export const newsTime=(e:{at:string;timeKnown:boolean})=>{const ms=Date.parse(e.at);if(!Number.isFinite(ms))return null;const t=chartTime(ms);return e.timeKnown?t:Math.floor(t/86400)*86400};
+// proběhlé zprávy (do now, ms) v rozsahu svíček → svíčka, nad kterou patří značka
+export function newsLayer<E extends NewsEvent>(events:E[],instrument:string,times:number[],tfSec:number,now=Infinity){
+ const ok=newsFor(instrument),out:{event:E;time:number}[]=[];
  for(const e of events){
-  if(e.signal<2||!(e.global||e.markets.some(m=>mk.includes(m))))continue;
-  const ms=Date.parse(e.at);if(!Number.isFinite(ms))continue;
-  const time=snapTo(times,tfSec,e.timeKnown?chartTime(ms):Math.floor(chartTime(ms)/86400)*86400);
+  if(!ok(e)||!(Date.parse(e.at)<=now))continue;
+  const t=newsTime(e),time=t===null?null:snapTo(times,tfSec,t);
   if(time!==null)out.push({event:e,time});
  }
  return out;
 }
-export function newsMarkers(list:{event:NewsEvent;time:number}[],c:{strong:string;normal:string}):Marker[]{
- return list.map(({event:e,time})=>e.signal>=3?{time,position:'aboveBar',shape:'circle',color:c.strong,id:'n:'+e.id,size:1.3}:{time,position:'aboveBar',shape:'square',color:c.normal,id:'n:'+e.id,size:.7});
+// čas → logický index svíčky: v rozsahu svíčka, která čas obsahuje (v mezeře další), za poslední svíčkou odhad po krocích TF (budoucí víkendy a noci nezná); před první svíčkou null
+export function logicalAt(times:number[],tfSec:number,t:number):number|null{
+ if(!times.length||!(t>=times[0]))return null;
+ const last=times.length-1;
+ if(t>=times[last]+tfSec)return last+Math.floor((t-times[last])/tfSec);
+ const time=snapTo(times,tfSec,t);return time===null?null:times.indexOf(time);
+}
+// nadcházející zprávy (po now, ms) pro pás dole v grafu, seřazené podle času
+export function upcomingNews<E extends NewsEvent>(events:E[],instrument:string,times:number[],tfSec:number,now:number){
+ const ok=newsFor(instrument),out:{event:E;t:number;logical:number}[]=[];
+ for(const e of events){
+  if(!ok(e)||!(Date.parse(e.at)>now))continue;
+  const t=newsTime(e),logical=t===null?null:logicalAt(times,tfSec,t);
+  if(t!==null&&logical!==null)out.push({event:e,t,logical});
+ }
+ return out.sort((a,b)=>a.t-b.t||a.event.id.localeCompare(b.event.id));
+}
+// země zprávy jako dvoupísmenný kód (vlaječky emoji Windows nevykreslí): podle titulku (USA •, ECB, RBA…), typu události, jinak podle měny; ropa, OPEC apod. null
+const TITLE_COUNTRY:[RegExp,string][]=[[/^(USA|FOMC|Fed|EIA|Baker Hughes|ISM|NYSE)\b/i,'US'],[/^(ECB|Eurozón)/i,'EU'],[/^Německo/i,'DE'],[/^Francie/i,'FR'],[/^Itálie/i,'IT'],[/^Španělsko/i,'ES'],[/^(Velká Británie|Británie|UK\b|BoE\b|Bank of England)/i,'GB'],[/^(Japonsko|BoJ\b)/i,'JP'],[/^(Švýcarsko|SNB\b|Swiss National Bank)/i,'CH'],[/^(Austrálie|RBA\b)/i,'AU'],[/^(Nový Zéland|RBNZ\b)/i,'NZ'],[/^(Kanada|BoC\b)/i,'CA'],[/^(Čína|PBoC\b)/i,'CN']];
+const KIND_COUNTRY:[RegExp,string][]=[[/^(us-|fomc|eia-|rig-count|nyse-|opex)/,'US'],[/^ecb/,'EU']];
+export const CURRENCY_COUNTRY:Record<string,string>={USD:'US',EUR:'EU',GBP:'GB',JPY:'JP',CHF:'CH',AUD:'AU',NZD:'NZ',CAD:'CA',CNY:'CN'};
+export function eventCountry(e:{title:string;kind?:string;markets:string[]}):string|null{
+ const kind=e.kind||'';
+ return TITLE_COUNTRY.find(([re])=>re.test(e.title))?.[1]??KIND_COUNTRY.find(([re])=>re.test(kind))?.[1]??e.markets.map(m=>CURRENCY_COUNTRY[m]).find(Boolean)??null;
+}
+// značky proběhlých zpráv nad svíčkou: silná červená, střední oranžová, popisek = země
+export function newsMarkers(list:{event:NewsEvent;time:number}[],c:{high:string;mid:string}):Marker[]{
+ return list.map(({event:e,time})=>{const country=eventCountry(e)??undefined;return e.signal>=3?{time,position:'aboveBar',shape:'circle',color:c.high,id:'n:'+e.id,size:1.2,text:country}:{time,position:'aboveBar',shape:'circle',color:c.mid,id:'n:'+e.id,size:.9,text:country}});
+}
+// reakce trhu po zprávě z načtených svíček: od otevření svíčky se zprávou do zavření poslední svíčky, která skončila nejpozději v čase otevření + horizont
+// stav: ok · future (zpráva ještě nebyla) · pending (horizont ještě neuplynul nebo na něj nejsou svíčky – asOf = čas načtení svíček) · coarse (svíčka TF je delší než horizont) · unknown (zpráva bez přesného času → jen 1 den) · nodata (zpráva mimo svíčky)
+export const REACTION_HORIZONS=[{key:'15m',sec:900,label:'15 min'},{key:'1h',sec:3600,label:'1 h'},{key:'4h',sec:14400,label:'4 h'},{key:'1d',sec:86400,label:'1 den'}] as const;
+export type ReactionStatus='ok'|'future'|'pending'|'coarse'|'unknown'|'nodata';
+export type Reaction={key:string;label:string;sec:number;status:ReactionStatus;from?:number;to?:number;change?:number;pct?:number;high?:number;low?:number;start?:number;end?:number};
+type Ohlc={time:number;open:number;high:number;low:number;close:number};
+export function newsReaction(bars:Ohlc[],e:{at:string;timeKnown:boolean},tfSec:number,now:number,asOf=now):Reaction[]{
+ const future=!(Date.parse(e.at)<=now),t=newsTime(e),times=bars.map(b=>b.time);
+ const start=future||t===null?null:snapTo(times,tfSec,t),i0=start===null?-1:times.indexOf(start),ready=chartTime(asOf);
+ return REACTION_HORIZONS.map(({key,sec,label}):Reaction=>{
+  const r={key,label,sec};
+  if(future)return {...r,status:'future'};
+  if(sec<tfSec)return {...r,status:'coarse'};
+  if(!e.timeKnown&&sec<86400)return {...r,status:'unknown'};
+  if(i0<0)return {...r,status:'nodata'};
+  const begin=bars[i0].time,end=begin+sec;
+  if(end>ready)return {...r,status:'pending',start:begin,end};
+  let j=i0,high=bars[i0].high,low=bars[i0].low;
+  while(j+1<bars.length&&bars[j+1].time+tfSec<=end){j++;high=Math.max(high,bars[j].high);low=Math.min(low,bars[j].low)}
+  const from=bars[i0].open,to=bars[j].close,change=to-from;
+  return {...r,status:'ok',from,to,change,pct:from?change/from*100:undefined,high,low,start:begin,end:bars[j].time+tfSec};
+ });
 }
 // výsledek obchodu na značce výstupu: R, jinak peníze
 export const tradeResult=(t:ChartTrade)=>t.r!==null?fmtR(t.r):fmtMoney(t.pnl,t.currency);

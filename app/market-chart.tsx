@@ -1,13 +1,13 @@
 'use client';
 // Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
 import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
-import {AppWindow,Maximize2,Minimize2} from 'lucide-react';
-import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
+import {AppWindow,Maximize2,Minimize2,X} from 'lucide-react';
+import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type Logical,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
 import {candles as toBars,chartTime} from '@/lib/journal/chart-data';
-import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
+import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,upcomingNews,eventCountry,newsReaction,type Reaction,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
 import {SESSIONS} from '@/lib/journal/analytics';
 import {scoreSeries,type HistoryLike} from '@/lib/dashboard';
-import type {CalendarEvent} from '@/lib/calendar';
+import {relative,type CalendarEvent} from '@/lib/calendar';
 import {forecastLine} from '@/lib/calendar-ff';
 import {TFS,type Candle,type Tf} from '@/lib/chart/candles';
 import type {ChartTrade} from '@/lib/chart/trades';
@@ -17,16 +17,20 @@ import {fmtPrice} from './live';
 import {useChartDrawings} from './market-chart-draw';
 import {CHART_TYPES,CHART_TYPE_LABELS,isChartType,seriesData,type ChartType} from '@/lib/chart/chart-types';
 import {FP_TFS,fmtVol,fpSymbol,isFpTf,type FpCandle,type FpTf} from '@/lib/chart/footprint';
-import {FootprintPrimitive,type FpPalette} from './chart-footprint';
+import {FootprintPrimitive,FP_DELTA_H,type FpPalette} from './chart-footprint';
+import {NewsStripPrimitive} from './chart-news';
 import './market-chart.css';
 
 type Layers={trades:boolean;news:boolean;score:boolean;sessions:boolean};
 type Kind=ChartType|'footprint';
 type Prefs={tf:Tf;layers:Layers;type:Kind;fpTf:FpTf};
 type Fp={tick:number;map:Map<number,FpCandle>;pending:number;error?:string;symbol:string};
-type Loaded={status:'loading'|'ok'|'error'|'unsupported';candles:Candle[];stale:boolean;updated:number|null;message?:string};
+// at = kdy klient svíčky načetl (reakce trhu po zprávě nepočítá s tím, co ještě nemá)
+type Loaded={status:'loading'|'ok'|'error'|'unsupported';candles:Candle[];stale:boolean;updated:number|null;message?:string;at?:number};
 type Bar={time:number;open:number;high:number;low:number;close:number};
-type Tip={x:number;y:number;flip:boolean;lines:string[]};
+type Tip={x:number;y:number;flip:boolean;lines:string[];id?:string};
+type Pop={id:string;x:number;y:number};
+type Upcoming={event:CalendarEvent;t:number;logical:number};
 const KEY='tradee.chart';
 const DEFAULT:Prefs={tf:'H4',layers:{trades:true,news:true,score:true,sessions:true},type:'candles',fpTf:'M15'};
 // denní a delší TF: popisky jen s datem, výřez podle délky svíčky
@@ -44,6 +48,8 @@ const eventTime=(e:CalendarEvent)=>new Date(e.at).toLocaleString('cs-CZ',{timeZo
 const scoreFmt=(v:number)=>(v>0?'+':'')+v.toLocaleString('cs-CZ',{maximumFractionDigits:1});
 const pct=(a:number,b:number)=>{const v=(b-a)/a*100;return (v>0?'+':'')+v.toLocaleString('cs-CZ',{maximumFractionDigits:2})+' %'};
 const precision=(v:number)=>Math.abs(v)<10?5:Math.abs(v)<1000?2:0;
+const signed=(v:number,digits:number,min=0)=>(v>0?'+':v<0?'−':'')+Math.abs(v).toLocaleString('cs-CZ',{minimumFractionDigits:min,maximumFractionDigits:digits});
+const impact=(e:CalendarEvent)=>e.signal>=3?'silná':'střední';
 // hlavní cenová série podle typu grafu (kresby, značky a cenové čáry visí na ní)
 function addPriceSeries(c:IChartApi,type:ChartType):ISeriesApi<SeriesType>{
  if(type==='bars')return c.addSeries(BarSeries,{thinBars:false});
@@ -59,6 +65,8 @@ function seriesColors(type:ChartType,bull:string,bear:string,brand:string){
  return {upColor:bull,downColor:bear,wickUpColor:bull,wickDownColor:bear};
 }
 
+// nadcházející zprávy za pravým okrajem grafu (šipka „+N“ v pásu zpráv)
+const hiddenUp=(c:IChartApi,up:Upcoming[])=>{const ts=c.timeScale(),w=ts.width();return up.filter(u=>{const x=ts.logicalToCoordinate(u.logical as Logical);return x!==null&&x>w})};
 const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 // TF z adresy (?tf=H1 u okna grafu otevřeného z aplikace) přebije uložený; u footprintu jeho TF
 function withTf(p:Prefs,tf:string|undefined,fpOk:boolean):Prefs{
@@ -82,7 +90,9 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  // okno grafu: v samotném okně téhož trhu tlačítko nedává smysl (otevřelo by znovu sebe); zablokované okno = hláška v patičce
  const winName=useSyncExternalStore(noSub,()=>window.name,()=>''),[blocked,setBlocked]=useState(false);
  // přes celou obrazovku jako TradingView: karta grafu přes celé okno (pevné rozvržení bez posouvání stránky), kde to jde, i celoobrazovkový režim prohlížeče
- const [fs,setFs]=useState(false),card=useRef<HTMLElement>(null),keys=useRef({fs:false,drawing:false,fill:false});
+ const [fs,setFs]=useState(false),card=useRef<HTMLElement>(null),keys=useRef({fs:false,drawing:false,fill:false,pop:false});
+ // zprávy z kalendáře: otevřený detail (klik na značku) a hodiny po minutě (proběhlá zpráva se přesune z pásu dole nad svíčky)
+ const [pop,setPop]=useState<Pop|null>(null),[clock,setClock]=useState(()=>Date.now()),strip=useRef<NewsStripPrimitive|null>(null);
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
  const [trades,setTrades]=useState<ChartTrade[]>([]),[tradesError,setTradesError]=useState(false);
  const [hover,setHover]=useState<Bar|null>(null),[tip,setTip]=useState<Tip|null>(null),[tick,setTick]=useState(0),[ver,setVer]=useState(0);
@@ -90,7 +100,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const {data:open}=useOpenPositions();
  const el=useRef<HTMLDivElement>(null),chart=useRef<IChartApi|null>(null),price=useRef<ISeriesApi<SeriesType>|null>(null),sess=useRef<ISeriesApi<'Histogram'>|null>(null),score=useRef<ISeriesApi<'Histogram'>|null>(null),markers=useRef<ISeriesMarkersPluginApi<Time>|null>(null),lines=useRef<IPriceLine[]>([]),keepRange=useRef<{from:number;to:number}|null>(null);
  // data pro handlery grafu (crosshair, klik) – mění se bez znovuvytvoření grafu
- const lookup=useRef<{bars:Map<number,Bar>;trades:Map<string,ChartTrade>;news:Map<string,CalendarEvent>}>({bars:new Map(),trades:new Map(),news:new Map()});
+ const lookup=useRef<{bars:Map<number,Bar>;trades:Map<string,ChartTrade>;news:Map<string,CalendarEvent>;up:Upcoming[];last:number}>({bars:new Map(),trades:new Map(),news:new Map(),up:[],last:-1});
  const {layers}=prefs;
  // footprint jen u krypta (BTC, ETH, SOL); jinak se uložená volba chová jako svíčky
  const fpOk=!!fpSymbol(instrument),isFp=prefs.type==='footprint'&&fpOk,type:ChartType=prefs.type==='footprint'?'candles':prefs.type;
@@ -100,7 +110,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
 
  useEffect(()=>{setPrefs(withTf(readPrefs(),initialTf,!!fpSymbol(instrument)));setReady(true)},[initialTf,instrument]);
  const update=(p:Partial<Prefs>)=>setPrefs(old=>{const next={...old,...p};try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}return next});
- const toggle=(k:keyof Layers)=>update({layers:{...layers,[k]:!layers[k]}});
+ const toggle=(k:keyof Layers)=>{if(k==='news')setPop(null);update({layers:{...layers,[k]:!layers[k]}})};
 
  // svíčky pro zvolený TF
  useEffect(()=>{
@@ -114,7 +124,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
     if(!r.ok||!Array.isArray(j.candles))throw new Error(j.error||'');
     const list=j.candles;
     setFp({tick:j.tick||0,map:new Map(list.map(c=>[chartTime(c.t),c])),pending:j.pending||0,error:j.error,symbol:j.symbol||''});
-    setData({status:list.length?'ok':'error',candles:list.map(c=>[c.t,c.o,c.h,c.l,c.c] as Candle),stale:!!j.stale,updated:j.updated??null,message:list.length?undefined:j.error||'Footprint zatím není k dispozici.'});
+    setData({status:list.length?'ok':'error',candles:list.map(c=>[c.t,c.o,c.h,c.l,c.c] as Candle),stale:!!j.stale,updated:j.updated??null,message:list.length?undefined:j.error||'Footprint zatím není k dispozici.',at:Date.now()});
    }).catch(e=>{if(ac.signal.aborted)return;if(quiet)return;setData({status:'error',candles:[],stale:false,updated:null,message:e instanceof Error&&e.message?e.message:'Footprint se nepodařilo načíst.'})});
    return()=>ac.abort();
   }
@@ -123,7 +133,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    const j=await r.json().catch(()=>({})) as {candles?:Candle[];stale?:boolean;updated?:number|null;unsupported?:boolean;error?:string};
    if(j.unsupported){setData({status:'unsupported',candles:[],stale:false,updated:null});return}
    if(!r.ok||!Array.isArray(j.candles))throw new Error(j.error||'');
-   setData({status:j.candles.length?'ok':'error',candles:j.candles,stale:!!j.stale,updated:j.updated??null,message:j.candles.length?undefined:j.error||'Pro tento trh zatím nejsou svíčky.'});
+   setData({status:j.candles.length?'ok':'error',candles:j.candles,stale:!!j.stale,updated:j.updated??null,message:j.candles.length?undefined:j.error||'Pro tento trh zatím nejsou svíčky.',at:Date.now()});
   }).catch(e=>{if(!ac.signal.aborted)setData({status:'error',candles:[],stale:false,updated:null,message:e instanceof Error&&e.message?e.message:'Graf se nepodařilo načíst.'})});
   return()=>ac.abort();
  },[instrument,tf,isFp,ready,reload]);
@@ -155,11 +165,20 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    const id=objectId(p);
    if(!id||!p.point){setTip(null);return}
    let text:string[]=[];
-   if(id.startsWith('n:')){const e=L.news.get(id.slice(2));if(e)text=[e.title,eventTime(e)+(e.signal>=3?' · silný signál':''),forecastLine(e)].filter(Boolean)}
+   if(id.startsWith('n:')){const e=L.news.get(id.slice(2)),now=Date.now();if(e){const country=eventCountry(e);text=[e.title,(country?country+' · ':'')+eventTime(e)+' · '+impact(e)+' zpráva'+(Date.parse(e.at)>now?' · '+relative(e.at,now):''),forecastLine(e),'Klikni pro detail a reakci trhu'].filter(Boolean)}}
+   else if(id==='n+'){const hidden=hiddenUp(c,L.up);if(hidden.length)text=[(hidden.length===1?'Další zpráva':'Další zprávy ('+hidden.length+')')+' vpravo v budoucnosti',hidden[0].event.title+' · '+eventTime(hidden[0].event),'Klikni pro posun grafu na ni']}
    else if(id.startsWith('t:')){const t=L.trades.get(id.slice(2));if(t)text=[(t.side==='buy'?'Buy':t.side==='sell'?'Sell':'Ruční obchod')+' · '+tradeResult(t)+(t.r!==null?' · '+fmtMoney(t.pnl,t.currency):''),(t.openPrice!==null?'Vstup '+fmtPrice(t.openPrice):'')+(t.closePrice!==null?' → výstup '+fmtPrice(t.closePrice):''),'Klikni pro detail v Deníku'].filter(Boolean)}
-   const w=el.current?.clientWidth||0;setTip(text.length?{x:p.point.x,y:p.point.y,flip:p.point.x>w*.6,lines:text}:null);
+   const w=el.current?.clientWidth||0;setTip(text.length?{x:p.point.x,y:p.point.y,flip:p.point.x>w*.6,lines:text,id}:null);
   });
-  c.subscribeClick(p=>{const id=objectId(p);if(id?.startsWith('t:'))location.hash='journal/'+encodeURIComponent(id.slice(2))});
+  // klik: obchod → Deník, zpráva → detail s reakcí trhu, šipka dalších zpráv → posun do budoucnosti, jinam → zavřít detail
+  c.subscribeClick(p=>{
+   const id=objectId(p);
+   if(id?.startsWith('t:'))location.hash='journal/'+encodeURIComponent(id.slice(2));
+   else if(keys.current.drawing)return;
+   else if(id?.startsWith('n:')&&p.point)setPop({id:id.slice(2),x:p.point.x,y:p.point.y});
+   else if(id==='n+'){const L=lookup.current,ts=c.timeScale(),r=ts.getVisibleLogicalRange(),next=hiddenUp(c,L.up)[0];if(next)ts.scrollToPosition(next.logical-L.last+Math.max(6,Math.round((r?r.to-r.from:60)*.15)),true)}
+   else setPop(null);
+  });
   // světlý/tmavý režim a paleta (nastavuje se přes atributy a style na <html>)
   const obs=new MutationObserver(()=>setTick(n=>n+1));obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
   return()=>{obs.disconnect();c.remove();chart.current=null;price.current=null;sess.current=null;score.current=null;markers.current=null;lines.current=[]};
@@ -170,9 +189,12 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   const s=addPriceSeries(c,type);price.current=s;
   // footprint se připojí před značkami, aby značky zůstaly nad buňkami
   if(isFp)s.attachPrimitive(fpPrim);
-  markers.current=createSeriesMarkers(s,[]);lines.current=[];setVer(v=>v+1);
+  markers.current=createSeriesMarkers(s,[]);lines.current=[];
+  // pás nadcházejících zpráv dole
+  const st=strip.current??new NewsStripPrimitive();strip.current=st;s.attachPrimitive(st);
+  setVer(v=>v+1);
   c.priceScale('right').applyOptions({scaleMargins:{top:.12,bottom:isFp?.12:.08}});
-  return()=>{try{keepRange.current=c.timeScale().getVisibleLogicalRange();markers.current?.detach();if(isFp)s.detachPrimitive(fpPrim);c.removeSeries(s)}catch{}price.current=null;markers.current=null;lines.current=[]};
+  return()=>{try{keepRange.current=c.timeScale().getVisibleLogicalRange();markers.current?.detach();s.detachPrimitive(st);if(isFp)s.detachPrimitive(fpPrim);c.removeSeries(s)}catch{}price.current=null;markers.current=null;lines.current=[]};
  },[type,isFp,ready,fpPrim]);
 
  const bars=useMemo(()=>toBars(data.candles),[data.candles]);
@@ -180,7 +202,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
 
  // celá obrazovka: zapnutí/vypnutí (režim prohlížeče jen jako bonus – když ho prohlížeč odmítne, zůstane karta přes celé okno)
- useLayoutEffect(()=>{keys.current={fs,drawing:draw.drawing,fill:!!fill}});
+ useLayoutEffect(()=>{keys.current={fs,drawing:draw.drawing,fill:!!fill,pop:!!pop}});
  const full=useCallback((on:boolean)=>{
   setFs(on);const box=card.current;
   if(on){if(box?.requestFullscreen&&!document.fullscreenElement)box.requestFullscreen().catch(()=>{})}
@@ -194,18 +216,37 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   document.addEventListener('fullscreenchange',left);
   return()=>{document.body.classList.remove('mc-fs-lock');document.removeEventListener('fullscreenchange',left)};
  },[fs]);
- // klávesy: F přepne celou obrazovku (myš nad grafem, fokus v něm, nebo stránka /graf), Esc ji zavře – kreslení (aktivní nástroj, vybraná kresba) má s Esc přednost
+ // klávesy: F přepne celou obrazovku (myš nad grafem, fokus v něm, nebo stránka /graf), Esc nejdřív zavře detail zprávy, pak celou obrazovku – kreslení (aktivní nástroj, vybraná kresba) má s Esc přednost
  useEffect(()=>{
   const key=(e:KeyboardEvent)=>{
    const box=card.current,k=keys.current;
    if(!box||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey||editable(e.target))return;
-   if(e.key==='Escape'){if(k.fs&&!k.drawing&&!box.querySelector('.mc-sel'))full(false)}
+   if(e.key==='Escape'){if(k.pop)setPop(null);else if(k.fs&&!k.drawing&&!box.querySelector('.mc-sel'))full(false)}
    else if((e.key==='f'||e.key==='F')&&!e.repeat&&(k.fs||k.fill||box.matches(':hover')||box.contains(document.activeElement))){e.preventDefault();full(!k.fs)}
   };
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
  },[full]);
  const scores=useMemo(()=>scoreSeries(history,instrument,method,'all',Date.now()),[history,instrument,method]);
- const news=useMemo(()=>newsLayer(events,instrument,times,TF_SEC[tf]),[events,instrument,times,tf]);
+ // zprávy: proběhlé nad svíčkami (značky), nadcházející v pásu dole (primitivum)
+ useEffect(()=>{const t=setInterval(()=>setClock(old=>{const now=Date.now();return events.some(e=>{const at=Date.parse(e.at);return at>old&&at<=now})?now:old}),60000);return()=>clearInterval(t)},[events]);
+ const news=useMemo(()=>newsLayer(events,instrument,times,TF_SEC[tf],clock),[events,instrument,times,tf,clock]);
+ const upcoming=useMemo(()=>upcomingNews(events,instrument,times,TF_SEC[tf],clock),[events,instrument,times,tf,clock]);
+ // detail zprávy zavře klik mimo něj i mimo graf (klik do grafu řeší subscribeClick)
+ useEffect(()=>{
+  if(!pop)return;
+  const down=(e:PointerEvent)=>{const t=e.target as Node;if(card.current?.querySelector('.mc-pop')?.contains(t)||el.current?.contains(t))return;setPop(null)};
+  document.addEventListener('pointerdown',down);return()=>document.removeEventListener('pointerdown',down);
+ },[pop]);
+ useEffect(()=>{
+  const st=strip.current;if(!st)return;
+  const sel=pop&&layers.news?upcoming.find(u=>u.event.id===pop.id)??news.find(n=>n.event.id===pop.id):undefined;
+  st.items=layers.news?upcoming.map(u=>({id:u.event.id,logical:u.logical,label:eventCountry(u.event)??'',strong:u.event.signal>=3})):[];
+  st.selected=!sel?null:{logical:'logical' in sel?sel.logical:times.indexOf(sel.time),strong:sel.event.signal>=3};
+  st.last=times.length-1;st.bottom=isFp&&fpMode?FP_DELTA_H:0;
+  st.palette={high:norm(css('--mc-news-high','#dc2626'),'#dc2626'),mid:norm(css('--mc-news-mid','#d97706'),'#d97706'),bg:norm(css('--t-surface','#ffffff'),'#ffffff'),fg:norm(css('--t-fg','#0b0c0e'),'#0b0c0e')};
+  lookup.current.up=layers.news?upcoming:[];lookup.current.last=times.length-1;
+  st.update();
+ },[upcoming,news,pop,layers.news,times,isFp,fpMode,tick,ver]);
  const scoreMap=useMemo(()=>new Map(scoreBand(scores,times,TF_SEC[tf],{bull:'#000',bear:'#000'}).flatMap(b=>b.value===undefined?[]:[[b.time,b.value] as const])),[scores,times,tf]);
  const positions=useMemo(()=>(open?.positions||[]).filter(p=>p.instrument===instrument),[open,instrument]);
 
@@ -250,8 +291,8 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   // značky obchodů a zpráv
   const visibleTrades=layers.trades?trades:[];
   lookup.current.trades=new Map(visibleTrades.map(t=>[t.id,t]));
-  lookup.current.news=new Map(layers.news?news.map(n=>[n.event.id,n.event]):[]);
-  m.setMarkers(sortMarkers([...(layers.trades?tradeMarkers(visibleTrades,times,sec,{bull,bear}):[]),...(layers.news?newsMarkers(news,{strong:css('--t-brand','#245bff'),normal:css('--t-muted','#6b7079')}):[])]).map(x=>({...x,time:x.time as UTCTimestamp})));
+  lookup.current.news=new Map(layers.news?[...news.map(n=>[n.event.id,n.event] as const),...upcoming.map(u=>[u.event.id,u.event] as const)]:[]);
+  m.setMarkers(sortMarkers([...(layers.trades?tradeMarkers(visibleTrades,times,sec,{bull,bear}):[]),...(layers.news?newsMarkers(news,{high:css('--mc-news-high','#dc2626'),mid:css('--mc-news-mid','#d97706')}):[])]).map(x=>({...x,time:x.time as UTCTimestamp})));
   // otevřená pozice: vstup, SL, TP
   for(const l of lines.current)s.removePriceLine(l);lines.current=[];
   if(layers.trades&&open)for(const p of positions){
@@ -269,7 +310,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    }
    score.current.setData(band.map(x=>({...x,time:x.time as UTCTimestamp})));
   }else if(score.current){c.removeSeries(score.current);score.current=null}
- },[times,tf,layers,trades,news,positions,open,scores,tick,ver]);
+ },[times,tf,layers,trades,news,upcoming,positions,open,scores,tick,ver]);
 
  if(data.status==='unsupported')return null;
  const shown=hover??bars[bars.length-1]??null;
@@ -280,6 +321,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const fpLine=hoverFp&&typeof hoverFp.d==='number'?`Δ ${hoverFp.d>0?'+':hoverFp.d<0?'−':''}${fmtVol(Math.abs(hoverFp.d))} · POC ${fmtPrice(hoverFp.poc??0)} · objem ${fmtVol(hoverFp.v)}${hoverFp.live?' · živá svíčka':''}`:isFp&&shown?'Footprint pro tuto svíčku se ještě dopočítává':'';
  const newsText=hoverNews.map(e=>e.title+(forecastLine(e)?' ('+forecastLine(e)+')':'')).join(' · '),line2=[fpLine,newsText].filter(Boolean).join(' · ');
  const loading=data.status==='loading',empty=data.status==='error'&&!bars.length;
+ const popEvent=pop&&layers.news?events.find(e=>e.id===pop.id):undefined;
  return <section ref={card} className={'s-card mc'+(fill?' mc-fill':'')+(fs?' mc-fs':'')} aria-busy={loading}>
   <div className="mc-head">
    <div className="mc-title"><h2>Graf trhu</h2><p className="mc-ohlc" aria-live="off">{shown&&<><b>{barLabel(shown.time,tf)}</b>{type==='ha'&&<span className="mc-ha" title="Svíčky v grafu jsou Heikin-Ashi, hodnoty O H L C jsou skutečné ceny">HA</span>}<span>O <em>{fmtPrice(shown.open)}</em></span><span>H <em>{fmtPrice(shown.high)}</em></span><span>L <em>{fmtPrice(shown.low)}</em></span><span>C <em>{fmtPrice(shown.close)}</em></span>{prev&&<span className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</span>}{hoverScore!==null&&<span>Skóre <em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</>}</p><p className="mc-news-line" title={line2||undefined}>{line2}</p></div>
@@ -299,8 +341,9 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    <div ref={el} className="mc-chart" style={height?{'--mc-h':height} as React.CSSProperties:undefined} data-drawing={draw.drawing?'1':undefined} role="img" aria-label={`${isFp?'Footprint':CHART_TYPE_LABELS[type]} – graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}`}/>
    {loading&&<div className="mc-skeleton" aria-label="Načítám svíčky"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>}
    {empty&&<div className="mc-empty" role="status"><p>{data.message||'Ceny teď nejsou k dispozici.'}</p><button type="button" className="mc-chip" onClick={()=>setReload(n=>n+1)}>Zkusit znovu</button></div>}
-   {tip&&!draw.drawing&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}
+   {tip&&!draw.drawing&&!(pop&&tip.id==='n:'+pop.id)&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}
    {isFp&&!fpMode&&bars.length>0&&!loading&&<div className="mc-fp-hint" role="status">Přibliž pro footprint</div>}
+   {pop&&popEvent&&<NewsCard key={popEvent.id} e={popEvent} x={pop.x} y={pop.y} bars={bars} tf={tf} asOf={data.at??0} name={name} onClose={()=>setPop(null)} onFiner={tf==='M15'||tf==='M5'||tf==='M1'?undefined:()=>update(isFp?{fpTf:'M15'}:{tf:'M15'})}/>}
    {draw.overlay}
   </div>
   </div>
@@ -308,7 +351,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    {data.stale&&bars.length>0&&<span className="mc-stale" role="status">Ceny mohou být zpožděné{data.updated?' · stav '+new Date(data.updated).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>}
    {tradesError&&layers.trades&&<span className="mc-stale">Obchody se nepodařilo načíst.</span>}
    {blocked&&<span className="mc-stale" role="status">Prohlížeč zablokoval nové okno – povol pro Tradee vyskakovací okna.</span>}
-   {layers.news&&<span className="mc-legend"><i className="mc-dot strong"/>silná zpráva <i className="mc-dot"/>střední</span>}
+   {layers.news&&<span className="mc-legend mc-news-legend"><span><i className="mc-ndot high"/>silná zpráva</span><span><i className="mc-ndot mid"/>střední</span><span><i className="mc-nbadge">US</i>nadcházející dole · klik = detail a reakce trhu</span></span>}
    {layers.sessions&&sessOk&&<span className="mc-legend">{SESSIONS.filter(s=>s.key!=='off').map(s=><span key={s.key}><i className="mc-swatch" style={{background:SESSION_COLORS[s.key as keyof typeof SESSION_COLORS]}}/>{s.label}</span>)}</span>}
    {isFp&&fp?.error&&bars.length>0&&<span className="mc-stale" role="status">{fp.error} Zobrazuji poslední uložená data.</span>}
    {isFp&&<span className="mc-legend mc-fp-legend"><span><i className="mc-fp-cell"/>buňka = prodej × nákup (taker), barva podle delty, sytost podle objemu</span><span><i className="mc-fp-poc"/>POC</span><span><i className="mc-fp-imb"/>nerovnováha ≥ 3 : 1 (diagonálně)</span><span>Δ dole = delta svíčky{fp?.tick?' · krok '+fmtPrice(fp.tick):''}</span>{(fp?.pending||0)>0&&<span>Dopočítávám starší svíčky ({fp?.pending})…</span>}</span>}
@@ -316,4 +359,39 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    <span className="mc-src">{isFp?'Binance '+(fp?.symbol||'')+' · ':'Yahoo Finance · '}čas Praha · <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">Grafy TradingView Lightweight Charts™</a></span>
   </div>
  </section>;
+}
+
+// detail zprávy po kliku na značku: země, síla, čas, hodnoty (skutečnost / odhad / předchozí) a jak se trh po zprávě pohnul – z načtených svíček aktuálního TF (lib/chart/layers newsReaction)
+function reactionText(r:Reaction,tf:ChartTf,now:number){
+ if(r.status==='future')return 'zatím neproběhlo';
+ if(r.status==='coarse')return 'na '+tf+' nelze změřit';
+ if(r.status==='unknown')return 'čas zprávy neupřesněn';
+ if(r.status==='nodata')return 'mimo načtené svíčky';
+ return (r.end??0)>chartTime(now)?'ještě běží':'chybí novější svíčky';
+}
+function NewsCard({e,x,y,bars,tf,asOf,name,onClose,onFiner}:{e:CalendarEvent;x:number;y:number;bars:Bar[];tf:ChartTf;asOf:number;name:string;onClose:()=>void;onFiner?:()=>void}){
+ const ref=useRef<HTMLDivElement>(null),[now,setNow]=useState(()=>Date.now());
+ useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(t)},[]);
+ const rx=useMemo(()=>newsReaction(bars,e,TF_SEC[tf],now,Math.min(asOf,now)),[bars,e,tf,now,asOf]);
+ // vedle místa kliku, celý uvnitř grafu
+ useLayoutEffect(()=>{
+  const box=ref.current,host=box?.parentElement;if(!box||!host)return;
+  const W=host.clientWidth,H=host.clientHeight,w=box.offsetWidth,h=box.offsetHeight,left=x+14+w<=W-4?x+14:x-14-w;
+  box.style.left=Math.max(4,Math.min(left,W-w-4))+'px';box.style.top=Math.max(4,Math.min(y-24,H-h-4))+'px';
+ });
+ const country=eventCountry(e),strong=e.signal>=3,future=Date.parse(e.at)>now,prec=bars.length?precision(bars[bars.length-1].close):2;
+ const vals=([['Skutečnost',e.actual],['Odhad',e.consensus||e.forecast],['Předchozí',e.previous]] as const).filter(([,v])=>v);
+ const first=rx.find(r=>r.status==='ok'),coarse=rx.some(r=>r.status==='coarse'),recent=Date.parse(e.at)>now-55*86400000;
+ return <div ref={ref} className="mc-pop" role="dialog" aria-label={'Zpráva: '+e.title}>
+  <div className="mc-pop-head">{country&&<span className={'mc-cc '+(strong?'high':'mid')}>{country}</span>}<b>{e.title}</b><button type="button" className="mc-pop-x" aria-label="Zavřít detail zprávy" title="Zavřít (Esc)" onClick={onClose}><X size={14} aria-hidden/></button></div>
+  <p className="mc-pop-meta"><span className={'mc-imp '+(strong?'high':'mid')}>{strong?'Silná':'Střední'} zpráva</span><span>{eventTime(e)}</span><span>{relative(e.at,now)}</span></p>
+  {vals.length>0&&<dl className="mc-pop-vals">{vals.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+  <p className="mc-pop-sub">Jak se {name} po zprávě pohnul <span>· {tf}</span></p>
+  <table className="mc-pop-table">
+   <thead><tr><th scope="col">Po</th><th scope="col">Změna</th><th scope="col">%</th><th scope="col" title="Nejvyšší minus nejnižší cena od zprávy do konce doby">Rozpětí</th></tr></thead>
+   <tbody>{rx.map(r=>{const tone=r.change===undefined||r.change===0?'':r.change>0?'up':'down';return <tr key={r.key}><th scope="row">{r.label}</th>{r.status==='ok'&&r.change!==undefined?<><td className={tone}>{signed(r.change,prec)}</td><td className={tone}>{r.pct===undefined?'–':signed(r.pct,2,2)+' %'}</td><td>{((r.high??0)-(r.low??0)).toLocaleString('cs-CZ',{maximumFractionDigits:prec})}</td></>:<td colSpan={3} className="mc-pop-na">{reactionText(r,tf,now)}</td>}</tr>})}</tbody>
+  </table>
+  {future?<p className="mc-pop-note">Reakce trhu se dopočítá po zveřejnění zprávy.</p>:first?<p className="mc-pop-note">Měřeno od otevření svíčky {barLabel(first.start??0,tf)} ({fmtPrice(first.from??0)}) do zavření svíčky na konci doby.</p>:null}
+  {!future&&coarse&&onFiner&&recent&&<button type="button" className="mc-chip mc-pop-tf" onClick={onFiner}>Přesněji na M15</button>}
+ </div>;
 }
