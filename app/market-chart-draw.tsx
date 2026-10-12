@@ -160,9 +160,15 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   // Shift drží čáru vodorovně: bod převezme cenu referenčního bodu (předchozího / druhého konce)
   const shiftOf=(e?:MouseEvent|TouchEvent)=>!!e&&!('touches' in e)&&e.shiftKey;
   const level=(a:Anchor,ref:Anchor|undefined,on:boolean):Anchor=>on&&ref?{t:a.t,p:ref.p}:a;
+  // Shift u obdélníku a mřížky = rovnoměrný tvar (čtverec v pixelech) jako v malování; u čar vodorovně
+  const SQUARE=new Set(['rect','gann']);
+  const lock=(type:string,a:Anchor,ref:Anchor|undefined,on:boolean,p:Pt):Anchor=>{
+   if(!on||!ref)return a;if(!SQUARE.has(type))return level(a,ref,true);
+   const ax=conv.axis(),ry=series.current?.priceToCoordinate(ref.p);if(!ax||ry==null)return a;const r={x:ax.x0+ax.dx*conv.toL(ref.t),y:ry};const dx=p.x-r.x,dy=p.y-r.y,sz=Math.max(Math.abs(dx),Math.abs(dy));
+   return freeAt({x:r.x+(dx<0?-sz:sz),y:r.y+(dy<0?-sz:sz)})||a};
   // další bod rozkreslené kresby (klik nebo puštění po tahu)
   const advance=(dr:Draft,p:Pt,shift=false)=>{
-   const a0=anchorAt(p);if(!a0)return;const a=level(a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shift);
+   const a0=anchorAt(p);if(!a0)return;const a=lock(dr.type,a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shift,p);
    if(Math.hypot(p.x-dr.x,p.y-dr.y)<=3){dr.placed=false;return}
    dr.pts[dr.fixed]=a;dr.fixed++;
    if(dr.fixed>=dr.need){finish(build({...dr,pts:dr.pts.slice(0,dr.need)}));return}
@@ -204,13 +210,13 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(dr){
     if('touches' in e&&e.cancelable)e.preventDefault();
     if(dr.type==='brush'){const lp=dr.px![dr.px!.length-1];if(Math.hypot(p.x-lp.x,p.y-lp.y)<2||dr.px!.length>=5000)return;const a=freeAt(p);if(!a)return;dr.px!.push(p);dr.pts.push(a);render(dr);return}
-    const a0=anchorAt(p);if(!a0)return;const a=level(a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shiftOf(e));dr.pts[dr.pts.length-1]=a;if(Math.hypot(p.x-dr.x,p.y-dr.y)>3)dr.placed=true;render(dr);return;
+    const a0=anchorAt(p);if(!a0)return;const a=lock(dr.type,a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shiftOf(e),p);dr.pts[dr.pts.length-1]=a;if(Math.hypot(p.x-dr.x,p.y-dr.y)>3)dr.placed=true;render(dr);return;
    }
    const g=drag.current;if(!g)return;
    if('touches' in e&&e.cancelable)e.preventDefault();
    if(!g.cur&&Math.hypot(p.x-g.x,p.y-g.y)<3)return;
    let next:Drawing|null=null;
-   if(g.part==='handle'){const a0=anchorAt(p);if(a0){const pts=g.orig.a,ref=pts.length>1?pts[g.index===0?1:g.index-1]:undefined;next=moveHandle(g.orig,g.index,level(a0,ref,shiftOf(e)))}}
+   if(g.part==='handle'){const a0=anchorAt(p);if(a0){const pts=g.orig.a,ref=pts.length>1?pts[g.index===0?1:g.index-1]:undefined;next=moveHandle(g.orig,g.index,lock(g.orig.type,a0,ref,shiftOf(e),p))}}
    // hrana: jen cena (nahoře/dole) nebo jen čas (vlevo/vpravo); Shift tu nic nemění
    else if(g.part==='edge'){const a0=anchorAt(p);if(a0&&g.edge)next=moveEdge(g.orig,g.edge,a0)}
    else{const r=raw(p);if(r)next=translate(g.orig,Math.round(r.l-g.start.l),r.p-g.start.p,conv.toL,t=>Math.round(conv.fromL(t)))}
