@@ -35,12 +35,13 @@ export default function ChartPage({slug}:{slug:string}){
  const go=(id:string)=>{location.href='/graf/'+slugOf(id)};
  // přepínač trhu: našeptávač – píšeš a pod polem se nabízí odpovídající trhy (šipky, Enter, Esc, myš)
  const picker=<MarketPicker current={item?.id} onPick={go}/>;
- return <div className="mt-page score-v2 tradee">
-  <header className="mt-top mc-page-top" style={{maxWidth:'none'}}><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
+ // stránka na celou výšku okna: horní lišta + karta grafu, která vyplní zbytek (bez posouvání stránky; i v samostatném okně na druhém monitoru)
+ return <div className="mt-page score-v2 tradee mc-page">
+  <header className="mt-top mc-page-top"><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
    {item&&<div className="mc-page-live"><h1>{item.name}</h1>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
   </header>
-  <main className="mt-main" style={{maxWidth:'none',paddingBottom:24}}>
-   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} height="max(520px, calc(100vh - 190px))" headExtra={picker}/></div>
+  <main className="mt-main mc-page-main">
+   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill headExtra={picker}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
  </div>;

@@ -1,6 +1,7 @@
 'use client';
 // Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
+import {Maximize2,Minimize2} from 'lucide-react';
 import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
 import {candles as toBars,chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
@@ -58,8 +59,13 @@ function seriesColors(type:ChartType,bull:string,bear:string,brand:string){
  return {upColor:bull,downColor:bear,wickUpColor:bull,wickDownColor:bear};
 }
 
-export function MarketChart({instrument,name,history,method,events,height,headExtra}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode}){
+const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+// fill = graf vyplní výšku rodiče (stránka /graf); jinak pevná výška (height)
+export function MarketChart({instrument,name,history,method,events,height,headExtra,fill}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode;fill?:boolean}){
  const [prefs,setPrefs]=useState<Prefs>(DEFAULT),[ready,setReady]=useState(false);
+ // přes celou obrazovku jako TradingView: karta grafu přes celé okno (pevné rozvržení bez posouvání stránky), kde to jde, i celoobrazovkový režim prohlížeče
+ const [fs,setFs]=useState(false),card=useRef<HTMLElement>(null),keys=useRef({fs:false,drawing:false,fill:false});
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
  const [trades,setTrades]=useState<ChartTrade[]>([]),[tradesError,setTradesError]=useState(false);
  const [hover,setHover]=useState<Bar|null>(null),[tip,setTip]=useState<Tip|null>(null),[tick,setTick]=useState(0),[ver,setVer]=useState(0);
@@ -155,6 +161,32 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const bars=useMemo(()=>toBars(data.candles),[data.candles]);
  const draw=useChartDrawings({chart,series:price,ver,el,bars,tf,tfList,instrument,tick});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
+
+ // celá obrazovka: zapnutí/vypnutí (režim prohlížeče jen jako bonus – když ho prohlížeč odmítne, zůstane karta přes celé okno)
+ useLayoutEffect(()=>{keys.current={fs,drawing:draw.drawing,fill:!!fill}});
+ const full=useCallback((on:boolean)=>{
+  setFs(on);const box=card.current;
+  if(on){if(box?.requestFullscreen&&!document.fullscreenElement)box.requestFullscreen().catch(()=>{})}
+  else if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+ },[]);
+ // zámek posouvání stránky; odchod z režimu prohlížeče (Esc prohlížeče) ukončí i režim karty
+ useEffect(()=>{
+  if(!fs)return;
+  document.body.classList.add('mc-fs-lock');
+  const left=()=>{if(!document.fullscreenElement)setFs(false)};
+  document.addEventListener('fullscreenchange',left);
+  return()=>{document.body.classList.remove('mc-fs-lock');document.removeEventListener('fullscreenchange',left)};
+ },[fs]);
+ // klávesy: F přepne celou obrazovku (myš nad grafem, fokus v něm, nebo stránka /graf), Esc ji zavře – kreslení (aktivní nástroj, vybraná kresba) má s Esc přednost
+ useEffect(()=>{
+  const key=(e:KeyboardEvent)=>{
+   const box=card.current,k=keys.current;
+   if(!box||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey||editable(e.target))return;
+   if(e.key==='Escape'){if(k.fs&&!k.drawing&&!box.querySelector('.mc-sel'))full(false)}
+   else if((e.key==='f'||e.key==='F')&&!e.repeat&&(k.fs||k.fill||box.matches(':hover')||box.contains(document.activeElement))){e.preventDefault();full(!k.fs)}
+  };
+  window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
+ },[full]);
  const scores=useMemo(()=>scoreSeries(history,instrument,method,'all',Date.now()),[history,instrument,method]);
  const news=useMemo(()=>newsLayer(events,instrument,times,TF_SEC[tf]),[events,instrument,times,tf]);
  const scoreMap=useMemo(()=>new Map(scoreBand(scores,times,TF_SEC[tf],{bull:'#000',bear:'#000'}).flatMap(b=>b.value===undefined?[]:[[b.time,b.value] as const])),[scores,times,tf]);
@@ -231,7 +263,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const fpLine=hoverFp&&typeof hoverFp.d==='number'?`Δ ${hoverFp.d>0?'+':hoverFp.d<0?'−':''}${fmtVol(Math.abs(hoverFp.d))} · POC ${fmtPrice(hoverFp.poc??0)} · objem ${fmtVol(hoverFp.v)}${hoverFp.live?' · živá svíčka':''}`:isFp&&shown?'Footprint pro tuto svíčku se ještě dopočítává':'';
  const newsText=hoverNews.map(e=>e.title+(forecastLine(e)?' ('+forecastLine(e)+')':'')).join(' · '),line2=[fpLine,newsText].filter(Boolean).join(' · ');
  const loading=data.status==='loading',empty=data.status==='error'&&!bars.length;
- return <section className="s-card mc" aria-busy={loading}>
+ return <section ref={card} className={'s-card mc'+(fill?' mc-fill':'')+(fs?' mc-fs':'')} aria-busy={loading}>
   <div className="mc-head">
    <div className="mc-title"><h2>Graf trhu</h2><p className="mc-ohlc" aria-live="off">{shown&&<><b>{barLabel(shown.time,tf)}</b>{type==='ha'&&<span className="mc-ha" title="Svíčky v grafu jsou Heikin-Ashi, hodnoty O H L C jsou skutečné ceny">HA</span>}<span>O <em>{fmtPrice(shown.open)}</em></span><span>H <em>{fmtPrice(shown.high)}</em></span><span>L <em>{fmtPrice(shown.low)}</em></span><span>C <em>{fmtPrice(shown.close)}</em></span>{prev&&<span className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</span>}{hoverScore!==null&&<span>Skóre <em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</>}</p><p className="mc-news-line" title={line2||undefined}>{line2}</p></div>
    <div className="mc-controls">
@@ -240,6 +272,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
     <div className="mc-seg mc-tfseg" role="group" aria-label="Časový rámec">{tfButtons.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update(isFp?{fpTf:t as FpTf}:{tf:t as Tf})}>{t}</button>)}</div>
     <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.map(([k,label])=>{const off=k==='sessions'&&!sessOk;return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na M1–H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>
     {headExtra}<button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
+    <button type="button" className={'mc-chip mc-icon'+(fs?' on':'')} aria-pressed={fs} aria-label={fs?'Zmenšit graf (Esc)':'Graf přes celou obrazovku (F)'} title={fs?'Zmenšit (Esc)':'Přes celou obrazovku (F)'} onClick={()=>full(!fs)}>{fs?<Minimize2 size={14} aria-hidden/>:<Maximize2 size={14} aria-hidden/>}</button>
    </div>
   </div>
   <div className="mc-body">

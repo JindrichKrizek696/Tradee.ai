@@ -229,3 +229,24 @@ select.mc-tfsel{display:none}
 .mc-fav-grip:focus-visible{outline:2px solid var(--t-brand);outline-offset:1px}
 .mc-fav .mc-tool[data-tip]:hover::after,.mc-fav .mc-tool[data-tip]:focus-visible::after{left:50%;top:calc(100% + 6px);transform:translateX(-50%)}
 .mc-fav.up .mc-tool[data-tip]:hover::after,.mc-fav.up .mc-tool[data-tip]:focus-visible::after{top:auto;bottom:calc(100% + 6px)}
+
+/* graf: přes celou obrazovku (karta přes celé okno, pevné rozvržení hlavička + nástroje + graf, bez posouvání stránky) a stránka /graf na výšku okna */
+.mc-icon{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:28px;height:26px;padding:0 8px}
+.mc.mc-fill,.mc.mc-fs{display:flex;flex-direction:column;min-height:0}
+.mc.mc-fill>.mc-head,.mc.mc-fs>.mc-head,.mc.mc-fill>.mc-foot,.mc.mc-fs>.mc-foot{flex:none}
+.mc.mc-fill>.mc-body,.mc.mc-fs>.mc-body{flex:1 1 auto;min-height:300px}
+.mc.mc-fill .mc-wrap,.mc.mc-fs .mc-wrap{min-height:300px}
+.mc.mc-fill .mc-chart,.mc.mc-fs .mc-chart{position:absolute;inset:0;height:auto;min-height:0}
+.mc.mc-fs{position:fixed;inset:0;z-index:70;width:auto;max-width:none;height:auto;margin:0;padding:12px 16px 10px;border:0;border-radius:0;box-shadow:none;overflow:auto;background:var(--t-surface)}
+.mc.mc-fs>.mc-head{margin-bottom:8px}
+body.mc-fs-lock{overflow:hidden}
+.mc-page{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:none}
+.mc-page>.mc-page-top{flex:none;width:100%;max-width:none;margin:0;padding:12px 20px 0}
+.mc-page>.mc-page-main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;width:100%;max-width:none;margin:0;padding:10px 20px 14px}
+.mc-page .mc-full{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.mc-page .mc-full>.mc{flex:1 1 auto;margin-bottom:0}
+@media (max-width:760px){
+ .mc-page>.mc-page-top{padding:10px 12px 0}
+ .mc-page>.mc-page-main{padding:8px 8px 10px}
+ .mc.mc-fs{padding:8px 8px 6px}
+}
