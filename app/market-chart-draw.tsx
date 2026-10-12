@@ -308,6 +308,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   const first=menuRef.current?.querySelector<HTMLElement>('[aria-checked=true]')??menuRef.current?.querySelector<HTMLElement>('button');first?.focus();
   return()=>{window.removeEventListener('mousedown',close);window.removeEventListener('resize',close);window.removeEventListener('scroll',close,true)};
  },[menu]);
+ // na mobilu je nabídka pod tlačítkem – u skupin vpravo v liště ji posunout doleva, aby nepřetekla za okraj obrazovky
+ useLayoutEffect(()=>{const box=menuRef.current;if(!menu||!box)return;const over=box.getBoundingClientRect().right-(window.innerWidth-8);if(over>0)box.style.left=Math.max(8,menu.x-over)+'px'},[menu]);
 
  // presety a oblíbené: načíst jednou na stránku; ukládat 500 ms po poslední změně (PUT presets, defaults a fav; barvy patří Nastavení)
  const prefsTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
