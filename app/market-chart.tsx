@@ -1,7 +1,7 @@
 'use client';
 // Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
-import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import {Maximize2,Minimize2} from 'lucide-react';
+import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
+import {AppWindow,Maximize2,Minimize2} from 'lucide-react';
 import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
 import {candles as toBars,chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS} from '@/lib/chart/layers';
@@ -60,10 +60,27 @@ function seriesColors(type:ChartType,bull:string,bear:string,brand:string){
 }
 
 const editable=(t:EventTarget|null)=>t instanceof HTMLElement&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+// TF z adresy (?tf=H1 u okna grafu otevřeného z aplikace) přebije uložený; u footprintu jeho TF
+function withTf(p:Prefs,tf:string|undefined,fpOk:boolean):Prefs{
+ if(!tf)return p;
+ if(p.type==='footprint'&&fpOk)return isFpTf(tf)?{...p,fpTf:tf}:p;
+ return (TFS as readonly string[]).includes(tf)?{...p,tf:tf as Tf}:p;
+}
+// samostatné okno grafu (např. na druhý monitor): /graf/<trh>?tf=…, jedno pojmenované okno na trh – další klik ho jen přepne a obnoví
+const WIN='tradee-graf-',slugOf=(id:string)=>id.replace(/\//g,'-');
+const noSub=()=>()=>{};
+function openChartWindow(instrument:string,tf:ChartTf){
+ const w=Math.max(640,Math.min(1440,screen.availWidth-40)),h=Math.max(480,Math.min(900,screen.availHeight-60));
+ const left=Math.round(window.screenX+Math.max(0,(window.outerWidth-w)/2)+40),top=Math.round(window.screenY+Math.max(0,(window.outerHeight-h)/2)+20);
+ const win=window.open('/graf/'+encodeURIComponent(slugOf(instrument))+'?tf='+tf,WIN+slugOf(instrument),`popup=yes,width=${w},height=${h},left=${left},top=${top}`);
+ win?.focus();return !!win;
+}
 
-// fill = graf vyplní výšku rodiče (stránka /graf); jinak pevná výška (height)
-export function MarketChart({instrument,name,history,method,events,height,headExtra,fill}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode;fill?:boolean}){
+// fill = graf vyplní výšku rodiče (stránka /graf); jinak pevná výška (height); initialTf = TF z adresy stránky /graf
+export function MarketChart({instrument,name,history,method,events,height,headExtra,fill,initialTf}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode;fill?:boolean;initialTf?:string}){
  const [prefs,setPrefs]=useState<Prefs>(DEFAULT),[ready,setReady]=useState(false);
+ // okno grafu: v samotném okně téhož trhu tlačítko nedává smysl (otevřelo by znovu sebe); zablokované okno = hláška v patičce
+ const winName=useSyncExternalStore(noSub,()=>window.name,()=>''),[blocked,setBlocked]=useState(false);
  // přes celou obrazovku jako TradingView: karta grafu přes celé okno (pevné rozvržení bez posouvání stránky), kde to jde, i celoobrazovkový režim prohlížeče
  const [fs,setFs]=useState(false),card=useRef<HTMLElement>(null),keys=useRef({fs:false,drawing:false,fill:false});
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
@@ -81,7 +98,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const [fpPrim]=useState(()=>new FootprintPrimitive(on=>setFpMode(on)));
  const polls=useRef(0),silent=useRef(false),fitted=useRef('');
 
- useEffect(()=>{setPrefs(readPrefs());setReady(true)},[]);
+ useEffect(()=>{setPrefs(withTf(readPrefs(),initialTf,!!fpSymbol(instrument)));setReady(true)},[initialTf,instrument]);
  const update=(p:Partial<Prefs>)=>setPrefs(old=>{const next={...old,...p};try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}return next});
  const toggle=(k:keyof Layers)=>update({layers:{...layers,[k]:!layers[k]}});
 
@@ -272,6 +289,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
     <div className="mc-seg mc-tfseg" role="group" aria-label="Časový rámec">{tfButtons.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update(isFp?{fpTf:t as FpTf}:{tf:t as Tf})}>{t}</button>)}</div>
     <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.map(([k,label])=>{const off=k==='sessions'&&!sessOk;return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na M1–H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>
     {headExtra}<button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
+    {winName!==WIN+slugOf(instrument)&&<button type="button" className="mc-chip mc-icon" aria-label="Otevřít graf v novém okně" title="Otevřít v novém okně (např. na druhý monitor)" onClick={()=>setBlocked(!openChartWindow(instrument,tf))}><AppWindow size={14} aria-hidden/></button>}
     <button type="button" className={'mc-chip mc-icon'+(fs?' on':'')} aria-pressed={fs} aria-label={fs?'Zmenšit graf (Esc)':'Graf přes celou obrazovku (F)'} title={fs?'Zmenšit (Esc)':'Přes celou obrazovku (F)'} onClick={()=>full(!fs)}>{fs?<Minimize2 size={14} aria-hidden/>:<Maximize2 size={14} aria-hidden/>}</button>
    </div>
   </div>
@@ -289,6 +307,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   <div className="mc-foot">
    {data.stale&&bars.length>0&&<span className="mc-stale" role="status">Ceny mohou být zpožděné{data.updated?' · stav '+new Date(data.updated).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>}
    {tradesError&&layers.trades&&<span className="mc-stale">Obchody se nepodařilo načíst.</span>}
+   {blocked&&<span className="mc-stale" role="status">Prohlížeč zablokoval nové okno – povol pro Tradee vyskakovací okna.</span>}
    {layers.news&&<span className="mc-legend"><i className="mc-dot strong"/>silná zpráva <i className="mc-dot"/>střední</span>}
    {layers.sessions&&sessOk&&<span className="mc-legend">{SESSIONS.filter(s=>s.key!=='off').map(s=><span key={s.key}><i className="mc-swatch" style={{background:SESSION_COLORS[s.key as keyof typeof SESSION_COLORS]}}/>{s.label}</span>)}</span>}
    {isFp&&fp?.error&&bars.length>0&&<span className="mc-stale" role="status">{fp.error} Zobrazuji poslední uložená data.</span>}

@@ -24,7 +24,7 @@ import './markets.css';
 const initialMarket={...core,prices:{...core.prices,...expanded.prices},legacy:expanded.legacy,refresh:{attemptedAt:expanded.refresh.attemptedAt,issues:[...core.refresh.issues,...expanded.refresh.issues]}} as MarketData;
 const slugOf=(id:string)=>id.replace(/\//g,'-');
 const list=instruments.filter(i=>i.group!=='currency');
-export default function ChartPage({slug}:{slug:string}){
+export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  usePalette();
  let key=slug;try{key=decodeURIComponent(slug)}catch{}
  const item=list.find(i=>slugOf(i.id)===key);
@@ -41,7 +41,7 @@ export default function ChartPage({slug}:{slug:string}){
    {item&&<div className="mc-page-live"><h1>{item.name}</h1>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
   </header>
   <main className="mt-main mc-page-main">
-   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill headExtra={picker}/></div>
+   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
  </div>;
