@@ -5,7 +5,7 @@ import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,numInput,fibLabel,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,numInput,fibLabel,arrowEnds,arrowOf,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
@@ -418,7 +418,7 @@ function Seg<T extends string|number>({value,options,onPick,label}:{value:T;opti
 // panel stylu vybrané kresby: text/poznámka, čára, průhlednost, výplň, okraj, prodloužení, riziko, viditelnost na TF
 type PresetProps={colors:string[];presets:Preset[];hasDefault:boolean;canSave:boolean;prefsOk:boolean;onSavePreset:(name:string)=>void;onDeletePreset:(id:string)=>void;onApplyPreset:(p:Preset)=>void;onSetDefault:()=>void;onResetDefault:()=>void};
 function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...pp}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}&PresetProps){
- const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text',pos=d.type==='long'||d.type==='short'?d.type:null;
+ const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text',pos=d.type==='long'||d.type==='short'?d.type:null,ar=arrowEnds(st.arrow);
  const [text,setText]=useState(d.text||''),[risk,setRisk]=useState(st.risk===null?'':String(st.risk));
  const changeText=(v:string)=>{setText(v);if(isText){if(v.trim())onPatch({text:v.slice(0,MAX_TEXT)},'text')}else onPatch({text:v.trim()?v.slice(0,MAX_TEXT):undefined},'text')};
  const changeRisk=(v:string)=>{setRisk(v);const n=Number(v.replace(',','.'));onStyle({risk:v.trim()&&Number.isFinite(n)&&n>=0&&n<=1e9?n:undefined},'risk')};
@@ -435,6 +435,10 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
    <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu" custom={pp.colors}/></div>
   </>}
   {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'S'],[2,'M'],[3,'L'],[4,'XL']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
+  {caps.arrow&&<div className="mc-row" role="group" aria-label="Šipky na koncích čáry"><span>Šipka</span>
+   <label className="mc-check"><input type="checkbox" checked={ar.start} onChange={e=>onStyle({arrow:arrowOf(e.target.checked,ar.end)})}/>Na začátku</label>
+   <label className="mc-check"><input type="checkbox" checked={ar.end} onChange={e=>onStyle({arrow:arrowOf(ar.start,e.target.checked)})}/>Na konci</label>
+  </div>}
   {caps.label&&<div className="mc-row" role="group" aria-label="Popisek dotyku"><span>Popisek</span>
    <Seg label="Popisek dotyku nad, na nebo pod čarou" value={st.la} options={[['top','Nahoře'],['middle','Uprostřed'],['bottom','Dole']]} onPick={v=>onStyle({la:v==='top'?undefined:v})}/>
    <Seg label="Popisek dotyku u konce čáry" value={st.lx} options={[['left','Vlevo'],['right','Vpravo']]} onPick={v=>onStyle({lx:v==='right'?undefined:v})}/>

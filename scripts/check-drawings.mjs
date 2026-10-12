@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt,arrowHead,arrowEnds,arrowOf} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -342,5 +342,16 @@ const tlL=touchLabelAt({x:50,y:100},300,400,true,'bottom','left',40);
 check('dotyk: vlevo u kotvy pod čarou',tlL.x===54&&tlL.y===104&&tlL.align==='left'&&tlL.base==='top'&&tlL.box===null,tlL);
 const tlM=touchLabelAt({x:50,y:100},300,400,true,'middle','right',40),tlML=touchLabelAt({x:50,y:100},300,400,true,'middle','left',40);
 check('dotyk: na čáře s podkladem (vpravo i vlevo)',tlM.x===292&&tlM.y===100&&tlM.base==='middle'&&tlM.box.x===248&&tlM.box.w===48&&tlM.box.y===91&&tlML.x===58&&tlML.box.x===54,[tlM,tlML]);
+// šipky lomené čáry
+check('šipka: výchozí bez šipky, jen u lomené čáry',styleOf({type:'path',color:'brand'}).arrow==='none'&&capsOf('path').arrow&&!capsOf('brush').arrow&&!capsOf('trend').arrow);
+const paD={id:'pa',type:'path',a:A(3),color:'brand'};
+check('šipka: styl projde, neplatný ne',['start','end','both'].every(arrow=>parseDrawings([{...paD,s:{arrow}}]).drawings[0].s.arrow===arrow)&&!parseDrawings([{...paD,s:{arrow:'none'}}]).ok&&!parseDrawings([{...paD,s:{arrow:true}}]).ok);
+check('šipka: konce ↔ volba',arrowOf(false,false)===undefined&&arrowOf(true,false)==='start'&&arrowOf(false,true)==='end'&&arrowOf(true,true)==='both'&&arrowEnds('both').start&&arrowEnds('both').end&&!arrowEnds('end').start&&!arrowEnds('none').end);
+const ah=arrowHead({x:0,y:0},{x:100,y:0},2);
+const near=(a,b)=>Math.abs(a-b)<1e-9;
+check('šipka: hrot v koncovém bodě, souměrná, čára končí uvnitř',ah.tip.x===100&&ah.tip.y===0&&near(ah.l.x,86)&&near(ah.l.y,6.3)&&near(ah.r.x,86)&&near(ah.r.y,-6.3)&&near(ah.base.x,90.2)&&ah.base.y===0,ah);
+const ah4=arrowHead({x:0,y:0},{x:100,y:0},4),ahV=arrowHead({x:0,y:100},{x:0,y:0},1);
+check('šipka: větší s tloušťkou čáry, i svisle',100-ah4.l.x===20&&100-ah4.l.x>100-ah.l.x&&ahV.tip.y===0&&near(ahV.l.y,11)&&near(Math.abs(ahV.l.x),4.95)&&near(ahV.l.x,-ahV.r.x),[ah4,ahV]);
+check('šipka: krátká úsečka a room omezí délku, nulová úsečka nic',near(arrowHead({x:0,y:0},{x:10,y:0},4).l.x,0)&&near(arrowHead({x:0,y:0},{x:100,y:0},4,5).l.x,95)&&arrowHead({x:5,y:5},{x:5,y:5},2)===null);
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

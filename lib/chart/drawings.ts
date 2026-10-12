@@ -29,11 +29,14 @@ export type LabelMode=typeof LABEL_MODES[number];
 // automatický popisek (úroveň do dotyku): u levého nebo pravého konce čáry
 export const LABEL_ENDS=['left','right'] as const;
 export type LabelEnd=typeof LABEL_ENDS[number];
+// šipky lomené čáry: na začátku, na konci, na obou (bez šipky = klíč chybí)
+export const ARROWS=['start','end','both'] as const;
+export type Arrow=typeof ARROWS[number];
 // hladina Fibonacciho: hodnota (0,618) a zda se kreslí
 export type FibLevel={v:number;on:boolean};
 // styl kresby – všechna pole volitelná (staré kresby styl nemají a vykreslí se stejně jako dřív)
 // lv/lb/pct = hladiny a popisky Fibonacciho; mid/midp/midc = střední čára kanálu (zapnutá, poloha 0–1 od čáry a–b, barva);
-// la/lx = automatický popisek úrovně do dotyku (nad/na/pod čarou, u levého/pravého konce)
+// la/lx = automatický popisek úrovně do dotyku (nad/na/pod čarou, u levého/pravého konce); arrow = šipky lomené čáry
 export type DrawStyle={
  lw?:1|2|3|4;ls?:LineStyleName;op?:number;
  fill?:boolean;border?:boolean;bc?:DrawColor;
@@ -43,6 +46,7 @@ export type DrawStyle={
  lv?:FibLevel[];lb?:LabelMode;pct?:boolean;
  mid?:boolean;midp?:number;midc?:DrawColor;
  la?:TextAlign;lx?:LabelEnd;
+ arrow?:Arrow;
 };
 export type Drawing={id:string;type:DrawType;a:Anchor[];color:DrawColor;text?:string;ray?:boolean;s?:DrawStyle;tfs?:string[]};
 export const MAX_DRAWINGS=200,MAX_TEXT=200,MAX_POINTS=300,MAX_PATH=100,MAX_TOTAL_POINTS=20000;
@@ -67,7 +71,7 @@ const num=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v);
 const anchorOk=(a:unknown):a is Anchor=>!!a&&typeof a==='object'&&num((a as Anchor).t)&&num((a as Anchor).p)&&(a as Anchor).t>=0&&(a as Anchor).t<7258118400000&&Math.abs((a as Anchor).p)<1e12;
 
 // --- schopnosti stylu podle typu (co nabídnout v panelu) ---
-export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean;mid:boolean;label:boolean};
+export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean;mid:boolean;label:boolean;arrow:boolean};
 const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange','fibext','pitchfork','gann'];
 export function capsOf(t:DrawType):Caps{
  return {
@@ -79,9 +83,10 @@ export function capsOf(t:DrawType):Caps{
   levels:t==='fib'||t==='fibext',
   mid:t==='channel',
   label:t==='touch',
+  arrow:t==='path',
  };
 }
-export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor;la:TextAlign;lx:LabelEnd};
+export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor;la:TextAlign;lx:LabelEnd;arrow:Arrow|'none'};
 // výchozí hladiny podle nástroje (u ostatních nástrojů žádné)
 export const defaultLevels=(t:DrawType):FibLevel[]=>t==='fib'?FIB_DEFAULT:t==='fibext'?FIB_EXT_DEFAULT:[];
 // výchozí styl doplněný o uložené hodnoty (staré kresby: čáry 2 px, zóna s výplní i okrajem 1 px, text bez pozadí; pozice bez okraje)
@@ -96,6 +101,7 @@ export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
   lv:s.lv??defaultLevels(d.type),lb:s.lb??'both',pct:s.pct??false,
   mid:s.mid??true,midp:s.midp??.5,midc:s.midc??d.color,
   la:s.la??'top',lx:s.lx??'right',
+  arrow:s.arrow??'none',
  };
 }
 export const TEXT_PX:Record<TextSize,number>={S:10,M:12,L:16,XL:22};
@@ -148,6 +154,7 @@ export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:str
  if(r.midc!==undefined){if(!color(r.midc))return BAD_STYLE;s.midc=normColor(r.midc as DrawColor)}
  if(r.la!==undefined){if(!(TEXT_ALIGNS as readonly unknown[]).includes(r.la))return BAD_STYLE;s.la=r.la as TextAlign}
  if(r.lx!==undefined){if(!(LABEL_ENDS as readonly unknown[]).includes(r.lx))return BAD_STYLE;s.lx=r.lx as LabelEnd}
+ if(r.arrow!==undefined){if(!(ARROWS as readonly unknown[]).includes(r.arrow))return BAD_STYLE;s.arrow=r.arrow as Arrow}
  return {ok:true,s:Object.keys(s).length?s:undefined};
 }
 // validace a normalizace (neznámé klíče se zahodí); chyby česky
@@ -539,6 +546,15 @@ export function channelOffset(a:Pt,b:Pt,c:Pt){
  const dx=b.x-a.x;if(!dx)return c.x-a.x;
  return c.y-(a.y+(b.y-a.y)*(c.x-a.x)/dx);
 }
+// šipka na konci úsečky p→q (px): hrot v q, délka a šířka rostou s tloušťkou čáry (nejvýš délka úsečky / room);
+// base = kam dotáhnout čáru, aby kulatý konec čáry nepřečníval přes hrot
+export function arrowHead(p:Pt,q:Pt,lw:number,room=Infinity):{tip:Pt;l:Pt;r:Pt;base:Pt}|null{
+ const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);if(len<1)return null;
+ const ux=dx/len,uy=dy/len,L=Math.min(8+lw*3,len,room),W=L*.45,bx=q.x-ux*L,by=q.y-uy*L;
+ return {tip:{x:q.x,y:q.y},l:{x:bx-uy*W,y:by+ux*W},r:{x:bx+uy*W,y:by-ux*W},base:{x:q.x-ux*L*.7,y:q.y-uy*L*.7}};
+}
+export const arrowEnds=(a:Arrow|'none')=>({start:a==='start'||a==='both',end:a==='end'||a==='both'});
+export const arrowOf=(start:boolean,end:boolean):Arrow|undefined=>start&&end?'both':start?'start':end?'end':undefined;
 // čára uvnitř kanálu: úsečka p→q posunutá o podíl k (0 = čára a–b, 1 = rovnoběžka, 0,5 = střed)
 export const channelLine=(p:Pt,q:Pt,off:number,k:number):Seg=>[{x:p.x,y:p.y+off*k},{x:q.x,y:q.y+off*k}];
 const inPoly=(p:Pt,poly:Pt[])=>{let ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)ins=!ins}return ins};

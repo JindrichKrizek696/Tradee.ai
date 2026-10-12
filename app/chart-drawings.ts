@@ -1,7 +1,7 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,channelLine,touchLabelAt,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,channelLine,touchLabelAt,arrowHead,arrowEnds,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 
 export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
@@ -131,7 +131,16 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     label(t.label,L.x,L.y,L.align,L.base);
     break;
    }
-   case 'path':case 'brush':{ctx.beginPath();shape.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();break}
+   case 'path':case 'brush':{
+    // lomená čára: volitelné šipky (plný trojúhelník podle tloušťky); čára končí u základny šipky
+    const S=shape.pts,n=S.length,pts=[...S],ar=d.type==='path'&&n>=2?arrowEnds(st.arrow):{start:false,end:false};
+    const room=n===2&&ar.start&&ar.end?Math.hypot(S[1].x-S[0].x,S[1].y-S[0].y)/2:Infinity;
+    const hs=ar.start?arrowHead(S[1],S[0],st.lw,room):null,he=ar.end?arrowHead(S[n-2],S[n-1],st.lw,room):null;
+    if(hs)pts[0]=hs.base;if(he)pts[n-1]=he.base;
+    ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
+    ctx.setLineDash([]);for(const k of [hs,he])if(k){ctx.beginPath();ctx.moveTo(k.tip.x,k.tip.y);ctx.lineTo(k.l.x,k.l.y);ctx.lineTo(k.r.x,k.r.y);ctx.closePath();ctx.fill()}
+    break;
+   }
    case 'channel':{
     const off=channelOffset(a,b,shape.pts[2]??b),[p,q]=extendSeg(a,b,w,h,st.extL,st.extR),p2={x:p.x,y:p.y+off},q2={x:q.x,y:q.y+off};
     if(st.fill){ctx.fillStyle=withAlpha(c,.1);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(q2.x,q2.y);ctx.lineTo(p2.x,p2.y);ctx.closePath();ctx.fill()}
