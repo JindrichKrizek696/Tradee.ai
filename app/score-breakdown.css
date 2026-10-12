@@ -4,7 +4,7 @@
 .sb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
 .sb-row{position:relative;padding:10px 0;border-bottom:1px solid var(--t-border);min-width:0}
 .sb-row.off .sb-top{opacity:.8}
-.sb-top{display:grid;grid-template-columns:minmax(0,1fr) 42px auto minmax(48px,84px) 50px;align-items:center;gap:10px;min-height:32px}
+.sb-top{display:grid;grid-template-columns:minmax(0,1fr) auto 50px 28px;align-items:center;gap:10px;min-height:32px}
 .sb-weight{font-size:12px;color:var(--t-muted);text-align:right;font-variant-numeric:tabular-nums}
 .sb-bar{position:relative;height:8px;border-radius:999px;background:var(--t-surface-3)}
 .sb-bar::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--t-border-strong)}
@@ -14,7 +14,7 @@
 .sb-detail{margin:4px 0 0!important;font-size:13px!important;line-height:1.45!important;color:var(--t-fg-2)}
 .sb-meta{display:flex;flex-wrap:wrap;gap:2px 10px;margin:3px 0 0!important;font-size:12px!important;line-height:1.45!important;color:var(--t-muted)!important}
 .sb-meta a{color:var(--t-brand-fg);text-decoration:none}.sb-meta a:hover{text-decoration:underline}
-.sb-row.compact .sb-top{grid-template-columns:minmax(0,1fr) 34px auto minmax(40px,70px) 44px;gap:8px}
+.sb-row.compact .sb-top{grid-template-columns:minmax(0,1fr) auto 44px 26px;gap:8px}
 .sb-row.compact .sb-label{font-size:13px;font-weight:600}
 .sb-paused{margin:0 0 10px!important;padding:8px 12px;border-radius:8px;background:var(--t-warn-soft);color:var(--t-fg-2);font-size:13px!important;line-height:1.5!important}
 .sb-total-chip{font-size:15px!important;min-width:56px}
@@ -36,4 +36,13 @@
 .sb-foot{display:block;margin-top:12px;color:var(--t-muted);line-height:1.5}
 .r-breakdown-pick{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 @media (max-width:900px){.sb-grid{grid-template-columns:1fr}}
-@media (max-width:420px){.sb-top,.sb-row.compact .sb-top{grid-template-columns:minmax(0,1fr) 34px auto 44px}.sb-bar{display:none}}
+
+
+/* Složka je sbalená: nadpis + hodnota + příspěvek; podrobnosti po rozkliknutí */
+.sb-more{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--t-muted,#71717a);cursor:pointer}
+.sb-more:hover{background:var(--t-accent-soft,#eef2ff);color:inherit}
+.sb-more svg{transition:transform .18s}
+.sb-more[aria-expanded=true] svg{transform:rotate(180deg)}
+.sb-body{padding:2px 0 8px}
+.sb-wline{display:flex;align-items:center;gap:10px;margin:2px 0 4px}
+.sb-wline .sb-bar{flex:1;max-width:140px}
