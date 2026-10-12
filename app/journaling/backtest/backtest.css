@@ -80,6 +80,7 @@ small.bt-help{display:block}
 .bt-runact{display:inline-flex;flex-direction:column}
 .bt-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--t-brand)}
 .bt-dot.b{background:var(--t-fg-2)}
+.bt-dot.c{background:#d97706}.bt-dot.d{background:#0891b2}
 /* výsledky */
 .bt-out{scroll-margin-top:80px}
 .bt-results{display:grid;gap:16px}
@@ -105,13 +106,13 @@ small.bt-help{display:block}
 .bt-chart path{vector-effect:non-scaling-stroke}
 .bt-chart .ln{fill:none;stroke-width:2}
 .bt-chart .ln.pos{stroke:var(--bull)}.bt-chart .ln.neg{stroke:var(--bear)}
-.bt-chart .ln.a{stroke:var(--t-brand)}.bt-chart .ln.b{stroke:var(--t-fg-2);stroke-dasharray:5 3}
+.bt-chart .ln.a{stroke:var(--t-brand)}.bt-chart .ln.b{stroke:var(--t-fg-2);stroke-dasharray:5 3}.bt-chart .ln.c{stroke:#d97706}.bt-chart .ln.d{stroke:#0891b2;stroke-dasharray:2 3}
 .bt-chart .area{stroke:none}
 .bt-chart .base{stroke:var(--t-border-strong);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
 .bt-chart .guide{stroke:var(--t-border-strong);stroke-width:1;vector-effect:non-scaling-stroke}
 .bt-chart .dd{fill:none;stroke-width:1.5}
 .bt-chart .dd.one{fill:color-mix(in srgb,var(--bear) 18%,transparent);stroke:var(--bear)}
-.bt-chart .dd.a{stroke:var(--t-brand)}.bt-chart .dd.b{stroke:var(--t-fg-2);stroke-dasharray:4 3}
+.bt-chart .dd.a{stroke:var(--t-brand)}.bt-chart .dd.b{stroke:var(--t-fg-2);stroke-dasharray:4 3}.bt-chart .dd.c{stroke:#d97706}.bt-chart .dd.d{stroke:#0891b2;stroke-dasharray:2 3}
 .bt-axis{display:flex;justify-content:space-between;font-size:11.5px;color:var(--t-muted);font-variant-numeric:tabular-nums}
 .bt-axis:not(.x){position:absolute;top:0;left:0;height:190px;flex-direction:column;pointer-events:none;padding:2px 0}
 .bt-axis:not(.x) span{background:color-mix(in srgb,var(--t-surface) 80%,transparent);padding:0 4px;border-radius:4px}

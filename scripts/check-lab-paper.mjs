@@ -1,6 +1,9 @@
 // Kontrola Simulace v Laboratoři (výpočty, výstupy, limity, zprávy, jistota, idempotence, přístup): node --experimental-strip-types scripts/check-lab-paper.mjs
 import {readFileSync} from 'node:fs';
-import {paperStep,checkExit,rOf,pctOf,halfSpread,atrLast,tradingDays,paperConfidence,freshnessOf,markToMarket,legs,marketCurrencies,paperStats,paperSummaryMd,maxDrawdownPct,toPaperSignal,tradeId,PAPER_RULES_VERSION} from '../lib/lab/paper.ts';
+import {paperStep,checkExit,rOf,pctOf,halfSpread,atrLast,tradingDays,paperConfidence,freshnessOf,markToMarket,legs,marketCurrencies,paperStats,paperSummaryMd,maxDrawdownPct,toPaperSignal,tradeId,PAPER_RULES_VERSION,
+ PAPER_VARIANTS,VARIANT_IDS,marketGroup,gmaLast,trendLast,contraSetup,contraConfidence} from '../lib/lab/paper.ts';
+import {weeklySummary} from '../lib/lab/paper-weekly.ts';
+import {isMissingLabTable} from '../lib/lab/core.ts';
 import {labGate} from '../lib/lab/access.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -119,11 +122,108 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  check('statistiky: equity, výnos, win rate, průměr R',st.balance===100000&&st.equity===100500&&st.returnPct===.5&&st.winRate===33.3&&st.avgR===0&&st.trades===3,st);
  check('max. drawdown',near(st.maxDrawdownPct,-1.96,1e-9)&&maxDrawdownPct([{t:0,equity:100},{t:1,equity:80},{t:2,equity:120}])===-20,st.maxDrawdownPct);
  const md=paperSummaryMd({started:NOW-5*DAY,stats:st,open:[],closed:tr});
- check('shrnutí pro AI: stav, pravidla, poznámky',md.includes('## Simulace 100 000 Kč')&&md.includes('Pravidla v1')&&md.includes('Proč X')&&md.includes('Výsledek Y')&&md.includes('Posledních 3 uzavřených'));
+ check('shrnutí pro AI: stav, pravidla, poznámky',md.includes('## Simulace 100 000 Kč')&&md.includes('Pravidla A (paper-v1)')&&md.includes('varianta A – Základní')&&md.includes('Proč X')&&md.includes('Výsledek Y')&&md.includes('posledních 3 uzavřených'));
  check('shrnutí bez startu',paperSummaryMd({started:null,stats:st,open:[],closed:[]}).includes('ještě neběžela'));
  const v3=toPaperSignal({score:40,coverage:80,alignment:70,method:'score-v3',parts:[{id:'rates',label:'Sazby',weight:15,value:2,signal:1,contribution:18.75,detail:'Fed',status:'ok'}]});
  const tech=toPaperSignal({score:70,coverage:100,alignment:100,method:'technical-v1.1',parts:[{id:'trend',label:'Trend',weight:70,signal:1,contribution:70,reason:'x'},{id:'seasonality',label:'Sezonalita',weight:30,signal:null,contribution:null,reason:'x'}]});
  check('převod skóre: v3 i technický model',v3.parts[0].value===2&&v3.parts[0].detail==='Fed'&&tech.parts[0].value===2&&tech.parts[1].status==='missing'&&tech.parts[0].detail==='');
+}
+
+
+// ---- varianty A/B/C/D
+{
+ const V=PAPER_VARIANTS,ids=['EUR/USD','GC=F','BTC-USD','ETH-USD','^NDX','AAPL'];
+ const px=id=>id==='GC=F'?2000:id.endsWith('-USD')?50000:id==='^NDX'?20000:id==='AAPL'?200:1.1;
+ const quotes=Object.fromEntries(ids.map(id=>[id,quote(px(id))])),D=Object.fromEntries(ids.map(id=>[id,d1(px(id)).map(b=>({...b,h:b.c*1.01,l:b.c*0.99}))]));
+ const signals={'EUR/USD':sig(60),'GC=F':sig(70),'BTC-USD':sig(80),'ETH-USD':sig(75),'^NDX':sig(55),'AAPL':sig(52)};
+ const a=paperStep({...base,signals,quotes,d1:D,variant:V.A}),b=paperStep({...base,signals,quotes,d1:D,variant:V.B}),dd=paperStep({...base,signals,quotes,d1:D,variant:V.D});
+ const noVar=paperStep({...base,signals,quotes,d1:D});
+ check('A beze změny: stejný výsledek s i bez varianty, id i rules_version paper-v1',JSON.stringify(a)===JSON.stringify(noVar)&&a.opens.every(t=>t.rulesVersion==='paper-v1'&&t.variant===undefined&&t.id===tradeId(NOW,t.instrument)),a.opens.map(t=>t.id));
+ check('A: všechny trhy (FX, komodity, krypto, indexy, akcie), max 5',a.opens.length===5&&a.opens.map(t=>t.instrument).join()==='BTC-USD,ETH-USD,GC=F,EUR/USD,^NDX',a.opens.map(t=>t.instrument));
+ check('B: jen FX páry',b.opens.map(t=>t.instrument).join()==='EUR/USD'&&b.opens[0].rulesVersion==='paper-B-v1'&&b.opens[0].variant==='B'&&b.opens[0].id.startsWith('pB')&&b.skipped.length===0,b.opens);
+ check('B: měnové indexy ani s FX skupinou ne',marketGroup('EUR')==='currency'&&marketGroup('EUR/USD')==='fx'&&marketGroup('GC=F')==='commodities'&&marketGroup('^NDX')==='index'&&marketGroup('BTC-USD')==='crypto'&&marketGroup('AAPL')==='stock'&&paperStep({...base,signals:{'USD':sig(80)},quotes:{'USD':quote(100)},d1:{'USD':d1(100)},variant:V.B}).opens.length===0);
+ check('D: |skóre| ≥ 65 a nejvýš 1 krypto',dd.opens.map(t=>t.instrument).join()==='BTC-USD,GC=F'&&dd.skipped.some(x=>x.instrument==='ETH-USD'&&x.reason.startsWith('krypto'))&&!dd.skipped.some(x=>x.instrument==='EUR/USD')&&dd.opens.every(t=>t.rulesVersion==='paper-D-v1'),[dd.opens.map(t=>t.instrument),dd.skipped]);
+ const openBtc={...dd.opens[0],opened:NOW-H};
+ check('D: otevřené krypto blokuje další krypto i v dalším běhu',paperStep({...base,trades:[openBtc],signals:{'BTC-USD':sig(80),'ETH-USD':sig(90)},quotes,d1:D,variant:V.D}).skipped.find(x=>x.instrument==='ETH-USD')?.reason.startsWith('krypto')&&paperStep({...base,trades:[openBtc],signals:{'BTC-USD':sig(80),'ETH-USD':sig(90)},quotes,d1:D,variant:V.A}).opens.length===1);
+ check('D: FX dál pokrytí ≥ 70 %',paperStep({...base,signals:{'EUR/USD':sig(80,{coverage:65})},quotes,d1:D,variant:V.D}).opens.length===0);
+ check('id varianty: A beze změny, B/C/D s písmenem, různé',tradeId(NOW,'EUR/USD')===tradeId(NOW,'EUR/USD','A')&&new Set(VARIANT_IDS.map(v=>tradeId(NOW,'EUR/USD',v))).size===4);
+ check('pravidla: verze a text u každé varianty',VARIANT_IDS.every(v=>V[v].rulesVersion.length<=20&&V[v].text.length>3)&&V.A.rulesVersion==='paper-v1'&&V.D.rules.minScore===65&&V.D.rules.maxCrypto===1&&V.B.rules.minScore===50&&V.B.rules.fxMinCoverage===70&&V.B.rules.fxMinAlignment===60);
+}
+
+// ---- C (kontra): syntetické řady
+{
+ const V=PAPER_VARIANTS.C;
+ // 260 denních svíček: stálý růst 0,2 %/den → trend +2 (cena nad GMA50 nad GMA200)
+ const up=(n=260,g=0.002,p0=1)=>Array.from({length:n},(_,i)=>{const c=p0*Math.exp(g*i);return {t:NOW-(n-i)*DAY,o:c,h:c*1.003,l:c*0.997,c}});
+ const down=(n=260)=>up(n,-0.002,2);
+ const flat=(n=260)=>Array.from({length:n},(_,i)=>({t:NOW-(n-i)*DAY,o:1.1,h:1.102,l:1.098,c:1.1}));
+ const U=up(),g=gmaLast(U,NOW),a=atrLast(U,NOW);
+ check('C: trend +2 u rostoucí řady, −2 u klesající, <200 svíček null',trendLast(U,NOW)===2&&trendLast(down(),NOW)===-2&&trendLast(up(150),NOW)===null);
+ check('C: GMA50 = geometrický průměr posledních 50 close',near(g,Math.exp(U.slice(-50).reduce((s,b)=>s+Math.log(b.c),0)/50),1e-12));
+ const at=k=>g+k*a; // cena k × ATR nad GMA50
+ const run=(price,cot,o={})=>paperStep({...base,signals:o.signals??{},quotes:{'EUR/USD':quote(price)},d1:{'EUR/USD':o.bars??U},cot:cot===undefined?{}:{'EUR/USD':cot},variant:V,trades:o.trades??[]});
+ const s1=run(at(2.5),0.6),t=s1.opens[0];
+ check('C: trend +2, natažení 2,5 ATR, COT +0,6 → short proti trendu',t?.direction==='short'&&t.rulesVersion==='paper-C-v1'&&t.variant==='C'&&t.id.startsWith('pC'),s1);
+ check('C: SL 1,5 ATR nad vstupem, TP 3 ATR pod (2 R)',t&&near(t.sl-t.entry,1.5*a,1e-9)&&near(t.entry-t.tp,3*a,1e-9)&&near(rOf(t,t.tp),2,1e-9));
+ check('C: jistota z natažení a COT (2,5 ATR, COT 0,6 → 54 %)',t?.confidence===54&&contraConfidence({extAtr:2.5,cot:0.6})===54&&contraConfidence({extAtr:2,cot:null})===40&&contraConfidence({extAtr:9,cot:-1})===100);
+ check('C: poznámka „proč“ vysvětluje kontra s čísly',t&&t.why.includes('(kontra)')&&t.why.includes('2,5 × ATR14')&&t.why.includes('GMA50')&&t.why.includes('COT: spekulanti +0,6')&&t.why.includes('přeplněné')&&t.partsAtEntry.contra.trend===2,t?.why);
+ check('C: natažení 1,9 ATR = bez vstupu',run(at(1.9),0.6).opens.length===0&&contraSetup(U,NOW,at(1.9),0.6).reason.includes('natažení'));
+ check('C: COT slabý (+0,3) nebo proti trendu (−0,6) = bez vstupu',run(at(2.5),0.3).opens.length===0&&run(at(2.5),-0.6).opens.length===0);
+ check('C: bez COT dat stačí trend a natažení (jistota bez COT složky)',run(at(2.5)).opens[0]?.confidence===contraConfidence({extAtr:2.5,cot:null}));
+ const D=down(),gd=gmaLast(D,NOW),ad=atrLast(D,NOW);
+ const s2=paperStep({...base,signals:{},quotes:{'EUR/USD':quote(gd-2.2*ad)},d1:{'EUR/USD':D},cot:{'EUR/USD':-0.8},variant:V});
+ check('C: trend −2 a cena 2,2 ATR pod GMA50 → long',s2.opens[0]?.direction==='long'&&s2.opens[0].sl<s2.opens[0].entry,s2);
+ check('C: bez trendu ±2 žádný vstup',run(1.2,0.9,{bars:flat()}).opens.length===0);
+ check('C: skóre Tradee se pro vstup nepoužívá (silné skóre bez setupu nic)',run(at(1),undefined,{signals:{'EUR/USD':sig(90)}}).opens.length===0);
+ const cr=paperStep({...base,signals:{},quotes:{'BTC-USD':quote(at(3)),'AAPL':quote(at(3)),'GC=F':quote(at(3)),'^NDX':quote(at(3))},d1:{'BTC-USD':U,'AAPL':U,'GC=F':U,'^NDX':U},variant:V});
+ check('C: jen FX, komodity a indexy (krypto ani akcie ne)',cr.opens.map(x=>x.instrument).sort().join()==='GC=F,^NDX',cr.opens.map(x=>x.instrument));
+ // výstupy
+ const open={...t,opened:NOW-10*H};
+ const ex=(price,o={})=>paperStep({...base,signals:o.signals??{},quotes:{'EUR/USD':quote(price)},d1:{'EUR/USD':U},variant:V,trades:[open]});
+ const m=ex(g-0.0001);
+ check('C: návrat ke GMA50 = výstup „mean“ za mid + ½ spreadu (short)',m.closes[0]?.exitReason==='mean'&&near(m.closes[0].exit,g-0.0001+halfSpread('EUR/USD',g-0.0001),1e-12)&&m.closes[0].r>0&&m.closes[0].resultNote.includes('vrátila k průměru'),m.closes[0]);
+ check('C: nad GMA50 drží, slabé skóre výstup nespouští',ex(g+a,{signals:{'EUR/USD':sig(5)}}).closes.length===0);
+ const sl=ex(open.sl+0.001);
+ check('C: SL při pokračování trendu',sl.closes[0]?.exitReason==='sl'&&near(sl.closes[0].r,-1,1e-9)&&sl.closes[0].resultNote.includes('nevyšla'));
+ const old={...open,opened:Date.UTC(2026,8,29,10)};
+ check('C: po 10 obchodních dnech výstup čas',paperStep({...base,signals:{},quotes:{'EUR/USD':quote(g+a)},d1:{'EUR/USD':U},variant:V,trades:[old]}).closes[0]?.exitReason==='time');
+ check('C: checkExit s GMA50 – long se zavře nad GMA50',checkExit({...s2.opens[0],opened:NOW-H},{now:NOW,quote:quote(gd+0.0001),gma50:gd})?.exitReason==='mean'&&checkExit({...s2.opens[0],opened:NOW-H},{now:NOW,quote:quote(gd-0.0001),gma50:gd})===null);
+}
+
+// ---- migrace 0027: varianta A jako výchozí, existující řádky zůstanou A
+{
+ const sql=readFileSync(new URL('../drizzle/mariadb/0027_lab_paper_variants.sql',import.meta.url),'utf8');
+ const tables=['lab_paper_accounts','lab_paper_trades','lab_paper_equity','lab_paper_log'];
+ check('migrace: variant VARCHAR(4) NOT NULL DEFAULT \'A\' u všech 4 tabulek',tables.every(t=>new RegExp(`ALTER TABLE ${t} ADD COLUMN variant VARCHAR\\(4\\) NOT NULL DEFAULT 'A'`).test(sql)));
+ check('migrace: existující řádky = A',tables.every(t=>sql.includes(`UPDATE ${t} SET variant='A'`)));
+ check('migrace: klíče s variantou',/lab_paper_accounts DROP PRIMARY KEY, ADD PRIMARY KEY\(user_id,variant\)/.test(sql)&&/lab_paper_equity DROP PRIMARY KEY, ADD PRIMARY KEY\(user_id,variant,at\)/.test(sql)&&/INDEX lab_paper_trades_user\(user_id,variant,closed\)/.test(sql)&&/INDEX lab_paper_log_user\(user_id,variant,at\)/.test(sql));
+ const stm=sql.split('--> statement-breakpoint').map(x=>x.split('\n').filter(l=>!l.trim().startsWith('--')).join('\n').trim()).filter(Boolean);
+ check('migrace: jeden příkaz mezi breakpointy',stm.length===12&&stm.every(x=>(x.match(/;/g)||[]).length===1&&x.endsWith(';')),stm.length);
+ check('chybí migrace 0027 (Unknown column variant) = 503 jako chybějící tabulka',isMissingLabTable({errno:1054,message:"Unknown column 'variant' in 'where clause'"})&&!isMissingLabTable({errno:1054,message:"Unknown column 'foo' in 'field list'"}));
+ const store=readFileSync(new URL('../lib/lab/paper-store.ts',import.meta.url),'utf8');
+ check('store: všechny dotazy na lab_paper_* filtrují user_id',store.includes("const where=['user_id=?']")&&[...store.matchAll(/(?:FROM|UPDATE|INTO) (lab_paper_\w+)[^'`]*/g)].every(m=>/user_id/.test(m[0])||m[0].includes('${where.join')),[...store.matchAll(/(?:FROM|UPDATE|INTO) (lab_paper_\w+)[^'`]*/g)].map(m=>m[0]).filter(x=>!/user_id/.test(x)));
+}
+
+// ---- týdenní souhrn (čistá funkce)
+{
+ const W=7*DAY,mk=(o)=>({id:'t',instrument:'EUR/USD',direction:'long',opened:NOW-3*DAY,entry:1.1,sl:1.09,tp:1.12,riskCzk:1000,confidence:70,scoreAtEntry:60,partsAtEntry:{method:'score-v3',coverage:90,alignment:80,freshness:1,atr:.01,parts:[]},why:'Proč <b>&',closed:null,exit:null,exitReason:null,r:null,pnlCzk:null,pct:null,scoreAtExit:null,resultNote:null,rulesVersion:'paper-v1',...o});
+ const trades=[mk({id:'w1',closed:NOW-2*DAY,exit:1.12,exitReason:'tp',r:2,pnlCzk:2000,why:'Proč nejlepší'}),mk({id:'w2',instrument:'GBP/USD',closed:NOW-DAY,exit:1.09,exitReason:'sl',r:-1,pnlCzk:-1000,why:'Proč nejhorší'}),
+  mk({id:'old',opened:NOW-20*DAY,closed:NOW-10*DAY,exit:1.12,exitReason:'tp',r:2,pnlCzk:2000}),mk({id:'o1',instrument:'GC=F',opened:NOW-DAY})];
+ const st=paperStats(trades,100000,500,[]);
+ const eq=[{t:NOW-W-DAY,equity:101000},{t:NOW-W+DAY,equity:101500}];
+ const s=weeklySummary([{id:'A',started:NOW-30*DAY,startEquity:100000,stats:st,equity:eq,trades,open:[{...trades[3],mark:{price:2010,r:.5,pnlCzk:500}}]},
+  {id:'C',started:NOW-2*DAY,startEquity:100000,stats:paperStats([],100000,-200,[]),equity:[{t:NOW-DAY,equity:99800}],trades:[],open:[]},
+  {id:'B',started:null,startEquity:100000,stats:paperStats([],100000,0,[]),equity:[],trades:[],open:[]}],NOW);
+ const A=s.variants[0],C=s.variants[1];
+ check('týden: P&L = equity teď − equity na začátku týdne',A.weekStartEquity===101000&&A.equity===103500&&A.weekPnl===2500&&near(A.weekPct,2.48,1e-9)&&A.totalPnl===3500&&A.totalPct===3.5,A);
+ check('týden: účet začal během týdne → od startu',C.weekStartEquity===100000&&C.weekPnl===-200&&C.totalPnl===-200,C);
+ check('týden: otevřené / uzavřené za týden, nejlepší a nejhorší',A.opened.map(t=>t.id).join()==='w1,w2,o1'&&A.closed.map(t=>t.id).join()==='w1,w2'&&A.best.id==='w1'&&A.worst.id==='w2');
+ check('týden: text a e-mail s „proč“, R a otevřenými pozicemi',s.text.includes('Nejlepší: EUR/USD long +2 R')&&s.text.includes('Proč nejhorší')&&s.text.includes('GC=F long od')&&s.html.includes('Proč nejlepší')&&s.md.includes('**B – Jen FX**: ještě neběží'));
+ check('týden: push krátký, předmět s % variant',s.pushBody.length<=180&&/^A \+2\s500 Kč \(\+2,48 %\) · C −200 Kč \(−0,2 %\) · B –$/.test(s.pushBody)&&s.subject.includes('A +2,48 %')&&s.subject.includes('C −0,2 %')&&!s.subject.includes('B '),[s.pushBody,s.subject]);
+ const esc=weeklySummary([{id:'A',started:NOW-30*DAY,startEquity:100000,stats:st,equity:eq,trades:[mk({id:'x',closed:NOW-DAY,exit:1.12,exitReason:'tp',r:2,pnlCzk:2000,why:'Proč <b>&'})],open:[]}],NOW);
+ check('týden: HTML escapuje poznámky',esc.html.includes('Proč &lt;b&gt;&amp;')&&!esc.html.includes('<b>&'));
+ const src=readFileSync(new URL('./lab-paper-weekly.mjs',import.meta.url),'utf8');
+ check('týdenní skript: jen vlastník (mail na OWNER_EMAIL, push jen jeho odběry, --dry nic neposílá)',(src.match(/to:\[/g)||[]).length===1&&src.includes('to:[ownerEmail]')&&/FROM push_subscriptions WHERE user_id=\?'\)\.bind\(uid\)/.test(src)&&src.indexOf('if(dry){')<src.indexOf('api.resend.com')&&src.indexOf('if(dry){')<src.indexOf('sendNotification')&&src.includes("timeZone:'Europe/Prague'"));
 }
 
 // ---- přístup: nové routy jen pro vlastníka (404 i pro admina), graf žádá data jen jako vlastník

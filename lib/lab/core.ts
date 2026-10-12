@@ -22,7 +22,7 @@ export function validateLabNote(raw:unknown):{title:string;body:string;tags:stri
  return {title,body,tags:cleanTags(x.tags)};
 }
 export function parseTagsCol(s:unknown):string[]{if(typeof s!=='string'||!s)return [];try{const v=JSON.parse(s);return Array.isArray(v)?v.map(String):[]}catch{return []}}
-export function isMissingLabTable(e:unknown){const x=e as {code?:unknown;errno?:unknown;message?:unknown}|null;return !!x&&(x.code==='ER_NO_SUCH_TABLE'||x.errno===1146||/Table '[^']*lab_[^']*' doesn't exist/i.test(String(x.message??'')))}
+export function isMissingLabTable(e:unknown){const x=e as {code?:unknown;errno?:unknown;message?:unknown}|null;return !!x&&(x.code==='ER_NO_SUCH_TABLE'||x.errno===1146||/Table '[^']*lab_[^']*' doesn't exist/i.test(String(x.message??''))||/Unknown column '(?:[^']*\.)?variant'/i.test(String(x.message??'')))} // variant = chybí migrace 0027
 
 const f=(v:number|null|undefined,d=2)=>v===null||v===undefined?'–':v.toFixed(d);
 const day=(t:number|null)=>t===null?'–':new Date(t).toISOString().slice(0,10);

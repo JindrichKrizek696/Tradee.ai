@@ -9,7 +9,7 @@ flock -n 9 || { echo "!! $(date -Is) předchozí běh ještě běží"; exit 0; 
 echo "== $(date -Is) live"
 node --experimental-strip-types scripts/refresh-live.mjs
 rc=$?
-# Laboratoř · Simulace (jen vlastník): jeden krok po čerstvých cenách. Vlastní zámek a limit 5 min; selhání nesmí shodit živé ceny.
+# Laboratoř · Simulace (jen vlastník): jeden krok všech variant A/B/C/D po čerstvých cenách (jeden proces pod jedním zámkem). Vlastní zámek a limit 5 min; selhání nesmí shodit živé ceny.
 if [ -f scripts/lab-paper.mjs ]; then
   (
     exec 8>/tmp/tradee-lab-paper.lock

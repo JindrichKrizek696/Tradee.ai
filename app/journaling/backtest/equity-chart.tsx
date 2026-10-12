@@ -5,7 +5,7 @@ import {useId,useMemo,useState} from 'react';
 import type {EquityPoint} from '@/lib/backtest/engine';
 import {drawdownSeries} from '@/lib/backtest/metrics';
 import {fmtNum} from '@/lib/journal/format';
-export type Series={label:string;points:EquityPoint[];cls:'a'|'b';raw?:EquityPoint[]}; // raw = skutečná equity pro drawdown, když points jsou přepočtené (např. na %)
+export type Series={label:string;points:EquityPoint[];cls:'a'|'b'|'c'|'d';raw?:EquityPoint[]}; // raw = skutečná equity pro drawdown, když points jsou přepočtené (např. na %)
 // poslední bod s t ≤ time (equity je schodovitá – mění se jen při uzavření obchodu)
 function at<T extends {t:number}>(a:T[],time:number):T|null{let lo=0,hi=a.length-1,r=-1;while(lo<=hi){const m=(lo+hi)>>1;if(a[m].t<=time){r=m;lo=m+1}else hi=m-1}return r<0?null:a[r]}
 export function EquityChart({series,fmt,base}:{series:Series[];fmt:(v:number)=>string;base?:number}){
@@ -24,7 +24,7 @@ export function EquityChart({series,fmt,base}:{series:Series[];fmt:(v:number)=>s
  const first=series[0].points,one=series.length===1,endUp=one&&first[first.length-1].equity>=first[0].equity;
  return <div className="bt-chart" onPointerMove={pick} onPointerLeave={()=>setHover(null)}>
   <div className="bt-axis"><span>{fmt(hi)}</span><span>{fmt(lo)}</span></div>
-  <svg className="bt-eq" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={one?`Equity od ${fmt(first[0].equity)} do ${fmt(first[first.length-1].equity)}`:'Porovnání equity dvou běhů'}>
+  <svg className="bt-eq" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={one?`Equity od ${fmt(first[0].equity)} do ${fmt(first[first.length-1].equity)}`:series.length===2?'Porovnání equity dvou běhů':`Porovnání equity ${series.length} řad`}>
    {one&&<defs><linearGradient id={gid} x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{stopColor:endUp?'var(--bull)':'var(--bear)',stopOpacity:.22}}/><stop offset="1" style={{stopColor:endUp?'var(--bull)':'var(--bear)',stopOpacity:.01}}/></linearGradient></defs>}
    {base!==undefined&&<line x1="0" x2={W} y1={y(base)} y2={y(base)} className="base"/>}
    {one&&<path d={step(first.map(p=>({t:p.t,v:p.equity})),y)+`V${H}H${x(first[0].t)}Z`} style={{fill:`url(#${gid})`}} className="area"/>}
