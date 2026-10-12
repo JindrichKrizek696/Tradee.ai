@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-12T06:51:47Z",
+  "checkedAt": "2026-10-12T08:30:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,49 +11,49 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "ecb-report": {
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
       "publishedAt": "2026-08-11",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -131,13 +131,13 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
@@ -173,7 +173,7 @@
       "label": "RBA — rozhodnutí 29. září",
       "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
       "publishedAt": "2026-09-29",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "abs-mhsi-aug26": {
       "label": "ABS — srpnový MHSI",
@@ -290,10 +290,10 @@
       "checkedAt": "2026-10-03T09:19:42.024Z"
     },
     "chf-mpmi-sep26": {
-      "label": "procure.ch — výrobní PMI za září",
-      "url": "https://www.procure.ch/",
-      "publishedAt": null,
-      "checkedAt": "2026-10-03T09:19:42.024Z"
+      "label": "procure.ch — PMI výroby a služeb za září",
+      "url": "https://www.procure.ch/fr/magazine/news-detail/pmi-septembre-2026-le-pmi-suisse-reste-nettement-superieur-a-50",
+      "publishedAt": "2026-10-01",
+      "checkedAt": "2026-10-12T08:25:00Z"
     },
     "mufg-fx-oct2": {
       "label": "MUFG — FX Weekly 2. října",
@@ -341,7 +341,7 @@
       "label": "ECB — zápis (account) ze zasedání 9.–10. září",
       "url": "https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg261008~a10153d090.en.html",
       "publishedAt": "2026-10-08",
-      "checkedAt": "2026-10-12T06:51:47Z"
+      "checkedAt": "2026-10-12T08:17:00Z"
     },
     "boe-cal": {
       "label": "Bank of England — termíny MPC 2026",
@@ -1126,6 +1126,11 @@
   ],
   "changes": [
     {
+      "at": "2026-10-12T08:30:00Z",
+      "title": "Banky znovu ověřeny; COT k 6. 10. a doplněná čísla",
+      "body": "Oficiální RSS Fedu (poslední zápis FOMC 7. 10.), ECB (zápis 8. 10.), BoE (9. 10. CMORG), BoJ (9. 10., nikoli rozhodnutí o sazbě), SNB (1. 10. dohoda o zisku) a RBNZ (poslední OCR 2. 9., 2,75 %; od 8. 10. nic nového) a stránky RBA (4,60 % od 30. 9., zasedání 2.–3. 11., zápis ze září zatím nevyšel) a BoC (2,25 %, poslední oznámení 2. 9.) bez nového rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí obnoven. CFTC TFF k 6. 10.: leveraged funds JPY netto −25 043 (z −14 161), CAD −79 625 (z −69 644), EUR −44 261, GBP +12 432, AUD +54 133, CHF −11 350, NZD −787. Doplněno: švýcarský PMI služeb 59,8 (procure.ch), švýcarský maloobchod za srpen +0,4 % m/m SA (BFS) a kanadský čtvrtletní HDP Q2 +0,8 % q/q (místo měsíčního). PMI S&P Global (EUR, GBP, JPY, AUD, CAD) zůstávají bez čísla, protože vydavatel vrací 403 a vyhledávací souhrny si odporují. Myfxbook a METI vrací 403, retail pozice a japonský maloobchod beze změny. Makro vstupy a váhy beze změny."
+    },
+    {
       "at": "2026-10-12T06:51:47Z",
       "title": "Banky znovu ověřeny; bez nových vstupů",
       "body": "Oficiální RSS Fedu (poslední položka zápis FOMC 7. 10.), ECB (poslední položka zápis ze zasedání 8. 10.), BoE (poslední 9. 10. cvičení CMORG), BoJ (poslední 9. 10., nikoli rozhodnutí o sazbě), SNB (poslední 1. 10. dohoda o rozdělení zisku) a RBNZ (poslední OCR 2. 9., 2,75 %; od 8. 10. bez nové položky) a stránky RBA (4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney; zápis ze září zatím nevyšel, poslední tisková zpráva 1. 10. FSR) a BoC (2,25 %, poslední oznámení 2. 9., další 28. 10.) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí obnoven. Pondělní ranní běh po víkendu; nová publikace mezi sledovanými ukazateli nenalezena (kalendář Stats NZ nevrátil obsah). Makro vstupy a váhy beze změny."
@@ -1386,9 +1391,9 @@
   "observations": {
     "USD": {
       "cot": {
-        "value": "Leveraged funds: long 15,622 / short 15,261 · netto 361 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 15,283 / short 14,419 · netto 864 kontraktů (předchozí týden netto 361); OI 51,095",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 098662. Legacy je samostatný report. USD Index futures je pouze kontext, nevstupuje přímo do skóre."
       },
@@ -1444,7 +1449,7 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1465,9 +1470,9 @@
     },
     "EUR": {
       "cot": {
-        "value": "Leveraged funds: long 124,857 / short 164,122 · netto -39,265 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 135,367 / short 179,628 · netto -44,261 kontraktů (předchozí týden netto -39,265); OI 870,291",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 099741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
@@ -1523,7 +1528,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1544,9 +1549,9 @@
     },
     "NZD": {
       "cot": {
-        "value": "Leveraged funds: long 23,076 / short 24,142 · netto -1,066 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 27,439 / short 28,226 · netto -787 kontraktů (předchozí týden netto -1,066); OI 129,883",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 112741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
@@ -1602,7 +1607,7 @@
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1623,9 +1628,9 @@
     },
     "AUD": {
       "cot": {
-        "value": "Leveraged funds: long 92,560 / short 31,968 · netto 60,592 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 86,777 / short 32,644 · netto 54,133 kontraktů (předchozí týden netto 60,592); OI 328,682",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 232741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
@@ -1681,7 +1686,7 @@
       "rates": {
         "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
         "period": "Rozhodnutí 2026-09-29",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
         "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
@@ -1702,18 +1707,18 @@
     },
     "CAD": {
       "cot": {
-        "value": "Leveraged funds: long 34,581 / short 104,225 · netto -69,644 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 31,682 / short 111,307 · netto -79,625 kontraktů (předchozí týden netto -69,644); OI 371,048",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 090741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "gdp": {
-        "value": "0,0 % meziměsíčně; předběžný srpen +0,2 %",
-        "period": "2026-07 · HDP podle odvětví",
-        "checkedAt": "2026-10-01T06:58:06.638992+00:00",
-        "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260929/dq260929a-eng.htm",
-        "note": "Sezónně očištěný reálný měsíční HDP podle odvětví, odlišný od kvartálních výdajových účtů. Srpen je předběžný odhad; další vydání 30. října."
+        "value": "+0,8 % mezikvartálně (předchozí Q1 +0,1 %, revidováno z 0,0 %)",
+        "period": "2026 Q2",
+        "checkedAt": "2026-10-12T08:30:00Z",
+        "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260828/dq260828a-eng.htm",
+        "note": "Statistics Canada, čtvrtletní reálný HDP z vydání 28. 8. 2026: „Real gross domestic product (GDP) increased 0.8% in the second quarter of 2026“. Měsíční HDP podle odvětví (jiná řada, vydání 29. 9.): červenec 0,0 % m/m, předběžný srpen +0,2 %; další měsíční vydání 30. 10. Doplňkový údaj."
       },
       "seasonality": {
         "value": "Měsíc 10: průměr log výnosů -0.03 % · růst 7/10 let · odchylka 1.19 p. b.",
@@ -1760,7 +1765,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1781,9 +1786,9 @@
     },
     "JPY": {
       "cot": {
-        "value": "Leveraged funds: long 77,429 / short 91,590 · netto -14,161 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 66,123 / short 91,166 · netto -25,043 kontraktů (předchozí týden netto -14,161); OI 368,138",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 097741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
@@ -1812,8 +1817,8 @@
         "value": null,
         "period": null,
         "checkedAt": null,
-        "sourceUrl": "https://www.stat.go.jp/english/",
-        "note": "Čeká na ověření konkrétních dat. Do skóre se nezapočítává."
+        "sourceUrl": "https://www.meti.go.jp/statistics/tyo/syoudou/",
+        "note": "METI Commercial Dynamics Statistics vrací automatickým nástrojům 403 (stránky, PDF i RSS, kontrola 12. 10. 2026); hodnota za srpen proto neověřena a ponechána null. Neoficiální agregátory se jako náhrada nepoužívají. Do skóre se nezapočítává."
       },
       "retailPositions": {
         "value": null,
@@ -1839,7 +1844,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1862,7 +1867,7 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -1888,9 +1893,9 @@
         "note": ""
       },
       "cot": {
-        "value": "Leveraged funds: long 53,713 / short 49,107 · netto 4,606 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 57,368 / short 44,936 · netto 12,432 kontraktů (předchozí týden netto 4,606); OI 265,890",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 096742. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
@@ -1941,7 +1946,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-10-12T06:51:47Z",
+        "checkedAt": "2026-10-12T08:17:00Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
@@ -1967,18 +1972,18 @@
         "note": "SECO, vydání 6. 10. 2026 (registrovaná nezaměstnanost). Neočištěný počet −1 064 (−0,8 %) m/m, +7 247 (+5,4 %) y/y; sezónně očištěný počet 147 411 (−475 m/m), očištěná míra setrvala na 3,1 %. Srpen: 3,0 % / SA 3,1 %. Faktor práce zůstává podle hodnocení SNB."
       },
       "cot": {
-        "value": "Leveraged funds: long 9,541 / short 23,536 · netto -13,995 kontraktů",
-        "period": "2026-09-29",
-        "checkedAt": "2026-10-03T09:15:00.616203+00:00",
+        "value": "Leveraged funds: long 12,900 / short 24,250 · netto -11,350 kontraktů (předchozí týden netto -13,995); OI 137,185",
+        "period": "2026-10-06",
+        "checkedAt": "2026-10-12T08:18:00Z",
         "sourceUrl": "https://publicreporting.cftc.gov/stories/s/TFF-Futures-Only/98ig-3k9y/",
         "note": "CFTC TFF futures only, kontrakt 092741. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "mpmi": {
-        "value": "55,3 · meziměsíčně −1,8 bodu",
+        "value": "PMI 55,3 (předchozí 57,1)",
         "period": "září 2026",
-        "checkedAt": "2026-10-03T09:19:42.024Z",
-        "sourceUrl": "https://www.procure.ch/",
-        "note": "Veřejná anotace vydavatele „PMI September 2026: Schweiz weiterhin deutlich über 50“. Výrobní index; sedmý měsíc nad 50. Přesný den vydání ani služby nejsou z této anotace ověřeny."
+        "checkedAt": "2026-10-12T08:25:00Z",
+        "sourceUrl": "https://www.procure.ch/fr/magazine/news-detail/pmi-septembre-2026-le-pmi-suisse-reste-nettement-superieur-a-50",
+        "note": "procure.ch, vydání 1. 10. 2026: „a reculé de 1,8 point pour s'établir à 55,3 en septembre“; srpen 57,1 dopočten z uvedeného poklesu o 1,8 bodu. Výrobní index; sedmý měsíc nad 50."
       },
       "trend": {
         "value": "Bearish · reference 2.83591 · GMA50 2.82927 · GMA200 2.89256",
@@ -1995,11 +2000,11 @@
         "note": "Deset dokončených let; výběrová odchylka log výnosů. Četnost růstu není pravděpodobnost zisku. Nulové výnosy jsou neutrální."
       },
       "retailSales": {
-        "value": null,
-        "period": "Neověřeno",
-        "checkedAt": null,
-        "sourceUrl": "",
-        "note": "Ověřená aktuální číselná hodnota chybí; nenahrazuje se nulou."
+        "value": "+0,4 % meziměsíčně, sezónně očištěno (předchozí +0,1 %)",
+        "period": "2026-08",
+        "checkedAt": "2026-10-12T08:30:00Z",
+        "sourceUrl": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/36875588/master",
+        "note": "FSO/BFS, vydání 1. 10. 2026 (GNP 2026-0231), oficiální CSV „Entwicklung im Detailhandel“: sezónně očištěný index 103,5559 (7/2026) → 103,9869 (8/2026); změny dopočteny z indexu. CSV neuvádí, zda jde o reálnou řadu a zda bez čerpacích stanic – tiskovou zprávu nebylo možné načíst, proto toto upřesnění zůstává neověřené. Doplňkový údaj."
       },
       "retailPositions": {
         "value": null,
@@ -2009,11 +2014,11 @@
         "note": "Párový vzorek nelze bez metodiky převést na měnový agregát."
       },
       "spmi": {
-        "value": null,
-        "period": "Neověřeno",
-        "checkedAt": null,
-        "sourceUrl": "https://pmi.spglobal.com/Public/Release/ReleaseDates?language=en&os=0",
-        "note": "Ověřená aktuální číselná hodnota chybí; nenahrazuje se nulou."
+        "value": "PMI služeb 59,8 (předchozí neuvedena)",
+        "period": "září 2026",
+        "checkedAt": "2026-10-12T08:25:00Z",
+        "sourceUrl": "https://www.procure.ch/fr/magazine/news-detail/pmi-septembre-2026-le-pmi-suisse-reste-nettement-superieur-a-50",
+        "note": "procure.ch Services PMI, vydání 1. 10. 2026: „Le PMI des services s'est maintenu à un niveau élevé de 59,8“. Srpnová hodnota služeb ve vydání chybí, proto neuvedena. Doplňkový údaj bez samostatného bodování."
       }
     }
   },
