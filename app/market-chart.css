@@ -221,7 +221,8 @@ select.mc-tfsel{display:none}
 .mc-fav-star.on,.mc-tool.mc-fav-toggle.on{color:#f59e0b}
 .mc-tool.mc-fav-toggle.on{background:transparent}
 .mc-fav-area{position:absolute;z-index:3;pointer-events:none}
-.mc-fav{position:absolute;display:flex;flex-wrap:wrap;align-items:center;gap:2px;max-width:100%;padding:3px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);box-shadow:var(--t-shadow);pointer-events:auto}
+/* šířka podle obsahu: u pravého okraje (left:100 %) by se panel jinak smrskl do sloupce */
+.mc-fav{position:absolute;display:flex;flex-wrap:wrap;align-items:center;gap:2px;width:max-content;max-width:100%;padding:3px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);box-shadow:var(--t-shadow);pointer-events:auto}
 .mc-fav.moving{opacity:.9}
 .mc-fav-grip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:32px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--t-muted);cursor:grab;touch-action:none}
 .mc-fav-grip:hover{background:var(--t-surface-3);color:var(--t-fg)}
