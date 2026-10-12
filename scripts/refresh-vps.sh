@@ -17,6 +17,9 @@ node --experimental-strip-types scripts/capture-score-history.mjs || echo "!! ca
 node --experimental-strip-types scripts/check-score.mjs || echo "!! check-score hlásí problém"
 python3 scripts/refresh_calendar.py || echo "!! refresh_calendar selhal"
 node --experimental-strip-types scripts/refresh-ff.mjs || echo "!! refresh-ff selhal"
+# vlastní throttle ve skriptech: TE PMI max. 2× denně (11 h), maloobchod 1× za 12 h
+node --experimental-strip-types scripts/refresh-te-pmi.mjs || echo "!! refresh-te-pmi selhal"
+node --experimental-strip-types scripts/refresh-retail.mjs || echo "!! refresh-retail selhal"
 python3 scripts/refresh_fx.py || echo "!! refresh_fx selhal"
 python3 scripts/mt_maintenance.py || echo "!! mt_maintenance selhal"
 if npm run build >/tmp/tradee-build.log 2>&1; then

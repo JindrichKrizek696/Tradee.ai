@@ -112,9 +112,17 @@ let threw=0;for(const x of ['EUR/EUR','EUR/ABC','A/B/C'])try{scoreV3(x,data,mark
 check('neplatný instrument → výjimka',threw===3,threw);
 check('marketScore: FX → score-v3, akcie → technický model',marketScore(data,market,'USD/CAD',NOW).method==='score-v3'&&marketScore(data,market,'USD',NOW).method==='score-v3'&&marketScore(data,{...market,prices:{...market.prices,AAPL:price(1,up)}},'AAPL',NOW).method==='technical-v1.1',null);
 
+// zdroj makra: Trading Economics / oficiální statistika → období a odkaz ze zdroje
+{const d=mkData();d.tePmi={updated:'',currencies:{CAD:{spmi:{value:48.3,previous:46.8,period:'2026-09',fetchedAt:'2026-10-12T00:00:00Z',url:'https://tradingeconomics.com/canada/services-pmi',publisher:'S&P Global',series:''}}}};
+ d.retailOfficial={updated:'',currencies:{USD:{value:1.13,previous:-0.46,unit:'%',kind:'m/m',period:'2026-08',fetchedAt:'2026-10-12T00:00:00Z',source:'FRED/Census',series:'',url:'https://fred.stlouisfed.org/series/RSAFS'}}};
+ const x=scoreV3('USD/CAD',d,market,NOW),sp=part(x,'spmi'),rs=part(x,'retailSales');
+ check('v3: sPMI z TE – období, odkaz a štítek zdroje',sp.status==='ok'&&/CAD 2026-09/.test(sp.asOfLabel)&&sp.sources.some(s=>s.url==='https://tradingeconomics.com/canada/services-pmi'&&/Trading Economics/.test(s.label))&&/Trading Economics/.test(sp.detail),sp);
+ check('v3: maloobchod z oficiální statistiky – odkaz = url zdroje',rs.status==='ok'&&rs.source==='https://fred.stlouisfed.org/series/RSAFS'&&/USD 2026-08/.test(rs.asOfLabel)&&/FRED\/Census/.test(rs.detail),rs);
+}
+
 // --- reálná data: žádná výjimka, rozsahy, symetrie (retail pozice jsou vzorek konkrétního páru → bez nich) ---
 const read=n=>JSON.parse(fs.readFileSync(new URL('../data/'+n,import.meta.url)));
-const D=read('fundamentals.json'),core=read('score-market.json'),ex=read('expanded-market.json'),M={...core,prices:{...core.prices,...ex.prices}};
+const D={...read('fundamentals.json'),ffMacro:read('ff-macro.json'),tePmi:read('te-pmi.json'),retailOfficial:read('retail-official.json')},core=read('score-market.json'),ex=read('expanded-market.json'),M={...core,prices:{...core.prices,...ex.prices}};
 const Dn={...D,pairObservations:Object.fromEntries(Object.entries(D.pairObservations||{}).map(([k,v])=>[k,{...v,retailPositions:undefined}]))};
 const cc=Object.keys(D.currencies);let bad=[],n=0;
 for(const T of [Date.now(),Date.parse(core.refresh.attemptedAt)+3600000,Date.parse(D.checkedAt)+3600000])for(const a of cc){

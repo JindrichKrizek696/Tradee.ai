@@ -34,7 +34,7 @@ def allowed_tools(work):
     return ['WebSearch', 'WebFetch', f'Read(/{work}/**)', f'Edit(/{work}/fundamentals.json)']
 KEEP_LOGS = 30
 # Datové soubory, které na VPS přepisuje refresh-vps.sh; VPS verze má přednost před verzí z GitHubu.
-CRON_DATA = ['data/score-market.json', 'data/expanded-market.json', 'data/score-history.json', 'data/calendar.json', 'data/ff-calendar.json', 'data/ff-macro.json']
+CRON_DATA = ['data/score-market.json', 'data/expanded-market.json', 'data/score-history.json', 'data/calendar.json', 'data/ff-calendar.json', 'data/ff-macro.json', 'data/te-pmi.json', 'data/retail-official.json']
 
 
 def env(name, default):

@@ -1,0 +1,97 @@
+{
+ "updated": "2026-10-12T09:30:53Z",
+ "attemptedAt": "2026-10-12T09:30:53Z",
+ "currencies": {
+  "USD": {
+   "value": 1.13,
+   "previous": -0.46,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-08",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "FRED/Census",
+   "series": "Advance Retail Sales: Retail Trade and Food Services (RSAFS), nominální, SA",
+   "url": "https://fred.stlouisfed.org/series/RSAFS"
+  },
+  "EUR": {
+   "value": 0.1,
+   "previous": -0.6,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-08",
+   "releasedAt": "2026-10-10T11:00:00+0200",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "Eurostat",
+   "series": "Objem maloobchodních tržeb eurozóny (EA20, G47), SCA",
+   "url": "https://ec.europa.eu/eurostat/databrowser/view/sts_trtu_m/default/table"
+  },
+  "GBP": {
+   "value": 0.48,
+   "previous": -0.58,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-08",
+   "releasedAt": "2026-09-17T23:00:00.000Z",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "ONS",
+   "series": "Objem maloobchodních tržeb vč. pohonných hmot (J5EK), SA",
+   "url": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/timeseries/j5ek/drsi"
+  },
+  "CAD": {
+   "value": -0.74,
+   "previous": 0.63,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-07",
+   "releasedAt": "2026-09-24T08:30",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "Statistics Canada",
+   "series": "Maloobchodní tržby celkem (tab. 20-10-0056-01), nominální, SA",
+   "url": "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2010005601"
+  },
+  "AUD": {
+   "value": 0,
+   "previous": 1.1,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-08",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "ABS",
+   "series": "Monthly Household Spending Indicator, celkem, běžné ceny, SA",
+   "url": "https://www.abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/latest-release"
+  },
+  "CHF": {
+   "value": 0.39,
+   "previous": 0.19,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-08",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "OECD (BFS)",
+   "series": "Objem maloobchodních tržeb Švýcarska (G47), SA",
+   "url": "https://data-explorer.oecd.org/vis?df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_STES%40DF_INDSERV&df[ag]=OECD.SDD.STES"
+  },
+  "NZD": {
+   "value": -0.53,
+   "previous": 1.01,
+   "unit": "%",
+   "kind": "q/q",
+   "period": "2026 Q2",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "OECD (Stats NZ)",
+   "series": "Objem maloobchodních tržeb Nového Zélandu (G47), SA, čtvrtletně",
+   "url": "https://data-explorer.oecd.org/vis?df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_STES%40DF_INDSERV&df[ag]=OECD.SDD.STES"
+  },
+  "JPY": {
+   "value": -1.2,
+   "previous": 2.1,
+   "unit": "%",
+   "kind": "m/m",
+   "period": "2026-08",
+   "fetchedAt": "2026-10-12T09:30:53Z",
+   "source": "METI",
+   "series": "Maloobchodní tržby (Current Survey of Commerce), nominální, SA · předběžné",
+   "url": "https://www.meti.go.jp/statistics/tyo/syoudou/result/excel/DB_202608S.xlsx"
+  }
+ }
+}

@@ -11,10 +11,12 @@
 //  • HDP          mezikvartální růst reálného HDP (q/q, p. b.). Jen měsíční/anualizovaný údaj → chybí data. t1 0,2 · t2 0,5.
 //  • Sezonalita   sezónní signál aktuálního měsíce z seasonalStats (rozsah ±0,5). |s| t1 0,03 · t2 0,1.
 //  • Trend        tři hlasy ceny páru vůči GMA50/GMA200 (−1, −⅓, ⅓, 1): ±1 → ±2, ±⅓ → ±1.
-//  • Retail Sales meziměsíční změna maloobchodních tržeb (m/m, p. b.). t1 0,3 · t2 1,0.
+//  • Retail Sales meziměsíční změna maloobchodních tržeb (m/m, p. b.). t1 0,3 · t2 1,0. Zdroj: oficiální statistika
+//                 (data.retailOfficial, ≤ 120 dní od konce období, jen m/m) > pozorování agenta > ForexFactory.
 //  • Retail pozice kontrariánsky ze vzorku brokerů (Myfxbook) pro přesně tento pár: long ≥ 75 % → −2, ≥ 60 % → −1,
 //                 ≤ 25 % → +2, ≤ 40 % → +1.
-//  • mPMI / sPMI  úroveň indexu (body). Jen slovní komentář bez čísla → chybí data. t1 1 · t2 3.
+//  • mPMI / sPMI  úroveň indexu (body). Jen slovní komentář bez čísla → chybí data. t1 1 · t2 3. Zdroj: Trading Economics
+//                 (data.tePmi, ≤ 75 dní od konce období) > pozorování agenta > ForexFactory.
 //  • Úrokové sazby součet „poslední krok“ + „výhled“ banky (každé −1/0/+1), rozdíl omezený na ±2.
 //  • Inflace      meziroční inflace (y/y, p. b.); vyšší inflace = tlak na restriktivnější banku = body pro měnu. t1 0,3 · t2 1,0.
 //  • Zaměstnanost hodnocení pracovního trhu bankou (faktor labor −1/0/+1), rozdíl −2…+2.
@@ -23,6 +25,8 @@ import type {FundamentalData} from '../fundamentals.ts';
 import {cotStats,seasonalStats,type MarketData,type PriceData} from '../score-engine.ts';
 import {parseRetail} from '../reports.ts';
 import type {MacroValue} from '../macro/ff-macro.ts';
+import {monthEnd as teMonthEnd,type TEPmiValue} from '../macro/te-pmi.ts';
+import {retailPeriodEnd,type RetailValue} from '../macro/retail.ts';
 
 export type Score=-2|-1|0|1|2;
 export type BreakdownRow={id:string;label:string;score:Score|null;detail:string;info:string;asOf?:string;source?:string};
@@ -74,12 +78,35 @@ export function ffFallback(data:FundamentalData,c:string,id:string,now:number):M
  if(!v||!Number.isFinite(v.value)||v.basis==='forecast-pending'||(id==='retailSales'&&v.kind!=='m/m'))return null;
  return now-v.releasedAt<=(FF_MAX_AGE[id]??75)*86400000&&now>=v.releasedAt-86400000*40?v:null;
 }
-/** Jedna strana složky: číslo z agentova pozorování, jinak z FF; tag = text za číslem v detailu. */
-export function macroSide(data:FundamentalData,c:string,id:string,read:(o?:Obs)=>number|null,now:number){
+const DAY=86400000;
+export const TE_MAX_AGE_DAYS=75,RETAIL_MAX_AGE_DAYS=120; // dny od konce období
+const fresh=(end:number,days:number,now:number)=>Number.isFinite(end)&&now-end<=days*DAY&&end-now<=31*DAY;
+const ym=(p:string)=>{const m=/^(\d{4})-(\d{2})$/.exec(p);return m?`${monthName[+m[2]-1]} ${m[1]}`:p.replace(/^(\d{4}) Q([1-4])$/,'$2. čtvrtletí $1')};
+const cz=(n:number,unit='')=>(n<0?'−':'')+Math.abs(n).toLocaleString('cs-CZ',{minimumFractionDigits:1,maximumFractionDigits:2})+unit;
+/** PMI z Trading Economics (data.tePmi), jen je-li konec období nejvýš 75 dní zpět. */
+export function tePmi(data:FundamentalData,c:string,id:string,now:number):TEPmiValue|null{
+ if(id!=='mpmi'&&id!=='spmi')return null;
+ const v=data.tePmi?.currencies?.[c]?.[id];
+ return v&&Number.isFinite(v.value)&&fresh(teMonthEnd(v.period),TE_MAX_AGE_DAYS,now)?v:null;
+}
+/** Maloobchod z oficiální statistiky (data.retailOfficial): jen m/m a konec období nejvýš 120 dní zpět. */
+export function retailOfficial(data:FundamentalData,c:string,id:string,now:number):RetailValue|null{
+ if(id!=='retailSales')return null;
+ const v=data.retailOfficial?.currencies?.[c];
+ return v&&v.kind==='m/m'&&Number.isFinite(v.value)&&fresh(retailPeriodEnd(v.period),RETAIL_MAX_AGE_DAYS,now)?v:null;
+}
+export type MacroSide={x:number|null;tag:string;ff:MacroValue|null;sourceUrl?:string;period?:string|null;srcLabel?:string};
+/** Jedna strana složky. Pořadí: PMI – Trading Economics > číslo z agentova pozorování > ForexFactory;
+ *  maloobchod – oficiální statistika > pozorování > ForexFactory; ostatní – pozorování. tag = text za číslem v detailu. */
+export function macroSide(data:FundamentalData,c:string,id:string,read:(o?:Obs)=>number|null,now:number):MacroSide{
+ const te=tePmi(data,c,id,now);
+ if(te)return {x:te.value,tag:` (${ym(te.period)}${te.previous!==null?', předtím '+cz(te.previous):''}; zdroj: Trading Economics – ${te.publisher})`,ff:null,sourceUrl:te.url,period:te.period,srcLabel:'Trading Economics'};
+ const ro=retailOfficial(data,c,id,now);
+ if(ro)return {x:ro.value,tag:` (${ym(ro.period)}${ro.previous!==null?', předtím '+cz(ro.previous,' %'):''}; zdroj: ${ro.source})`,ff:null,sourceUrl:ro.url,period:ro.period,srcLabel:ro.source};
  const o=obs(data,c,id),x=read(o);
- if(x!==null)return {x,tag:period(o),ff:null as MacroValue|null,sourceUrl:o?.sourceUrl};
+ if(x!==null)return {x,tag:period(o),ff:null,sourceUrl:o?.sourceUrl,period:o?.period};
  const f=ffFallback(data,c,id,now);
- return f?{x:f.value,tag:` (${f.note.replace(/ \(ForexFactory\)$/,'')}; zdroj: ForexFactory)`,ff:f,sourceUrl:FF_URL}:{x:null,tag:'',ff:null as MacroValue|null,sourceUrl:undefined};
+ return f?{x:f.value,tag:` (${f.note.replace(/ \(ForexFactory\)$/,'')}; zdroj: ForexFactory)`,ff:f,sourceUrl:FF_URL,period:f.period,srcLabel:'ForexFactory'}:{x:null,tag:'',ff:null,sourceUrl:undefined};
 }
 
 export const MACRO_READ:Record<string,(o?:Obs)=>number|null>={gdp:o=>pctChange(o?.value,'qq'),retailSales:o=>pctChange(o?.value,'mm'),mpmi:o=>pmiLevel(o?.value),spmi:o=>pmiLevel(o?.value),inflation:o=>pctChange(o?.value,'yy')};
