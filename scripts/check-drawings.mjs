@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -284,5 +284,40 @@ check('hrana: kanál – středy obou čar',edgeHandles(chS).map(e=>e.edge+':'+e
 const poS={type:'long',pts:[{x:10,y:50},{x:110,y:70},{x:110,y:10}]};
 check('hrana: pozice – boční úchyty v zóně cíle, nahoře/dole TP/SL',edgeHandles(poS).map(e=>e.edge+':'+e.pt.x+','+e.pt.y).join()==='top:60,10,bottom:60,70,left:10,30,right:110,30');
 check('hrana: kurzor',edgeCursor('top')==='ns-resize'&&edgeCursor('parallel')==='ns-resize'&&edgeCursor('left')==='ew-resize');
+// Fibonacci jako v TradingView: vlastní hladiny, zapnutí/vypnutí, popisky
+check('fib: výchozí seznam – zapnuté jsou klasické hladiny',levelsOn(FIB_DEFAULT).join()===FIB_LEVELS.join()&&levelsOn(FIB_EXT_DEFAULT).join()===FIB_EXT_LEVELS.join()&&FIB_DEFAULT.length<=MAX_FIB_LEVELS&&FIB_DEFAULT.some(l=>!l.on)&&defaultLevels('trend').length===0);
+const sFib=styleOf({type:'fib',color:'amber'});
+check('fib: výchozí styl (hladiny, popisek hladina i cena, poměr)',sFib.lv===FIB_DEFAULT&&sFib.lb==='both'&&sFib.pct===false&&styleOf({type:'fibext',color:'amber'}).lv===FIB_EXT_DEFAULT,sFib);
+const fibD={id:'fx',type:'fib',a:[{t:T,p:1},{t:T+3600000,p:2}],color:'amber'};
+r=parseDrawings([{...fibD,s:{lv:[{v:0.61803,on:true},{v:1.618,on:false},{v:-0.272,on:true,x:1}],lb:'level',pct:true}}]);
+check('fib: hladiny projdou, zaokrouhlí se na 4 místa, cizí klíče pryč',r.ok&&r.drawings[0].s.lv.map(l=>l.v+':'+l.on).join()==='0.618:true,1.618:false,-0.272:true'&&!('x' in r.drawings[0].s.lv[2])&&r.drawings[0].s.lb==='level'&&r.drawings[0].s.pct===true,r);
+check('fib: prázdný seznam hladin je platný',parseDrawings([{...fibD,s:{lv:[]}}]).drawings[0].s.lv.length===0);
+for(const [why,lv] of [['víc než 24',Array.from({length:25},(_,i)=>({v:i/10,on:true}))],['pod −5',[{v:-5.1,on:true}]],['nad 10',[{v:10.5,on:true}]],['duplicita po zaokrouhlení',[{v:.618,on:true},{v:.61801,on:false}]],['on není boolean',[{v:.5,on:1}]],['hodnota není číslo',[{v:'0.5',on:true}]],['nekonečno',[{v:Infinity,on:true}]],['není seznam',{v:.5,on:true}],['položka není objekt',[0.5]]])
+ check('fib: odmítne hladiny – '+why,!parseDrawings([{...fibD,s:{lv}}]).ok);
+check('fib: 24 hladin a krajní hodnoty projdou',parseDrawings([{...fibD,s:{lv:Array.from({length:24},(_,i)=>({v:i===0?-5:i===1?10:i/10,on:true}))}}]).ok);
+check('fib: odmítne popisky a procenta mimo povolené',!parseDrawings([{...fibD,s:{lb:'all'}}]).ok&&!parseDrawings([{...fibD,s:{pct:'yes'}}]).ok&&['both','level','price','none'].every(lb=>parseDrawings([{...fibD,s:{lb}}]).ok));
+check('fib: hladiny jen zapnuté a vzestupně',levelsOn([{v:1,on:true},{v:.5,on:false},{v:-.272,on:true},{v:.618,on:true}]).join()==='-0.272,0.618,1');
+const flc=fibLevels({t:0,p:100},{t:1,p:200},[-.272,1.618]);
+check('fib: ceny vlastních hladin (i za kotvami)',Math.abs(flc[0].price-227.2)<1e-9&&Math.abs(flc[1].price-38.2)<1e-9,flc);
+const fec=fibExtLevels({t:0,p:100},{t:1,p:200},{t:2,p:150},[.5,4.236]);
+check('extension: vlastní hladiny',fec[0].price===200&&Math.abs(fec[1].price-573.6)<1e-9,fec);
+check('fib: popisek hladina i cena / hladina / cena / nic',fibText(.618,'1,2345','both')==='0,618 (1,2345)'&&fibText(.618,'1,2345','level')==='0,618'&&fibText(.618,'1,2345','price')==='1,2345'&&fibText(.618,'1,2345','none')==='');
+check('fib: hladina v procentech',fibText(.618,'1,2','level',true)==='61,8 %'&&fibLabel(.236,true)==='23,6 %'&&fibLabel(1,true)==='100 %'&&fibText(.5,'9','both',true)==='50 % (9)'&&fibLabel(.7071)==='0,7071');
+check('fib: shoda seznamů',sameLevels(FIB_DEFAULT,FIB_DEFAULT.map(l=>({...l})))&&!sameLevels(FIB_DEFAULT,FIB_DEFAULT.map((l,i)=>i?l:{...l,on:!l.on}))&&!sameLevels(FIB_DEFAULT,FIB_DEFAULT.slice(1)));
+check('fib: nová hladina – první chybějící běžná, plný seznam null',nextLevel([])===0&&nextLevel(FIB_DEFAULT)===1.414&&nextLevel(Array.from({length:24},(_,i)=>({v:i,on:true})))===null&&nextLevel([0,.236,.382,.5,.618,.786,1,1.272,1.414,1.618,2,2.618,3.618,4.236,-.272,-.618].map(v=>({v,on:true})))===0.5+1);
+check('fib: zadání hodnoty (čárka i tečka, rozsah)',levelInput('0,705')===.705&&levelInput(' 0.705 ')===.705&&levelInput('-5')===-5&&levelInput('10')===10&&levelInput('10,1')===null&&levelInput('x')===null&&levelInput('')===null&&levelInput('0,61803')===.618);
+check('fib: parseLevels',parseLevels([{v:1,on:true}])?.length===1&&parseLevels('x')===null);
+// hrany fib podle zapnutých hladin
+const fbL={...fbD,s:{lv:[{v:0,on:false},{v:.5,on:true},{v:1,on:true},{v:1.618,on:true}]}};
+check('hrana: fib – krajní zapnuté hladiny',fibSpan(fbL).join()==='0.5,1.618'&&fibSpan(fbD).join()==='0,1'&&fibSpan({...fbD,s:{lv:[{v:.5,on:true}]}}).join()==='0,1');
+const priceAt=(d,L)=>d.a[1].p+(d.a[0].p-d.a[1].p)*L;
+const fbLT=moveEdge(fbL,'top',{t:99,p:160}),fbLB=moveEdge(fbL,'bottom',{t:99,p:50});
+check('hrana: fib nahoře – nejvyšší zapnutá hladina na kurzor, protější zůstane',Math.abs(priceAt(fbLT,.5)-160)<1e-9&&Math.abs(priceAt(fbLT,1.618)-38.2)<1e-9&&fbLT.a[0].t===0&&fbLT.a[1].t===10,fbLT.a);
+check('hrana: fib dole – nejnižší zapnutá hladina na kurzor',Math.abs(priceAt(fbLB,1.618)-50)<1e-9&&Math.abs(priceAt(fbLB,.5)-150)<1e-9,fbLB.a);
+const fbE=moveEdge({...fbD,s:{lv:[{v:0,on:true},{v:1.618,on:true}]}},'bottom',{t:0,p:0});
+check('hrana: fib – hladina 0 zůstane přesně na kotvě',fbE.a[1].p===200&&Math.abs(priceAt(fbE,1.618))<1e-9,fbE.a);
+const fS={type:'fib',pts:[{x:10,y:100},{x:110,y:0}],levels:[30,60]};
+check('hrana: fib – úchyty u krajních zapnutých hladin',edgeHandles(fS).map(e=>e.edge+':'+e.pt.x+','+e.pt.y).join()==='top:60,30,bottom:60,60,left:10,45,right:110,45'&&edgeHandles({...fS,levels:[30]}).map(e=>e.pt.y).join()==='0,100,50,50',edgeHandles(fS));
+check('zásah: fib jen zapnuté hladiny',hitShape(fS,{x:50,y:31},200,200)?.part==='body'&&hitShape(fS,{x:50,y:45},200,200)===null);
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

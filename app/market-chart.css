@@ -196,3 +196,16 @@ select.mc-tfsel{display:none}
 .mc-combo-list li.on{background:var(--t-accent-soft)}
 .mc-combo-list li.none{cursor:default;color:var(--t-muted)}
 @media(max-width:640px){.mc-market input.mc-market-q{width:100%}.mc-combo{flex:1 1 100%}.mc-combo-list{left:0;right:0;min-width:0}}
+
+/* kreslení: hladiny Fibonacciho, střed kanálu, popisek dotyku, šipky lomené čáry, plovoucí panel oblíbených nástrojů */
+.mc-row.mc-row-top{align-items:flex-start}
+.mc-row.mc-row-top>span:first-child{padding-top:4px}
+.mc-fib-lv{display:flex;flex-wrap:wrap;align-items:center;gap:4px;flex:1 1 220px;min-width:0}
+.mc-fib-item{display:inline-flex;align-items:center;gap:2px;padding:1px 1px 1px 5px;border:1px solid var(--t-border);border-radius:7px;background:var(--t-surface)}
+.mc-fib-item input[type=checkbox]{accent-color:var(--t-brand);margin:0}
+.mc-row .mc-fib-item input[type=text]{flex:0 0 52px;width:52px;height:22px;padding:0 4px;border-color:transparent;font-variant-numeric:tabular-nums}
+.mc-fib-item.off input[type=text]{color:var(--t-muted)}
+.mc-row .mc-fib-item input[aria-invalid=true]{border-color:var(--bear)}
+.mc-fib-x{border:0;background:transparent;color:var(--t-muted);font:inherit;font-size:14px;line-height:1;padding:3px 5px;border-radius:5px;cursor:pointer}
+.mc-fib-x:hover{color:var(--bear-text,var(--bear));background:var(--t-surface-3)}
+.mc-fib-x:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}

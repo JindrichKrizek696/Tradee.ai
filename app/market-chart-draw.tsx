@@ -5,7 +5,7 @@ import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,fibLabel,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
@@ -435,6 +435,7 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
    <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu" custom={pp.colors}/></div>
   </>}
   {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'S'],[2,'M'],[3,'L'],[4,'XL']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
+  {caps.levels&&<FibRows type={d.type} st={st} onStyle={onStyle}/>}
   <label className="mc-row"><span>Průhlednost</span><input type="range" min={10} max={100} step={5} value={Math.round(st.op*100)} aria-valuetext={Math.round(st.op*100)+' %'} onChange={e=>onStyle({op:Number(e.target.value)/100},'op')}/><em>{Math.round(st.op*100)} %</em></label>
   {(caps.fill||caps.border)&&<div className="mc-row">
    {caps.fill&&<label className="mc-check"><input type="checkbox" checked={st.fill} onChange={e=>onStyle({fill:e.target.checked})}/>Pozadí</label>}
@@ -456,6 +457,38 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
   </div>
   <PresetRow d={d} {...pp}/>
  </div>;
+}
+// hladiny Fibonacciho (jako v TradingView): zapnout/vypnout, upravit hodnotu, přidat/odebrat vlastní; popisky hladina/cena, poměr/procenta
+function FibRows({type,st,onStyle}:{type:DrawType;st:FullStyle;onStyle:(p:Partial<DrawStyle>,group?:string)=>void}){
+ const lv=st.lv,def=defaultLevels(type),[focus,setFocus]=useState<number|null>(null);
+ // seznam shodný s výchozím se neukládá (kresba sleduje výchozí hladiny)
+ const set=(next:FibLevel[],group?:string)=>onStyle({lv:sameLevels(next,def)?undefined:next},group);
+ const add=()=>{const v=nextLevel(lv);if(v===null)return;setFocus(lv.length);set([...lv,{v,on:true}])};
+ return <>
+  <div className="mc-row mc-row-top" role="group" aria-label="Hladiny Fibonacciho"><span>Hladiny</span>
+   <div className="mc-fib-lv">
+    {lv.map((l,i)=><span key={i} className={'mc-fib-item'+(l.on?'':' off')}>
+     <input type="checkbox" checked={l.on} aria-label={'Zobrazit hladinu '+fibLabel(l.v)} onChange={e=>set(lv.map((x,j)=>j===i?{...x,on:e.target.checked}:x))}/>
+     <LevelInput value={l.v} taken={lv.filter((_,j)=>j!==i).map(x=>x.v)} focus={focus===i} onFocused={()=>setFocus(null)} onChange={v=>set(lv.map((x,j)=>j===i?{...x,v}:x),'lv'+i)}/>
+     <button type="button" className="mc-fib-x" aria-label={'Odebrat hladinu '+fibLabel(l.v)} title="Odebrat hladinu" onClick={()=>set(lv.filter((_,j)=>j!==i))}>×</button>
+    </span>)}
+    <button type="button" className="mc-chip" disabled={lv.length>=MAX_FIB_LEVELS} title={lv.length>=MAX_FIB_LEVELS?`Nejvýš ${MAX_FIB_LEVELS} hladin`:'Přidat vlastní hladinu'} onClick={add}>+ Hladina</button>
+    {!sameLevels(lv,def)&&<button type="button" className="mc-chip" title="Vrátit výchozí seznam hladin" onClick={()=>onStyle({lv:undefined})}>Výchozí hladiny</button>}
+   </div>
+  </div>
+  <div className="mc-row"><span>Popisky</span><Seg label="Popisky hladin" value={st.lb} options={[['both','Hladina a cena'],['level','Hladina'],['price','Cena'],['none','Skrýt']]} onPick={v=>onStyle({lb:v==='both'?undefined:v})}/></div>
+  {(st.lb==='both'||st.lb==='level')&&<div className="mc-row"><span>Hladina jako</span><Seg label="Hladina jako poměr nebo procenta" value={st.pct?'pct':'ratio'} options={[['ratio','0,618'],['pct','61,8 %']]} onPick={v=>onStyle({pct:v==='pct'||undefined})}/></div>}
+ </>;
+}
+const fmtLevel=(v:number)=>String(v).replace('.',',');
+// hodnota hladiny: při psaní se ukládá jen platná hodnota (−5…10, ne duplicitní); po opuštění pole se ukáže uložená
+function LevelInput({value,taken,focus,onFocused,onChange}:{value:number;taken:number[];focus:boolean;onFocused:()=>void;onChange:(v:number)=>void}){
+ const [text,setText]=useState<string|null>(null),ref=useRef<HTMLInputElement>(null);
+ useEffect(()=>{if(focus){ref.current?.focus();ref.current?.select();onFocused()}},[focus,onFocused]);
+ const v=text===null?null:levelInput(text),bad=text!==null&&(v===null||taken.includes(v));
+ return <input ref={ref} type="text" inputMode="decimal" value={text??fmtLevel(value)} aria-label="Hodnota hladiny" aria-invalid={bad||undefined} title={bad?'Hodnota −5 až 10, každá hladina jen jednou':undefined}
+  onFocus={()=>setText(fmtLevel(value))} onBlur={()=>setText(null)} onChange={e=>{const t=e.target.value;setText(t);const n=levelInput(t);if(n!==null&&!taken.includes(n)&&n!==value)onChange(n)}}
+  onKeyDown={e=>{if(e.key==='Enter')(e.target as HTMLInputElement).blur()}}/>;
 }
 // presety v panelu stylu: použít / smazat preset nástroje, uložit vzhled jako preset, nastavit nebo obnovit výchozí vzhled nástroje
 function PresetRow({d,presets,hasDefault,canSave,prefsOk,onSavePreset,onDeletePreset,onApplyPreset,onSetDefault,onResetDefault}:{d:Drawing}&PresetProps){
