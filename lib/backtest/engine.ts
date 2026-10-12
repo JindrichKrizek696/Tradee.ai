@@ -38,7 +38,10 @@ export type BacktestContext={
  cot?:(instrument:string,t:number)=>CotPoint|undefined;
  news?:(instrument:string,t:number,minutes:number,minSignal:number)=>boolean|undefined; // true = v okně ±minutes je zpráva se signálem ≥ minSignal
 };
-export type BacktestInput={rules:StrategyRules;markets:{instrument:string;bars:BtBar[]}[];tf:BtTf;from:number;to:number;capital?:number;context?:BacktestContext};
+// gate (volitelné, Laboratoř): další vstupní filtr na zavření svíčky i, sestavený jednou na trh; false = bez vstupu,
+// true = vstup podle rules.direction, 'long'/'short' = vstup s tímto směrem. Musí používat jen data známá k zavření svíčky i.
+export type BacktestGate=(instrument:string,bars:BtBar[])=>(i:number)=>Side|boolean;
+export type BacktestInput={rules:StrategyRules;markets:{instrument:string;bars:BtBar[]}[];tf:BtTf;from:number;to:number;capital?:number;context?:BacktestContext;gate?:BacktestGate};
 export type ExitReason='sl'|'tp'|'signal'|'time'|'end';
 export type Side='long'|'short';
 export type BacktestTrade={instrument:string;side:Side;entryT:number;entryPrice:number;sl:number;tp:number|null;exitT:number;exitPrice:number;reason:ExitReason;r:number;pnl:number;risk:number;bars:number};
@@ -105,7 +108,7 @@ function compile(c:Condition,inst:string,s:Series,ctx:BacktestContext,track:Trac
 }
 
 type Pos={side:Side;entryIdx:number;entryT:number;fill:number;sl:number;tp:number|null;half:number;riskUnit:number;risk:number};
-type Mk={inst:string;bars:BtBar[];start:number;end:number;ptr:number;s:Series;conds:Ev[];pos:Pos|null;pending:{side:Side;sig:number}|null;res:MarketResult};
+type Mk={inst:string;bars:BtBar[];start:number;end:number;ptr:number;s:Series;conds:Ev[];gate:((i:number)=>Side|boolean)|null;pos:Pos|null;pending:{side:Side;sig:number}|null;res:MarketResult};
 
 export function runBacktest(input:BacktestInput):BacktestResult{
  const rules=normalizeRules(input.rules),ctx=input.context||{},barMs=BAR_MS[input.tf]||BAR_MS.H1;
@@ -116,7 +119,7 @@ export function runBacktest(input:BacktestInput):BacktestResult{
  const trades:BacktestTrade[]=[],equityPts:EquityPoint[]=[{t:from,equity:capital}];
  let equity=capital,broke=false;
  const {sl:slRule,tp:tpRule,maxBars}=rules.exit,commR=rules.costs.commissionPct/100,riskPct=rules.sizing.riskPct/100;
- if(!rules.entry.length)warnings.push('Strategie nemá žádnou vstupní podmínku – žádné obchody.');
+ if(!rules.entry.length&&!input.gate)warnings.push('Strategie nemá žádnou vstupní podmínku – žádné obchody.');
 
  const mks:Mk[]=[];
  for(const m of input.markets){
@@ -130,7 +133,7 @@ export function runBacktest(input:BacktestInput):BacktestResult{
   const res:MarketResult={instrument:m.instrument,bars:end-start,trades:0,wins:0,winRate:null,totalR:0,avgR:null,pnl:0};
   if(end===start)warnings.push(`${m.instrument}: ve zvoleném období nejsou žádné svíčky.`);
   if(slRule.type==='atr')atr14(s);
-  mks.push({inst:m.instrument,bars,start,end,ptr:start,s,conds:rules.entry.map(cd=>compile(cd,m.instrument,s,ctx,track)),pos:null,pending:null,res});
+  mks.push({inst:m.instrument,bars,start,end,ptr:start,s,conds:rules.entry.map(cd=>compile(cd,m.instrument,s,ctx,track)),gate:input.gate?input.gate(m.instrument,bars):null,pos:null,pending:null,res});
  }
 
  // směr pro svíčku i (null = bez obchodu); u 'score' podle znaménka skóre k času tData
@@ -169,8 +172,9 @@ export function runBacktest(input:BacktestInput):BacktestResult{
    else if(p.tp!==null&&(L?b.h>=p.tp:b.l<=p.tp))close(mk,i,p.tp,'tp');
   }
   // vstupní podmínky na zavření svíčky (vyhodnocují se všechny – kvůli pokrytí dat)
-  let all=mk.conds.length>0;for(const ev of mk.conds)if(!ev(i,tData,tTime))all=false;
-  const sd=rules.direction==='score'?sideAt(mk,tData):rules.direction,side=all?sd:null;
+  let all=mk.conds.length>0||mk.gate!==null;for(const ev of mk.conds)if(!ev(i,tData,tTime))all=false;
+  const g=mk.gate?mk.gate(i):true;if(g===false)all=false;
+  const sd=typeof g==='string'?g:rules.direction==='score'?sideAt(mk,tData):rules.direction,side=all?sd:null;
   p=mk.pos;
   if(p){
    if(tpRule.type==='signal'&&side!==p.side)close(mk,i,b.c,'signal');
