@@ -2,7 +2,8 @@
 // Graf trhu na celou stránku: stejný MarketChart jako v detailu trhu, jen vysoký, s přepínačem trhu a živou cenou. Podklady (skóre, kalendář) se berou stejně jako v aplikaci.
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft} from 'lucide-react';
-import initial from '@/data/fundamentals.json';
+import initialReport from '@/data/fundamentals.json';
+import ffMacro from '@/data/ff-macro.json';
 import calendarAuto from '@/data/calendar.json';
 import core from '@/data/score-market.json';
 import expanded from '@/data/expanded-market.json';
@@ -25,7 +26,7 @@ export default function ChartPage({slug}:{slug:string}){
  usePalette();
  let key=slug;try{key=decodeURIComponent(slug)}catch{}
  const item=list.find(i=>slugOf(i.id)===key);
- const [data,setData]=useState(initial as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState(savedHistory as unknown as HistoryLike);
+ const [data,setData]=useState({...initialReport,ffMacro} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState(savedHistory as unknown as HistoryLike);
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
  const quotes=useLive(),calendar=useMemo(()=>mergeCalendar(calendarAuto.events as AutoEvent[],data.events,data.sources),[data]);
  const method=item?marketScore(data,market,item.id).method:'',quote=item?quotes?.quotes[item.id]:undefined;

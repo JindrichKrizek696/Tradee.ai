@@ -12,7 +12,7 @@
 // Měnový index (USD, EUR …) = průměr párových složek vůči 7 ostatním měnám; trend a sezonalita z ceny indexu.
 import type {FundamentalData} from '../fundamentals.ts';
 import {seasonalStats,fresh,type MarketData,type PriceData} from '../score-engine.ts';
-import {pairBreakdown,cotPairSignal,seasonRow,trendRow,monthName,ROWS,type BreakdownRow} from '../fundamentals/breakdown.ts';
+import {pairBreakdown,macroSide,MACRO_READ,FF_URL,cotPairSignal,seasonRow,trendRow,monthName,ROWS,type BreakdownRow} from '../fundamentals/breakdown.ts';
 import {eventMarkets} from '../calendar.ts';
 
 export const METHOD_V3='score-v3';
@@ -106,9 +106,12 @@ function pairComps(pair:string,data:FundamentalData,market:MarketData,now:number
  out.trend=pc.trend;out.seasonality=pc.seasonality;
  // makro vydání
  for(const id of ['gdp','retailSales','mpmi','spmi','inflation'] as const){
-  const r=row(id),oa=data.observations?.[base]?.[id],ob=data.observations?.[quote]?.[id],w=WINDOW.macro(id);
+  const r=row(id),w=WINDOW.macro(id);
   if(r.score===null){out[id]=missing(r.detail,w);continue}
-  const pa=periodEnd(oa?.period),pb=periodEnd(ob?.period),srcs=[...url(base,oa?.sourceUrl),...url(quote,ob?.sourceUrl)],label=`${base} ${oa?.period??'?'} · ${quote} ${ob?.period??'?'}`;
+  // období a zdroj: z agentova pozorování, jinak (bez čísla v pozorování) z ForexFactory
+  const side=(c:string)=>{const o=data.observations?.[c]?.[id],m=macroSide(data,c,id,MACRO_READ[id],now);
+   return m.ff?{period:m.ff.period,src:url(c+' · ForexFactory',FF_URL)}:{period:o?.period,src:url(c,o?.sourceUrl)}};
+  const sa=side(base),sb=side(quote),pa=periodEnd(sa.period),pb=periodEnd(sb.period),srcs=[...sa.src,...sb.src],label=`${base} ${sa.period??'?'} · ${quote} ${sb.period??'?'}`;
   if(!pa||!pb){out[id]={...missing(r.detail+' Období vydání nelze určit.',w,'chybí období'),asOfLabel:label,sources:srcs};continue}
   const limit=(p:{kind:string})=>id==='gdp'||p.kind==='quarter'?LIMITS.quarterly:LIMITS.monthly;
   const ageA=now-pa.end,ageB=now-pb.end,ok=ageA<=limit(pa)&&ageB<=limit(pb),older=Math.max(ageA,ageB);

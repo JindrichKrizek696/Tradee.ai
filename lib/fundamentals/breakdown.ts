@@ -22,6 +22,7 @@
 import type {FundamentalData} from '../fundamentals.ts';
 import {cotStats,seasonalStats,type MarketData,type PriceData} from '../score-engine.ts';
 import {parseRetail} from '../reports.ts';
+import type {MacroValue} from '../macro/ff-macro.ts';
 
 export type Score=-2|-1|0|1|2;
 export type BreakdownRow={id:string;label:string;score:Score|null;detail:string;info:string;asOf?:string;source?:string};
@@ -65,15 +66,32 @@ type Obs={value:string|null;period:string|null;sourceUrl:string};
 const obs=(data:FundamentalData,c:string,id:string):Obs|undefined=>data.observations?.[c]?.[id];
 const period=(o?:Obs)=>o?.period?` (${o.period})`:'';
 
-function macroRow(data:FundamentalData,base:string,quote:string,id:string,read:(o?:Obs)=>number|null,unit:string,t1:number,t2:number,what:string,d=1){
- const a=obs(data,base,id),b=obs(data,quote,id),x=read(a),y=read(b);
+export const FF_URL='https://www.forexfactory.com/calendar';
+const FF_MAX_AGE:Record<string,number>={mpmi:75,spmi:75,retailSales:120}; // dny od vydání, ze kterého hodnota pochází
+/** Záložní číslo z ForexFactory (data.ffMacro): jen potvrzené/finální≈flash, ne starší než limit; maloobchod jen m/m. */
+export function ffFallback(data:FundamentalData,c:string,id:string,now:number):MacroValue|null{
+ const v=(data.ffMacro?.currencies?.[c] as Record<string,MacroValue|undefined>|undefined)?.[id];
+ if(!v||!Number.isFinite(v.value)||v.basis==='forecast-pending'||(id==='retailSales'&&v.kind!=='m/m'))return null;
+ return now-v.releasedAt<=(FF_MAX_AGE[id]??75)*86400000&&now>=v.releasedAt-86400000*40?v:null;
+}
+/** Jedna strana složky: číslo z agentova pozorování, jinak z FF; tag = text za číslem v detailu. */
+export function macroSide(data:FundamentalData,c:string,id:string,read:(o?:Obs)=>number|null,now:number){
+ const o=obs(data,c,id),x=read(o);
+ if(x!==null)return {x,tag:period(o),ff:null as MacroValue|null,sourceUrl:o?.sourceUrl};
+ const f=ffFallback(data,c,id,now);
+ return f?{x:f.value,tag:` (${f.note.replace(/ \(ForexFactory\)$/,'')}; zdroj: ForexFactory)`,ff:f,sourceUrl:FF_URL}:{x:null,tag:'',ff:null as MacroValue|null,sourceUrl:undefined};
+}
+
+export const MACRO_READ:Record<string,(o?:Obs)=>number|null>={gdp:o=>pctChange(o?.value,'qq'),retailSales:o=>pctChange(o?.value,'mm'),mpmi:o=>pmiLevel(o?.value),spmi:o=>pmiLevel(o?.value),inflation:o=>pctChange(o?.value,'yy')};
+function macroRow(data:FundamentalData,base:string,quote:string,id:string,read:(o?:Obs)=>number|null,unit:string,t1:number,t2:number,what:string,now:number,d=1){
+ const A=macroSide(data,base,id,read,now),B=macroSide(data,quote,id,read,now),x=A.x,y=B.x;
  if(x===null||y===null){
   const both=x===null&&y===null,miss=both?`${base} ani ${quote}`:x===null?base:quote;
   return {score:null,detail:`Chybí data: ${miss} nemá číselný údaj (${what}).`};
  }
  const diff=round(x-y,2);
  const u=unit?' '+unit:'';
- return {score:bucket(diff,t1,t2),detail:`${base} ${fmt(x,d)}${u}${period(a)} vs ${quote} ${fmt(y,d)}${u}${period(b)} → rozdíl ${fmt(diff,d)} ${unit==='%'?'p. b.':'bodu'}`,source:a?.sourceUrl||b?.sourceUrl||undefined};
+ return {score:bucket(diff,t1,t2),detail:`${base} ${fmt(x,d)}${u}${A.tag} vs ${quote} ${fmt(y,d)}${u}${B.tag} → rozdíl ${fmt(diff,d)} ${unit==='%'?'p. b.':'bodu'}`,source:A.sourceUrl||B.sourceUrl||undefined};
 }
 
 export const monthName=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
@@ -112,11 +130,11 @@ export function pairBreakdown(pair:string,data:FundamentalData,market:MarketData
   :{score:null,detail:'Chybí data: COT report pro obě měny se stejným datem není k dispozici.'};
 
  // HDP, Retail Sales, PMI, inflace
- out.gdp=macroRow(data,base,quote,'gdp',o=>pctChange(o?.value,'qq'),'%',.2,.5,'mezikvartální HDP');
- out.retailSales=macroRow(data,base,quote,'retailSales',o=>pctChange(o?.value,'mm'),'%',.3,1,'meziměsíční tržby');
- out.mpmi=macroRow(data,base,quote,'mpmi',o=>pmiLevel(o?.value),'',1,3,'hodnota výrobního PMI');
- out.spmi=macroRow(data,base,quote,'spmi',o=>pmiLevel(o?.value),'',1,3,'hodnota PMI služeb');
- out.inflation=macroRow(data,base,quote,'inflation',o=>pctChange(o?.value,'yy'),'%',.3,1,'meziroční inflace');
+ out.gdp=macroRow(data,base,quote,'gdp',o=>pctChange(o?.value,'qq'),'%',.2,.5,'mezikvartální HDP',now);
+ out.retailSales=macroRow(data,base,quote,'retailSales',o=>pctChange(o?.value,'mm'),'%',.3,1,'meziměsíční tržby',now);
+ out.mpmi=macroRow(data,base,quote,'mpmi',o=>pmiLevel(o?.value),'',1,3,'hodnota výrobního PMI',now);
+ out.spmi=macroRow(data,base,quote,'spmi',o=>pmiLevel(o?.value),'',1,3,'hodnota PMI služeb',now);
+ out.inflation=macroRow(data,base,quote,'inflation',o=>pctChange(o?.value,'yy'),'%',.3,1,'meziroční inflace',now);
 
  // Sezonalita a trend z cen páru
  const price=market.prices[pair];

@@ -22,7 +22,7 @@ export function parseFF(json:unknown):FFRow[]{
 export const ffKey=(r:{currency:string;title:string;at:string})=>r.currency+'|'+r.title+'|'+r.at;
 
 // Slučování uložených řádků s novými; nová prázdná hodnota nepřepíše dřívější vyplněnou. Starší než keepDays se zahodí.
-export function mergeFF(old:FFRow[],fresh:FFRow[],now:number,keepDays=21):FFRow[]{
+export function mergeFF(old:FFRow[],fresh:FFRow[],now:number,keepDays=120):FFRow[]{
  const m=new Map<string,FFRow>();
  for(const r of old)m.set(ffKey(r),r);
  for(const r of fresh){const o=m.get(ffKey(r));m.set(ffKey(r),o?{...r,forecast:r.forecast??o.forecast,previous:r.previous??o.previous}:r)}

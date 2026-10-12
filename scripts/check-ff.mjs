@@ -70,7 +70,9 @@ check('forecastLine',forecastLine(ap[0])==='Odhad +3,1 % · Předchozí 2,8 % ·
 const now=Date.parse('2026-10-14T00:00:00Z');
 const a=parseFF([{title:'X',country:'USD',date:'2026-10-14T08:30:00-04:00',impact:'High',forecast:'1',previous:'2'},{title:'Old',country:'USD',date:'2026-09-01T08:30:00-04:00',impact:'Low',forecast:'1',previous:'2'}]);
 const b=parseFF([{title:'X',country:'USD',date:'2026-10-14T08:30:00-04:00',impact:'High',forecast:'',previous:'3'}]);
-const mg=mergeFF(a,b,now);
+const mg=mergeFF(a,b,now,21);
 check('mergeFF klíč currency+title+at, prázdná nepřepíše, staré >3 týdny pryč',mg.length===1&&mg[0].forecast==='1'&&mg[0].previous==='3',mg);
+
+check('mergeFF výchozí uchování 120 dní',mergeFF(a,b,now).length===2&&mergeFF(a,[],Date.parse('2027-02-20T00:00:00Z')).length===0);
 
 console.log(fails.length?`\n${fails.length} selhání`:'\nvše ok');process.exit(fails.length?1:0);

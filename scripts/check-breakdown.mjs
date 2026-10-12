@@ -83,5 +83,23 @@ for(const a of cc)for(const q of cc){if(a===q)continue;const x=pairBreakdown(a+'
  for(const id of ['cot','gdp','retailSales','mpmi','spmi','rates','inflation','employment','trend'])if((row(x,id).score??0)!==-(row(y,id).score??0))bad.push(a+'/'+q+':'+id);}
 check(`reálná data: ${n} párů, rozsahy a symetrie`,bad.length===0,bad.slice(0,10));
 
+// --- záložní čísla z ForexFactory (data.ffMacro) ---
+{const mv=(value,basis,days,extra={})=>({value,unit:'index',period:'2026-09',basis,note:basis==='previous'?`poslední zveřejněná hodnota ${value} – uvedena u vydání 5. 10.`:`finální září ≈ flash ${value} (ForexFactory)`,releasedAt:NOW-days*86400000,...extra});
+ const ff=(cu)=>({...data,ffMacro:{updated:'',currencies:cu}});
+ const f1=pairBreakdown('USD/CAD',ff({CAD:{mpmi:mv(48.2,'final≈flash',5)}}),market,NOW);
+ check('FF: mPMI CAD z FF doplní chybějící číslo, detail má basis a zdroj',row(f1,'mpmi').score===null||/ForexFactory/.test(row(f1,'mpmi').detail),row(f1,'mpmi'));
+ const f2=pairBreakdown('USD/CAD',ff({CAD:{mpmi:mv(48.2,'final≈flash',5)},USD:{mpmi:mv(51.2,'previous',5)}}),{...market},NOW);
+ const r2=row(f2,'mpmi');
+ check('FF: oba mPMI z FF → skóre a zdroj ForexFactory',r2.score!==null&&/finální září ≈ flash 48.2/.test(r2.detail)&&/zdroj: ForexFactory/.test(r2.detail),r2);
+ const f3=pairBreakdown('USD/CAD',ff({CAD:{mpmi:mv(48.2,'final≈flash',80)}}),market,NOW);
+ check('FF: PMI starší než 75 dní → chybí data',row(f3,'mpmi').score===null,row(f3,'mpmi'));
+ const f4=pairBreakdown('USD/CAD',ff({CAD:{mpmi:mv(48.2,'forecast-pending',1)}}),market,NOW);
+ check('FF: forecast-pending se nepoužije',row(f4,'mpmi').score===null,row(f4,'mpmi'));
+ const f5=pairBreakdown('USD/CAD',ff({CAD:{retailSales:{...mv(0.3,'previous',3),unit:'%',kind:'y/y'}}}),market,NOW);
+ check('FF: maloobchod y/y se do m/m složky nepoužije',!/ForexFactory/.test(row(f5,'retailSales').detail),row(f5,'retailSales'));
+ const f6=pairBreakdown('USD/CAD',ff({CAD:{spmi:mv(40,'previous',3)}}),market,NOW);
+ check('FF: pozorování s číslem má přednost před FF (sPMI USD/CAD)',/54,9/.test(row(f6,'spmi').detail)||row(f6,'spmi').score===null,row(f6,'spmi'));
+}
+
 if(fails.length){console.log(`\n${fails.length} FAIL`);process.exit(1)}
 console.log('\nPASS: přehled skóre po složkách');

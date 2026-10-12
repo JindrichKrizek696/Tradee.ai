@@ -1,0 +1,76 @@
+{
+ "updated": "2026-10-12T09:01:00Z",
+ "currencies": {
+  "USD": {
+   "spmi": {
+    "value": 55.4,
+    "unit": "index",
+    "period": "2026-08",
+    "basis": "previous",
+    "note": "poslední zveřejněná hodnota 55,4 – uvedena u vydání 5. 10.",
+    "releasedAt": 1791208800000
+   },
+   "retailSales": {
+    "value": 1.2,
+    "unit": "%",
+    "period": "2026-08",
+    "basis": "previous",
+    "note": "poslední zveřejněná hodnota 1,2 % – uvedena u vydání 15. 10.",
+    "releasedAt": 1792067400000,
+    "kind": "m/m"
+   }
+  },
+  "EUR": {
+   "spmi": {
+    "value": 53,
+    "unit": "index",
+    "period": "2026-09",
+    "basis": "final≈flash",
+    "note": "finální září 2026 ≈ flash 53,0 (ForexFactory)",
+    "releasedAt": 1791187200000
+   },
+   "retailSales": {
+    "value": -0.6,
+    "unit": "%",
+    "period": "2026-07",
+    "basis": "previous",
+    "note": "poslední zveřejněná hodnota -0,6 % – uvedena u vydání 6. 10.",
+    "releasedAt": 1791277200000,
+    "kind": "m/m"
+   }
+  },
+  "GBP": {
+   "spmi": {
+    "value": 51.7,
+    "unit": "index",
+    "period": "2026-09",
+    "basis": "final≈flash",
+    "note": "finální září 2026 ≈ flash 51,7 (ForexFactory)",
+    "releasedAt": 1791189000000
+   }
+  },
+  "JPY": {},
+  "CHF": {},
+  "AUD": {},
+  "NZD": {
+   "mpmi": {
+    "value": 53.1,
+    "unit": "index",
+    "period": "2026-08",
+    "basis": "previous",
+    "note": "poslední zveřejněná hodnota 53,1 – uvedena u vydání 15. 10.",
+    "releasedAt": 1792099800000
+   }
+  },
+  "CAD": {
+   "mpmi": {
+    "value": 64.3,
+    "unit": "index",
+    "period": "2026-08",
+    "basis": "previous",
+    "note": "Ivey PMI (náhrada za výrobní PMI): poslední zveřejněná hodnota 64,3 – uvedena u vydání 6. 10.",
+    "releasedAt": 1791295200000
+   }
+  }
+ }
+}

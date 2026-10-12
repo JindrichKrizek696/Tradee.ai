@@ -3,6 +3,7 @@
 // FF žádá nedotazovat agresivně: bez --force se přeskočí, když poslední stažení je mladší než 50 min.
 import {readFileSync,writeFileSync,renameSync,existsSync} from 'node:fs';
 import {parseFF,mergeFF} from '../lib/calendar-ff.ts';
+import {deriveMacro} from '../lib/macro/ff-macro.ts';
 const force=process.argv.includes('--force'),dry=process.argv.includes('--dry');
 const file=new URL('../data/ff-calendar.json',import.meta.url);
 const old=existsSync(file)?JSON.parse(readFileSync(file,'utf8')):{rows:[]};
@@ -22,9 +23,14 @@ for(const w of ['thisweek','nextweek']){
 }
 if(errors.length)console.log('!! '+errors.join('; '));
 if(!fresh.length){console.log('FF: nic nového, soubor beze změny');process.exit(errors.length?1:0)}
-const rows=mergeFF(old.rows??[],fresh,now);
+const rows=mergeFF(old.rows??[],fresh,now,120);
+const macro=deriveMacro(rows,now);
 if(dry){console.log('dry: '+rows.length+' řádků po sloučení');process.exit(0)}
 const tmp=new URL('../data/ff-calendar.json.tmp',import.meta.url);
 writeFileSync(tmp,JSON.stringify({generatedAt:new Date(now).toISOString().replace(/\.\d+Z$/,'Z'),source:'https://www.forexfactory.com/calendar',rows},null,1)+'\n');
 renameSync(tmp,file);
 console.log('FF: uloženo '+rows.length+' řádků');
+const mt=new URL('../data/ff-macro.json.tmp',import.meta.url);
+writeFileSync(mt,JSON.stringify(macro,null,1)+'\n');
+renameSync(mt,new URL('../data/ff-macro.json',import.meta.url));
+for(const [c,v] of Object.entries(macro.currencies))console.log('  '+c+': '+['mpmi','spmi','retailSales'].map(k=>k+'='+(v[k]?v[k].value+' ('+v[k].basis+', '+v[k].period+')':'—')).join(' · '));
