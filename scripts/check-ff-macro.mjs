@@ -17,9 +17,12 @@ check('previous přebije',m&&m.value===53.4&&m.basis==='previous'&&m.period==='2
 // final za říjen (vydáno 5. 11.) je novější období než previous za září
 m=deriveMacro([R('2026-10-23T08:00:00Z','EUR','Flash Services PMI','54.0','53.4'),R('2026-11-05T08:00:00Z','EUR','Final Services PMI','54.5','53.4')],Date.parse('2026-11-06T00:00:00Z')).currencies.EUR.spmi;
 check('novější final',m&&m.value===54.5&&m.period==='2026-10'&&m.basis==='final≈flash',m);
-// ISM má přednost před S&P Final
+// USD: skóruje se S&P Final (srovnatelné s ostatními měnami), ISM jen pro informaci
 let u=deriveMacro([R('2026-10-05T13:45:00Z','USD','Final Services PMI','58.7','58.7'),R('2026-10-05T14:00:00Z','USD','ISM Services PMI','55.1','55.4')],NOW).currencies.USD;
-check('ISM přednost',u.spmi&&u.spmi.value===55.4&&u.spmi.basis==='previous'&&u.spmi.period==='2026-08',u.spmi);
+check('S&P přednost před ISM, ISM uložen jako info',u.spmi&&u.spmi.value===58.7&&u.spmi.basis==='final≈flash'&&u.ismSpmi&&u.ismSpmi.value===55.4&&u.ismSpmi.period==='2026-08',u);
+u=deriveMacro([R('2026-10-01T14:00:00Z','USD','ISM Manufacturing PMI','49.5','48.7')],NOW).currencies.USD;
+check('USD jen ISM → do skóre nejde (mpmi chybí), ISM jen info',!u.mpmi&&u.ismMpmi&&u.ismMpmi.value===48.7,u);
+check('ISM jen u USD',!deriveMacro([R('2026-10-01T14:00:00Z','CAD','ISM Manufacturing PMI','49.5','48.7')],NOW).currencies.CAD.ismMpmi);
 u=deriveMacro([R('2026-10-05T13:45:00Z','USD','Final Services PMI','58.7','58.7')],NOW).currencies.USD;
 check('USD bez ISM → S&P',u.spmi&&u.spmi.value===58.7&&u.spmi.basis==='final≈flash',u.spmi);
 // EUR: předpony zemí se ignorují

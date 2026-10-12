@@ -3,12 +3,12 @@
  "currencies": {
   "USD": {
    "spmi": {
-    "value": 55.4,
+    "value": 58.7,
     "unit": "index",
-    "period": "2026-08",
-    "basis": "previous",
-    "note": "poslední zveřejněná hodnota 55,4 – uvedena u vydání 5. 10.",
-    "releasedAt": 1791208800000
+    "period": "2026-09",
+    "basis": "final≈flash",
+    "note": "finální září 2026 ≈ flash 58,7 (ForexFactory)",
+    "releasedAt": 1791207900000
    },
    "retailSales": {
     "value": 1.2,
@@ -18,6 +18,14 @@
     "note": "poslední zveřejněná hodnota 1,2 % – uvedena u vydání 15. 10.",
     "releasedAt": 1792067400000,
     "kind": "m/m"
+   },
+   "ismSpmi": {
+    "value": 55.4,
+    "unit": "index",
+    "period": "2026-08",
+    "basis": "previous",
+    "note": "poslední zveřejněná hodnota 55,4 – uvedena u vydání 5. 10.",
+    "releasedAt": 1791208800000
    }
   },
   "EUR": {

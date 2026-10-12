@@ -1,6 +1,6 @@
-// PMI (výroba, služby) pro 8 měn ze stránek Trading Economics → data/te-pmi.json. Volá scripts/refresh-vps.sh.
+// PMI (výroba, služby) pro 8 měn (USD = S&P Global; ISM navíc jen pro informaci) ze stránek Trading Economics → data/te-pmi.json. Volá scripts/refresh-vps.sh.
 // node --experimental-strip-types scripts/refresh-te-pmi.mjs [--force] [--dry]
-// Nízký objem (schváleno vlastníkem): 16 stránek sekvenčně s ~2 s pauzou, max. 2× denně (bez --force přeskočí, je-li soubor mladší 11 h).
+// Nízký objem (schváleno vlastníkem): 18 stránek sekvenčně s ~2 s pauzou, max. 2× denně (bez --force přeskočí, je-li soubor mladší 11 h).
 // Při chybě stránky zůstává předchozí hodnota.
 import {readFileSync,writeFileSync,renameSync,existsSync} from 'node:fs';
 import {TE_PAGES,TE_BASE,teMetaDescription,parseTEDescription} from '../lib/macro/te-pmi.ts';
@@ -28,7 +28,7 @@ for(const [i,p] of TE_PAGES.entries()){
  finally{clearTimeout(t)}
 }
 if(errors.length)console.log('!! '+errors.join('; '));
-for(const c of ['USD','EUR','GBP','JPY','CHF','AUD','NZD','CAD'])console.log('  '+c+': '+['mpmi','spmi'].map(k=>{const v=currencies[c]?.[k];return k+'='+(v?`${v.value} (${v.period}, předtím ${v.previous??'?'})`:'—')}).join(' · '));
+for(const c of ['USD','EUR','GBP','JPY','CHF','AUD','NZD','CAD'])console.log('  '+c+': '+['mpmi','spmi',...(c==='USD'?['ismMpmi','ismSpmi']:[])].map(k=>{const v=currencies[c]?.[k];return k+'='+(v?`${v.value} (${v.period}, předtím ${v.previous??'?'})`:'—')}).join(' · '));
 if(dry){console.log(`dry: ${ok}/${TE_PAGES.length} stránek`);process.exit(0)}
 // Čas pokusu se uloží i při neúspěchu (throttle), hodnoty zůstávají předchozí.
 const iso=new Date(now).toISOString().replace(/\.\d+Z$/,'Z');

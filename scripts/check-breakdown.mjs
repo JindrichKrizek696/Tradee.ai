@@ -24,7 +24,7 @@ const data={schemaVersion:1,methodVersion:'t',checkedAt:'2026-10-10T00:00:00Z',r
   CAD:{bank:'BoC',rate:'2,25 %',decisionDate:'2026-09-02',source:'s',facts:[],scenario:'',risk:'',factors:fac(0,0,-1)},
   EUR:{bank:'ECB',rate:'2,5 %',decisionDate:'2026-09-10',source:'s',facts:[],scenario:'',risk:'',factors:fac(1,0,null)}},
  observations:{
-  USD:{gdp:o('+2,2 % anualizovaně; +0,6 % mezikvartálně'),retailSales:o('+1,2 % meziměsíčně'),mpmi:o('ISM PMI 54,5'),spmi:o('ISM Services PMI 54,9'),inflation:o('CPI +3,4 % meziročně'),employment:o('NFP +29 000')},
+  USD:{gdp:o('+2,2 % anualizovaně; +0,6 % mezikvartálně'),retailSales:o('+1,2 % meziměsíčně'),mpmi:o('S&P Global PMI 54,5'),spmi:o('S&P Global Services PMI 56,9'),inflation:o('CPI +3,4 % meziročně'),employment:o('NFP +29 000')},
   CAD:{gdp:o('0,0 % meziměsíčně'),retailSales:o('−0,7 % meziměsíčně'),mpmi:o(null),spmi:o('51,0'),inflation:o('CPI +3,0 % meziročně')},
   EUR:{gdp:o('+0,1 % mezikvartálně'),retailSales:o('+0,1 % meziměsíčně'),mpmi:o('Výroba roste'),spmi:o('50,2'),inflation:o('HICP 3,8 % meziročně')}},
  pairObservations:{'USD/CAD':{retailPositions:o('Long 19 % · short 81 %','snímek')},'EUR/USD':{retailPositions:o('Long 87 % / short 13 %','snímek')}},
@@ -46,14 +46,14 @@ check('COT u páru s USD: signál cizí měny s obráceným znaménkem',row(b,'c
 check('HDP: CAD jen měsíční → chybí data (nepřepočítává se)',row(b,'gdp').score===null&&/CAD/.test(row(b,'gdp').detail),row(b,'gdp'));
 check('Retail Sales: +1,2 vs −0,7 → +2',row(b,'retailSales').score===2,row(b,'retailSales'));
 check('mPMI: CAD bez hodnoty → null',row(b,'mpmi').score===null,row(b,'mpmi'));
-check('sPMI: 54,9 vs 51,0 → +2',row(b,'spmi').score===2,row(b,'spmi'));
-check('Inflace: 3,4 vs 3,0 → +1',row(b,'inflation').score===1,row(b,'inflation'));
+check('sPMI: 56,9 vs 51,0 → +2 (rozdíl ≥ 5 bodů)',row(b,'spmi').score===2,row(b,'spmi'));
+check('Inflace: 3,4 vs 3,0 → 0 (rozdíl pod 0,5 p. b.)',row(b,'inflation').score===0,row(b,'inflation'));
 check('Sazby: (1+1) − (0+0) → +2',row(b,'rates').score===2,row(b,'rates'));
 check('Zaměstnanost: 0 − (−1) → +1',row(b,'employment').score===1,row(b,'employment'));
 check('Trend: tři hlasy nahoru → +2',row(b,'trend').score===2,row(b,'trend'));
 check('Sezonalita: 9/10 let růst → +2',row(b,'seasonality').score===2,row(b,'seasonality'));
 check('Retail pozice: long 19 % → kontrariánsky +2',row(b,'retailPositions').score===2,row(b,'retailPositions'));
-check('celkové skóre = součet dostupných, počet s daty',b.total===b.rows.reduce((s,r)=>s+(r.score??0),0)&&b.available===9&&b.total===15,[b.total,b.available]);
+check('celkové skóre = součet dostupných, počet s daty',b.total===b.rows.reduce((s,r)=>s+(r.score??0),0)&&b.available===9&&b.total===14,[b.total,b.available]);
 
 const inv=pairBreakdown('CAD/USD',data,market,NOW);
 const sym=['cot','retailSales','spmi','inflation','rates','employment','trend','seasonality'];
@@ -65,7 +65,7 @@ check('Retail pozice long 87 % → −2',row(e,'retailPositions').score===-2,row
 check('Trend ⅓ dolů → −1',row(e,'trend').score===-1,row(e,'trend'));
 check('Zaměstnanost: chybějící hodnocení banky → null, nedopočítává se',row(e,'employment').score===null,row(e,'employment'));
 check('mPMI: slovní komentář bez čísla → null',row(e,'mpmi').score===null,row(e,'mpmi'));
-check('HDP: 0,1 vs 0,6 → −2',row(e,'gdp').score===-2,row(e,'gdp'));
+check('HDP: 0,1 vs 0,6 → −1 (rozdíl pod 0,8 p. b.)',row(e,'gdp').score===-1,row(e,'gdp'));
 
 const noCot={...market,cot:{...market.cot,CAD:undefined}};
 check('chybějící COT → null',row(pairBreakdown('USD/CAD',data,noCot,NOW),'cot').score===null,null);
@@ -99,20 +99,20 @@ check(`reálná data: ${n} párů, rozsahy a symetrie`,bad.length===0,bad.slice(
  const f5=pairBreakdown('USD/CAD',ff({CAD:{retailSales:{...mv(0.3,'previous',3),unit:'%',kind:'y/y'}}}),market,NOW);
  check('FF: maloobchod y/y se do m/m složky nepoužije',!/ForexFactory/.test(row(f5,'retailSales').detail),row(f5,'retailSales'));
  const f6=pairBreakdown('USD/CAD',ff({CAD:{spmi:mv(40,'previous',3)}}),market,NOW);
- check('FF: pozorování s číslem má přednost před FF (sPMI USD/CAD)',/54,9/.test(row(f6,'spmi').detail)||row(f6,'spmi').score===null,row(f6,'spmi'));
+ check('FF: pozorování s číslem má přednost před FF (sPMI USD/CAD)',/56,9/.test(row(f6,'spmi').detail)||row(f6,'spmi').score===null,row(f6,'spmi'));
 }
 
 // --- PMI z Trading Economics a maloobchod z oficiální statistiky: přednost před pozorováním i FF ---
-{const te=(value,period,previous=null)=>({value,previous,period,fetchedAt:'2026-10-11T00:00:00Z',url:'https://tradingeconomics.com/x',publisher:'ISM',series:''});
+{const te=(value,period,previous=null)=>({value,previous,period,fetchedAt:'2026-10-11T00:00:00Z',url:'https://tradingeconomics.com/x',publisher:'S&P Global',series:''});
  const rs=(value,period,kind='m/m',previous=null)=>({value,previous,unit:'%',kind,period,fetchedAt:'2026-10-11T00:00:00Z',source:'FRED/Census',series:'',url:'https://fred.test/RSAFS'});
  const ffv={value:40,unit:'index',period:'2026-09',basis:'previous',note:'x',releasedAt:NOW-3*86400000};
  const d=(tePmi,retail,ff={})=>({...data,tePmi:{updated:'',currencies:tePmi},retailOfficial:{updated:'',currencies:retail},ffMacro:{updated:'',currencies:ff}});
  const t1=pairBreakdown('USD/CAD',d({USD:{spmi:te(52.1,'2026-09',54.9)},CAD:{spmi:te(48.3,'2026-09')}},{},{CAD:{spmi:ffv}}),market,NOW),r1=row(t1,'spmi');
- check('TE: sPMI z TE přebije pozorování (54,9) i FF; detail má číslo, předchozí, období a zdroj',r1.score===2&&/52,1/.test(r1.detail)&&/předtím 54,9/.test(r1.detail)&&/září 2026/.test(r1.detail)&&/Trading Economics/.test(r1.detail)&&r1.source==='https://tradingeconomics.com/x',r1);
+ check('TE: sPMI z TE přebije pozorování (56,9) i FF; detail má číslo, předchozí, období a zdroj (3,8 b. → +1)',r1.score===1&&/52,1/.test(r1.detail)&&/předtím 54,9/.test(r1.detail)&&/září 2026/.test(r1.detail)&&/Trading Economics/.test(r1.detail)&&r1.source==='https://tradingeconomics.com/x',r1);
  const t2=pairBreakdown('USD/CAD',d({CAD:{mpmi:te(51.5,'2026-09')}},{}),market,NOW);
- check('TE: doplní chybějící mPMI CAD (USD z pozorování 54,5)',row(t2,'mpmi').score===2&&/Trading Economics/.test(row(t2,'mpmi').detail),row(t2,'mpmi'));
+ check('TE: doplní chybějící mPMI CAD (USD z pozorování 54,5; 3 b. → +1)',row(t2,'mpmi').score===1&&/Trading Economics/.test(row(t2,'mpmi').detail),row(t2,'mpmi'));
  const t3=pairBreakdown('USD/CAD',d({USD:{spmi:te(30,'2026-06')}},{}),market,NOW);
- check('TE starší než 75 dní od konce období → pozorování',/54,9/.test(row(t3,'spmi').detail)&&!/Trading Economics/.test(row(t3,'spmi').detail),row(t3,'spmi'));
+ check('TE starší než 75 dní od konce období → pozorování',/56,9/.test(row(t3,'spmi').detail)&&!/Trading Economics/.test(row(t3,'spmi').detail),row(t3,'spmi'));
  const t4=pairBreakdown('USD/CAD',d({},{USD:rs(-0.5,'2026-08','m/m',1.13),CAD:rs(0.2,'2026-07')}),market,NOW),r4=row(t4,'retailSales');
  check('maloobchod: oficiální statistika přebije pozorování; detail se zdrojem a předchozí hodnotou',r4.score===-1&&/FRED\/Census/.test(r4.detail)&&/srpen 2026/.test(r4.detail)&&/předtím 1,13 %/.test(r4.detail)&&r4.source==='https://fred.test/RSAFS',r4);
  const t5=pairBreakdown('USD/CAD',d({},{CAD:rs(3.5,'2026 Q2','q/q')}),market,NOW);
@@ -121,7 +121,16 @@ check(`reálná data: ${n} párů, rozsahy a symetrie`,bad.length===0,bad.slice(
  check('maloobchod starší než 120 dní od konce období → pozorování',!/FRED/.test(row(t6,'retailSales').detail),row(t6,'retailSales'));
  const t7=pairBreakdown('USD/CAD',d({USD:{retailSales:te(1,'2026-09')}},{USD:rs(1,'2026-08')}),market,NOW);
  check('TE se netýká maloobchodu ani oficiální retail PMI',!/Trading Economics/.test(row(t7,'retailSales').detail)&&!/FRED/.test(row(t7,'mpmi').detail),[row(t7,'retailSales'),row(t7,'mpmi')]);
+ // USD: skóruje S&P Global, ISM jen pro informaci v detailu
+ const t8=pairBreakdown('USD/CAD',d({USD:{mpmi:te(55.9,'2026-09',53.9),ismMpmi:{...te(54.5,'2026-09'),publisher:'ISM'}},CAD:{mpmi:te(51.5,'2026-09')}},{}),market,NOW),r8=row(t8,'mpmi');
+ check('USD mPMI: skóre z S&P (55,9 − 51,5 = 4,4 → +1), ISM 54,5 jen pro info',r8.score===1&&/USD \+55,9/.test(r8.detail)&&/ISM 54,5 pro info/.test(r8.detail)&&/rozdíl \+4,4/.test(r8.detail),r8);
+ const ismObs={...data,observations:{...data.observations,USD:{...data.observations.USD,mpmi:o('ISM Manufacturing PMI 54,5'),spmi:o('ISM Services PMI 54,9','2026-09 · ISM')}}};
+ const t9=pairBreakdown('USD/CAD',{...ismObs,tePmi:{updated:'',currencies:{CAD:{mpmi:te(51.5,'2026-09')}}}},market,NOW);
+ check('pozorování ISM se do PMI skóre nepočítá (chybí data)',row(t9,'mpmi').score===null&&row(t9,'spmi').score===null&&/USD/.test(row(t9,'spmi').detail),[row(t9,'mpmi'),row(t9,'spmi')]);
+ const t10=pairBreakdown('USD/CAD',{...ismObs,ffMacro:{updated:'',currencies:{USD:{spmi:{...ffv,value:58.7,note:'finální září 2026 ≈ flash 58,7 (ForexFactory)',basis:'final≈flash'}},CAD:{spmi:ffv}}}},market,NOW),r10=row(t10,'spmi');
+ check('FF: USD S&P Final místo ISM pozorování, ISM v detailu jako info',r10.score===2&&/58,7/.test(r10.detail)&&/ISM 54,9 pro info/.test(r10.detail),r10);
 }
+check('nové prahy: PMI ±1 od 1,5, ±2 od 5; maloobchod a inflace 0,5/1,5; HDP 0,3/0,8',bucket(1.49,1.5,5)===0&&bucket(1.5,1.5,5)===1&&bucket(4.9,1.5,5)===1&&bucket(-5,1.5,5)===-2&&bucket(0.3,.3,.8)===1&&bucket(0.79,.3,.8)===1&&bucket(1.5,.5,1.5)===2&&bucket(1.4,.5,1.5)===1);
 
 if(fails.length){console.log(`\n${fails.length} FAIL`);process.exit(1)}
 console.log('\nPASS: přehled skóre po složkách');

@@ -5,6 +5,8 @@
 //    = forecast, basis „final≈flash“ (pouze po vydání, tj. at ≤ now).
 //  • `previous` jakéhokoli pozdějšího vydání je POTVRZENÁ hodnota předchozího období → basis „previous“.
 //  • forecast nevydané události je jen odhad → basis „forecast-pending“; vybere se jen, když není nic jiného, a skórování ho ignoruje.
+// USD: skóruje se S&P Global (Final/Flash Manufacturing/Services PMI) kvůli srovnatelnosti s ostatními měnami;
+// ISM se odvozuje zvlášť jako ismMpmi / ismSpmi jen pro informaci.
 // Výběr: nejnovější období; při shodě vyhrává potvrzené „previous“ před „final≈flash“, pak pozdější vydání.
 // Období z data vydání (heuristika):
 //  • PMI (flash ~20.–25., final/ISM/Ivey/procure/BusinessNZ ~1.–10.): den ≤ 15 → předchozí měsíc, jinak měsíc vydání.
@@ -12,7 +14,7 @@
 export type MacroUnit='index'|'%';
 export type MacroBasis='final≈flash'|'previous'|'forecast-pending';
 export type MacroValue={value:number;unit:MacroUnit;period:string;basis:MacroBasis;note:string;releasedAt:number;kind?:'m/m'|'q/q'|'y/y'};
-export type CurrencyMacro={mpmi?:MacroValue;spmi?:MacroValue;retailSales?:MacroValue};
+export type CurrencyMacro={mpmi?:MacroValue;spmi?:MacroValue;retailSales?:MacroValue;ismMpmi?:MacroValue;ismSpmi?:MacroValue};
 export type FFMacro={updated:string;currencies:Record<string,CurrencyMacro>};
 export type FFRowLike={at:string;currency:string;title:string;forecast:string|null;previous:string|null};
 
@@ -23,14 +25,17 @@ export const MACRO_KEEP_DAYS=120;
 // Seznam [regex titulu, preference]; vyhrává nejvyšší preference, která má aspoň jednu událost.
 type Def={re:RegExp;pref:number;unit:MacroUnit;kind?:'m/m'|'q/q'|'y/y';label?:string};
 const MPMI:Record<string,Def[]>={
- USD:[{re:/^ISM Manufacturing PMI$/i,pref:2,unit:'index'},{re:/^(?:Final |Flash )?Manufacturing PMI$/i,pref:1,unit:'index'}],
+ USD:[{re:/^(?:Final |Flash )?Manufacturing PMI$/i,pref:2,unit:'index'}],
  CAD:[{re:/^(?:Final |Flash )?Manufacturing PMI$/i,pref:2,unit:'index'},{re:/^Ivey PMI$/i,pref:0,unit:'index',label:'Ivey PMI (náhrada za výrobní PMI)'}],
  NZD:[{re:/^Business ?NZ Manufacturing (?:PMI|Index)$/i,pref:1,unit:'index'}],
 };
 const SPMI:Record<string,Def[]>={
- USD:[{re:/^ISM (?:Non-Manufacturing|Services) PMI$/i,pref:2,unit:'index'},{re:/^(?:Final |Flash )?Services PMI$/i,pref:1,unit:'index'}],
+ USD:[{re:/^(?:Final |Flash )?Services PMI$/i,pref:2,unit:'index'}],
  NZD:[{re:/^Business ?NZ Services (?:PMI|Index)$/i,pref:1,unit:'index'}],
 };
+// ISM jen pro informaci (nezapočítává se do skóre)
+const ISM_M:Record<string,Def[]>={USD:[{re:/^ISM Manufacturing PMI$/i,pref:1,unit:'index'}]};
+const ISM_S:Record<string,Def[]>={USD:[{re:/^ISM (?:Non-Manufacturing|Services) PMI$/i,pref:1,unit:'index'}]};
 const GENERIC_M:Def[]=[{re:/^(?:Final |Flash )?Manufacturing PMI$/i,pref:1,unit:'index'}];
 const GENERIC_S:Def[]=[{re:/^(?:Final |Flash )?Services PMI$/i,pref:1,unit:'index'}];
 const RETAIL:Record<string,Def[]>={};
@@ -98,6 +103,8 @@ export function deriveMacro(rows:FFRowLike[],now:number):FFMacro{
   const o:CurrencyMacro={};
   const m=derive(MPMI[c]??GENERIC_M,c,recent,now,false),s=derive(SPMI[c]??GENERIC_S,c,recent,now,false),r=derive(retailDefs(c),c,recent,now,true);
   if(m)o.mpmi=m;if(s)o.spmi=s;if(r)o.retailSales=r;
+  const im=ISM_M[c]&&derive(ISM_M[c],c,recent,now,false),is=ISM_S[c]&&derive(ISM_S[c],c,recent,now,false);
+  if(im)o.ismMpmi=im;if(is)o.ismSpmi=is;
   currencies[c]=o;
  }
  return {updated:new Date(now).toISOString().replace(/\.\d+Z$/,'Z'),currencies};

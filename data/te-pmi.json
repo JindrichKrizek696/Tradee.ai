@@ -1,23 +1,41 @@
 {
- "updated": "2026-10-12T09:27:16Z",
- "attemptedAt": "2026-10-12T09:27:16Z",
+ "updated": "2026-10-12T12:26:18Z",
+ "attemptedAt": "2026-10-12T12:26:18Z",
  "source": "https://tradingeconomics.com",
  "currencies": {
   "USD": {
    "mpmi": {
+    "value": 55.9,
+    "previous": 53.9,
+    "period": "2026-09",
+    "fetchedAt": "2026-10-12T12:26:18Z",
+    "url": "https://tradingeconomics.com/united-states/manufacturing-pmi",
+    "publisher": "S&P Global",
+    "series": "United States Manufacturing PMI"
+   },
+   "spmi": {
+    "value": 58.8,
+    "previous": 56.5,
+    "period": "2026-09",
+    "fetchedAt": "2026-10-12T12:26:18Z",
+    "url": "https://tradingeconomics.com/united-states/services-pmi",
+    "publisher": "S&P Global",
+    "series": "United States Services PMI"
+   },
+   "ismMpmi": {
     "value": 54.5,
     "previous": 54.6,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/united-states/business-confidence",
     "publisher": "ISM",
     "series": "United States ISM Purchasing Managers Index (PMI)"
    },
-   "spmi": {
+   "ismSpmi": {
     "value": 54.9,
     "previous": 55.4,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/united-states/non-manufacturing-pmi",
     "publisher": "ISM",
     "series": "United States ISM Non Manufacturing PMI"
@@ -28,7 +46,7 @@
     "value": 52.9,
     "previous": 52.7,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/euro-area/manufacturing-pmi",
     "publisher": "HCOB",
     "series": "Euro Area Manufacturing PMI"
@@ -37,7 +55,7 @@
     "value": 53,
     "previous": 51.6,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/euro-area/services-pmi",
     "publisher": "HCOB",
     "series": "Euro Area Services PMI"
@@ -48,7 +66,7 @@
     "value": 51.9,
     "previous": 51.7,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/united-kingdom/manufacturing-pmi",
     "publisher": "S&P Global",
     "series": "United Kingdom Manufacturing PMI"
@@ -57,7 +75,7 @@
     "value": 52.1,
     "previous": 52.5,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/united-kingdom/services-pmi",
     "publisher": "S&P Global",
     "series": "United Kingdom Services PMI"
@@ -68,7 +86,7 @@
     "value": 54.1,
     "previous": 54.9,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/japan/manufacturing-pmi",
     "publisher": "S&P Global",
     "series": "Japan Manufacturing PMI"
@@ -77,7 +95,7 @@
     "value": 51.3,
     "previous": 52.5,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/japan/services-pmi",
     "publisher": "S&P Global",
     "series": "Japan Services PMI"
@@ -88,7 +106,7 @@
     "value": 55.3,
     "previous": 57.1,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/switzerland/manufacturing-pmi",
     "publisher": "procure.ch",
     "series": "Switzerland Manufacturing PMI"
@@ -97,7 +115,7 @@
     "value": 59.8,
     "previous": 58.3,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/switzerland/services-pmi",
     "publisher": "procure.ch",
     "series": "Switzerland Services PMI"
@@ -108,7 +126,7 @@
     "value": 49.6,
     "previous": 52,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/australia/manufacturing-pmi",
     "publisher": "S&P Global",
     "series": "Australia Manufacturing PMI"
@@ -117,7 +135,7 @@
     "value": 51.9,
     "previous": 53.2,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/australia/services-pmi",
     "publisher": "S&P Global",
     "series": "Australia Performance Services Index"
@@ -128,7 +146,7 @@
     "value": 51.5,
     "previous": 53,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/canada/manufacturing-pmi",
     "publisher": "S&P Global",
     "series": "Canada Manufacturing PMI"
@@ -137,7 +155,7 @@
     "value": 48.3,
     "previous": 46.8,
     "period": "2026-09",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/canada/services-pmi",
     "publisher": "S&P Global",
     "series": ""
@@ -148,7 +166,7 @@
     "value": 53.1,
     "previous": 54.3,
     "period": "2026-08",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/new-zealand/manufacturing-pmi",
     "publisher": "BusinessNZ PMI",
     "series": "New Zealand Manufacturing Pmi"
@@ -157,7 +175,7 @@
     "value": 51.2,
     "previous": 50.6,
     "period": "2026-08",
-    "fetchedAt": "2026-10-12T09:27:16Z",
+    "fetchedAt": "2026-10-12T12:26:18Z",
     "url": "https://tradingeconomics.com/new-zealand/services-pmi",
     "publisher": "BusinessNZ PSI",
     "series": "New Zealand Services Pmi"

@@ -5,16 +5,22 @@
 // of 2026. This page provides the latest reported value for - Japan Manufacturing PMI - …“. Bere se hodnota, předchozí hodnota,
 // měsíc a název řady (kontrola, že stránka je opravdu ta správná řada – viz `expect`).
 // Období: nejbližší výskyt uvedeného měsíce, který není po měsíci stažení (rok z textu je u přelomu roku nejednoznačný).
+//
+// Srovnatelnost: USD se skóruje podle S&P Global US Manufacturing/Services PMI (stejná metodika jako ostatní měny);
+// ISM (strukturálně jiná úroveň) se ukládá jen pro informaci jako ismMpmi / ismSpmi a ve skóre se nepoužívá.
 export type TEPmiValue={value:number;previous:number|null;period:string;fetchedAt:string;url:string;publisher:string;series:string};
-export type TEPmiCurrency={mpmi?:TEPmiValue;spmi?:TEPmiValue};
+export type TEPmiCurrency={mpmi?:TEPmiValue;spmi?:TEPmiValue;ismMpmi?:TEPmiValue;ismSpmi?:TEPmiValue};
 export type TEPmi={updated:string;currencies:Record<string,TEPmiCurrency>};
-export type TEPage={currency:string;id:'mpmi'|'spmi';path:string;publisher:string;expect:RegExp};
+export type TEPmiId='mpmi'|'spmi'|'ismMpmi'|'ismSpmi';
+export type TEPage={currency:string;id:TEPmiId;path:string;publisher:string;expect:RegExp};
 
 export const TE_BASE='https://tradingeconomics.com/';
 const M_RE=/Manufacturing PMI|ISM Purchasing Managers/i,S_RE=/Services PMI|Non[- ]Manufacturing PMI|Performance Services Index|Services Pmi/i;
 export const TE_PAGES:TEPage[]=[
- {currency:'USD',id:'mpmi',path:'united-states/business-confidence',publisher:'ISM',expect:/ISM Purchasing Managers/i},
- {currency:'USD',id:'spmi',path:'united-states/non-manufacturing-pmi',publisher:'ISM',expect:/ISM Non[- ]Manufacturing/i},
+ {currency:'USD',id:'mpmi',path:'united-states/manufacturing-pmi',publisher:'S&P Global',expect:/value for\s*-\s*United States Manufacturing PMI\s*-/i},
+ {currency:'USD',id:'spmi',path:'united-states/services-pmi',publisher:'S&P Global',expect:/value for\s*-\s*United States Services PMI\s*-/i},
+ {currency:'USD',id:'ismMpmi',path:'united-states/business-confidence',publisher:'ISM',expect:/ISM Purchasing Managers/i},
+ {currency:'USD',id:'ismSpmi',path:'united-states/non-manufacturing-pmi',publisher:'ISM',expect:/ISM Non[- ]Manufacturing/i},
  {currency:'EUR',id:'mpmi',path:'euro-area/manufacturing-pmi',publisher:'HCOB',expect:M_RE},
  {currency:'EUR',id:'spmi',path:'euro-area/services-pmi',publisher:'HCOB',expect:S_RE},
  {currency:'GBP',id:'mpmi',path:'united-kingdom/manufacturing-pmi',publisher:'S&P Global',expect:M_RE},

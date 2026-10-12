@@ -28,7 +28,7 @@ const mkData=()=>({schemaVersion:1,methodVersion:'t',checkedAt:'2026-10-12T06:00
   CAD:{bank:'BoC',rate:'2,25 %',decisionDate:'2026-09-02',source:'s',facts:[],scenario:'',risk:'',factors:fac(0,0,-1)},
   EUR:{bank:'ECB',rate:'2,5 %',decisionDate:'2026-09-10',source:'s',facts:[],scenario:'',risk:'',factors:fac(1,0,1)}},
  observations:{
-  USD:{gdp:o('+0,6 % mezikvartálně','2026 Q2'),retailSales:o('+1,2 % meziměsíčně'),mpmi:o('ISM PMI 54,5'),spmi:o('ISM Services PMI 54,9'),inflation:o('CPI +3,4 % meziročně'),employment:o('NFP +29 000')},
+  USD:{gdp:o('+0,6 % mezikvartálně','2026 Q2'),retailSales:o('+1,2 % meziměsíčně'),mpmi:o('S&P Global PMI 54,5'),spmi:o('S&P Global Services PMI 56,9'),inflation:o('CPI +3,4 % meziročně'),employment:o('NFP +29 000')},
   CAD:{gdp:o('+0,1 % mezikvartálně','2026 Q2'),retailSales:o('−0,7 % meziměsíčně'),mpmi:o('PMI 50,0'),spmi:o('51,0'),inflation:o('CPI +3,0 % meziročně')},
   EUR:{gdp:o('+0,1 % mezikvartálně','2026 Q2'),retailSales:o('+0,1 % meziměsíčně'),mpmi:o('49,0'),spmi:o('50,2'),inflation:o('HICP 3,8 % meziročně')}},
  pairObservations:{'USD/CAD':{retailPositions:o('Long 19 % / short 81 %','snímek','2026-10-12T08:00:00Z')},'CAD/USD':{retailPositions:o('Long 81 % / short 19 %','snímek','2026-10-12T08:00:00Z')},'EUR/USD':{retailPositions:o('Long 87 % / short 13 %','snímek','2026-10-12T08:00:00Z')}},
@@ -40,10 +40,11 @@ const up=[1,1,1,1,1,1,1,1,1,-0.5],neg=a=>a.map(x=>-x);
 const mkMarket=()=>({cot:{CAD:cot(-0.2,-0.2),USD:cot(0.3,0.3,true),EUR:cot(0.1,0.05)},prices:{'USD/CAD':price(1,up),'CAD/USD':price(-1,neg(up)),'EUR/USD':price(-1/3,up.map(x=>x*0.01)),'USD/EUR':price(1/3,up.map(x=>-x*0.01)),'EUR/CAD':price(1,up),'CAD/EUR':price(-1,neg(up)),USD:price(1,up),CAD:price(-1,neg(up)),EUR:price(0,up.map(()=>0))},refresh:{attemptedAt:'',issues:[]}});
 const data=mkData(),market=mkMarket();
 
-// USD/CAD: COT +1, HDP +2 (0,5 p. b.), Retail Sales +2, mPMI +2, sPMI +2, Inflace +1, Sazby +2, Zaměstnanost +1, Trend +2, Sezonalita +2, Retail pozice +2 (long 19 % kontrariánsky)
+// USD/CAD: COT +1, HDP +1 (0,5 p. b. < 0,8), Retail Sales +2 (1,9 p. b.), mPMI +1 (4,5 b. < 5), sPMI +2 (5,9 b.), Inflace 0 (0,4 p. b. < 0,5),
+// Sazby +2, Zaměstnanost +1, Trend +2, Sezonalita +2, Retail pozice +2 (long 19 % kontrariánsky)
 const r=scoreV3('USD/CAD',data,market,NOW);
 const expect=(vals)=>{const ids=Object.keys(vals),W=ids.reduce((s,id)=>s+WEIGHTS[id],0);return ids.reduce((s,id)=>s+WEIGHTS[id]*vals[id]/2,0)/W*100};
-const full={cot:1,gdp:2,retailSales:2,mpmi:2,spmi:2,inflation:1,rates:2,employment:1,trend:2,seasonality:2,retailPositions:2};
+const full={cot:1,gdp:1,retailSales:2,mpmi:1,spmi:2,inflation:0,rates:2,employment:1,trend:2,seasonality:2,retailPositions:2};
 check('plná data: hodnoty složek −2…+2',COMPONENTS.every(id=>part(r,id).value===full[id]),r.parts.map(p=>[p.id,p.value,p.status,p.missingReason]));
 check('plná data: pokrytí 100 %, 11/11',r.coverage===100&&r.available===11&&r.paused===null,[r.coverage,r.available,r.paused]);
 check('skóre = Σ w·s/2 / Σw · 100',near(r.score,expect(full)),[r.score,expect(full)]);
