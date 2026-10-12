@@ -1,6 +1,6 @@
 // Přehled skóre FX páru po složkách (−2…+2). Čistá logika; kontrola: node --experimental-strip-types scripts/check-breakdown.mjs
 //
-// Transparentní rozpad, NE nové skóre: kompozitní skóre Tradee (score-engine.ts) zůstává beze změny.
+// Složky −2…+2, ze kterých počítá FX skóre v3 (lib/score/v3.ts: váhy, stáří a renormalizace).
 // Každá složka porovnává základní měnu páru (BASE) s kotovanou (QUOTE). Kladné číslo = podpora BASE vůči QUOTE.
 // Chybějící vstup vrací score:null („chybí data“) – nikdy se nedopočítává odhadem ani nulou.
 //
@@ -18,9 +18,9 @@
 //  • Úrokové sazby součet „poslední krok“ + „výhled“ banky (každé −1/0/+1), rozdíl omezený na ±2.
 //  • Inflace      meziroční inflace (y/y, p. b.); vyšší inflace = tlak na restriktivnější banku = body pro měnu. t1 0,3 · t2 1,0.
 //  • Zaměstnanost hodnocení pracovního trhu bankou (faktor labor −1/0/+1), rozdíl −2…+2.
-// Celkové skóre = prostý součet dostupných složek (max ±22) + počet složek s daty.
+// Celkové skóre FX (−100…+100) počítá lib/score/v3.ts; `total` zde zůstává jen jako prostý součet pro kontrolu.
 import type {FundamentalData} from '../fundamentals.ts';
-import {cotStats,seasonalStats,type MarketData} from '../score-engine.ts';
+import {cotStats,seasonalStats,type MarketData,type PriceData} from '../score-engine.ts';
 import {parseRetail} from '../reports.ts';
 
 export type Score=-2|-1|0|1|2;
@@ -76,7 +76,21 @@ function macroRow(data:FundamentalData,base:string,quote:string,id:string,read:(
  return {score:bucket(diff,t1,t2),detail:`${base} ${fmt(x,d)}${u}${period(a)} vs ${quote} ${fmt(y,d)}${u}${period(b)} → rozdíl ${fmt(diff,d)} ${unit==='%'?'p. b.':'bodu'}`,source:a?.sourceUrl||b?.sourceUrl||undefined};
 }
 
-const monthName=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+export const monthName=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+
+type RowOut={score:Score|null;detail:string;asOf?:string;source?:string};
+/** Sezonalita aktuálního měsíce z cenové řady (páru i vlastního měnového indexu). */
+export function seasonRow(price:PriceData|undefined,month:number,sample=10):RowOut{
+ const season=seasonalStats(price,month,sample);
+ return price&&season.signal!==null?{score:bucket(season.signal,.03,.1),detail:`${monthName[month-1][0].toUpperCase()+monthName[month-1].slice(1)}: průměr ${fmt(season.avg,2)} %, růst ${season.positive}/${season.n} let · signál ${fmt(season.signal,3)}.`,asOf:`${season.years[0]?.year}–${season.years.at(-1)?.year}`,source:price.sourceUrl}
+  :{score:null,detail:'Chybí data: méně než 5 let cenové historie pro tento měsíc.'};
+}
+/** Denní trend ze tří hlasů (reference vs. GMA50, vs. GMA200, pořadí průměrů). */
+export function trendRow(price:PriceData|undefined):RowOut{
+ const t=price&&Number.isFinite(price.trend)?price.trend:null;
+ return t!==null&&price?{score:(Math.abs(t)>=.99?2*Math.sign(t):t>0?1:t<0?-1:0) as Score,detail:`Reference ${sig(price.reference)} · GMA50 ${sig(price.gma50)} · GMA200 ${sig(price.gma200)} → ${Math.abs(t)>=.99?'všechny 3 hlasy':t===0?'bez převahy':'převaha 2 : 1'} ${t>0?'nahoru':t<0?'dolů':''}`.trim()+'.',asOf:price.asOf,source:price.sourceUrl}
+  :{score:null,detail:'Chybí data: cenová historie páru není k dispozici.'};
+}
 
 export function cotPairSignal(market:MarketData,base:string,quote:string){
  const one=(c:string)=>{const ct=market.cot[c];if(!ct||ct.isProxy)return null;const s=cotStats(ct);return s&&s.signal!==null?{signal:s.signal,net:s.netRatio,date:s.last.date,url:ct.sourceUrl}:null};
@@ -105,12 +119,9 @@ export function pairBreakdown(pair:string,data:FundamentalData,market:MarketData
  out.inflation=macroRow(data,base,quote,'inflation',o=>pctChange(o?.value,'yy'),'%',.3,1,'meziroční inflace');
 
  // Sezonalita a trend z cen páru
- const price=market.prices[pair],month=new Date(now).getUTCMonth()+1,season=seasonalStats(price,month);
- out.seasonality=price&&season.signal!==null?{score:bucket(season.signal,.03,.1),detail:`${monthName[month-1][0].toUpperCase()+monthName[month-1].slice(1)}: průměr ${fmt(season.avg,2)} %, růst ${season.positive}/${season.n} let · signál ${fmt(season.signal,3)}.`,asOf:`${season.years[0]?.year}–${season.years.at(-1)?.year}`,source:price.sourceUrl}
-  :{score:null,detail:'Chybí data: méně než 5 let cenové historie pro tento měsíc.'};
- const t=price&&Number.isFinite(price.trend)?price.trend:null;
- out.trend=t!==null&&price?{score:(Math.abs(t)>=.99?2*Math.sign(t):t>0?1:t<0?-1:0) as Score,detail:`Reference ${sig(price.reference)} · GMA50 ${sig(price.gma50)} · GMA200 ${sig(price.gma200)} → ${Math.abs(t)>=.99?'všechny 3 hlasy':t===0?'bez převahy':'převaha 2 : 1'} ${t>0?'nahoru':t<0?'dolů':''}`.trim()+'.',asOf:price.asOf,source:price.sourceUrl}
-  :{score:null,detail:'Chybí data: cenová historie páru není k dispozici.'};
+ const price=market.prices[pair];
+ out.seasonality=seasonRow(price,new Date(now).getUTCMonth()+1);
+ out.trend=trendRow(price);
 
  // Retail pozice (kontrariánsky), jen pro přesně tento pár
  const rp=data.pairObservations?.[pair]?.retailPositions,r=rp?.value?parseRetail(rp.value):null;

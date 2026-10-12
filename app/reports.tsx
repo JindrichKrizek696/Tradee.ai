@@ -7,7 +7,7 @@ import {eventMarkets} from '@/lib/calendar';
 import {assetNames} from '@/lib/markets';
 import {stance,mood,nextMeeting,upcoming,isMeeting,parseRetail} from '@/lib/reports';
 import {pairs,type MarketData} from '@/lib/score-engine';
-import {pairBreakdown} from '@/lib/fundamentals/breakdown';
+import {scoreV3} from '@/lib/score/v3';
 import {ScoreBreakdown} from './score-breakdown';
 import {Link,Picker} from './score-analyzer';
 
@@ -42,7 +42,7 @@ export function Reports({data,instrument,market,now:at}:{data:FundamentalData;in
   <Tabs value={kind} onValueChange={setKind} className="s-tabs"><TabsList><TabsTrigger value="banks"><Landmark size={16}/> Banky a instituce</TabsTrigger><TabsTrigger value="traders"><Users size={16}/> Očekávání obchodníků</TabsTrigger>{market&&!instrument&&<TabsTrigger value="breakdown"><ListChecks size={16}/> Přehled skóre</TabsTrigger>}</TabsList>
   {market&&!instrument&&<TabsContent value="breakdown">
    <div className="r-breakdown-pick"><Picker label="Vybrat pár" value={pair} onChange={setPair} items={pairs.map(p=>({value:p,label:p}))}/></div>
-   {(b=>b?<ScoreBreakdown b={b}/>:<p className="r-muted">Pro tento pár nejsou podklady.</p>)(pairBreakdown(pair,data,market,at??now))}
+   {(r=>r?<ScoreBreakdown r={r} pair={pair}/>:<p className="r-muted">Pro tento pár nejsou podklady.</p>)((()=>{try{return scoreV3(pair,data,market,at??now)}catch{return null}})())}
   </TabsContent>}
   <TabsContent value="banks">
    <section className="s-card r-section"><div className="r-head"><h2>Centrální banky</h2><span className="r-muted">Kliknutím na řádek zobrazíš detail</span></div>
