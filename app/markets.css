@@ -82,7 +82,12 @@
 .m-legend i.bull{background:var(--bull)}.m-legend i.bear{background:var(--bear)}.m-legend i.none{background:var(--t-surface-3)}
 @media (max-width:640px){
  .m-tops{grid-template-columns:1fr}
- .m-tile{width:calc((100vw - 32px - 15px)/4)}
+ /* úzký telefon: dlaždice v mřížce podle šířky (390 px → 4 sloupce, 320 px → 3), vlaječka dole vpravo,
+    takže název má celou šířku dlaždice a nic se neořezává („USD/CAD“, ne „USD/C…“); dlouhé názvy na dva řádky */
+ .m-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
+ .m-tile{width:auto;height:auto;min-height:58px;gap:2px}
+ .m-tile b{padding-right:0;white-space:normal;overflow:visible;overflow-wrap:break-word;font-size:11.5px;line-height:1.25;letter-spacing:-.1px}
+ .m-tile .m-flag{top:auto;bottom:2px}
  .m-heat section{flex-basis:100%}
  .m-search{flex:1}.m-search input{width:100%}
  .m-row{grid-template-columns:minmax(0,1fr) 52px 90px 40px}
