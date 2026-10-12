@@ -56,5 +56,5 @@ export const sqlMs=(s:string)=>Date.parse(s.replace(' ','T')+'Z');
 // nejnovější papír nahoře (podle založení, pak id)
 export const sortNotes=<T extends {id:string;created:string}>(notes:readonly T[])=>[...notes].sort((a,b)=>a.created<b.created?1:a.created>b.created?-1:a.id<b.id?1:a.id>b.id?-1:0);
 export function folderCounts(notes:readonly {folderId:string}[]){const c:Record<string,number>={};for(const n of notes)c[n.folderId]=(c[n.folderId]||0)+1;return c}
-// chybí tabulky (migrace 0023 na serveru ještě neproběhla)
+// chybí tabulky (migrace 0024_notebook.sql na serveru ještě neproběhla)
 export function isMissingTable(e:unknown){const x=e as {code?:unknown;errno?:unknown;message?:unknown}|null;return !!x&&(x.code==='ER_NO_SUCH_TABLE'||x.errno===1146||/Table '[^']*notebook_[^']*' doesn't exist/i.test(String(x.message??'')))}

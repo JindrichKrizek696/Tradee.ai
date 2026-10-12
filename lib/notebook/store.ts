@@ -1,4 +1,4 @@
-// DB vrstva Poznámek (Db je parametr, každý dotaz filtruje user_id). Tabulky z drizzle/mariadb/0023_notebook.sql.
+// DB vrstva Poznámek (Db je parametr, každý dotaz filtruje user_id). Tabulky z drizzle/mariadb/0024_notebook.sql.
 import type {Db} from '../mysql.ts';
 import {nowSql} from '../mt/store.ts';
 import {LIMITS,MISSING_TABLES,excerpt,isMissingTable,nameTaken,type Folder,type Note,type NoteMeta,type NotePatch} from './core.ts';
