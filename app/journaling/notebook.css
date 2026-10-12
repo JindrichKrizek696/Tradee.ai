@@ -1,0 +1,86 @@
+/* Poznámky (Notebook) v Journalingu: složky | papíry ve složce | papír. Barvy jen z tokenů --t-* (světlý i tmavý motiv).
+   Vyšší specifičnost (.nb …, .nb-paper …) kvůli globálním pravidlům pro label, input, textarea, h2 a p v globals.css. */
+.nb{display:grid;grid-template-columns:220px 300px minmax(0,1fr);gap:16px;align-items:start}
+.nb .nb-alert{grid-column:1/-1;margin:0}
+.nb-load{display:grid;gap:10px;justify-items:start}
+.nb .nb-h{display:block;margin:0;font-size:13px;font-weight:600;letter-spacing:0;color:var(--t-muted);overflow-wrap:anywhere}
+.nb-folders,.nb-list{display:grid;gap:10px;min-width:0;background:var(--t-surface);border:1px solid var(--t-border);border-radius:18px;padding:14px}
+.nb-folders ul,.nb-notes{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.nb-folders li button{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-size:14px;color:var(--t-fg-2);cursor:pointer}
+.nb-folders li button svg{flex:none;color:var(--t-muted)}
+.nb-folders li button span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nb-folders li button small{flex:none;font-size:12px;line-height:1;color:var(--t-muted);font-variant-numeric:tabular-nums}
+.nb-folders li button:hover{background:var(--t-surface-2)}
+.nb-folders li button:focus-visible,.nb-note:focus-visible,.nb-add:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
+.nb-folders li button.on{background:var(--t-surface-3);color:var(--t-fg);font-weight:600}
+.nb-folders li button.on svg{color:var(--t-brand-fg)}
+.nb-add{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-size:14px;color:var(--t-brand-fg);cursor:pointer}
+.nb-add:hover{background:var(--t-accent-soft)}
+.nb-add:disabled{opacity:.5;cursor:default;background:none}
+.nb-form{display:grid;gap:8px}
+.nb-form input[type=text]{font:inherit;font-size:14px;color:var(--t-fg);background:var(--t-surface);border:1px solid var(--t-border);border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box;min-width:0}
+.nb-form input[type=text]:focus{outline:2px solid var(--t-brand);outline-offset:-1px;border-color:transparent}
+.nb-form-btns{display:flex;gap:6px;flex-wrap:wrap}
+.nb-form .j-btn{padding:6px 12px;font-size:13px}
+.nb-form .j-btn:disabled,.nb-new:disabled,.nb-sugg .j-btn:disabled{opacity:.5;cursor:default}
+.nb-form .jg-err{margin:0;font-size:13px;line-height:1.4;color:var(--bear-text)}
+.nb-sugg{display:flex;flex-wrap:wrap;gap:6px}
+.nb-chip{font:inherit;font-size:12px;border:1px dashed var(--t-border-strong);background:var(--t-surface);color:var(--t-fg-2);border-radius:999px;padding:4px 10px;cursor:pointer}
+.nb-chip:hover{border-style:solid;color:var(--t-fg)}
+.nb-lhead{display:flex;align-items:center;gap:8px;min-height:30px}
+.nb .nb-lhead .nb-h{flex:1 1 auto;font-size:16px;color:var(--t-fg)}
+.nb-acts{display:flex;gap:2px;flex:none}
+.nb-icon{display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:9px;background:none;color:var(--t-fg-2);cursor:pointer}
+.nb-icon:hover,.nb-icon:focus-visible{background:var(--t-surface-3);color:var(--t-fg)}
+.nb-icon:disabled{opacity:.35;cursor:default;background:none}
+.nb-new{justify-content:center}
+.nb-notes{gap:4px;max-height:calc(100vh - 260px);overflow:auto;margin:0 -6px;padding:0 6px}
+.nb-note{all:unset;box-sizing:border-box;width:100%;display:grid;gap:3px;padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer}
+.nb-note:hover{background:var(--t-surface-2)}
+.nb-note.on{background:var(--t-accent-soft);border-color:color-mix(in srgb,var(--t-brand) 30%,transparent)}
+.nb-note b{font-size:14px;font-weight:600;color:var(--t-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nb-ex{font-size:13px;line-height:1.45;color:var(--t-fg-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.nb-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--t-muted)}
+.nb-mkt{font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px;background:var(--t-surface-3);color:var(--t-fg-2)}
+.nb .nb-empty p{margin:4px 0;font-size:14px;line-height:1.5;color:var(--t-fg-2)}
+.nb .nb-empty p+p{color:var(--t-muted);font-size:13px}
+.nb-paper{display:grid;gap:12px;min-width:0;background:var(--t-surface);border:1px solid var(--t-border);border-radius:18px;padding:16px 22px 14px;box-shadow:var(--t-shadow)}
+.nb-blank{min-height:320px;place-content:center;justify-items:center;text-align:center;color:var(--t-muted);box-shadow:none;background:var(--t-surface-2);border-style:dashed}
+.nb .nb-blank p{margin:0;font-size:14px;color:var(--t-muted)}
+.nb-ptop{display:flex;align-items:center;gap:10px;min-height:30px}
+.nb-back{all:unset;display:none;align-items:center;gap:6px;font-size:14px;color:var(--t-fg-2);cursor:pointer}
+.nb-state{flex:1 1 auto;font-size:12.5px;color:var(--t-muted)}
+.nb-state.pending,.nb-state.saving{color:var(--t-fg-2)}
+.nb-state.error{color:var(--bear-text)}
+.nb-retry{font:inherit;font-size:12px;font-weight:600;border:1px solid currentColor;background:none;color:inherit;border-radius:999px;padding:2px 10px;margin-left:4px;cursor:pointer}
+.nb-paper .nb-title{font:inherit;font-size:22px;font-weight:600;line-height:1.3;color:var(--t-fg);background:none;border:0;border-radius:0;padding:2px 0;width:100%;min-width:0;outline:none}
+.nb-paper .nb-title::placeholder,.nb-paper .nb-body::placeholder{color:var(--t-muted-2)}
+.nb-props{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--t-border)}
+.nb-prop{display:inline-flex;flex-direction:row;align-items:center;gap:6px;font-size:13px;color:var(--t-muted);max-width:100%}
+.nb-prop select{font:inherit;font-size:13px;color:var(--t-fg);background:var(--t-surface-2);border:1px solid var(--t-border);border-radius:8px;padding:4px 8px;max-width:220px;min-width:0}
+.nb-dates{font-size:12px;color:var(--t-muted);margin-left:auto}
+.nb-paper .nb-body{font:inherit;font-size:15px;line-height:1.65;color:var(--t-fg);background:none;border:0;border-radius:0;padding:0;width:100%;box-sizing:border-box;min-height:52vh;resize:vertical;outline:none;field-sizing:content;white-space:pre-wrap;overflow-wrap:anywhere}
+.nb-pfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--t-muted-2);border-top:1px solid var(--t-border);padding-top:8px}
+.nb-start{display:grid;gap:12px;max-width:640px}
+.j-card.nb-start h2{margin:0}
+.j-card.nb-start>p{margin:0;color:var(--t-fg-2);font-size:14px;line-height:1.6}
+.nb-start .nb-form{max-width:420px;grid-template-columns:minmax(0,1fr) auto}
+.nb-start .nb-form .jg-err{grid-column:1/-1}
+@media (max-width:1279px){.nb{grid-template-columns:200px 260px minmax(0,1fr)}}
+/* úzké okno: složky jako vodorovný pás, pak seznam; otevřený papír zabere celé místo (tlačítko Seznam vede zpět) */
+@media (max-width:1099px){
+ .nb{grid-template-columns:minmax(0,1fr)}
+ .nb-folders{grid-template-columns:minmax(0,1fr);padding:10px}
+ .nb .nb-folders .nb-h{display:none}
+ .nb-folders ul{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+ .nb-folders li{flex:none}
+ .nb-folders li button{width:auto;max-width:220px;border:1px solid var(--t-border);border-radius:999px;padding:6px 12px}
+ .nb-folders li button.on{border-color:var(--t-inverse);background:var(--t-inverse);color:var(--t-on-inverse)}
+ .nb-folders li button.on svg,.nb-folders li button.on small{color:inherit}
+ .nb-notes{max-height:none}
+ .nb.open .nb-folders,.nb.open .nb-list,.nb-blank{display:none}
+ .nb-back{display:inline-flex}
+ .nb-paper{padding:14px 16px 12px}
+ .nb-paper .nb-body{min-height:60vh}
+}
+@media (max-width:640px){.nb-paper .nb-title{font-size:19px}.nb-dates{margin-left:0;width:100%}.nb-prop select{max-width:170px}.nb-start .nb-form{grid-template-columns:minmax(0,1fr)}}

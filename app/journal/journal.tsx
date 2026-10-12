@@ -12,9 +12,10 @@ import {T212Import} from './t212-import';
 import {useOpenPositions,byAccount,OpenPositionsTab} from '../open-positions';
 import './journal.css';
 type Tab='trades'|'stats'|'open';
-type Sec='review'|'backtest';
-// sloučený režim: #journal/vyhodnoceni[/<obchod>] a #journal/backtest jsou záložky Journalingu
-const hashSec=():Sec|null=>/^#journal\/vyhodnoceni(\/|$)/.test(location.hash)?'review':location.hash==='#journal/backtest'?'backtest':null;
+type Sec='review'|'backtest'|'notes';
+// sloučený režim: #journal/vyhodnoceni[/<obchod>], #journal/backtest a #journal/poznamky jsou záložky Journalingu
+const hashSec=():Sec|null=>/^#journal\/vyhodnoceni(\/|$)/.test(location.hash)?'review':location.hash==='#journal/backtest'?'backtest':location.hash==='#journal/poznamky'?'notes':null;
+const SEC_HASH:Record<Sec,string>={review:'journal/vyhodnoceni',backtest:'journal/backtest',notes:'journal/poznamky'};
 // filtr a záložka se pamatují v prohlížeči (deník se renderuje jen na klientu)
 function saved(key:string):{filter:Filter;tab:Tab}{try{const v=JSON.parse(localStorage.getItem(key)||'{}');return {filter:{...DEFAULT_FILTER,...(v.filter||{})},tab:v.tab==='stats'||v.tab==='open'?v.tab:'trades'}}catch{return {filter:DEFAULT_FILTER,tab:'trades'}}}
 const hashId=()=>{const h=location.hash;if(!h.startsWith('#journal/')||hashSec())return null;try{return decodeURIComponent(h.slice(9))}catch{return null}};
@@ -36,8 +37,8 @@ export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?
  const banner=viewAs?<p className="j-viewas" role="status">Prohlížíš deník: <b>{viewAs.name}</b> · jen pro čtení</p>:null;
  const open=(id:string)=>{location.hash='journal/'+encodeURIComponent(id)};
  const close=()=>{location.hash='journal'};
- const pick=(k:Tab|Sec)=>{if(k==='review'||k==='backtest'){if(sec!==k)location.hash=k==='review'?'journal/vyhodnoceni':'journal/backtest';return}setTab(k);if(sec)location.hash='journal'};
- const activeTab=m&&sec?sec:tab,tabs:[Tab|Sec,string][]=[['trades','Obchody'],['stats','Statistiky'],['open',openData?`Otevřené (${openCount})`:'Otevřené'],...(m?[['review','Vyhodnocení'],['backtest','Backtest']] as [Sec,string][]:[])];
+ const pick=(k:Tab|Sec)=>{if(k==='review'||k==='backtest'||k==='notes'){if(sec!==k)location.hash=SEC_HASH[k];return}setTab(k);if(sec)location.hash='journal'};
+ const activeTab=m&&sec?sec:tab,tabs:[Tab|Sec,string][]=[['trades','Obchody'],['stats','Statistiky'],['open',openData?`Otevřené (${openCount})`:'Otevřené'],...(m?[['review','Vyhodnocení'],['backtest','Backtest'],['notes','Poznámky']] as [Sec,string][]:[])];
  const tabBar=<div className="j-tabs" role="tablist">{tabs.map(([k,l])=><button key={k} type="button" role="tab" aria-selected={activeTab===k} className={activeTab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>;
  if(m&&sec)return <div className="j-page"><div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div><Journaling embed={sec}/></div>;
  if(!data)return <div className="j-page">{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám deník…</p>}</div>;

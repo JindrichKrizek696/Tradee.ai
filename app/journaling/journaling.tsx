@@ -11,22 +11,24 @@ import {fmtMoney} from '@/lib/trades';
 import {fmtDateTime,fmtDate,fmtNum,plural} from '@/lib/journal/format';
 import {ReviewPanel,Stars,ruleLabel,type Strat,type Custom} from './review-panel';
 import {Backtest} from './backtest/backtest';
+import {Notebook} from './notebook';
 import '../journal/journal.css';
 import './journaling.css';
 type Rv=ReviewLite&{customBroken:string[]};
 type Meta={reviews:Record<string,Rv>;violations:Record<string,ViolationLite[]>;custom:Custom[];strategies:Strat[];rules:RuleSettings};
 const PERIODS:[Period,string][]=[['week','Týden'],['month','Měsíc'],['year','Rok'],['all','Vše']],KEY='tradee.journaling',PAGE=50;
-// #journaling = obchody, #journaling/<id> = detail obchodu, #journaling/backtest = záložka Backtest
-// Vložené do Deníku (Nastavení > Sloučit Deník a Journaling): #journal/vyhodnoceni, #journal/vyhodnoceni/<id>, #journal/backtest
-const pfx=(embed?:string)=>embed?'journal/vyhodnoceni':'journaling',btHash=(embed?:string)=>embed?'#journal/backtest':'#journaling/backtest';
-const hashId=(embed?:string)=>{const h=location.hash,P='#'+pfx(embed)+'/';if(!h.startsWith(P)||h===btHash(embed))return null;try{return decodeURIComponent(h.slice(P.length))}catch{return null}};
-const hashTab=(embed?:string):'trades'|'backtest'=>location.hash===btHash(embed)?'backtest':'trades';
+// #journaling = obchody, #journaling/<id> = detail obchodu, #journaling/backtest = záložka Backtest, #journaling/poznamky = záložka Poznámky
+// Vložené do Deníku (Nastavení > Sloučit Deník a Journaling): #journal/vyhodnoceni, #journal/vyhodnoceni/<id>, #journal/backtest, #journal/poznamky
+type Tab='trades'|'backtest'|'notes';
+const pfx=(embed?:string)=>embed?'journal/vyhodnoceni':'journaling',btHash=(embed?:string)=>embed?'#journal/backtest':'#journaling/backtest',ntHash=(embed?:string)=>embed?'#journal/poznamky':'#journaling/poznamky';
+const hashId=(embed?:string)=>{const h=location.hash,P='#'+pfx(embed)+'/';if(!h.startsWith(P)||h===btHash(embed)||h===ntHash(embed))return null;try{return decodeURIComponent(h.slice(P.length))}catch{return null}};
+const hashTab=(embed?:string):Tab=>location.hash===btHash(embed)?'backtest':location.hash===ntHash(embed)?'notes':'trades';
 const addDays=(iso:string,d:number)=>new Date(Date.parse(iso+'T12:00:00Z')+d*864e5).toISOString().slice(0,10);
 function saved():{filter:Filter;only:{todo:boolean;viol:boolean}}{try{const v=JSON.parse(localStorage.getItem(KEY)||'{}');return {filter:{...DEFAULT_FILTER,period:'month',...(v.filter||{})},only:{todo:!!v.only?.todo,viol:!!v.only?.viol}}}catch{return {filter:{...DEFAULT_FILTER,period:'month'},only:{todo:false,viol:false}}}}
-export function Journaling({viewAs,embed}:{viewAs?:{id:string;name:string};embed?:'review'|'backtest'}={}){
- const BT_HASH=btHash(embed),P=pfx(embed),E=embed?'x':undefined;
+export function Journaling({viewAs,embed}:{viewAs?:{id:string;name:string};embed?:'review'|'backtest'|'notes'}={}){
+ const BT_HASH=btHash(embed),NT_HASH=ntHash(embed),P=pfx(embed),E=embed?'x':undefined;
  const q=viewAs?'?as='+encodeURIComponent(viewAs.id):'';
- const [data,setData]=useState<JournalList|null>(null),[meta,setMeta]=useState<Meta|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved().filter;return viewAs?f:{...f,account:readAccount()}}),[only,setOnly]=useState(()=>saved().only),[detail,setDetail]=useState<string|null>(()=>hashId(E)),[page,setPage]=useState(0),[now]=useState(()=>Date.now()),[tab,setTab]=useState(()=>embed?(embed==='backtest'?'backtest':'trades'):viewAs?'trades':hashTab());
+ const [data,setData]=useState<JournalList|null>(null),[meta,setMeta]=useState<Meta|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved().filter;return viewAs?f:{...f,account:readAccount()}}),[only,setOnly]=useState(()=>saved().only),[detail,setDetail]=useState<string|null>(()=>hashId(E)),[page,setPage]=useState(0),[now]=useState(()=>Date.now()),[tab,setTab]=useState<Tab>(()=>embed?(embed==='review'?'trades':embed):viewAs?'trades':hashTab());
  const dirty=useRef(false),btDirty=useRef(false);
  async function load(){try{const [a,b]=await Promise.all([fetch('/api/journal'+q,{cache:'no-store'}),fetch('/api/journaling'+q,{cache:'no-store'})]);const j=await a.json() as JournalList&{error?:string},m=await b.json() as Meta&{error?:string};if(!a.ok)throw Error(j.error||'');if(!b.ok)throw Error(m.error||'');setData(j);setMeta(m);setError('')}catch(e){setError((e as Error).message||'Journaling se nepodařilo načíst. Zkus obnovit stránku.')}}
  async function reloadMeta(){try{const b=await fetch('/api/journaling'+q,{cache:'no-store'});if(b.ok)setMeta(await b.json() as Meta)}catch{}}
@@ -54,9 +56,11 @@ export function Journaling({viewAs,embed}:{viewAs?:{id:string;name:string};embed
  const nextId=useMemo(()=>{if(!detail)return null;const from=idx<0?0:idx+1;return list.slice(from).find(t=>reviews[t.id]?.rating==null&&t.id!==detail)?.id??null},[list,idx,detail,reviews]);
  const open=(id:string)=>{if(id===detail)return;if(dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;location.hash=P+'/'+encodeURIComponent(id)};
  const close=()=>{location.hash=P};
- const go=(t:'trades'|'backtest')=>{if(t===tab)return;if(t==='backtest'&&dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;location.hash=t==='backtest'?BT_HASH.slice(1):P};
- const head=(extra?:React.ReactNode)=>embed?(extra?<div className="j-head">{extra}</div>:null):<div className="j-head"><div className="jg-titlebar"><h1>Journaling</h1>{!viewAs&&<div className="jg-seg" role="tablist" aria-label="Sekce Journalingu">{([['trades','Obchody'],['backtest','Backtest']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={tab===k} className={tab===k?'on':''} onClick={()=>go(k)}>{l}</button>)}</div>}</div>{extra}</div>;
+ const go=(t:Tab)=>{if(t===tab)return;if(t!=='trades'&&dirty.current&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))return;location.hash=t==='backtest'?BT_HASH.slice(1):t==='notes'?NT_HASH.slice(1):P};
+ const head=(extra?:React.ReactNode)=>embed?(extra?<div className="j-head">{extra}</div>:null):<div className="j-head"><div className="jg-titlebar"><h1>Journaling</h1>{!viewAs&&<div className="jg-seg" role="tablist" aria-label="Sekce Journalingu">{([['trades','Obchody'],['backtest','Backtest'],['notes','Poznámky']] as const).map(([k,l])=><button key={k} type="button" role="tab" aria-selected={tab===k} className={tab===k?'on':''} onClick={()=>go(k)}>{l}</button>)}</div>}</div>{extra}</div>;
  if(tab==='backtest'&&!viewAs)return embed?<Backtest dirtyRef={btDirty}/>:<div className="j-page">{head()}<Backtest dirtyRef={btDirty}/></div>;
+ // Poznámky jsou soukromé: admin je při prohlížení cizího Journalingu nevidí
+ if(tab==='notes'&&!viewAs)return embed?<Notebook/>:<div className="j-page">{head()}<Notebook/></div>;
  if(!data||!meta)return <div className="j-page">{head()}{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám Journaling…</p>}</div>;
  const cur=data.currency,d=ov.discipline,tr=trend(d,prev),pages=Math.max(1,Math.ceil(list.length/PAGE)),p=Math.min(page,pages-1),shown=list.slice(p*PAGE,p*PAGE+PAGE);
  const dtone=d===null?'':d>=80?'up':d<60?'down':'mid',topName=ov.top?ruleLabel(ov.top.rule,custom):null;
