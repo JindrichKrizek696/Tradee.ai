@@ -197,7 +197,8 @@ export type Preset=Look&{id:string;name:string;tool:DrawType};
 // oblíbené nástroje: plovoucí panel nad grafem; x, y = poloha jako podíl volného místa v ploše grafu
 // (0 = vlevo / nahoře, 1 = vpravo / dole), takže panel zůstane uvnitř grafu při jakékoli velikosti
 export type Fav={tools:DrawType[];x:number;y:number};
-export const favDefault=():Fav=>({tools:[],x:.5,y:1});
+// výchozí poloha vpravo nahoře: vlevo nahoře je lišta vybrané kresby, uprostřed nápověda kreslení, dole pás nadcházejících zpráv
+export const favDefault=():Fav=>({tools:[],x:1,y:0});
 export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>;colors:string[];fav:Fav};
 export const MAX_PRESETS=50,MAX_PRESET_NAME=40;
 export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{},colors:[],fav:favDefault()});

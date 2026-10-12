@@ -359,14 +359,14 @@ const ref0={t:T,p:1.1},cur={t:T+7200000,p:1.25};
 check('Shift: vodorovně = cena reference, svisle = čas reference',JSON.stringify(lockAnchor(cur,ref0,'h'))===JSON.stringify({t:T+7200000,p:1.1})&&JSON.stringify(lockAnchor(cur,ref0,'v'))===JSON.stringify({t:T,p:1.25}));
 check('Shift: obdélník a mřížka čtverec, pozice jen vodorovně, čáry obojí',shiftMode('rect')==='square'&&shiftMode('gann')==='square'&&shiftMode('long')==='h'&&shiftMode('short')==='h'&&['trend','ray','path','channel','fib','fibext','pitchfork','prange','trange','measure'].every(t=>shiftMode(t)==='hv'));
 // oblíbené nástroje a poloha plovoucího panelu (drawing_prefs.fav)
-check('oblíbené: výchozí prázdné, panel dole uprostřed',JSON.stringify(emptyPrefs().fav)==='{"tools":[],"x":0.5,"y":1}'&&emptyPrefs().fav!==emptyPrefs().fav&&JSON.stringify(parsePrefs(null).fav)==='{"tools":[],"x":0.5,"y":1}');
+check('oblíbené: výchozí prázdné, panel vpravo nahoře',JSON.stringify(emptyPrefs().fav)==='{"tools":[],"x":1,"y":0}'&&emptyPrefs().fav!==emptyPrefs().fav&&JSON.stringify(parsePrefs(null).fav)==='{"tools":[],"x":1,"y":0}');
 const fv=normalizePrefs({fav:{tools:['fib','trend','text'],x:0.12345,y:0,junk:1}});
 check('oblíbené: přísně – nástroje v pořadí, poloha na 3 místa, cizí klíče pryč',fv.ok&&fv.prefs.fav.tools.join()==='fib,trend,text'&&fv.prefs.fav.x===.123&&fv.prefs.fav.y===0&&!('junk' in fv.prefs.fav)&&!('presets' in fv.prefs),fv);
 for(const [why,fav] of [['neznámý nástroj',{tools:['circle'],x:0,y:0}],['duplicita',{tools:['fib','fib'],x:0,y:0}],['tools není seznam',{tools:'fib',x:0,y:0}],['x mimo 0–1',{tools:[],x:1.2,y:0}],['y záporné',{tools:[],x:0,y:-0.1}],['chybí poloha',{tools:[]}],['není objekt',['fib']]])
  check('oblíbené: odmítne '+why,!normalizePrefs({fav}).ok);
 check('oblíbené: všechny nástroje projdou',normalizePrefs({fav:{tools:['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann'],x:1,y:1}}).ok);
 const fvL=parsePrefs({fav:{tools:['fib','x','fib','gann',3],x:7,y:'a'}});
-check('oblíbené: tolerantní načtení – neplatné pryč, poloha oříznutá / výchozí',fvL.fav.tools.join()==='fib,gann'&&fvL.fav.x===1&&fvL.fav.y===1&&parsePrefs({fav:'x'}).fav.tools.length===0,fvL.fav);
+check('oblíbené: tolerantní načtení – neplatné pryč, poloha oříznutá / výchozí',fvL.fav.tools.join()==='fib,gann'&&fvL.fav.x===1&&fvL.fav.y===0&&parsePrefs({fav:'x'}).fav.tools.length===0,fvL.fav);
 check('oblíbené: přidat na konec, odebrat',toggleFav(['fib'],'trend').join()==='fib,trend'&&toggleFav(['fib','trend'],'fib').join()==='trend'&&toggleFav([],'text').join()==='text');
 check('oblíbené: poloha z px na podíl volného místa (ořez na okraje)',JSON.stringify(favFrac(150,0,100,40,400,200))==='{"x":0.5,"y":0}'&&JSON.stringify(favFrac(-20,500,100,40,400,200))==='{"x":0,"y":1}'&&JSON.stringify(favFrac(50,50,500,40,400,200))==='{"x":0,"y":0.313}');
 check('oblíbené: posun šipkou v mezích',JSON.stringify(favStep({x:.5,y:.98},.05,.05))==='{"x":0.55,"y":1}'&&JSON.stringify(favStep({x:.02,y:.5},-.05,0))==='{"x":0,"y":0.5}');
