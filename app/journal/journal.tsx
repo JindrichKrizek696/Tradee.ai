@@ -8,6 +8,7 @@ import {TradesTable} from './trades-table';
 import {TradeDetail} from './trade-detail';
 import {Journaling} from '../journaling/journaling';
 import {StatsView} from './stats-view';
+import {T212Import} from './t212-import';
 import {useOpenPositions,byAccount,OpenPositionsTab} from '../open-positions';
 import './journal.css';
 type Tab='trades'|'stats'|'open';
@@ -45,7 +46,8 @@ export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?
  return <div className="j-page">
   {banner}<div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  {tab==='open'?<>{(data.accounts.length>1||filter.account!=='all')&&<div className="j-filters"><label className="j-field"><span>Účet</span><select value={filter.account} onChange={e=>setFilter(f=>({...f,account:e.target.value}))}><option value="all">Všechny</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}{trades.some(t=>t.source==='manual')&&<option value="manual">Ručně</option>}</select></label></div>}<OpenPositionsTab data={openData} now={openNow} account={filter.account} onOpen={id=>open('mt:'+id)}/></>:!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p></div>:<>
+  {tab==='open'?<>{(data.accounts.length>1||filter.account!=='all')&&<div className="j-filters"><label className="j-field"><span>Účet</span><select value={filter.account} onChange={e=>setFilter(f=>({...f,account:e.target.value}))}><option value="all">Všechny</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}{trades.some(t=>t.source==='manual')&&<option value="manual">Ručně</option>}</select></label></div>}<OpenPositionsTab data={openData} now={openNow} account={filter.account} onOpen={id=>open('mt:'+id)}/></>:!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p><p>Obchoduješ CFD u Trading 212? Nahraj export historie (CSV).</p>{!viewAs&&<T212Import onDone={reload} compact/>}</div>:<>
+   {!viewAs&&tab==='trades'&&<T212Import onDone={reload}/>}
    <Filters filter={filter} onChange={setFilter} trades={trades} accounts={data.accounts}/>
    {tab==='trades'?<TradesTable trades={list} currency={data.currency} onOpen={open}/>:<StatsView trades={list} currency={data.currency}/>}
   </>}

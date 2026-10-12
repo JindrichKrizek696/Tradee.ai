@@ -129,3 +129,22 @@
 @media (max-width:760px){.j-holdrow{grid-template-columns:80px 1fr 80px;}.j-holdrow b{grid-column:1/-1;text-align:left}.j-heat{min-width:520px}}
 
 .j-heatctl{display:flex;gap:8px;flex-wrap:wrap}
+/* Import z Trading 212 */
+.j-src.t212{border-color:var(--t-brand-fg);color:var(--t-brand-fg)}
+.j-import{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.j-import.compact{margin:12px 0 0}
+.j-import-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.j-import-ok{font-size:14px;color:var(--bull-text)}
+.j-import-help{font-size:12px}
+.j-import-card{display:flex;flex-direction:column;gap:12px}
+.j-import-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.j-import-head h2{margin:0}
+.j-icon-btn{all:unset;cursor:pointer;display:inline-flex;padding:6px;border-radius:999px;color:var(--t-muted)}
+.j-icon-btn:hover{background:var(--t-surface-3);color:var(--t-fg)}
+.j-icon-btn:focus-visible{outline:2px solid var(--t-brand-fg);outline-offset:2px}
+.j-import-map p{margin:0 0 6px;font-size:14px}
+.j-import-map .ck-sym{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--t-border)}
+.j-import-map .ck-sym code{background:var(--t-surface-3);border-radius:6px;padding:1px 6px;font-size:13px;color:var(--t-fg-2);min-width:90px}
+.j-import-map select{flex:0 1 240px;max-width:100%}
+.j-import-actions{display:flex;gap:10px;flex-wrap:wrap}
+@media (max-width:640px){.j-import-map select{flex:1 1 100%}}

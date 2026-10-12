@@ -8,7 +8,7 @@ export const splitTags=(...s:string[])=>[...new Set(s.join(',').split(',').map(t
 export function mtRowToTrade(r:MtJournalRow,currency:string,rates:Rates):JournalTrade{
  const close=Number(r.close_ts),open=Number(r.open_ts),date=pragueDate(close),net=Number(r.net),conv=convert(net,r.acc_currency,currency,date,rates),risk=num(r.risk_money);
  const perR=(v:number|null)=>v!==null&&risk!==null&&risk>0?r2(v/risk):null;
- return {id:'mt:'+r.id,source:'mt',accountId:r.account_id,account:r.acc_name||'••••'+String(r.acc_login).slice(-4),symbol:r.symbol,instrument:null,side:r.side==='sell'?'sell':'buy',openTs:open,closeTs:close,date,volume:Number(r.volume_max),net,accountCurrency:r.acc_currency,pnl:conv??net,converted:conv!==null,r:num(r.r_result),rr:num(r.rr_planned),riskPct:num(r.risk_pct),mfeR:perR(num(r.mfe_money)),maeR:perR(num(r.mae_money)),holdMs:Math.max(0,close-open),tags:splitTags(r.tags,r.tags_manual),hasNote:Number(r.has_note)>0,files:Number(r.files),checklist:null};
+ return {id:'mt:'+r.id,source:'mt',accountId:r.account_id,account:r.acc_name||'••••'+String(r.acc_login).slice(-4),symbol:r.symbol,instrument:null,side:r.side==='sell'?'sell':'buy',openTs:open,closeTs:close,date,volume:Number(r.volume_max),net,accountCurrency:r.acc_currency,pnl:conv??net,converted:conv!==null,r:num(r.r_result),rr:num(r.rr_planned),riskPct:num(r.risk_pct),mfeR:perR(num(r.mfe_money)),maeR:perR(num(r.mae_money)),holdMs:Math.max(0,close-open),tags:splitTags(r.tags,r.tags_manual),hasNote:Number(r.has_note)>0,files:Number(r.files),checklist:null,...(r.acc_platform?{platform:String(r.acc_platform)}:{})};
 }
 // ruční zápis: jen datum, trh, výsledek, poznámka; čas = poledne UTC daného dne (kvůli řazení)
 export function manualRowToTrade(r:ManualJournalRow):JournalTrade{

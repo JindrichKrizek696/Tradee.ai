@@ -25,7 +25,7 @@ export function TradesTable({trades,currency,onOpen}:{trades:JournalTrade[];curr
     <td data-l="R">{fmtR(t.r)}</td>
     <td data-l="Držení">{fmtHold(t.holdMs)}</td>
     <td data-l="Tagy">{t.tags.map(x=><span key={x} className="j-chip">#{x}</span>)}</td>
-    <td className="j-icons">{t.hasNote&&<FileText size={14} aria-label="Má poznámku"/>}{t.files>0&&<ImageIcon size={14} aria-label="Má screenshot"/>}<span className={'j-src '+t.source}>{t.source==='mt'?'MT':'Ručně'}</span></td>
+    <td className="j-icons">{t.hasNote&&<FileText size={14} aria-label="Má poznámku"/>}{t.files>0&&<ImageIcon size={14} aria-label="Má screenshot"/>}<span className={'j-src '+(t.platform==='t212'?'t212':t.source)} title={t.platform==='t212'?'Importováno z Trading 212':undefined}>{t.platform==='t212'?'T212':t.source==='mt'?'MT':'Ručně'}</span></td>
    </tr>)}</tbody>
   </table>
   {pages>1&&<div className="j-pager"><button type="button" disabled={p===0} onClick={()=>setPage(p-1)}>← Předchozí</button><span>{p+1} / {pages}</span><button type="button" disabled={p>=pages-1} onClick={()=>setPage(p+1)}>Další →</button></div>}

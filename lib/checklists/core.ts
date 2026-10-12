@@ -4,10 +4,10 @@ export type Checklist={id:string;name:string;items:ChecklistItem[];markets:strin
 export type SnapshotList={checklistId:string;name:string;items:(ChecklistItem&{checked:boolean})[]};
 export const LIMITS={lists:20,items:30,name:60,item:120};
 export function newItemId(){const a='abcdefghijklmnopqrstuvwxyz0123456789';let s='';const b=crypto.getRandomValues(new Uint8Array(8));for(const x of b)s+=a[x%a.length];return s}
-const INDEX:Record<string,string>={NAS100:'^NDX',US100:'^NDX',USTEC:'^NDX',NDX:'^NDX',NQ:'^NDX',NASDAQ:'^NDX',NASDAQ100:'^NDX',US500:'^GSPC',SPX500:'^GSPC',SP500:'^GSPC',SPX:'^GSPC',ES:'^GSPC'};
+const INDEX:Record<string,string>={NAS100:'^NDX',US100:'^NDX',USTEC:'^NDX',NDX:'^NDX',NQ:'^NDX',NASDAQ:'^NDX',NASDAQ100:'^NDX',TECH100:'^NDX',US500:'^GSPC',USA500:'^GSPC',SPX500:'^GSPC',SP500:'^GSPC',SPX:'^GSPC',ES:'^GSPC'};
 const CRYPTO=['BTC','ETH','SOL'];
 // komodity (futures id z lib/markets.ts): běžné názvy u MT brokerů
-const COMMODITY:Record<string,string>={XAUUSD:'GC=F',GOLD:'GC=F',XAU:'GC=F',GC:'GC=F',XAGUSD:'SI=F',SILVER:'SI=F',XAG:'SI=F',USOIL:'CL=F',WTI:'CL=F',XTIUSD:'CL=F',USCRUDE:'CL=F',CRUDEOIL:'CL=F',CL:'CL=F',UKOIL:'BZ=F',BRENT:'BZ=F',XBRUSD:'BZ=F',UKBRENT:'BZ=F',BRN:'BZ=F'};
+const COMMODITY:Record<string,string>={XAUUSD:'GC=F',GOLD:'GC=F',XAU:'GC=F',GC:'GC=F',XAGUSD:'SI=F',SILVER:'SI=F',XAG:'SI=F',USOIL:'CL=F',WTI:'CL=F',XTIUSD:'CL=F',USCRUDE:'CL=F',CRUDEOIL:'CL=F',CRUDE:'CL=F',CL:'CL=F',UKOIL:'BZ=F',BRENT:'BZ=F',XBRUSD:'BZ=F',UKBRENT:'BZ=F',BRN:'BZ=F'};
 const commodityOf=(base:string)=>COMMODITY[base]??COMMODITY[base.match(/^(XAUUSD|XAGUSD|XTIUSD|XBRUSD|USOIL|UKOIL)[A-Z]{0,2}$/)?.[1]??''];
 // MT symbol → id trhu Tradee; ruční přiřazení (klíč velkými písmeny, '' = nesledovat) má přednost; nepoznané → null
 export function mapSymbol(symbol:string,ids:readonly string[],userMap:Record<string,string>):string|null{

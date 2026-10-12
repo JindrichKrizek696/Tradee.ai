@@ -31,7 +31,7 @@ export type EvalTrade={id:string;accountId:string;side:'buy'|'sell';status:'open
 export type Violation={rule:RuleId;detail:Record<string,unknown>;needsReason:boolean};
 export const NEWS_WINDOW_MS=15*60*1000;
 // 6písmenné FX páry (i s příponou .m, #, -ecn) → dvě měny; ropa → OIL (EIA, OPEC); zlato/stříbro jménem → USD; ostatní symboly → []
-const OIL_SYM=/^(USOIL|UKOIL|WTI|BRENT|XTIUSD|XBRUSD|USCRUDE|CRUDEOIL)/,METAL_SYM=/^(GOLD|SILVER)$/;
+const OIL_SYM=/^(USOIL|UKOIL|WTI|BRENT|XTIUSD|XBRUSD|USCRUDE|CRUDE)/,METAL_SYM=/^(GOLD|SILVER)$/;
 export function currenciesOf(symbol:string):string[]{
  const base=String(symbol||'').trim().toUpperCase().replace(/^[#.]+/,'').split(/[._+-]/)[0];
  if(OIL_SYM.test(base))return ['OIL'];

@@ -10,7 +10,7 @@ import {CheckSet} from '../checklist-card';
 import type {SnapshotList} from '@/lib/checklists/core';
 export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void;readOnly?:boolean;query?:string};
 const KIND:Record<string,string>={open:'Otevření',add:'Přidání',partial_close:'Částečné uzavření',close:'Uzavření',sl:'Stop loss',tp:'Take profit'};
-const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus'};
+const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus',manual:'ručně',market:'tržní příkaz',pending:'čekající příkaz'};
 const why=(r:string|null)=>r?REASON[r]||r:'–';
 async function send(url:string,method:string,body?:unknown):Promise<any>{
  const form=body instanceof FormData,r=await fetch(url,{method,headers:form||body===undefined?undefined:{'Content-Type':'application/json'},body:form?body:body===undefined?undefined:JSON.stringify(body)});
@@ -56,11 +56,12 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
  const p=d?.position;
  if(!d||!p)return <div className="j-detail">{head}{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám obchod…</p>}</div>;
  const cur=p.acc_currency,money=(v:number|null)=>v===null?'–':fmtMoney(v,cur),inR=(v:number|null)=>v!==null&&p.risk_money?` (${fmtR(Math.round(v/p.risk_money*100)/100)})`:'';
- const open=p.status==='open';
+ const open=p.status==='open',t212=p.platform==='t212';
  const rows:[string,string][]=[
   ['Vstup',fmtNum(p.open_price)],['Výstup (průměr)',open?'otevřená':fmtNum(p.close_price_avg)],['Objem (max.)',fmtNum(p.volume_max,2)],
   ['Výsledek',open?'otevřená':money(p.net)+(trade&&trade.converted&&cur!==currency?` · ${fmtMoney(trade.pnl,currency)}`:'')],
-  ['Zisk / komise / swap',open?'–':`${money(p.profit)} / ${money(p.commission)} / ${money(p.swap)}`],
+  t212?['Zisk / FX poplatek / swap',`${money(p.profit)} / ${money(p.fee)} / ${money(p.swap)}`]:['Zisk / komise / swap',open?'–':`${money(p.profit)} / ${money(p.commission)} / ${money(p.swap)}`],
+  ...(t212?[['Spread (už v ceně)',p.spread_cost===null||p.spread_cost===undefined?'–':money(-p.spread_cost)] as [string,string]]:[]),
   ['SL / TP na začátku',`${fmtNum(p.sl_initial)} / ${fmtNum(p.tp_initial)}`],['SL / TP na konci',`${fmtNum(p.sl_last)} / ${fmtNum(p.tp_last)}`],
   ['Riziko',p.risk_money===null?'bez stop lossu':money(-p.risk_money)+(p.risk_pct!==null?` (${fmtNum(p.risk_pct,2)} % účtu)`:'')],
   ['R:R plán / výsledek',`${p.rr_planned===null?'–':fmtNum(p.rr_planned,2)} / ${fmtR(p.r_result)}`],
@@ -68,11 +69,11 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
   ['MAE (nejvíc ve ztrátě)',money(p.mae_money)+inR(p.mae_money)],
   ['Slippage',p.slippage_points===null?'–':fmtNum(p.slippage_points,1)+' b.'],['Spread při vstupu',p.spread_entry===null?'–':fmtNum(p.spread_entry,1)+' b.'],
   ['Otevřeno / zavřeno',`${why(p.open_reason||null)} / ${why(p.close_reason)}`],
-  ['Držení',p.close_ts?fmtHold(p.close_ts-p.open_ts):'otevřená'],['Magic / komentář',`${p.magic||'–'} / ${p.comment||'–'}`]];
+  ['Držení',p.close_ts?fmtHold(p.close_ts-p.open_ts):'otevřená'],t212?['Instrument',p.comment||'–']:['Magic / komentář',`${p.magic||'–'} / ${p.comment||'–'}`]];
  return <div className="j-detail">{head}
   <h1 className="j-title">{p.symbol} <span className={'j-side '+p.side}>{p.side==='buy'?'Buy':'Sell'}</span> <small>{p.acc_name} · {fmtDateTime(p.open_ts)} → {p.close_ts?fmtDateTime(p.close_ts):'otevřená'}</small></h1>
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  <section className="j-card">{d.bars&&d.bars.data.length?<><TradeChart bars={d.bars.data} position={p} changes={d.changes}/><small className="j-muted">{open?'Obchod běží · graf se obnovuje každých 5 min, když běží EA · ':''}Svíčky {d.bars.tf} · čas Europe/Praha · tečkovaně nejlepší (MFE) a nejhorší (MAE) cena</small></>:<p className="j-muted">{open?'Graf se objeví do 5 minut, jakmile EA pošle svíčky (MetaTrader musí běžet).':'Graf není k dispozici – svíčky posílá EA od verze 1.1 a jen pro obchody z posledních 30 dní.'}</p>}</section>
+  <section className="j-card">{d.bars&&d.bars.data.length?<><TradeChart bars={d.bars.data} position={p} changes={d.changes}/><small className="j-muted">{open?'Obchod běží · graf se obnovuje každých 5 min, když běží EA · ':''}Svíčky {d.bars.tf} · čas Europe/Praha · tečkovaně nejlepší (MFE) a nejhorší (MAE) cena</small></>:<p className="j-muted">{t212?'Graf u obchodů importovaných z Trading 212 není k dispozici.':open?'Graf se objeví do 5 minut, jakmile EA pošle svíčky (MetaTrader musí běžet).':'Graf není k dispozici – svíčky posílá EA od verze 1.1 a jen pro obchody z posledních 30 dní.'}</p>}</section>
   <div className="j-grid">
    <section className="j-card"><h2>Čísla</h2><dl className="j-dl">{rows.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></section>
    <section className="j-card"><h2>Průběh</h2><ol className="j-timeline">{d.changes.map((c,i)=><li key={i}><time>{fmtDateTime(c.ts)}</time><b>{KIND[c.kind]||c.kind}</b><span>{describe(c)}</span></li>)}</ol></section>
