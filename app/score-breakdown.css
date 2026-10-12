@@ -46,3 +46,4 @@
 .sb-body{padding:2px 0 8px}
 .sb-wline{display:flex;align-items:center;gap:10px;margin:2px 0 4px}
 .sb-wline .sb-bar{flex:1;max-width:140px}
+.n-audit:has(>.sb-row:not(.open))>.n-audit-button{display:none}

@@ -16,7 +16,7 @@ export function ComponentRow({p,scale,compact}:{p:V3Part;scale:number;compact?:b
  useEffect(()=>{if(!open)return;const close=(e:PointerEvent|KeyboardEvent)=>{if(e instanceof KeyboardEvent?e.key==='Escape':!ref.current?.contains(e.target as Node))setOpen(false)};addEventListener('pointerdown',close);addEventListener('keydown',close);return()=>{removeEventListener('pointerdown',close);removeEventListener('keydown',close)}},[open]);
  const c=p.contribution,w=c===null||!scale?0:Math.min(50,Math.abs(c)/scale*50);
  const when=[p.asOfLabel,p.age].filter(Boolean).join(' · ');
- return <div className={'sb-row'+(compact?' compact':'')+(p.status!=='ok'?' off':'')} ref={ref} onMouseLeave={()=>setOpen(false)}>
+ return <div className={'sb-row'+(compact?' compact':'')+(p.status!=='ok'?' off':'')+(more?' open':'')} ref={ref} onMouseLeave={()=>setOpen(false)}>
   <div className="sb-top">
    <span className="sb-label">{p.label}
     <button type="button" className="sb-info" aria-label={'Co je '+p.label} aria-describedby={id} data-open={open||undefined} onClick={()=>setOpen(true)} onMouseEnter={()=>setOpen(true)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)}><Info size={14} aria-hidden/></button>
