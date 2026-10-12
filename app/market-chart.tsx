@@ -220,9 +220,10 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  useEffect(()=>{
   const key=(e:KeyboardEvent)=>{
    const box=card.current,k=keys.current;
-   if(!box||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey||editable(e.target))return;
-   if(e.key==='Escape'){if(k.pop)setPop(null);else if(k.fs&&!k.drawing&&!box.querySelector('.mc-sel'))full(false)}
-   else if((e.key==='f'||e.key==='F')&&!e.repeat&&(k.fs||k.fill||box.matches(':hover')||box.contains(document.activeElement))){e.preventDefault();full(!k.fs)}
+   if(!box||e.ctrlKey||e.metaKey||e.altKey||editable(e.target))return;
+   // Esc spotřebované kreslením (defaultPrevented) celou obrazovku neukončí
+   if(e.key==='Escape'){if(k.pop)setPop(null);else if(k.fs&&!e.defaultPrevented&&!k.drawing&&!box.querySelector('.mc-sel'))full(false)}
+   else if(!e.defaultPrevented&&(e.key==='f'||e.key==='F')&&!e.repeat&&(k.fs||k.fill||box.matches(':hover')||box.contains(document.activeElement))){e.preventDefault();full(!k.fs)}
   };
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
  },[full]);

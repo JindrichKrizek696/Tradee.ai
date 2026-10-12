@@ -258,7 +258,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    const mod=e.metaKey||e.ctrlKey,k=e.key.toLowerCase();
    if(mod&&!e.altKey&&(k==='z'||(k==='y'&&e.ctrlKey&&!e.metaKey))){e.preventDefault();if(k==='y'||e.shiftKey)redo();else undo();return}
    if(e.key==='Enter'&&draft.current?.type==='path'){e.preventDefault();finishPath()}
-   else if(e.key==='Escape'&&(st.tool!=='cursor'||draft.current||drag.current||st.selected||st.temp)){cancel();setSelected(null);setTemp(null)}
+   // preventDefault = Esc spotřebovalo kreslení (graf pak neukončí celou obrazovku – React mezitím stihne překreslit a výběr už v DOM není)
+   else if(e.key==='Escape'&&(st.tool!=='cursor'||draft.current||drag.current||st.selected||st.temp)){e.preventDefault();cancel();setSelected(null);setTemp(null)}
    else if((e.key==='Delete'||e.key==='Backspace')&&st.selected){e.preventDefault();remove(st.selected)}
   };
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
