@@ -14,7 +14,7 @@ if [ -f scripts/lab-paper.mjs ]; then
   (
     exec 8>/tmp/tradee-lab-paper.lock
     flock -n 8 || { echo "!! $(date -Is) lab-paper: předchozí běh ještě běží"; exit 0; }
-    timeout 300 node --experimental-strip-types scripts/lab-paper.mjs
+    OWNER_EMAIL="$(grep '^OWNER_EMAIL=' .auth.env 2>/dev/null | cut -d= -f2- | tr -d '"\r')" timeout 300 node --experimental-strip-types scripts/lab-paper.mjs
   ) || echo "!! $(date -Is) lab-paper selhal (živé ceny jsou uložené)"
 fi
 exit $rc
