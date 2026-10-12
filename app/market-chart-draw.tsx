@@ -55,7 +55,9 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const [drawings,setDrawings]=useState<Drawing[]>([]),[temp,setTemp]=useState<Drawing|null>(null),[selected,setSelected]=useState<string|null>(null);
  const [magnet,setMagnet]=useState(false),[color,setColor]=useState<DrawColor>('brand');
  const [edit,setEdit]=useState<Edit|null>(null),[save,setSave]=useState<Save>('idle'),[saveError,setSaveError]=useState('');
- const [styleOpen,setStyleOpen]=useState(false);
+ const [styleOpen,setStyleOpen]=useState(false),keepStyle=useRef(false);
+ // výběr jiné kresby zavře panel stylu (otevírá se až tlačítkem); výjimka = klik na R:R pozice
+ useEffect(()=>{if(keepStyle.current){keepStyle.current=false;return}setStyleOpen(false)},[selected]);
  const [last,setLast]=useState<Record<string,DrawType>>(()=>Object.fromEntries(TOOL_GROUPS.map(g=>[g.id,g.tools[0]])));
  const [menu,setMenu]=useState<{group:string;x:number;y:number}|null>(null);
  // aktuální stav pro handlery myši (registrují se jednou)
@@ -232,7 +234,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    const g=drag.current;if(!g)return;drag.current=null;
    if(g.cur){if(g.temp)setTemp(g.cur);else commit(S.current.drawings.map(d=>d.id===g.id?g.cur!:d))}
    // klik (bez tažení) na popisek R:R otevře panel stylu se zadáním R:R
-   else if(g.rr&&!g.temp){setStyleOpen(true);setRrFocus({id:g.id,n:Date.now()})}
+   else if(g.rr&&!g.temp){keepStyle.current=true;setStyleOpen(true);setRrFocus({id:g.id,n:Date.now()})}
   }
   const opt={capture:true,passive:false} as const;
   box.addEventListener('mousedown',down,opt);box.addEventListener('touchstart',down,opt);
