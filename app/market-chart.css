@@ -209,3 +209,5 @@ select.mc-tfsel{display:none}
 .mc-fib-x{border:0;background:transparent;color:var(--t-muted);font:inherit;font-size:14px;line-height:1;padding:3px 5px;border-radius:5px;cursor:pointer}
 .mc-fib-x:hover{color:var(--bear-text,var(--bear));background:var(--t-surface-3)}
 .mc-fib-x:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
+.mc-row input[type=text].mc-num{flex:0 0 60px;width:60px;font-variant-numeric:tabular-nums}
+.mc-row input[aria-invalid=true]{border-color:var(--bear)}

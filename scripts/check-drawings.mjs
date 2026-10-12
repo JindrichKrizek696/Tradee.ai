@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -319,5 +319,16 @@ check('hrana: fib – hladina 0 zůstane přesně na kotvě',fbE.a[1].p===200&&M
 const fS={type:'fib',pts:[{x:10,y:100},{x:110,y:0}],levels:[30,60]};
 check('hrana: fib – úchyty u krajních zapnutých hladin',edgeHandles(fS).map(e=>e.edge+':'+e.pt.x+','+e.pt.y).join()==='top:60,30,bottom:60,60,left:10,45,right:110,45'&&edgeHandles({...fS,levels:[30]}).map(e=>e.pt.y).join()==='0,100,50,50',edgeHandles(fS));
 check('zásah: fib jen zapnuté hladiny',hitShape(fS,{x:50,y:31},200,200)?.part==='body'&&hitShape(fS,{x:50,y:45},200,200)===null);
+// střední čára kanálu
+const sCh=styleOf({type:'channel',color:'bull'});
+check('kanál: výchozí střed (zapnutý, půlka, barva kresby)',sCh.mid===true&&sCh.midp===.5&&sCh.midc==='bull'&&capsOf('channel').mid&&!capsOf('trend').mid,sCh);
+const chM={id:'cm',type:'channel',a:[{t:T,p:1},{t:T+3600000,p:2},{t:T,p:3}],color:'brand'};
+r=parseDrawings([{...chM,s:{mid:false,midp:0.3333,midc:'#AA00FF'}}]);
+check('kanál: střed – vypnutí, poloha na 3 místa, vlastní barva',r.ok&&r.drawings[0].s.mid===false&&r.drawings[0].s.midp===.333&&r.drawings[0].s.midc==='#aa00ff',r);
+for(const [k,v] of [['mid','ano'],['midp',-.1],['midp',1.01],['midp','0.5'],['midc','pink']])check('kanál: odmítne '+k+'='+JSON.stringify(v),!parseDrawings([{...chM,s:{[k]:v}}]).ok);
+check('kanál: krajní polohy 0 a 1 projdou',parseDrawings([{...chM,s:{midp:0}}]).ok&&parseDrawings([{...chM,s:{midp:1}}]).ok);
+const cl=channelLine({x:0,y:50},{x:100,y:70},-40,.25),cl5=channelLine({x:0,y:50},{x:100,y:70},-40,.5);
+check('kanál: čára uvnitř kanálu podle podílu',cl[0].x===0&&cl[0].y===40&&cl[1].x===100&&cl[1].y===60&&cl5[0].y===30&&cl5[1].y===50&&channelLine({x:0,y:50},{x:1,y:50},-40,1)[0].y===10,[cl,cl5]);
+check('číslo: čárka i tečka, rozsah, zaokrouhlení',numInput('0,25',0,1,3)===.25&&numInput('0.3333',0,1,3)===.333&&numInput('1',0,1,3)===1&&numInput('1,5',0,1,3)===null&&numInput('-0',0,1,3)===0&&numInput('abc',0,1,3)===null&&numInput(' ',0,1,3)===null);
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

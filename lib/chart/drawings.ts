@@ -29,7 +29,7 @@ export type LabelMode=typeof LABEL_MODES[number];
 // hladina Fibonacciho: hodnota (0,618) a zda se kreslí
 export type FibLevel={v:number;on:boolean};
 // styl kresby – všechna pole volitelná (staré kresby styl nemají a vykreslí se stejně jako dřív)
-// lv/lb/pct = hladiny a popisky Fibonacciho
+// lv/lb/pct = hladiny a popisky Fibonacciho; mid/midp/midc = střední čára kanálu (zapnutá, poloha 0–1 od čáry a–b, barva)
 export type DrawStyle={
  lw?:1|2|3|4;ls?:LineStyleName;op?:number;
  fill?:boolean;border?:boolean;bc?:DrawColor;
@@ -37,6 +37,7 @@ export type DrawStyle={
  extL?:boolean;extR?:boolean;
  risk?:number;
  lv?:FibLevel[];lb?:LabelMode;pct?:boolean;
+ mid?:boolean;midp?:number;midc?:DrawColor;
 };
 export type Drawing={id:string;type:DrawType;a:Anchor[];color:DrawColor;text?:string;ray?:boolean;s?:DrawStyle;tfs?:string[]};
 export const MAX_DRAWINGS=200,MAX_TEXT=200,MAX_POINTS=300,MAX_PATH=100,MAX_TOTAL_POINTS=20000;
@@ -61,7 +62,7 @@ const num=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v);
 const anchorOk=(a:unknown):a is Anchor=>!!a&&typeof a==='object'&&num((a as Anchor).t)&&num((a as Anchor).p)&&(a as Anchor).t>=0&&(a as Anchor).t<7258118400000&&Math.abs((a as Anchor).p)<1e12;
 
 // --- schopnosti stylu podle typu (co nabídnout v panelu) ---
-export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean};
+export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean;mid:boolean};
 const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange','fibext','pitchfork','gann'];
 export function capsOf(t:DrawType):Caps{
  return {
@@ -71,9 +72,10 @@ export function capsOf(t:DrawType):Caps{
   extend:['trend','ray','channel','fib','rect','fibext','pitchfork'].includes(t),
   risk:t==='long'||t==='short',
   levels:t==='fib'||t==='fibext',
+  mid:t==='channel',
  };
 }
-export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean};
+export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor};
 // výchozí hladiny podle nástroje (u ostatních nástrojů žádné)
 export const defaultLevels=(t:DrawType):FibLevel[]=>t==='fib'?FIB_DEFAULT:t==='fibext'?FIB_EXT_DEFAULT:[];
 // výchozí styl doplněný o uložené hodnoty (staré kresby: čáry 2 px, zóna s výplní i okrajem 1 px, text bez pozadí; pozice bez okraje)
@@ -86,6 +88,7 @@ export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
   extL:s.extL??false,extR:s.extR??(d.ray===true||d.type==='ray'||d.type==='pitchfork'),
   risk:s.risk??null,
   lv:s.lv??defaultLevels(d.type),lb:s.lb??'both',pct:s.pct??false,
+  mid:s.mid??true,midp:s.midp??.5,midc:s.midc??d.color,
  };
 }
 export const TEXT_PX:Record<TextSize,number>={S:10,M:12,L:16,XL:22};
@@ -122,11 +125,11 @@ export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:str
  if(typeof v!=='object'||Array.isArray(v))return BAD_STYLE;
  const r=v as Record<string,unknown>,s:DrawStyle={};
  const color=isDrawColor;
- const bool=(k:'fill'|'border'|'extL'|'extR'|'pct')=>{if(r[k]===undefined)return true;if(typeof r[k]!=='boolean')return false;s[k]=r[k] as boolean;return true};
+ const bool=(k:'fill'|'border'|'extL'|'extR'|'pct'|'mid')=>{if(r[k]===undefined)return true;if(typeof r[k]!=='boolean')return false;s[k]=r[k] as boolean;return true};
  if(r.lw!==undefined){if(r.lw!==1&&r.lw!==2&&r.lw!==3&&r.lw!==4)return BAD_STYLE;s.lw=r.lw}
  if(r.ls!==undefined){if(!(LINE_STYLES as readonly unknown[]).includes(r.ls))return BAD_STYLE;s.ls=r.ls as LineStyleName}
  if(r.op!==undefined){if(!num(r.op)||r.op<.1||r.op>1)return BAD_STYLE;s.op=Math.round(r.op*100)/100}
- if(!bool('fill')||!bool('border')||!bool('extL')||!bool('extR')||!bool('pct'))return BAD_STYLE;
+ if(!bool('fill')||!bool('border')||!bool('extL')||!bool('extR')||!bool('pct')||!bool('mid'))return BAD_STYLE;
  if(r.bc!==undefined){if(!color(r.bc))return BAD_STYLE;s.bc=normColor(r.bc as DrawColor)}
  if(r.tc!==undefined){if(!color(r.tc))return BAD_STYLE;s.tc=normColor(r.tc as DrawColor)}
  if(r.ta!==undefined){if(!(TEXT_ALIGNS as readonly unknown[]).includes(r.ta))return BAD_STYLE;s.ta=r.ta as TextAlign}
@@ -134,6 +137,8 @@ export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:str
  if(r.risk!==undefined){if(!num(r.risk)||r.risk<0||r.risk>1e9)return BAD_STYLE;s.risk=r.risk}
  if(r.lv!==undefined){const lv=parseLevels(r.lv);if(!lv)return BAD_STYLE;s.lv=lv}
  if(r.lb!==undefined){if(!(LABEL_MODES as readonly unknown[]).includes(r.lb))return BAD_STYLE;s.lb=r.lb as LabelMode}
+ if(r.midp!==undefined){if(!num(r.midp)||r.midp<0||r.midp>1)return BAD_STYLE;s.midp=Math.round(r.midp*1000)/1000}
+ if(r.midc!==undefined){if(!color(r.midc))return BAD_STYLE;s.midc=normColor(r.midc as DrawColor)}
  return {ok:true,s:Object.keys(s).length?s:undefined};
 }
 // validace a normalizace (neznámé klíče se zahodí); chyby česky
@@ -308,11 +313,13 @@ export function nextLevel(lv:readonly FibLevel[]):number|null{
  for(let k=1;k<=-FIB_MIN*2;k++)if(!has.has(-k/2))return -k/2;
  return null;
 }
-// zadaná hodnota hladiny („0,705“ i „0.705“) v rozsahu −5…10; jinak null
-export function levelInput(text:string):number|null{
+// zadané číslo („0,705“ i „0.705“) v rozsahu min–max zaokrouhlené na dec desetinných míst; jinak null
+export function numInput(text:string,min:number,max:number,dec:number):number|null{
  const t=text.trim().replace(',','.');if(!t)return null;
- const n=Number(t);return Number.isFinite(n)&&n>=FIB_MIN&&n<=FIB_MAX?roundLevel(n):null;
+ const n=Number(t),k=10**dec;return Number.isFinite(n)&&n>=min&&n<=max?Math.round(n*k)/k||0:null;
 }
+// hodnota hladiny v rozsahu −5…10
+export const levelInput=(text:string)=>numInput(text,FIB_MIN,FIB_MAX,4);
 // --- Fibonacci extension: a→b je impuls, c bod korekce; hladina = c + (b − a) × úroveň ---
 export function fibExtLevels(a:Anchor,b:Anchor,c:Anchor,levels:readonly number[]=FIB_EXT_LEVELS){return levels.map(level=>({level,price:c.p+(b.p-a.p)*level}))}
 
@@ -514,6 +521,8 @@ export function channelOffset(a:Pt,b:Pt,c:Pt){
  const dx=b.x-a.x;if(!dx)return c.x-a.x;
  return c.y-(a.y+(b.y-a.y)*(c.x-a.x)/dx);
 }
+// čára uvnitř kanálu: úsečka p→q posunutá o podíl k (0 = čára a–b, 1 = rovnoběžka, 0,5 = střed)
+export const channelLine=(p:Pt,q:Pt,off:number,k:number):Seg=>[{x:p.x,y:p.y+off*k},{x:q.x,y:q.y+off*k}];
 const inPoly=(p:Pt,poly:Pt[])=>{let ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)ins=!ins}return ins};
 // tvar kresby v pixelech (body podle kotev; fib má navíc y hladin; text box; popisek poznámky; konec úrovně do dotyku)
 export type Box={x:number;y:number;w:number;h:number};

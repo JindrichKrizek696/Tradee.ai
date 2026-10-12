@@ -1,7 +1,7 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,channelLine,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 
 export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
@@ -133,7 +133,8 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     const off=channelOffset(a,b,shape.pts[2]??b),[p,q]=extendSeg(a,b,w,h,st.extL,st.extR),p2={x:p.x,y:p.y+off},q2={x:q.x,y:q.y+off};
     if(st.fill){ctx.fillStyle=withAlpha(c,.1);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(q2.x,q2.y);ctx.lineTo(p2.x,p2.y);ctx.closePath();ctx.fill()}
     line(p,q);line(p2,q2);
-    ctx.save();ctx.globalAlpha=st.op*.6;ctx.lineWidth=1;ctx.setLineDash([4,4]);line({x:p.x,y:p.y+off/2},{x:q.x,y:q.y+off/2});ctx.restore();
+    // střední čára: volitelná, poloha 0–1 (výchozí půlka) a vlastní barva
+    if(st.mid){const [m0,m1]=channelLine(p,q,off,st.midp);ctx.save();ctx.globalAlpha=st.op*.6;ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.strokeStyle=colorOf(P,st.midc);line(m0,m1);ctx.restore()}
     break;
    }
    case 'rect':{
