@@ -3,7 +3,7 @@ import {normalizePrefs} from '@/lib/chart/drawings';
 import {loadPrefs,savePrefs} from '@/lib/chart/prefs-store';
 const NO_STORE={'Cache-Control':'private, no-store'};
 const bad=(error:string)=>Response.json({error},{status:400,headers:NO_STORE});
-// presety a výchozí vzhled nástrojů kreslení (a vlastní barvy) přihlášeného uživatele
+// presety a výchozí vzhled nástrojů kreslení, vlastní barvy a oblíbené nástroje (fav i s polohou plovoucího panelu) přihlášeného uživatele
 export async function GET(req:Request){
  try{const u=await identity(req);return Response.json({prefs:await loadPrefs(db(),u.id)},{headers:NO_STORE})}catch(e){return failed(e)}
 }

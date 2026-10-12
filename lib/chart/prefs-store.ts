@@ -1,4 +1,4 @@
-// Presety a výchozí vzhled nástrojů kreslení v DB (drawing_prefs, JSON per uživatel).
+// Presety a výchozí vzhled nástrojů kreslení, vlastní barvy a oblíbené nástroje v DB (drawing_prefs, JSON per uživatel).
 import type {Db} from '../mysql.ts';
 import {emptyPrefs,parsePrefs,type DrawPrefs} from './drawings.ts';
 const sql=(ms:number)=>new Date(ms).toISOString().slice(0,19).replace('T',' ');
