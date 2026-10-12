@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt,arrowHead,arrowEnds,arrowOf} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt,arrowHead,arrowEnds,arrowOf,shiftMode,lockDir,lockAnchor} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -353,5 +353,10 @@ check('šipka: hrot v koncovém bodě, souměrná, čára končí uvnitř',ah.ti
 const ah4=arrowHead({x:0,y:0},{x:100,y:0},4),ahV=arrowHead({x:0,y:100},{x:0,y:0},1);
 check('šipka: větší s tloušťkou čáry, i svisle',100-ah4.l.x===20&&100-ah4.l.x>100-ah.l.x&&ahV.tip.y===0&&near(ahV.l.y,11)&&near(Math.abs(ahV.l.x),4.95)&&near(ahV.l.x,-ahV.r.x),[ah4,ahV]);
 check('šipka: krátká úsečka a room omezí délku, nulová úsečka nic',near(arrowHead({x:0,y:0},{x:10,y:0},4).l.x,0)&&near(arrowHead({x:0,y:0},{x:100,y:0},4,5).l.x,95)&&arrowHead({x:5,y:5},{x:5,y:5},2)===null);
+// Shift: vodorovně nebo svisle podle směru pohybu
+check('Shift: směr podle většího pohybu (shoda = vodorovně)',lockDir(30,10)==='h'&&lockDir(-30,-29)==='h'&&lockDir(5,-40)==='v'&&lockDir(0,1)==='v'&&lockDir(10,10)==='h'&&lockDir(0,0)==='h');
+const ref0={t:T,p:1.1},cur={t:T+7200000,p:1.25};
+check('Shift: vodorovně = cena reference, svisle = čas reference',JSON.stringify(lockAnchor(cur,ref0,'h'))===JSON.stringify({t:T+7200000,p:1.1})&&JSON.stringify(lockAnchor(cur,ref0,'v'))===JSON.stringify({t:T,p:1.25}));
+check('Shift: obdélník a mřížka čtverec, pozice jen vodorovně, čáry obojí',shiftMode('rect')==='square'&&shiftMode('gann')==='square'&&shiftMode('long')==='h'&&shiftMode('short')==='h'&&['trend','ray','path','channel','fib','fibext','pitchfork','prange','trange','measure'].every(t=>shiftMode(t)==='hv'));
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

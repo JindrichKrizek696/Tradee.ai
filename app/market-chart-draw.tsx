@@ -5,7 +5,7 @@ import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,numInput,fibLabel,arrowEnds,arrowOf,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,numInput,fibLabel,arrowEnds,arrowOf,shiftMode,lockDir,lockAnchor,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
@@ -159,15 +159,18 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   const point=(e:MouseEvent|TouchEvent)=>{const t='touches' in e?e.touches[0]??e.changedTouches[0]:e;return t?pos(t.clientX,t.clientY):null};
   const stop=(e:Event)=>{e.stopPropagation();if(e.cancelable)e.preventDefault()};
   const render=(dr:Draft)=>{prim.draft=build(dr);prim.update()};
-  // Shift drží čáru vodorovně: bod převezme cenu referenčního bodu (předchozího / druhého konce)
+  // Shift: čára vodorovně (cena referenčního bodu – předchozího / druhého konce) nebo svisle (jeho čas) podle toho, kam se kurzor pohnul víc;
+  // u obdélníku a mřížky rovnoměrný tvar (čtverec v pixelech) jako v malování; u pozic jen vodorovně
   const shiftOf=(e?:MouseEvent|TouchEvent)=>!!e&&!('touches' in e)&&e.shiftKey;
-  const level=(a:Anchor,ref:Anchor|undefined,on:boolean):Anchor=>on&&ref?{t:a.t,p:ref.p}:a;
-  // Shift u obdélníku a mřížky = rovnoměrný tvar (čtverec v pixelech) jako v malování; u čar vodorovně
-  const SQUARE=new Set(['rect','gann']);
-  const lock=(type:string,a:Anchor,ref:Anchor|undefined,on:boolean,p:Pt):Anchor=>{
-   if(!on||!ref)return a;if(!SQUARE.has(type))return level(a,ref,true);
-   const ax=conv.axis(),ry=series.current?.priceToCoordinate(ref.p);if(!ax||ry==null)return a;const r={x:ax.x0+ax.dx*conv.toL(ref.t),y:ry};const dx=p.x-r.x,dy=p.y-r.y,sz=Math.max(Math.abs(dx),Math.abs(dy));
-   return freeAt({x:r.x+(dx<0?-sz:sz),y:r.y+(dy<0?-sz:sz)})||a};
+  const refPx=(ref:Anchor):Pt|null=>{const ax=conv.axis(),ry=series.current?.priceToCoordinate(ref.p);return ax&&ry!=null?{x:ax.x0+ax.dx*conv.toL(ref.t),y:ry}:null};
+  const lock=(type:DrawType,a:Anchor,ref:Anchor|undefined,on:boolean,p:Pt):Anchor=>{
+   if(!on||!ref)return a;const mode=shiftMode(type),r=refPx(ref);
+   if(mode==='square'){if(!r)return a;const dx=p.x-r.x,dy=p.y-r.y,sz=Math.max(Math.abs(dx),Math.abs(dy));return freeAt({x:r.x+(dx<0?-sz:sz),y:r.y+(dy<0?-sz:sz)})||a}
+   if(mode==='h'||!r||lockDir(p.x-r.x,p.y-r.y)==='h')return lockAnchor(a,ref,'h');
+   // svisle: cena pod kurzorem, magnet z O/H/L/C svíčky referenčního bodu
+   const rw=raw(p),bar=S.current.magnet?S.current.bars[Math.round(conv.toL(ref.t))]:undefined;
+   return rw?{t:ref.t,p:bar?snapPrice(bar,rw.p):rw.p}:lockAnchor(a,ref,'v');
+  };
   // další bod rozkreslené kresby (klik nebo puštění po tahu)
   const advance=(dr:Draft,p:Pt,shift=false)=>{
    const a0=anchorAt(p);if(!a0)return;const a=lock(dr.type,a0,dr.fixed>0?dr.pts[dr.fixed-1]:undefined,shift,p);

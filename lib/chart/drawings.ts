@@ -517,6 +517,13 @@ export function simplifyMax(pts:Pt[],max=MAX_POINTS,tol=1.5):number[]{
  return idx;
 }
 
+// --- Shift při kreslení a tažení úchytu: obdélník a Gannova mřížka = čtverec, pozice jen vodorovně (jako dřív),
+// ostatní čáry vodorovně (stejná cena) nebo svisle (stejný čas) podle toho, kam se kurzor od referenčního bodu pohnul víc (px) ---
+export type LockDir='h'|'v';
+export const shiftMode=(t:DrawType):'square'|'h'|'hv'=>t==='rect'||t==='gann'?'square':t==='long'||t==='short'?'h':'hv';
+export const lockDir=(dx:number,dy:number):LockDir=>Math.abs(dy)>Math.abs(dx)?'v':'h';
+export const lockAnchor=(a:Anchor,ref:Anchor,dir:LockDir):Anchor=>dir==='h'?{t:a.t,p:ref.p}:{t:ref.t,p:a.p};
+
 // --- magnet: nejbližší O/H/L/C svíčky ---
 export function snapPrice(bar:{open:number;high:number;low:number;close:number}|null|undefined,p:number){
  if(!bar)return p;let best=p,dist=Infinity;
