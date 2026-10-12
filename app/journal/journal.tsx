@@ -37,10 +37,12 @@ export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?
  const banner=viewAs?<p className="j-viewas" role="status">Prohlížíš deník: <b>{viewAs.name}</b> · jen pro čtení</p>:null;
  const open=(id:string)=>{location.hash='journal/'+encodeURIComponent(id)};
  const close=()=>{location.hash='journal'};
- const pick=(k:Tab|Sec)=>{if(k==='review'||k==='backtest'||k==='notes'){if(sec!==k)location.hash=SEC_HASH[k];return}setTab(k);if(sec)location.hash='journal'};
+ // stejný hash nevyvolá hashchange (např. sloučení se načetlo z účtu až po otevření odkazu) → záložku nastavit přímo
+ const pick=(k:Tab|Sec)=>{if(k==='review'||k==='backtest'||k==='notes'){if(sec!==k){if(location.hash==='#'+SEC_HASH[k])setSec(k);else location.hash=SEC_HASH[k]}return}setTab(k);if(sec)location.hash='journal'};
  const activeTab=m&&sec?sec:tab,tabs:[Tab|Sec,string][]=[['trades','Obchody'],['stats','Statistiky'],['open',openData?`Otevřené (${openCount})`:'Otevřené'],...(m?[['review','Vyhodnocení'],['backtest','Backtest'],['notes','Poznámky']] as [Sec,string][]:[])];
  const tabBar=<div className="j-tabs" role="tablist">{tabs.map(([k,l])=><button key={k} type="button" role="tab" aria-selected={activeTab===k} className={activeTab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>;
- if(m&&sec)return <div className="j-page"><div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div><Journaling embed={sec}/></div>;
+ // key: přepnutí záložky (Vyhodnocení / Backtest / Poznámky) = nová instance, jinak by Journaling zůstal na první otevřené záložce
+ if(m&&sec)return <div className="j-page"><div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div><Journaling key={sec} embed={sec}/></div>;
  if(!data)return <div className="j-page">{error?<p role="alert" className="s-notice">{error}</p>:<p className="j-muted">Načítám deník…</p>}</div>;
  if(detail){const idx=list.findIndex(t=>t.id===detail);
   return <div className="j-page">{banner}<TradeDetail key={detail} id={detail} trade={trades.find(t=>t.id===detail)} currency={data.currency} allTags={allTags} prev={idx>0?list[idx-1].id:null} next={idx>=0&&idx<list.length-1?list[idx+1].id:null} onOpen={open} onClose={close} onChanged={reload} readOnly={!!viewAs} query={q}/></div>}
