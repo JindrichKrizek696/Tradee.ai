@@ -47,3 +47,4 @@
 .sb-wline{display:flex;align-items:center;gap:10px;margin:2px 0 4px}
 .sb-wline .sb-bar{flex:1;max-width:140px}
 .n-audit:has(>.sb-row:not(.open))>.n-audit-button{display:none}
+.sb-total{display:inline-flex;align-items:center;gap:6px}.sb-total small{font-size:12px;color:var(--t-muted,#71717a)}.sb-total .sb-chip i{font-style:normal;font-weight:500;opacity:.6;font-size:.85em}

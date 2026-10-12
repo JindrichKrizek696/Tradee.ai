@@ -38,13 +38,14 @@ export function ComponentRow({p,scale,compact}:{p:V3Part;scale:number;compact?:b
 export const barScale=(r:Pick<V3Result,'coverage'|'parts'>)=>r.coverage?Math.max(...r.parts.map(p=>p.weight))/r.coverage*100:0;
 
 export function ScoreBreakdown({r,pair}:{r:V3Result;pair:string}){
- const scale=barScale(r),[base,quote]=pair.split('/');
+ const scale=barScale(r),[base,quote]=pair.split('/'),ok=r.parts.filter(p=>p.value!==null),pts=ok.reduce((a,p)=>a+(p.value as number),0);
  return <section className="s-card sb-card" aria-labelledby={'sb-'+pair.replace('/','')}>
   <div className="sb-head"><h2 id={'sb-'+pair.replace('/','')}>Přehled skóre {pair}</h2>
-   <span className={'sb-chip sb-total-chip '+(r.score===null?'na':r.score>0?'bull2':r.score<0?'bear2':'zero')} title="Celkové skóre −100…+100 (stejné jako karta skóre)">{r.score===null?'pozastaveno':num(r.score)}</span>
+   <span className="sb-total"><small>Body</small><span className={'sb-chip '+(pts>0?'bull1':pts<0?'bear1':'zero')} title={`Prostý součet složek −2…+2 (${ok.length} složek, rozsah ±${ok.length*2})`}>{num(pts,1)} <i>/ ±{ok.length*2}</i></span></span>
+   <span className="sb-total"><small>Celkem</small><span className={'sb-chip sb-total-chip '+(r.score===null?'na':r.score>0?'bull2':r.score<0?'bear2':'zero')} title="Celkové skóre −100…+100 podle vah (stejné jako karta skóre)">{r.score===null?'pozastaveno':num(r.score)}</span></span>
    <span className="s-badge">{r.available}/{r.count} složek · váhy {r.coverage} % dostupné</span></div>
   {r.paused&&<p className="sb-paused" role="status">{r.paused}</p>}
   <div className="sb-grid">{r.parts.map(p=><ComponentRow key={p.id} p={p} scale={scale}/>)}</div>
-  <small className="sb-foot">Skóre = Σ(váha × složka / 2) / součet vah dostupných složek × 100, rozsah −100…+100. Příspěvek v bodech je podíl složky na tomto čísle; součet příspěvků = skóre. Chybějící nebo zastaralé složky se nepočítají a váhy ostatních se přepočtou; pod {60} % dostupných vah je skóre pozastaveno. Kladné = podpora {quote?`${base} vůči ${quote}`:`${base} vůči ostatním měnám`}.</small>
+  <small className="sb-foot">Body = prostý součet hodnot složek (každá −2…+2). Celkem = Σ(váha × složka / 2) / součet vah dostupných složek × 100, rozsah −100…+100. Příspěvek v bodech je podíl složky na tomto čísle; součet příspěvků = skóre. Chybějící nebo zastaralé složky se nepočítají a váhy ostatních se přepočtou; pod {60} % dostupných vah je skóre pozastaveno. Kladné = podpora {quote?`${base} vůči ${quote}`:`${base} vůči ostatním měnám`}.</small>
  </section>;
 }
