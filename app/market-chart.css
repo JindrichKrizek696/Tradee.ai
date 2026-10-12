@@ -186,3 +186,13 @@ select.mc-tfsel{display:none}
 .mc-swatch-add{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px dashed var(--t-border-strong);color:var(--t-muted);font-size:13px;line-height:1;text-decoration:none}
 .mc-swatch-add:hover{color:var(--t-fg);border-color:var(--t-fg)}
 .mc-swatch-add:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
+
+/* našeptávač trhu na stránce grafu */
+.mc-combo{position:relative}
+.mc-market input.mc-market-q{width:220px}
+.mc-combo-list{position:absolute;z-index:40;top:calc(100% + 6px);left:0;min-width:260px;max-height:340px;overflow:auto;margin:0;padding:6px;list-style:none;background:var(--t-surface);border:1px solid var(--t-border);border-radius:14px;box-shadow:0 14px 34px -14px #0b0c0e55}
+.mc-combo-list li{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:13px;color:var(--t-fg)}
+.mc-combo-list li b{font-weight:600}.mc-combo-list li small{font-size:11px;color:var(--t-muted)}
+.mc-combo-list li.on{background:var(--t-accent-soft)}
+.mc-combo-list li.none{cursor:default;color:var(--t-muted)}
+@media(max-width:640px){.mc-market input.mc-market-q{width:100%}.mc-combo{flex:1 1 100%}.mc-combo-list{left:0;right:0;min-width:0}}

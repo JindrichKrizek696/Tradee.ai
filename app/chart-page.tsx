@@ -1,6 +1,6 @@
 'use client';
 // Graf trhu na celou stránku: stejný MarketChart jako v detailu trhu, jen vysoký, s přepínačem trhu a živou cenou. Podklady (skóre, kalendář) se berou stejně jako v aplikaci.
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft} from 'lucide-react';
 import initial from '@/data/fundamentals.json';
 import calendarAuto from '@/data/calendar.json';
@@ -10,7 +10,7 @@ import savedHistory from '@/data/score-history.json';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
 import {mergeCalendar,type AutoEvent} from '@/lib/calendar';
-import {marketScore,instruments} from '@/lib/markets';
+import {marketScore,instruments,groups} from '@/lib/markets';
 import type {HistoryLike} from '@/lib/dashboard';
 import {usePalette} from './palette';
 import {matchesText} from '@/lib/market-view';
@@ -25,21 +25,13 @@ export default function ChartPage({slug}:{slug:string}){
  usePalette();
  let key=slug;try{key=decodeURIComponent(slug)}catch{}
  const item=list.find(i=>slugOf(i.id)===key);
- const [data,setData]=useState(initial as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState(savedHistory as unknown as HistoryLike),[q,setQ]=useState('');
+ const [data,setData]=useState(initial as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState(savedHistory as unknown as HistoryLike);
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
  const quotes=useLive(),calendar=useMemo(()=>mergeCalendar(calendarAuto.events as AutoEvent[],data.events,data.sources),[data]);
  const method=item?marketScore(data,market,item.id).method:'',quote=item?quotes?.quotes[item.id]:undefined;
- const shown=useMemo(()=>list.filter(i=>matchesText(i.id+' '+i.name,q)),[q]);
  const go=(id:string)=>{location.href='/graf/'+slugOf(id)};
- // přepínač trhu: hledání + výběr (v hlavičce karty grafu, bez grafu pod nadpisem)
- const picker=<div className="mc-market" role="search" aria-label="Přepnout trh">
-  <input type="search" className="mc-chip mc-market-q" aria-label="Hledat trh" placeholder="Hledat trh…" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const hit=shown.find(i=>i.id!==item?.id)||shown[0];if(hit&&hit.id!==item?.id)go(hit.id)}}} title="Enter otevře první nalezený trh"/>
-  <select className="mc-chip mc-type mc-market-sel" aria-label="Přepnout trh" value={item?.id||''} onChange={e=>go(e.target.value)}>
-   {!item&&<option value="">Vyber trh…</option>}
-   {item&&!shown.some(i=>i.id===item.id)&&<option value={item.id}>{item.name}</option>}
-   {shown.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
-  </select>
- </div>;
+ // přepínač trhu: našeptávač – píšeš a pod polem se nabízí odpovídající trhy (šipky, Enter, Esc, myš)
+ const picker=<MarketPicker current={item?.id} onPick={go}/>;
  return <div className="mt-page score-v2 tradee">
   <header className="mt-top mc-page-top" style={{maxWidth:'none'}}><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
    {item&&<div className="mc-page-live"><h1>{item.name}</h1>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
@@ -48,5 +40,24 @@ export default function ChartPage({slug}:{slug:string}){
    {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} height="max(520px, calc(100vh - 190px))" headExtra={picker}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
+ </div>;
+}
+
+function MarketPicker({current,onPick}:{current?:string;onPick:(id:string)=>void}){
+ const [q,setQ]=useState(''),[open,setOpen]=useState(false),[act,setAct]=useState(0),box=useRef<HTMLDivElement>(null);
+ const cur=list.find(i=>i.id===current);
+ const hits=useMemo(()=>list.filter(i=>i.id!==current&&matchesText(i.id+' '+i.name,q)).slice(0,12),[q,current]);
+ useEffect(()=>{if(!open)return;const close=(e:MouseEvent)=>{if(box.current&&!box.current.contains(e.target as Node))setOpen(false)};document.addEventListener('mousedown',close);return()=>document.removeEventListener('mousedown',close)},[open]);
+ useEffect(()=>setAct(0),[q]);
+ const pick=(id:string)=>{setOpen(false);setQ('');onPick(id)};
+ return <div className="mc-market mc-combo" ref={box}>
+  <input type="text" className="mc-chip mc-market-q" role="combobox" aria-expanded={open} aria-controls="mc-combo-list" aria-autocomplete="list" aria-activedescendant={open&&hits[act]?'mc-opt-'+act:undefined}
+   aria-label="Přepnout trh" placeholder={cur?cur.name+' · hledat…':'Hledat trh…'} value={q}
+   onFocus={()=>setOpen(true)} onChange={e=>{setQ(e.target.value);setOpen(true)}}
+   onKeyDown={e=>{if(e.key==='ArrowDown'){e.preventDefault();setOpen(true);setAct(a=>Math.min(a+1,hits.length-1))}else if(e.key==='ArrowUp'){e.preventDefault();setAct(a=>Math.max(a-1,0))}else if(e.key==='Enter'){e.preventDefault();if(hits[act])pick(hits[act].id)}else if(e.key==='Escape'){setOpen(false);(e.target as HTMLInputElement).blur()}}}/>
+  {open&&<ul className="mc-combo-list" id="mc-combo-list" role="listbox" aria-label="Nalezené trhy">
+   {hits.length?hits.map((i,n)=><li key={i.id} id={'mc-opt-'+n} role="option" aria-selected={n===act} className={n===act?'on':''} onMouseEnter={()=>setAct(n)} onMouseDown={e=>{e.preventDefault();pick(i.id)}}><b>{i.name}</b><small>{groups[i.group]||''}</small></li>)
+   :<li className="none" role="option" aria-selected={false} aria-disabled="true">Nic nenalezeno</li>}
+  </ul>}
  </div>;
 }
