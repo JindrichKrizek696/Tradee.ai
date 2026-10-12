@@ -1,6 +1,6 @@
 'use client';
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
-import {useEffect,useId,useRef,useState} from 'react';
+import {useEffect,useId,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {MyTrading,type P,type Range} from './my-trading';
 import {OpenPositionsCard,useOpenPositions} from './open-positions';
 import {useMarkets,railSummary,inTradeText,useChecklistProgress,useNarrow,PositionLine} from './flag-rail';
@@ -16,12 +16,20 @@ import {upcomingCalendar,flaggedMarkets,relative as until,type CalendarEvent} fr
 import {monthStats,fmtMoney} from '@/lib/trades';
 import type {View} from './shell';
 import {greeting,vocative,breadth,topSignals,sessions,dataHealth,recentChanges,scoreSeries,bullishTrail,bearishTrail,type Row,type HistoryLike} from '@/lib/dashboard';
+import {exchanges,CRYPTO} from '@/lib/market-hours';
 const fmt=(n:number|null,d=1)=>n===null?'—':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:d});
 const day=(s:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'short'});
 const time=(s:string)=>new Date(s).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',hour:'2-digit',minute:'2-digit'});
 const tone=(n:number|null)=>n===null||n===0?'':n>0?'up':'down';
 const FLAGS=['green','orange','red'],FLAG_SHORT:Record<string,string>={green:'V tradu',orange:'Vyhlížím',red:'Čekám'};
 const SIGNAL_GROUPS=['fx','currency','index','commodities','crypto','stock'];
+// Obchodní seance: skupina trhů (volba se pamatuje v prohlížeči)
+type SessGroup='fx'|'stocks'|'crypto';
+const SESS_KEY='tradee.sessGroup',SESS_NOTE:Record<SessGroup,string>={fx:'',stocks:'Pravidelné hodiny burz v pražském čase, bez svátků a aukcí. S&P 500, Nasdaq 100 a americké akcie se řídí New Yorkem.',crypto:'Kryptoměny se obchodují nepřetržitě, i o víkendech a svátcích. Nejvíc objemu bývá, když je otevřená Evropa a USA.'};
+let sessPick:SessGroup|null=null;
+const readSess=():SessGroup=>{if(sessPick)return sessPick;try{const v=localStorage.getItem(SESS_KEY);return v==='stocks'||v==='crypto'?v:'fx'}catch{return 'fx'}};
+const subSess=(f:()=>void)=>{addEventListener('tradee:sess',f);return()=>removeEventListener('tradee:sess',f)};
+const pickSess=(v:SessGroup)=>{sessPick=v;try{localStorage.setItem(SESS_KEY,v)}catch{}dispatchEvent(new Event('tradee:sess'))};
 const SYM:Record<string,string>={EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',AUD:'A$',NZD:'N$',CAD:'C$'};
 const ASSET:Record<string,[string,string?]>={'BTC-USD':['₿','#f7931a'],'ETH-USD':['Ξ','#627eea'],'SOL-USD':['◎','#9945ff'],'^NDX':['N'],'^GSPC':['S'],'GC=F':['Au','#c9a227'],'SI=F':['Ag','#8a9099'],'CL=F':['W','#3b3f46'],'BZ=F':['B','#3b3f46']};
 type Tile=React.CSSProperties&{'--i'?:number};
@@ -73,6 +81,8 @@ function Notch({side,label,rail,children,wide,onOpenChange}:{side:'left'|'right'
  useEffect(()=>{onOpenChange?.(hov||foc)},[hov,foc]);// eslint-disable-line react-hooks/exhaustive-deps
  // Rozbalená výška podle obsahu (CSS ji omezí výškou okna), aby pod krátkým seznamem nezůstávalo prázdné místo.
  const measure=()=>{if(ref.current&&inner.current)ref.current.style.setProperty('--open-h',inner.current.offsetHeight+'px')};
+ // obsah se mění i při rozbalení (např. přepnutí skupiny seancí) → výšku přeměřit
+ useEffect(()=>{if(!inner.current||typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(measure);ro.observe(inner.current);return()=>ro.disconnect()},[]);
  return <aside ref={ref} className={'d-notch '+side+(wide?' wide':'')} tabIndex={0} aria-label={label} onPointerEnter={()=>{measure();setHov(true)}} onPointerLeave={()=>setHov(false)} onFocus={()=>{measure();setFoc(true)}} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setFoc(false)}}><div className="d-notch-clip"><div className="d-notch-rail" aria-hidden="true">{rail}</div><div className="d-notch-panel"><div ref={inner} className="d-notch-inner">{children}</div></div></div></aside>;
 }
 
@@ -89,6 +99,10 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const watched=rows.filter(r=>FLAGS.includes(flags[r.id])).sort((a,c)=>FLAGS.indexOf(flags[a.id])-FLAGS.indexOf(flags[c.id])||a.name.localeCompare(c.name)),count=(f:string)=>watched.filter(r=>flags[r.id]===f).length;
  const op=useOpenPositions(),marks=useMarkets(op.data),railSum=railSummary(watched.map(r=>r.id),marks),narrow=useNarrow(),[railOpen,setRailOpen]=useState(false),progress=useChecklistProgress(watched.map(r=>r.id),railOpen||narrow);
  const okSources=health.filter(h=>h.ok).length,live=sess.list.filter(x=>x.open),trail=history.snapshots.slice(-24);
+ // Obchodní seance po skupinách: FX (týden FX), akcie a indexy (burzy), krypto (nonstop); stav každé skupiny jako tečka v přepínači
+ const sg=useSyncExternalStore(subSess,readSess,()=>'fx' as SessGroup),ex=useMemo(()=>exchanges(now),[now]);
+ const sgOpen:Record<SessGroup,boolean>={fx:sess.fxOpen,stocks:ex.open>0,crypto:true},sgChip=sg==='fx'?(sess.fxOpen?'FX otevřeno':'FX zavřeno'):sg==='stocks'?ex.label:'Krypto 24/7';
+ const tl=sg==='fx'?sess.list.map(x=>({...x,name:'',segs:[[x.start,x.length]] as [number,number][]})):sg==='stocks'?ex.list:[CRYPTO];
  const quotes=liveData?.quotes||{},moves=rows.filter(r=>r.group!=='currency'&&quotes[r.id]).map(r=>({r,q:quotes[r.id]})),rise=moves.filter(m=>m.q.changePct>0).sort((a,c)=>c.q.changePct-a.q.changePct).slice(0,5),fall=moves.filter(m=>m.q.changePct<0).sort((a,c)=>a.q.changePct-c.q.changePct).slice(0,5);
  const strength=rows.filter(r=>r.group==='currency').map(r=>({r,v:quotes[r.id]?.changePct})).filter((x):x is {r:Row;v:number}=>x.v!==undefined).sort((a,c)=>c.v-a.v),strScale=Math.max(0.05,...strength.map(x=>Math.abs(x.v)));
  const dateLine=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -189,12 +203,14 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     <div className="d-flagsum">{FLAGS.map(f=><div key={f}><i className={'d-dot '+f}/><b>{count(f)}</b><span>{FLAG_SHORT[f]}</span></div>)}</div>
     {watched.length?<ul className="d-rows">{watched.map(r=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><Badge r={r}/><span className="d-name"><b>{r.name}</b><small><i className={'d-dot '+flags[r.id]}/>{FLAG_SHORT[flags[r.id]]}</small><PositionLine p={marks.get(r.id)}/></span><span className="d-fl-end"><em className={'d-score '+tone(r.r.score)}>{fmt(r.r.score)}</em>{progress[r.id]&&<small className={'d-fl-chk'+(progress[r.id]!.done===progress[r.id]!.total?' full':'')} title="Splněno bodů checklistu">{progress[r.id]!.done}/{progress[r.id]!.total}</small>}</span></button></li>)}</ul>:<p className="d-empty">{flagsReady?'Zatím žádné vlaječky. Označ trhy v Analýze trhů.':'Vlaječky teď nejsou k dispozici.'}</p>}
    </Notch>
-   <Notch side="right" label="Trh teď: seance, události a podklady" rail={<><span className="d-rail-i"><Globe2 size={17}/>{sess.fxOpen&&<i className="live"/>}</span><span className="d-rail-i"><CalendarDays size={17}/>{events.length>0&&<em>{events.length}</em>}</span><span className="d-rail-i"><Activity size={17}/></span><span className="d-rail-i"><DatabaseZap size={17}/><i className={okSources===health.length?'live':'warn'}/></span></>}>
-    <div className="d-head"><h2>Obchodní seance</h2><span className={'d-chip sm'+(sess.fxOpen?' live':'')}><i/>{sess.fxOpen?'FX otevřeno':'FX zavřeno'}</span></div>
+   <Notch side="right" label="Trh teď: seance, události a podklady" rail={<><span className="d-rail-i"><Globe2 size={17}/>{(sess.fxOpen||ex.open>0)&&<i className="live"/>}</span><span className="d-rail-i"><CalendarDays size={17}/>{events.length>0&&<em>{events.length}</em>}</span><span className="d-rail-i"><Activity size={17}/></span><span className="d-rail-i"><DatabaseZap size={17}/><i className={okSources===health.length?'live':'warn'}/></span></>}>
+    <div className="d-head"><h2>Obchodní seance</h2><span className={'d-chip sm'+(sgOpen[sg]?' live':'')}><i/>{sgChip}</span></div>
+    <div className="d-seg sm d-sess-seg" role="tablist" aria-label="Skupina trhů">{([['fx','FX'],['stocks','Akcie a indexy'],['crypto','Krypto']] as [SessGroup,string][]).map(([id,l])=><button key={id} type="button" role="tab" aria-selected={sg===id} aria-label={`${l} – ${id==='crypto'?'nonstop':sgOpen[id]?'otevřeno':'zavřeno'}`} className={sg===id?'on':''} onClick={()=>pickSess(id)}><i className={'d-sess-dot'+(sgOpen[id]?' live':'')} aria-hidden="true"/>{l}</button>)}</div>
     <div className="d-tl" style={{'--now':sess.nowMin/14.4+'%'} as React.CSSProperties}>
-     {sess.list.map(x=><div key={x.id} className={'d-tl-row'+(x.open?' open':'')}><div className="d-tl-name"><b>{x.city}</b><small>{x.label}</small></div><div className="d-tl-track">{(x.start+x.length<=1440?[[x.start,x.length]]:[[x.start,1440-x.start],[0,x.start+x.length-1440]]).map(([a,l])=><i key={a} style={{left:a/14.4+'%',width:l/14.4+'%'}}/>)}</div></div>)}
+     {tl.map(x=><div key={x.id} className={'d-tl-row'+(x.open?' open':'')}><div className="d-tl-name"><b>{x.city}{x.name&&<em>{x.name}</em>}</b><small>{x.label}</small></div><div className="d-tl-track">{x.segs.flatMap(([s,l])=>s+l<=1440?[[s,l]]:[[s,1440-s],[0,s+l-1440]]).map(([a,l])=><i key={a} style={{left:a/14.4+'%',width:l/14.4+'%'}}/>)}</div></div>)}
      <div className="d-tl-axis">{[0,6,12,18,24].map(h=><span key={h}>{h}</span>)}</div>
     </div>
+    {SESS_NOTE[sg]&&<p className="d-tl-note">{SESS_NOTE[sg]}</p>}
     <div className="d-head d-sub"><h2>Nadcházející události</h2><button type="button" className="d-link" onClick={()=>setView('calendar')}>Kalendář <ChevronRight size={14}/></button></div>
     <div className="c-list c-compact d-events">{events.length?events.map(e=><EventRow key={e.id} e={e} now={now} mine={mine} compact/>):<p className="d-empty">Žádné nadcházející události.</p>}</div>
     <div className="d-head d-sub"><h2>Poslední změny skóre</h2><span className="d-meta">{history.snapshots.length} snímků</span></div>

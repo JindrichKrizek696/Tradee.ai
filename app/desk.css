@@ -329,6 +329,13 @@
 .d-dash .d-tl-row.open .d-tl-track i{background:var(--t-fg)}
 .d-dash .d-tl-track::after{content:'';position:absolute;left:var(--now);top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:2px;background:#ef4444}
 .d-dash .d-tl-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--t-muted-2);font-variant-numeric:tabular-nums}
+/* seance po skupinách trhů: přepínač FX / Akcie a indexy / Krypto s tečkou stavu, burza u města tlumeně */
+.d-dash .d-sess-seg{display:flex;width:100%;margin:0 0 14px}
+.d-dash .d-sess-seg button{flex:1 1 auto;justify-content:center;gap:6px;padding:0 8px}
+.d-dash .d-sess-dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--t-border-strong)}
+.d-dash .d-sess-dot.live{background:#22c55e}
+.d-dash .d-tl-name b em{font-style:normal;font-weight:500;color:var(--t-muted)}
+.d-dash .d-tl-note{margin:10px 0 0;font-size:11.5px;line-height:1.45;color:var(--t-muted)}
 .d-dash .d-events{border:0;border-radius:0;background:none}
 .d-dash .d-events .c-row.c-compact{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"s t v" ". w w";align-items:center;row-gap:1px;column-gap:10px;height:auto;padding:9px 0;border-top:1px solid var(--t-border)}
 .d-dash .d-events .c-row.c-compact:first-child{border-top:0;padding-top:0}
