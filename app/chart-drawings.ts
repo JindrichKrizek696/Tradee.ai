@@ -1,7 +1,7 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,dashOf,extendSeg,fibLevels,fibLabel,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 
 export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
@@ -52,11 +52,11 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  // zásah pro kurzor knihovny (ruka/posun); výběr a tažení řeší komponenta přes hit()
  hitTest(x:number,y:number):PrimitiveHoveredItem|null{
   const h=this.hit({x,y},6);if(!h)return null;
-  return {externalId:'d:'+h.id,zOrder:'top',cursorStyle:h.hit.part==='handle'?'grab':this.rrAt({x,y})===h.id?'pointer':'move',itemType:'primitive'};
+  return {externalId:'d:'+h.id,zOrder:'top',cursorStyle:h.hit.part==='handle'?'grab':h.hit.part==='edge'?edgeCursor(h.hit.edge):this.rrAt({x,y})===h.id?'pointer':'move',itemType:'primitive'};
  }
  // klik na popisek R:R pozice (otevře zadání R:R v panelu stylu)
  rrAt(p:Pt){for(let i=this.items.length-1;i>=0;i--){const b=this.items[i].shape.rrBox;if(b&&p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)return this.items[i].id}return null}
- hit(p:Pt,tol:number){return hitTest(this.items.filter(i=>i.id!==this.draft?.id).map(i=>({id:i.id,shape:i.shape})),p,this.size.w,this.size.h,tol)}
+ hit(p:Pt,tol:number){return hitTest(this.items.filter(i=>i.id!==this.draft?.id).map(i=>({id:i.id,shape:i.shape})),p,this.size.w,this.size.h,tol,this.selected)}
 
  private font(st:FullStyle,bold=true){return (bold?'600 ':'')+TEXT_PX[st.ts]+'px '+FAMILY}
  private shape(d:Drawing,st:FullStyle,ctx:CanvasRenderingContext2D,w:number,h:number):Shape|null{
@@ -226,6 +226,9 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
   // úchyty vybrané kresby
   ctx.globalAlpha=1;ctx.setLineDash([]);
   const handle=(p:Pt)=>{ctx.beginPath();ctx.arc(p.x,p.y,4.5,0,Math.PI*2);ctx.fillStyle=P.bg;ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=c;ctx.stroke()};
+  // úchyty uprostřed hran: malé obdélníčky (vodorovné nahoře/dole, svislé vlevo/vpravo), odlišné od kulatých rohů
+  if(sel)for(const e of edgeHandles(shape)){const v=e.edge==='left'||e.edge==='right',ew=v?6:12,eh=v?12:6;
+   pill(ctx,e.pt.x-ew/2,e.pt.y-eh/2,ew,eh,2);ctx.fillStyle=P.bg;ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=c;ctx.stroke()}
   if(sel&&hasHandles(d.type))shape.pts.forEach(handle);
   if(sel&&d.type==='hline')handle({x:w/2,y:a.y});
   if(sel&&d.type==='brush'){ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeStyle=c;const xs=shape.pts.map(p=>p.x),ys=shape.pts.map(p=>p.y);ctx.strokeRect(Math.min(...xs)-4,Math.min(...ys)-4,Math.max(...xs)-Math.min(...xs)+8,Math.max(...ys)-Math.min(...ys)+8)}

@@ -346,6 +346,46 @@ export function moveHandle(d:Drawing,index:number,a:Anchor):Drawing{
  }
  return {...d,a:d.a.map((x,i)=>i===index?a:x)};
 }
+// --- úchyty uprostřed hran: výška a šířka zvlášť ---
+// top/bottom = cena horní/dolní hrany (čas beze změny), left/right = čas levé/pravé hrany (cena beze změny);
+// u kanálu base = posun čáry a–b svisle (sklon zůstane), parallel = posun rovnoběžky
+export type Edge='top'|'bottom'|'left'|'right'|'base'|'parallel';
+export function edgesOf(t:DrawType):Edge[]{
+ switch(t){
+  case 'rect':case 'gann':case 'fib':case 'long':case 'short':return ['top','bottom','left','right'];
+  case 'prange':return ['top','bottom'];
+  case 'trange':return ['left','right'];
+  case 'channel':return ['base','parallel'];
+  default:return [];
+ }
+}
+export const edgeCursor=(e:Edge)=>e==='left'||e==='right'?'ew-resize':'ns-resize';
+// posun hrany na kotvu a: mění jen příslušnou souřadnici příslušné kotvy (kotev); hrana se vybírá podle původní kresby,
+// takže přetažení přes protější hranu kresbu jen převrátí (obdélník je vždy obal rohů)
+export function moveEdge(d:Drawing,edge:Edge,a:Anchor):Drawing{
+ if(!edgesOf(d.type).includes(edge))return d;
+ const A=d.a.map(x=>({t:x.t,p:x.p}));
+ if(d.type==='channel'){
+  // čára a–b: celá o Δ ceny jejího středu; rovnoběžka: projde bodem pod kurzorem
+  if(edge==='base'){const dp=a.p-(A[0].p+A[1].p)/2;A[0].p+=dp;A[1].p+=dp}
+  else A[2]={t:a.t,p:a.p};
+  return {...d,a:A};
+ }
+ const pos=d.type==='long'||d.type==='short';
+ if(edge==='top'||edge==='bottom'){
+  // pozice: hrana = nejvyšší / nejnižší ze všech tří cen (při shodě přednost SL/TP před vstupem)
+  const idx=pos?[2,1,0]:[0,1];
+  let best=idx[0];for(const i of idx)if(edge==='top'?A[i].p>A[best].p:A[i].p<A[best].p)best=i;
+  if(!pos&&A[0].p===A[1].p)best=edge==='top'?0:1;
+  A[best].p=a.p;
+ }else{
+  // pozice: vstup (0) vs. konec boxu (1 a 2 společně)
+  const leftIsFirst=A[0].t<=A[1].t,first=(edge==='left')===leftIsFirst;
+  const group=first?[0]:pos?[1,2]:[1];
+  for(const i of group)A[i].t=a.t;
+ }
+ return {...d,a:A};
+}
 
 // --- úroveň do dotyku: od svíčky kotvy doprava k první pozdější svíčce, jejíž high/low cenu protne ---
 export function firstTouch(bars:{high:number;low:number}[],from:number,price:number):number|null{
@@ -405,14 +445,39 @@ const inPoly=(p:Pt,poly:Pt[])=>{let ins=false;for(let i=0,j=poly.length-1;i<poly
 // tvar kresby v pixelech (body podle kotev; fib má navíc y hladin; text box; popisek poznámky; konec úrovně do dotyku)
 export type Box={x:number;y:number;w:number;h:number};
 export type Shape={type:DrawType;pts:Pt[];ray?:boolean;extL?:boolean;extR?:boolean;levels?:number[];box?:Box;label?:Box;touchX?:number;rrBox?:Box};
-export type Hit={part:'body'}|{part:'handle';index:number};
+export type Hit={part:'body'}|{part:'handle';index:number}|{part:'edge';edge:Edge};
 const inBox=(p:Pt,b:Box,tol:number)=>p.x>=b.x-tol&&p.x<=b.x+b.w+tol&&p.y>=b.y-tol&&p.y<=b.y+b.h+tol;
 const rectOf=(a:Pt,b:Pt):Box=>({x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)});
 // úchyty: bez úchytů je horizontála, text a štětec
 export const hasHandles=(t:DrawType)=>t!=='hline'&&t!=='text'&&t!=='brush';
-// zásah: nejdřív úchyty, pak tělo; tol v px
-export function hitShape(s:Shape,p:Pt,w:number,h:number,tol=6):Hit|null{
+// úchyty uprostřed hran (px): obal dvou rohů, u pozice celý box, u kanálu středy obou čar;
+// hrana se vynechá, když je kresba v daném směru moc malá (úchyt by se překrýval s rohy) nebo prodloužená k okraji
+export const EDGE_MIN=24;
+export function edgeHandles(s:Shape):{edge:Edge;pt:Pt}[]{
+ const edges=edgesOf(s.type),[a,b]=s.pts;if(!edges.length||!a||!b)return [];
+ if(s.type==='channel'){
+  const c=s.pts[2]??b,off=channelOffset(a,b,c),m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  if(Math.hypot(b.x-a.x,b.y-a.y)<EDGE_MIN)return [];
+  const out:{edge:Edge;pt:Pt}[]=[{edge:'base',pt:m}];
+  if(Math.abs(off)>=EDGE_MIN/2)out.push({edge:'parallel',pt:{x:m.x,y:m.y+off}});
+  return out;
+ }
+ const pos=s.type==='long'||s.type==='short',ys=pos?s.pts.slice(0,3).map(p=>p.y):[a.y,b.y];
+ const x0=Math.min(a.x,b.x),x1=Math.max(a.x,b.x),y0=Math.min(...ys),y1=Math.max(...ys),cx=(x0+x1)/2;
+ // pozice: boční úchyty uprostřed zóny cíle (střed boxu může splývat se vstupem)
+ const cy=pos&&s.pts[2]?(a.y+s.pts[2].y)/2:(y0+y1)/2;
+ const out:{edge:Edge;pt:Pt}[]=[];
+ for(const e of edges){
+  if((e==='top'||e==='bottom')&&x1-x0>=EDGE_MIN)out.push({edge:e,pt:{x:cx,y:e==='top'?y0:y1}});
+  if(e==='left'&&!s.extL&&y1-y0>=EDGE_MIN)out.push({edge:e,pt:{x:x0,y:cy}});
+  if(e==='right'&&!(s.extR&&(s.type==='rect'||s.type==='fib'))&&y1-y0>=EDGE_MIN)out.push({edge:e,pt:{x:x1,y:cy}});
+ }
+ return out;
+}
+// zásah: nejdřív úchyty (u vybrané kresby i úchyty hran), pak tělo; tol v px
+export function hitShape(s:Shape,p:Pt,w:number,h:number,tol=6,edges=false):Hit|null{
  if(hasHandles(s.type))for(let i=0;i<s.pts.length;i++)if(Math.hypot(p.x-s.pts[i].x,p.y-s.pts[i].y)<=tol+2)return {part:'handle',index:i};
+ if(edges)for(const e of edgeHandles(s))if(Math.hypot(p.x-e.pt.x,p.y-e.pt.y)<=tol+2)return {part:'edge',edge:e.edge};
  if(s.label&&inBox(p,s.label,0))return {part:'body'};
  const [a,b]=s.pts,extR=s.extR??s.ray??false,extL=s.extL??false;
  const seg=(x:Pt,y:Pt)=>distToSegment(p,x,y)<=tol;
@@ -457,8 +522,11 @@ export function hitShape(s:Shape,p:Pt,w:number,h:number,tol=6):Hit|null{
  }
 }
 // nejvyšší zasažená kresba (poslední nakreslená je nahoře)
-export function hitTest(shapes:{id:string;shape:Shape}[],p:Pt,w:number,h:number,tol=6):{id:string;hit:Hit}|null{
- for(let i=shapes.length-1;i>=0;i--){const hit=hitShape(shapes[i].shape,p,w,h,tol);if(hit)return {id:shapes[i].id,hit}}
+export function hitTest(shapes:{id:string;shape:Shape}[],p:Pt,w:number,h:number,tol=6,selected:string|null=null):{id:string;hit:Hit}|null{
+ // úchyty vybrané kresby mají přednost i před kresbami nad ní
+ const sel=selected?shapes.find(x=>x.id===selected):null;
+ if(sel){const hit=hitShape(sel.shape,p,w,h,tol,true);if(hit&&hit.part!=='body')return {id:sel.id,hit}}
+ for(let i=shapes.length-1;i>=0;i--){const hit=hitShape(shapes[i].shape,p,w,h,tol,shapes[i].id===selected);if(hit)return {id:shapes[i].id,hit}}
  return null;
 }
 // posun kotev o Δ logického indexu a Δ ceny (přes převodní funkce); horizontála jen v ceně

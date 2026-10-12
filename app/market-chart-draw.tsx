@@ -5,14 +5,14 @@ import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
 import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {fmtPrice} from './live';
 
 export type Tool='cursor'|DrawType;
 type Bar={time:number;open:number;high:number;low:number;close:number};
 type Save='idle'|'saving'|'saved'|'error'|'loaderror';
-type Drag={id:string;temp:boolean;part:'body'|'handle';index:number;start:{l:number;p:number};orig:Drawing;cur:Drawing|null;x:number;y:number;rr:boolean};
+type Drag={id:string;temp:boolean;part:'body'|'handle'|'edge';index:number;edge?:Edge;start:{l:number;p:number};orig:Drawing;cur:Drawing|null;x:number;y:number;rr:boolean};
 // rozkreslená kresba: pevné body + poslední bod, který sleduje kurzor; štětec sbírá body tahu
 type Draft={id:string;type:DrawType;color:DrawColor;pts:Anchor[];fixed:number;need:number;x:number;y:number;placed:boolean;lastDown:number;px?:Pt[];look:Look|null};
 type Edit={x:number;y:number;anchor:Anchor;id?:string;text:string;look?:Look|null};
@@ -192,7 +192,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
     stop(e);const isTemp=st.temp?.id===h.id,orig=isTemp?st.temp:st.drawings.find(d=>d.id===h.id);const r=raw(p);
     if(!orig||!r)return;
     if(st.selected!==h.id)setSelected(h.id);
-    drag.current={id:h.id,temp:isTemp,part:h.hit.part,index:h.hit.part==='handle'?h.hit.index:0,start:r,orig,cur:null,x:p.x,y:p.y,rr:h.hit.part==='body'&&prim.rrAt(p)===h.id};
+    drag.current={id:h.id,temp:isTemp,part:h.hit.part,index:h.hit.part==='handle'?h.hit.index:0,edge:h.hit.part==='edge'?h.hit.edge:undefined,start:r,orig,cur:null,x:p.x,y:p.y,rr:h.hit.part==='body'&&prim.rrAt(p)===h.id};
     return;
    }
    if(st.selected!==null)setSelected(null);
@@ -211,6 +211,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(!g.cur&&Math.hypot(p.x-g.x,p.y-g.y)<3)return;
    let next:Drawing|null=null;
    if(g.part==='handle'){const a0=anchorAt(p);if(a0){const pts=g.orig.a,ref=pts.length>1?pts[g.index===0?1:g.index-1]:undefined;next=moveHandle(g.orig,g.index,level(a0,ref,shiftOf(e)))}}
+   // hrana: jen cena (nahoře/dole) nebo jen čas (vlevo/vpravo); Shift tu nic nemění
+   else if(g.part==='edge'){const a0=anchorAt(p);if(a0&&g.edge)next=moveEdge(g.orig,g.edge,a0)}
    else{const r=raw(p);if(r)next=translate(g.orig,Math.round(r.l-g.start.l),r.p-g.start.p,conv.toL,t=>Math.round(conv.fromL(t)))}
    if(!next)return;g.cur=next;
    const pr=prim;
