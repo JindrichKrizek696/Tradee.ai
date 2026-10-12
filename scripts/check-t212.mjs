@@ -75,3 +75,12 @@ check('zprávy: CRUDE = ropa',currenciesOf('CRUDE').join()==='OIL',null);
 
 if(fails.length){console.log(`\n${fails.length} kontrol selhalo`);process.exit(1)}
 console.log('\nVše v pořádku.');
+
+// Pojistka: podvržený soubor s mnoha řádky jedné pozice se odmítne (žádná kvadratická práce)
+{
+ const {parseT212:p,MAX_PARTS_PER_POSITION:M}=await import('../lib/import/t212.ts');
+ const fs=await import('node:fs');const src=fs.readFileSync(new URL('./fixtures/t212-synthetic.csv',import.meta.url),'utf8').replace(/^﻿/,'').split(/\r?\n/);
+ const head=src[0],cols=head.split(','),row=cols.map(c=>c==='Record Type'?'Closed position':c==='Position ID'?'POSX':c==='Date (UTC)'||c.startsWith('Date opened')||c.startsWith('Date closed')?'2026-01-14 15:00:00+00:00':c==='Symbol'?'EURUSD':c==='Direction'?'Buy':c.startsWith('Units')||c.startsWith('Average')||c.startsWith('Close price')?'1':'');
+ let threw=false;try{p([head,...Array(M+1).fill(row.join(','))].join('\n'))}catch{threw=true}
+ if(!threw){console.log('FAIL pojistka počtu částí na pozici');process.exit(1)}else console.log('ok   pojistka počtu částí na pozici');
+}

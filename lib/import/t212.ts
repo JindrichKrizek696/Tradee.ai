@@ -18,6 +18,8 @@ export type T212Parsed={
  openPositions:number;rows:number;
 };
 export const MAX_T212_BYTES=5*1024*1024;
+// Pojistka proti kvadratické práci u podvržených souborů: max. částí a pokynů na jednu pozici
+export const MAX_PARTS_PER_POSITION=100,MAX_ORDERS_PER_POSITION=400;
 const r2=(n:number)=>Math.round(n*100)/100;
 const EPS=1e-9;
 
@@ -83,11 +85,12 @@ export function parseT212(text:string):T212Parsed{
   }else if(type==='interest on cash')cash.interest+=n0(r.amount);
  }
  const byPid=new Map<string,Row[]>();
- for(const r of closed){const l=byPid.get(r.pid)||[];l.push(r);byPid.set(r.pid,l)}
+ for(const r of closed){const l=byPid.get(r.pid)||[];if(l.length>=MAX_PARTS_PER_POSITION)throw Error(`Pozice ${r.pid} má víc než ${MAX_PARTS_PER_POSITION} částečných uzavření – soubor nevypadá jako export Trading 212.`);l.push(r);byPid.set(r.pid,l)}
  const trades:T212Trade[]=[];
  for(const [pid,list] of byPid){
   const parts=list.map(r=>({r,openTs:parseTime(r.opened),closeTs:parseTime(r.closed)??parseTime(r.date)})).filter((x):x is {r:Row;openTs:number;closeTs:number}=>x.openTs!==null&&x.closeTs!==null).sort((a,b)=>a.closeTs-b.closeTs);
   const os=orders.get(pid)||[];
+  if(os.length>MAX_ORDERS_PER_POSITION)throw Error(`Pozice ${pid} má víc než ${MAX_ORDERS_PER_POSITION} pokynů – soubor nevypadá jako export Trading 212.`);
   const openOrder=os.find(o=>o.intent==='OPEN'&&o.status==='EXECUTED');
   const closers=os.filter(o=>o.intent==='CLOSE'&&o.status==='EXECUTED').sort((a,b)=>a.date-b.date),used=new Set<Order>();
   parts.forEach(({r,openTs,closeTs},part)=>{
