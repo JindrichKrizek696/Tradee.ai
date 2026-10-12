@@ -198,6 +198,8 @@ select.mc-tfsel{display:none}
 @media(max-width:640px){.mc-market input.mc-market-q{width:100%}.mc-combo{flex:1 1 100%}.mc-combo-list{left:0;right:0;min-width:0}}
 
 /* kreslení: hladiny Fibonacciho, střed kanálu, popisek dotyku, šipky lomené čáry, plovoucí panel oblíbených nástrojů */
+/* řádky panelu stylu se nesmí smrsknout (víceřádkové hladiny by přetekly přes další řádek) – panel se radši posouvá */
+.mc-style>.mc-row{flex-shrink:0}
 .mc-row.mc-row-top{align-items:flex-start}
 .mc-row.mc-row-top>span:first-child{padding-top:4px}
 .mc-fib-lv{display:flex;flex-wrap:wrap;align-items:center;gap:4px;flex:1 1 220px;min-width:0}
@@ -211,3 +213,19 @@ select.mc-tfsel{display:none}
 .mc-fib-x:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
 .mc-row input[type=text].mc-num{flex:0 0 60px;width:60px;font-variant-numeric:tabular-nums}
 .mc-row input[aria-invalid=true]{border-color:var(--bear)}
+/* oblíbené: hvězdička v nabídce skupiny a u vybrané kresby, plovoucí panel nad plochou grafu */
+.mc-menu-row{display:flex;align-items:stretch;gap:2px}
+.mc-menu-row>.mc-menu-item{flex:1;min-width:0}
+.mc-fav-star{flex:0 0 28px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:7px;background:transparent;color:var(--t-muted);cursor:pointer}
+.mc-fav-star:hover,.mc-fav-star:focus-visible{background:var(--t-surface-3);color:var(--t-fg);outline:none}
+.mc-fav-star.on,.mc-tool.mc-fav-toggle.on{color:#f59e0b}
+.mc-tool.mc-fav-toggle.on{background:transparent}
+.mc-fav-area{position:absolute;z-index:3;pointer-events:none}
+.mc-fav{position:absolute;display:flex;flex-wrap:wrap;align-items:center;gap:2px;max-width:100%;padding:3px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);box-shadow:var(--t-shadow);pointer-events:auto}
+.mc-fav.moving{opacity:.9}
+.mc-fav-grip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:32px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--t-muted);cursor:grab;touch-action:none}
+.mc-fav-grip:hover{background:var(--t-surface-3);color:var(--t-fg)}
+.mc-fav.moving .mc-fav-grip{cursor:grabbing}
+.mc-fav-grip:focus-visible{outline:2px solid var(--t-brand);outline-offset:1px}
+.mc-fav .mc-tool[data-tip]:hover::after,.mc-fav .mc-tool[data-tip]:focus-visible::after{left:50%;top:calc(100% + 6px);transform:translateX(-50%)}
+.mc-fav.up .mc-tool[data-tip]:hover::after,.mc-fav.up .mc-tool[data-tip]:focus-visible::after{top:auto;bottom:calc(100% + 6px)}

@@ -194,9 +194,13 @@ export function parseDrawings(input:unknown):Parsed{
 // vzhled: barva, styl, text, viditelnost na TF a u pozic R:R; preset = pojmenovaný vzhled pro jeden nástroj
 export type Look={color:DrawColor;s?:DrawStyle;text?:string;tfs?:string[];rr?:number};
 export type Preset=Look&{id:string;name:string;tool:DrawType};
-export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>;colors:string[]};
+// oblíbené nástroje: plovoucí panel nad grafem; x, y = poloha jako podíl volného místa v ploše grafu
+// (0 = vlevo / nahoře, 1 = vpravo / dole), takže panel zůstane uvnitř grafu při jakékoli velikosti
+export type Fav={tools:DrawType[];x:number;y:number};
+export const favDefault=():Fav=>({tools:[],x:.5,y:1});
+export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>;colors:string[];fav:Fav};
 export const MAX_PRESETS=50,MAX_PRESET_NAME=40;
-export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{},colors:[]});
+export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{},colors:[],fav:favDefault()});
 const isPos=(t:DrawType)=>t==='long'||t==='short';
 const isTool=(v:unknown):v is DrawType=>typeof v==='string'&&(DRAW_TYPES as readonly string[]).includes(v);
 const isColor=isDrawColor;
@@ -231,6 +235,29 @@ function parsePreset(raw:unknown):R<Preset>{
  const l=parseLook(r,r.tool);if(!l.ok)return l;
  return {ok:true,v:{id:r.id,name,tool:r.tool,...l.v}};
 }
+const frac=(v:number)=>Math.round(Math.min(1,Math.max(0,v))*1000)/1000;
+// oblíbené přísně (PUT): známé nástroje bez duplicit, poloha 0–1
+function parseFav(raw:unknown):R<Fav>{
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))return {ok:false,error:'Neplatné oblíbené nástroje.'};
+ const r=raw as Record<string,unknown>;
+ if(!Array.isArray(r.tools)||!r.tools.every(isTool)||new Set(r.tools).size!==r.tools.length)return {ok:false,error:'Neplatné oblíbené nástroje.'};
+ if(!num(r.x)||!num(r.y)||r.x<0||r.x>1||r.y<0||r.y>1)return {ok:false,error:'Neplatná poloha panelu oblíbených.'};
+ return {ok:true,v:{tools:[...r.tools],x:frac(r.x),y:frac(r.y)}};
+}
+// oblíbené tolerantně (DB): neznámé nástroje a duplicity pryč, poloha oříznutá na 0–1, jinak výchozí
+function favOf(raw:unknown):Fav{
+ const f=favDefault();if(!raw||typeof raw!=='object'||Array.isArray(raw))return f;
+ const r=raw as Record<string,unknown>;
+ if(Array.isArray(r.tools))f.tools=[...new Set(r.tools.filter(isTool))];
+ if(num(r.x))f.x=frac(r.x);if(num(r.y))f.y=frac(r.y);
+ return f;
+}
+// přidat / odebrat oblíbený nástroj (nový na konec)
+export const toggleFav=(list:readonly DrawType[],t:DrawType)=>list.includes(t)?list.filter(x=>x!==t):[...list,t];
+// poloha panelu (levý horní roh v px) → podíl volného místa v ploše w × h; panel větší než plocha = 0
+export const favFrac=(left:number,top:number,pw:number,ph:number,w:number,h:number)=>({x:w>pw?frac(left/(w-pw)):0,y:h>ph?frac(top/(h-ph)):0});
+// posun panelu šipkou o krok (podíl), oříznutý na 0–1
+export const favStep=(f:{x:number;y:number},dx:number,dy:number)=>({x:frac(f.x+dx),y:frac(f.y+dy)});
 // přísná validace (PUT): jen poslané klíče; neznámé klíče nejvyšší úrovně se zahodí
 export function normalizePrefs(input:unknown):{ok:true;prefs:Partial<DrawPrefs>}|{ok:false;error:string}{
  if(!input||typeof input!=='object'||Array.isArray(input))return {ok:false,error:'Neplatné nastavení kreslení.'};
@@ -254,6 +281,7 @@ export function normalizePrefs(input:unknown):{ok:true;prefs:Partial<DrawPrefs>}
   if(!r.colors.every(isHex))return {ok:false,error:'Barva musí být ve tvaru #RRGGBB.'};
   out.colors=[...new Set(r.colors.map(c=>c.toLowerCase()))];
  }
+ if(r.fav!==undefined){const f=parseFav(r.fav);if(!f.ok)return f;out.fav=f.v}
  if(!Object.keys(out).length)return {ok:false,error:'Není co uložit.'};
  return {ok:true,prefs:out};
 }
@@ -264,6 +292,7 @@ export function parsePrefs(raw:unknown):DrawPrefs{
  if(Array.isArray(r.presets)){const ids=new Set<string>();for(const x of r.presets){const p=parsePreset(x);if(p.ok&&!ids.has(p.v.id)&&out.presets.length<MAX_PRESETS){ids.add(p.v.id);out.presets.push(p.v)}}}
  if(r.defaults&&typeof r.defaults==='object')for(const [k,v] of Object.entries(r.defaults)){if(!isTool(k))continue;const l=parseLook(v,k);if(l.ok)out.defaults[k]=l.v}
  if(Array.isArray(r.colors))out.colors=[...new Set(r.colors.filter(isHex).map(c=>c.toLowerCase()))].slice(0,MAX_COLORS);
+ out.fav=favOf(r.fav);
  return out;
 }
 // vzhled z existující kresby (Uložit jako preset / Nastavit jako výchozí)

@@ -11,6 +11,8 @@ export type DrawEnv={
  lines:(d:Drawing)=>string[];
  // úroveň do dotyku: x konce (null = pravý okraj) a popisek
  touch:(d:Drawing)=>{x:number|null;label:string};
+ // velikost plochy grafu (px) při změně – plovoucí panel oblíbených se drží uvnitř
+ size?:(w:number,h:number)=>void;
 };
 type CanvasRenderingTarget2D=Parameters<IPrimitivePaneRenderer['draw']>[0];
 type Item={id:string;d:Drawing;shape:Shape;st:FullStyle};
@@ -29,6 +31,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  drawings:Drawing[]=[];temp:Drawing|null=null;draft:Drawing|null=null;selected:string|null=null;tf='';
  palette:DrawPalette={brand:'#245bff',bull:'#16a34a',bear:'#dc2626',amber:'#f59e0b',muted:'#6b7079',fg:'#0b0c0e',bg:'#fff',text:'#0b0c0e'};
  items:Item[]=[];size={w:0,h:0};
+ private told={w:0,h:0};
  private param:SeriesAttachedParameter<Time>|null=null;
  private axis:ISeriesPrimitiveAxisView[]=[];
  private views:IPrimitivePaneView[];
@@ -97,6 +100,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  private draw(target:CanvasRenderingTarget2D){
   target.useMediaCoordinateSpace(({context:ctx,mediaSize})=>{
    const w=mediaSize.width,h=mediaSize.height;this.size={w,h};
+   if(w!==this.told.w||h!==this.told.h){this.told={w,h};this.env.size?.(w,h)}
    const items:Item[]=[];
    for(const d of this.all()){const st=styleOf(d),s=this.shape(d,st,ctx,w,h);if(s)items.push({id:d.id,d,shape:s,st})}
    this.items=items;
