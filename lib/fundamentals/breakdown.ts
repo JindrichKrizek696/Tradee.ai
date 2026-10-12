@@ -34,7 +34,7 @@ export type BreakdownRow={id:string;label:string;score:Score|null;detail:string;
 export type Breakdown={pair:string;base:string;quote:string;rows:BreakdownRow[];total:number;available:number;count:number};
 
 export const ROWS=[
- {id:'cot',label:'COT',info:'Pozice spekulativních fondů (CFTC TFF, leveraged funds): 60 % čistá pozice / open interest a 40 % její změna za 4 týdny. U páru s USD rozhoduje cizí měna (USD Index je jen proxy). ±1 od signálu 0,15, ±2 od 0,5.'},
+ {id:'cot',label:'COT',info:'Pozice spekulativních fondů (CFTC TFF, leveraged funds): 60 % čistá pozice / open interest a 40 % její změna za 4 týdny. U páru s USD rozhoduje cizí měna (USD Index je jen proxy). ±1 od signálu 0,25, ±2 od 0,75.'},
  {id:'gdp',label:'HDP',info:'Mezikvartální růst reálného HDP: základní měna minus kotovaná. ±1 od rozdílu 0,3 p. b., ±2 od 0,8 p. b. Měsíční ani anualizovaná čísla se nepřepočítávají.'},
  {id:'seasonality',label:'Sezonalita',info:'Výnosy páru v aktuálním měsíci za posledních 10 let: průměr / odchylka × konzistence směru (stejný signál jako v kompozitu). ±1 od 0,03, ±2 od 0,1.'},
  {id:'trend',label:'Trend',info:'Denní reference páru vůči geometrickým průměrům 50 a 200 dnů a jejich pořadí. Všechny tři hlasy stejným směrem = ±2, převaha 2 : 1 = ±1.'},
@@ -163,7 +163,7 @@ export function pairBreakdown(pair:string,data:FundamentalData,market:MarketData
 
  // COT
  const cot=cotPairSignal(market,base,quote);
- out.cot=cot?{score:bucket(cot.signal,.15,.5),detail:`Signál ${fmt(cot.signal,2)} · `+cot.parts.map(([c,p])=>`${c} fondy net ${fmt(p.net*100)} % OI`).join(', ')+(base==='USD'||quote==='USD'?' (USD jen proxy, rozhoduje cizí měna)':'')+'.',asOf:cot.date,source:cot.url}
+ out.cot=cot?{score:bucket(cot.signal,.25,.75),detail:`Signál ${fmt(cot.signal,2)} · `+cot.parts.map(([c,p])=>`${c} fondy net ${fmt(p.net*100)} % OI`).join(', ')+(base==='USD'||quote==='USD'?' (USD jen proxy, rozhoduje cizí měna)':'')+'.',asOf:cot.date,source:cot.url}
   :{score:null,detail:'Chybí data: COT report pro obě měny se stejným datem není k dispozici.'};
 
  // HDP, Retail Sales, PMI, inflace
