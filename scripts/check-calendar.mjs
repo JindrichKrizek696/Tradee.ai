@@ -50,6 +50,7 @@ const rf=readFilters('{"categories":["macro","xxx"],"minSignal":7,"hidePast":tru
 check('readFilters: neznámé hodnoty zahodí',rf.categories.join()==='macro'&&rf.minSignal===2&&rf.hidePast===true&&rf.showGlobal===true,rf);
 
 const fm=[...flaggedMarkets({'EUR/USD':'green','BTC-USD':'red','^NDX':'orange',AAPL:'none',USD:'green'})].sort().join();
+check('vlaječky komodit: zlato → GOLD+USD, ropa → OIL',[...flaggedMarkets({'GC=F':'green','CL=F':'red','BZ=F':'none'})].sort().join()==='GOLD,OIL,USD',[...flaggedMarkets({'GC=F':'green','CL=F':'red'})]);
 check('vlaječky → trhy',fm==='BTC,EUR,INDEX,USD',fm);
 check('relative',relative('2026-10-02T10:50:00Z',now)==='za 2 h 50 min'&&relative('2026-10-06T08:00:00Z',now)==='za 4 d'&&relative('2026-10-02T07:15:00Z',now)==='před 45 min',[relative('2026-10-02T10:50:00Z',now),relative('2026-10-06T08:00:00Z',now),relative('2026-10-02T07:15:00Z',now)]);
 check('dashboard: síla ≥ 2 nebo VŠE',upcomingCalendar(m,now,5).map(e=>e.id).join()==='us-jobs-sep,eth-upgrade-2026-10-03,rba-oct,eia-oil-2026-10-07,us-cpi-2026-10-14',upcomingCalendar(m,now,5).map(e=>e.id));

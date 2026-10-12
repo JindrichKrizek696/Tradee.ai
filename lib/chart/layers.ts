@@ -3,6 +3,7 @@
 import {chartTime} from '../journal/chart-data.ts';
 import {sessionOfHour,type SessionKey} from '../journal/analytics.ts';
 import {fmtR} from '../journal/format.ts';
+import {COMMODITY_MARKETS} from '../calendar.ts';
 import {fmtMoney} from '../trades.ts';
 import type {Tf} from './candles.ts';
 import type {ChartTrade} from './trades.ts';
@@ -24,9 +25,10 @@ export function snapTo(times:number[],tfSec:number,t:number):number|null{
  const end=tfSec>=MN_SEC&&i<times.length-1?times[i+1]:times[i]+tfSec;
  return t<end||i===times.length-1?times[i]:times[i+1];
 }
-// trhy kalendáře k instrumentu (EUR/USD → EUR, USD · BTC-USD → BTC · ^NDX → INDEX · AAPL → AAPL)
+// trhy kalendáře k instrumentu (EUR/USD → EUR, USD · BTC-USD → BTC · ^NDX → INDEX · AAPL → AAPL · GC=F → GOLD, USD · CL=F → OIL)
 export function instrumentMarkets(id:string){
  if(id.includes('/'))return id.split('/');
+ if(COMMODITY_MARKETS[id])return COMMODITY_MARKETS[id];
  if(id.endsWith('-USD'))return [id.slice(0,-4)];
  if(id.startsWith('^'))return ['INDEX'];
  return [id];

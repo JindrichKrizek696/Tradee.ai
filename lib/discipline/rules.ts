@@ -30,9 +30,12 @@ export function normalizeSettings(raw:unknown):RuleSettings{
 export type EvalTrade={id:string;accountId:string;side:'buy'|'sell';status:'open'|'closed';openTs:number;closeTs:number|null;openPrice:number;slInitial:number|null;tpInitial:number|null;riskPct:number|null;net:number;closeReason:string|null;balanceStart:number|null;slChanges:{ts:number;old:number|null;new:number|null}[];currencies:string[]};
 export type Violation={rule:RuleId;detail:Record<string,unknown>;needsReason:boolean};
 export const NEWS_WINDOW_MS=15*60*1000;
-// 6písmenné FX páry (i s příponou .m, #, -ecn) → dvě měny; ostatní symboly → []
+// 6písmenné FX páry (i s příponou .m, #, -ecn) → dvě měny; ropa → OIL (EIA, OPEC); zlato/stříbro jménem → USD; ostatní symboly → []
+const OIL_SYM=/^(USOIL|UKOIL|WTI|BRENT|XTIUSD|XBRUSD|USCRUDE|CRUDEOIL)/,METAL_SYM=/^(GOLD|SILVER)$/;
 export function currenciesOf(symbol:string):string[]{
  const base=String(symbol||'').trim().toUpperCase().replace(/^[#.]+/,'').split(/[._+-]/)[0];
+ if(OIL_SYM.test(base))return ['OIL'];
+ if(METAL_SYM.test(base))return ['USD'];
  const m=base.match(/^([A-Z]{3})([A-Z]{3})$/);return m?[m[1],m[2]]:[];
 }
 export const LEVEL_WINDOW_MS=120_000;

@@ -77,6 +77,7 @@ check('layers: snap uvnitř svíčky',snapTo(T,3600,4000)===3600,snapTo(T,3600,4
 check('layers: snap v mezeře → další svíčka',snapTo(T,3600,20000)===86400,snapTo(T,3600,20000));
 check('layers: snap mimo rozsah',snapTo(T,3600,-1)===null&&snapTo(T,3600,90000)===null,null);
 check('layers: trhy instrumentu',JSON.stringify([instrumentMarkets('EUR/USD'),instrumentMarkets('BTC-USD'),instrumentMarkets('^NDX'),instrumentMarkets('AAPL')])==='[["EUR","USD"],["BTC"],["INDEX"],["AAPL"]]',null);
+check('layers: komodity → Zlato+USD, Ropa',JSON.stringify([instrumentMarkets('GC=F'),instrumentMarkets('SI=F'),instrumentMarkets('CL=F'),instrumentMarkets('BZ=F')])==='[["GOLD","USD"],["GOLD","USD"],["OIL"],["OIL"]]',null);
 const base=Date.UTC(2026,0,5,0)/1000,times=Array.from({length:24},(_,i)=>base+i*3600),at=h=>new Date((base+h*3600-3600)*1000).toISOString(); // zima: Praha = UTC+1
 const ev=[{id:'a',at:at(14.5),timeKnown:true,title:'CPI',markets:['USD'],signal:3,global:false},{id:'b',at:at(10),timeKnown:true,title:'GBP x',markets:['GBP'],signal:3,global:false},{id:'c',at:at(9),timeKnown:true,title:'slabá',markets:['EUR'],signal:1,global:false},{id:'d',at:at(8),timeKnown:true,title:'FOMC',markets:[],signal:2,global:true}];
 const nl=newsLayer(ev,'EUR/USD',times,3600);

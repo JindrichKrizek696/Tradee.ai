@@ -21,7 +21,7 @@ export function topSignals(items:MarketItem[],n=5){
  };
 }
 
-export const GROUP_ORDER=['fx','currency','index','crypto','stock'];
+export const GROUP_ORDER=['fx','currency','index','commodities','crypto','stock'];
 export function heatmapGroups(items:MarketItem[],labels:Record<string,string>){
  return GROUP_ORDER.map(g=>({group:g,label:labels[g]??g,items:items.filter(i=>i.group===g).sort(byScoreDesc)})).filter(g=>g.items.length);
 }

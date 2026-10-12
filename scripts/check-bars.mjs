@@ -21,6 +21,7 @@ check('přírůstek H1: last−2 svíčky až teď',inc.period1===(now-7*3600000
 check('přírůstek D1 = 1mo',incrementalPlan('D1',now,now)[0].range==='1mo');
 check('přírůstek bez dat = poslední kus / max',incrementalPlan('H1',null,now).length===13&&incrementalPlan('D1',null,now)[0].period1===0);
 check('url',planUrl('EURUSD=X',w[0]).includes('EURUSD%3DX?period1=')&&planUrl('^GSPC',windows('D1',now)[0]).includes('period1=0&period2='));
+check('url komodity: GC=F zakódované, archiv bere komodity z lib/markets.ts',planUrl('GC=F',w[0]).includes('/chart/GC%3DF?period1=')&&planUrl('CL=F',windows('D1',now)[0]).includes('/chart/CL%3DF?period1=0'));
 const H=3600000,b=(t,o,h,l,c,v)=>({t,o,h,l,c,v});
 const base=Date.UTC(2026,0,5,0);
 const h4=toH4([b(base+H,2,3,1,2.5,1),b(base,1,2,0.5,1.5,null),b(base+2*H,2.5,4,2,3,2),b(base+4*H,3,3,3,3,null)]);

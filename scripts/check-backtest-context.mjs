@@ -1,5 +1,5 @@
 // Kontrola kontextu backtestu a požadavku: node --experimental-strip-types scripts/check-backtest-context.mjs
-import {scoreLookup,cotLookup,newsLookup,buildContext,COT_LAG_MS} from '../lib/backtest/context.ts';
+import {scoreLookup,cotLookup,newsLookup,newsItems,buildContext,COT_LAG_MS} from '../lib/backtest/context.ts';
 import {parseRunRequest,warmupBars,planVsReality,thin} from '../lib/backtest/request.ts';
 import {DEFAULT_RULES,normalizeRules} from '../lib/backtest/rules.ts';
 const fails=[];
@@ -56,6 +56,10 @@ check('akcie JPM (tři písmena) není měnový index: USD zprávy ji ovlivní, 
 check('měnový index USD/EUR bere jen zprávy své měny',news('EUR',T('2026-09-12T08:00:00Z'),15,1)===true&&news('EUR',T('2026-09-10T12:30:00Z'),15,3)===false);
 check('okno přesahující kalendář = bez dat',news('EUR/USD',T('2026-09-05T00:00:00Z')+5*m,15,3)===undefined&&news('EUR/USD',T('2026-09-20T00:00:00Z')-5*m,15,3)===undefined&&news('EUR/USD',T('2026-09-05T00:00:00Z')+15*m,15,3)===false);
 check('minSignal filtruje slabé zprávy',news('EUR/GBP',T('2026-09-12T08:00:00Z'),15,2)===false&&news('EUR/GBP',T('2026-09-12T08:00:00Z'),15,1)===true);
+{const nw=newsLookup([{at:T('2026-09-05T00:00:00Z'),currencies:['CHF'],signal:1},{at:T('2026-09-10T12:30:00Z'),currencies:['USD'],signal:3},{at:T('2026-09-16T14:30:00Z'),currencies:['OIL'],signal:2},{at:T('2026-09-20T00:00:00Z'),currencies:['JPY'],signal:3}]);
+check('komodity: zlato/stříbro USD zprávy, ropa jen OIL (EIA), COT v backtestu ne',nw('GC=F',T('2026-09-10T12:30:00Z'),15,3)===true&&nw('SI=F',T('2026-09-10T12:30:00Z'),15,3)===true&&nw('CL=F',T('2026-09-10T12:30:00Z'),15,3)===false&&nw('CL=F',T('2026-09-16T14:30:00Z'),15,2)===true&&nw('BZ=F',T('2026-09-16T14:30:00Z'),15,2)===true&&nw('GC=F',T('2026-09-16T14:30:00Z'),15,2)===false&&cot('GC=F',rel('2026-09-08'))===undefined);
+const items=newsItems([{id:'eia-1',at:'2026-09-16T14:30:00Z',timeKnown:true,title:'EIA • týdenní zásoby ropy',category:'commodity',markets:['OIL'],kind:'eia-oil',source:''},{id:'opec-1',at:'2026-09-18T12:00:00Z',timeKnown:true,title:'OPEC+',category:'commodity',markets:[],kind:'opec',source:''}],[]);
+check('komodity: EIA a OPEC jako zprávy trhu OIL',items.length===2&&items.every(i=>i.currencies.includes('OIL'))&&items[0].signal===2,items);}
 
 // ---- požadavek
 const known=new Set(['EUR/USD','^NDX']),now=T('2026-10-10T00:00:00Z');

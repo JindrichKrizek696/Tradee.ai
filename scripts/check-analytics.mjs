@@ -18,7 +18,7 @@ check('seance: Londýn 2 obchody, win rate 50 %, součet 5',ss[1].count===2&&ss[
 check('seance: Překryv = jediný obchod, avgR 2',ss[2].count===1&&ss[2].avgR===2);
 check('seance: prázdná skupina má winRate null',ss[0].count===0&&ss[0].winRate===null);
 // --- typ trhu
-const mt=[['EUR/USD','EURUSD','fx'],['USD',null,'fx'],['^NDX','NAS100','index'],['AAPL','AAPL','stock'],['BTC-USD','BTCUSD','crypto'],['JPM','JPM','stock'],[null,'XAUUSD','commodity'],[null,'USOIL.cash','commodity'],[null,'XYZ','other'],[null,'','other']];
+const mt=[['EUR/USD','EURUSD','fx'],['USD',null,'fx'],['^NDX','NAS100','index'],['AAPL','AAPL','stock'],['BTC-USD','BTCUSD','crypto'],['JPM','JPM','stock'],[null,'XAUUSD','commodity'],[null,'USOIL.cash','commodity'],[null,'XYZ','other'],[null,'','other'],['GC=F','XAUUSD','commodity'],['CL=F','USOIL','commodity'],['BZ=F','UKOIL','commodity']];
 check('typ trhu: mapování',mt.every(([i,s,k])=>marketTypeOf(i,s||'')===k),mt.filter(([i,s,k])=>marketTypeOf(i,s||'')!==k));
 const bm=byMarketType([tr(),tr({instrument:'^NDX',symbol:'NAS100',pnl:-4}),tr({instrument:null,symbol:'XAUUSD',pnl:3}),tr({instrument:null,symbol:'ZZZ',openTs:null,holdMs:null,source:'manual',pnl:1})]);
 check('typ trhu: jen neprázdné, ruční zahrnuty, pořadí',bm.map(b=>b.key).join()==='fx,index,commodity,other'&&bm[3].count===1,bm);

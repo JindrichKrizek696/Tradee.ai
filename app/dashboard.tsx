@@ -21,9 +21,9 @@ const day=(s:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:'Europe/P
 const time=(s:string)=>new Date(s).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',hour:'2-digit',minute:'2-digit'});
 const tone=(n:number|null)=>n===null||n===0?'':n>0?'up':'down';
 const FLAGS=['green','orange','red'],FLAG_SHORT:Record<string,string>={green:'V tradu',orange:'Vyhlížím',red:'Čekám'};
-const SIGNAL_GROUPS=['fx','currency','index','crypto','stock'];
+const SIGNAL_GROUPS=['fx','currency','index','commodities','crypto','stock'];
 const SYM:Record<string,string>={EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',AUD:'A$',NZD:'N$',CAD:'C$'};
-const ASSET:Record<string,[string,string?]>={'BTC-USD':['₿','#f7931a'],'ETH-USD':['Ξ','#627eea'],'SOL-USD':['◎','#9945ff'],'^NDX':['N'],'^GSPC':['S']};
+const ASSET:Record<string,[string,string?]>={'BTC-USD':['₿','#f7931a'],'ETH-USD':['Ξ','#627eea'],'SOL-USD':['◎','#9945ff'],'^NDX':['N'],'^GSPC':['S'],'GC=F':['Au','#c9a227'],'SI=F':['Ag','#8a9099'],'CL=F':['W','#3b3f46'],'BZ=F':['B','#3b3f46']};
 type Tile=React.CSSProperties&{'--i'?:number};
 
 // Ikona trhu: u páru dvě překrývající se měny, jinak jedna.

@@ -13,6 +13,10 @@ check('neznámé',mapSymbol('XAUUSD',IDS,{})===null&&mapSymbol('GER40',IDS,{})==
 check('ruční přiřazení má přednost',mapSymbol('GER40',IDS,{GER40:'^GSPC'})==='^GSPC'&&mapSymbol('EURUSD',IDS,{EURUSD:''})===null);
 check('ruční přiřazení: velikost písmen',mapSymbol('ger40.cash',IDS,{'GER40.CASH':'^NDX'})==='^NDX');
 check('ruční zápis s lomítkem',mapSymbol('EUR/USD',IDS,{})==='EUR/USD'&&mapSymbol('eur/usd',IDS,{})==='EUR/USD');
+const IDC=[...IDS,'GC=F','SI=F','CL=F','BZ=F'],mm=s=>mapSymbol(s,IDC,{});
+check('komodity: zlato a stříbro',['XAUUSD','GOLD','XAUUSD.m','xauusdm','#GOLD','XAU/USD','GC=F'].every(s=>mm(s)==='GC=F')&&['XAGUSD','SILVER','XAGUSD.r'].every(s=>mm(s)==='SI=F'),['XAUUSD','GOLD','XAUUSD.m','xauusdm','#GOLD','XAU/USD','GC=F','XAGUSD','SILVER'].map(mm));
+check('komodity: ropa WTI a Brent',['USOIL','USOIL.cash','WTI','XTIUSD','xtiusd.m'].every(s=>mm(s)==='CL=F')&&['UKOIL','UKOIL.cash','BRENT','XBRUSD'].every(s=>mm(s)==='BZ=F'),['USOIL','USOIL.cash','WTI','XTIUSD','UKOIL','BRENT','XBRUSD'].map(mm));
+check('komodity: bez trhu v seznamu null, FX beze změny',mapSymbol('XAUUSD',IDS,{})===null&&mm('EURUSD')==='EUR/USD'&&mm('GOLDMAN')===null,null);
 const L=[{id:'c1',name:'Breakout',items:[{id:'a1',text:'Trend'},{id:'a2',text:'SL'}],markets:['EUR/USD','^NDX']},{id:'c2',name:'Riziko',items:[{id:'b1',text:'Max 1 %'}],markets:['EUR/USD']},{id:'c3',name:'Krypto',items:[{id:'d1',text:'X'}],markets:['BTC-USD']}];
 check('platné checklisty',applicable(L,'EUR/USD').map(c=>c.id).join()==='c1,c2'&&applicable(L,'AAPL').length===0);
 const snap=snapshotFor(L,'EUR/USD',{c1:['a2','zz'],c2:[]});

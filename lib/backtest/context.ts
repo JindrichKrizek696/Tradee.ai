@@ -5,7 +5,7 @@
 //  - zprávy: kalendář je dopředu známý, ale pokrývá jen své období; mimo něj bez dat
 import type {BacktestContext,CotPoint} from './engine.ts';
 import {instrumentSpec,isCurrencyIndex} from './rules.ts';
-import {mergeCalendar,eventMarkets,type AutoEvent,type CuratedEvent} from '../calendar.ts';
+import {mergeCalendar,eventMarkets,COMMODITY_MARKETS,OIL_KINDS,type AutoEvent,type CuratedEvent} from '../calendar.ts';
 
 export const SCORE_MAX_AGE_MS=72*3600000; // snapshoty chodí několikrát denně; delší mezera = data chybí
 export const COT_MAX_AGE_MS=14*86400000; // týdenní report; po dvou týdnech bez nového řádku už neplatí
@@ -76,12 +76,12 @@ export function newsItems(auto:AutoEvent[],curated:CuratedEvent[],sources?:Recor
  const out:NewsItem[]=[];
  for(const e of mergeCalendar(auto,curated,sources)){
   if(!e.timeKnown)continue;
-  const at=Date.parse(e.at),cur=eventMarkets(e).filter(m=>/^[A-Z]{3}$/.test(m));
+  const at=Date.parse(e.at),cur=[...new Set([...eventMarkets(e),...(OIL_KINDS.includes(e.kind??'')?['OIL']:[])])].filter(m=>/^[A-Z]{3}$/.test(m)); // OIL = ropné zprávy (EIA, OPEC)
   if(Number.isFinite(at)&&cur.length)out.push({at,currencies:cur,signal:e.signal});
  }
  return out.sort((a,b)=>a.at-b.at);
 }
-const currenciesOfInstrument=(id:string)=>{const sp=instrumentSpec(id);return sp.base&&sp.quote?[sp.base,sp.quote]:isCurrencyIndex(id)?[id]:['USD']}; // indexy, akcie, krypto: dopad USD zpráv
+const currenciesOfInstrument=(id:string)=>{const sp=instrumentSpec(id);return sp.base&&sp.quote?[sp.base,sp.quote]:isCurrencyIndex(id)?[id]:COMMODITY_MARKETS[id]??['USD']}; // indexy, akcie, krypto: dopad USD zpráv; kovy USD, ropa OIL
 export function newsLookup(items:NewsItem[]){
  const ev=[...items].sort((a,b)=>a.at-b.at),first=ev.length?ev[0].at:null,last=ev.length?ev[ev.length-1].at:null,times=ev.map(e=>e.at);
  return (instrument:string,t:number,minutes:number,minSignal:number):boolean|undefined=>{

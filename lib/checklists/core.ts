@@ -6,6 +6,9 @@ export const LIMITS={lists:20,items:30,name:60,item:120};
 export function newItemId(){const a='abcdefghijklmnopqrstuvwxyz0123456789';let s='';const b=crypto.getRandomValues(new Uint8Array(8));for(const x of b)s+=a[x%a.length];return s}
 const INDEX:Record<string,string>={NAS100:'^NDX',US100:'^NDX',USTEC:'^NDX',NDX:'^NDX',NQ:'^NDX',NASDAQ:'^NDX',NASDAQ100:'^NDX',US500:'^GSPC',SPX500:'^GSPC',SP500:'^GSPC',SPX:'^GSPC',ES:'^GSPC'};
 const CRYPTO=['BTC','ETH','SOL'];
+// komodity (futures id z lib/markets.ts): běžné názvy u MT brokerů
+const COMMODITY:Record<string,string>={XAUUSD:'GC=F',GOLD:'GC=F',XAU:'GC=F',GC:'GC=F',XAGUSD:'SI=F',SILVER:'SI=F',XAG:'SI=F',USOIL:'CL=F',WTI:'CL=F',XTIUSD:'CL=F',USCRUDE:'CL=F',CRUDEOIL:'CL=F',CL:'CL=F',UKOIL:'BZ=F',BRENT:'BZ=F',XBRUSD:'BZ=F',UKBRENT:'BZ=F',BRN:'BZ=F'};
+const commodityOf=(base:string)=>COMMODITY[base]??COMMODITY[base.match(/^(XAUUSD|XAGUSD|XTIUSD|XBRUSD|USOIL|UKOIL)[A-Z]{0,2}$/)?.[1]??''];
 // MT symbol → id trhu Tradee; ruční přiřazení (klíč velkými písmeny, '' = nesledovat) má přednost; nepoznané → null
 export function mapSymbol(symbol:string,ids:readonly string[],userMap:Record<string,string>):string|null{
  const raw=String(symbol||'').trim().toUpperCase();if(!raw)return null;
@@ -13,6 +16,7 @@ export function mapSymbol(symbol:string,ids:readonly string[],userMap:Record<str
  if(ids.includes(raw))return raw;
  const slash=raw.match(/^([A-Z]{3})\/([A-Z]{3})$/);
  const base=raw.replace(/^[#.]+/,'').split(/[._+]/)[0];
+ const com=commodityOf(base.replace('/',''));if(com&&ids.includes(com))return com;
  const fx=slash?[slash[1],slash[2]]:base.match(/^([A-Z]{3})([A-Z]{3})[A-Z]{0,2}$/)?.slice(1,3);
  if(fx){const [a,b]=fx;if(ids.includes(a+'/'+b))return a+'/'+b;if(ids.includes(b+'/'+a))return b+'/'+a}
  const cr=CRYPTO.find(c=>base===c+'USD'||base===c+'USDT');if(cr&&ids.includes(cr+'-USD'))return cr+'-USD';

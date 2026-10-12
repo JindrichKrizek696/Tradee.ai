@@ -22,7 +22,7 @@ export type Condition=
 export type ConditionType=Condition['type'];
 export type SlType='pips'|'pct'|'atr';
 export type TpType='r'|'pips'|'pct'|'signal'|'none';
-export type SpreadGroup='fx_major'|'fx_jpy'|'fx_other'|'metal'|'index'|'stock'|'crypto';
+export type SpreadGroup='fx_major'|'fx_jpy'|'fx_other'|'metal'|'oil'|'index'|'stock'|'crypto';
 export type StrategyRules={
  version:1;
  entry:Condition[]; // „a zároveň“
@@ -53,13 +53,13 @@ export const DEFAULT_CONDITIONS:{[K in ConditionType]:Extract<Condition,{type:K}
 export const DEFAULT_RULES:StrategyRules={version:1,entry:[],direction:'long',exit:{sl:{type:'atr',value:1.5},tp:{type:'r',value:2},maxBars:null},sizing:{riskPct:1,capital:10000},costs:{commissionPct:0,spread:{}}};
 
 // ---- trh: skupina, velikost bodu, výchozí spread
-// Velikost bodu (pip): FX s JPY 0,01, ostatní FX 0,0001, kovy 0,01; indexy, akcie, krypto a měnové indexy = 1 cenová jednotka.
-// Spread: FX a kovy v bodech (pips), indexy v bodech indexu, akcie a krypto v % ceny.
-export const DEFAULT_SPREADS:Record<SpreadGroup,number>={fx_major:1,fx_jpy:1.5,fx_other:2,metal:3,index:1,stock:0.05,crypto:0.1};
-export const SPREAD_UNIT:Record<SpreadGroup,'pips'|'points'|'pct'>={fx_major:'pips',fx_jpy:'pips',fx_other:'pips',metal:'pips',index:'points',stock:'pct',crypto:'pct'};
-export const SPREAD_LABELS:Record<SpreadGroup,string>={fx_major:'FX majors',fx_jpy:'JPY páry',fx_other:'Ostatní FX',metal:'Kovy',index:'Indexy',stock:'Akcie',crypto:'Krypto'};
+// Velikost bodu (pip): FX s JPY 0,01, ostatní FX 0,0001, kovy a ropa 0,01; indexy, akcie, krypto a měnové indexy = 1 cenová jednotka.
+// Spread: FX, kovy a ropa v bodech (pips), indexy v bodech indexu, akcie a krypto v % ceny.
+export const DEFAULT_SPREADS:Record<SpreadGroup,number>={fx_major:1,fx_jpy:1.5,fx_other:2,metal:3,oil:3,index:1,stock:0.05,crypto:0.1};
+export const SPREAD_UNIT:Record<SpreadGroup,'pips'|'points'|'pct'>={fx_major:'pips',fx_jpy:'pips',fx_other:'pips',metal:'pips',oil:'pips',index:'points',stock:'pct',crypto:'pct'};
+export const SPREAD_LABELS:Record<SpreadGroup,string>={fx_major:'FX majors',fx_jpy:'JPY páry',fx_other:'Ostatní FX',metal:'Kovy',oil:'Ropa',index:'Indexy',stock:'Akcie',crypto:'Krypto'};
 const MAJORS=new Set(['EUR/USD','GBP/USD','USD/JPY','USD/CHF','USD/CAD','AUD/USD','NZD/USD']);
-const FX=/^([A-Z]{3})\/([A-Z]{3})$/,METAL=/^(XAU|XAG|XPT|XPD)|^(GC|SI|PL|PA)=F$/;
+const FX=/^([A-Z]{3})\/([A-Z]{3})$/,METAL=/^(XAU|XAG|XPT|XPD)|^(GC|SI|PL|PA)=F$/,OIL=/^(XTI|XBR|USOIL|UKOIL|WTI|BRENT)|^(CL|BZ)=F$/;
 const CCY_INDEX=new Set(fxCurrencies);
 export const isCurrencyIndex=(id:string)=>CCY_INDEX.has(id); // měnové indexy (skupina 'currency' v lib/markets.ts); jiné tříznakové tickery (JPM) jsou akcie
 export type InstrumentSpec={group:SpreadGroup;pip:number;base:string|null;quote:string|null};
@@ -67,6 +67,7 @@ export function instrumentSpec(id:string):InstrumentSpec{
  const m=id.match(FX);
  if(m){const jpy=m[1]==='JPY'||m[2]==='JPY';return {group:MAJORS.has(id)?'fx_major':jpy?'fx_jpy':'fx_other',pip:jpy?0.01:0.0001,base:m[1],quote:m[2]}}
  if(METAL.test(id))return {group:'metal',pip:0.01,base:null,quote:null};
+ if(OIL.test(id))return {group:'oil',pip:0.01,base:null,quote:null}; // ropa: bod 0,01 USD, výchozí spread 3 body = 0,03 USD
  if(id.startsWith('^')||isCurrencyIndex(id))return {group:'index',pip:1,base:null,quote:null}; // ^NDX, ^GSPC; měnové indexy (USD, EUR…)
  if(id.endsWith('-USD'))return {group:'crypto',pip:1,base:null,quote:null};
  return {group:'stock',pip:1,base:null,quote:null};

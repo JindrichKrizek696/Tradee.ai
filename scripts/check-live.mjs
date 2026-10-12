@@ -6,6 +6,7 @@ const CUR=['USD','EUR','GBP','CHF','JPY','CAD','AUD','NZD'];
 check('symbol FX',yahooSymbol('EUR/USD',CUR)==='EURUSD=X'&&yahooSymbol('USD/EUR',CUR)==='USDEUR=X');
 check('symbol měnový index = null',yahooSymbol('USD',CUR)===null);
 check('symbol akcie/index/krypto',yahooSymbol('JPM',CUR)==='JPM'&&yahooSymbol('^GSPC',CUR)==='^GSPC'&&yahooSymbol('BTC-USD',CUR)==='BTC-USD'&&yahooSymbol('BRK-B',CUR)==='BRK-B');
+check('symbol komodity: futures beze změny',yahooSymbol('GC=F',CUR)==='GC=F'&&yahooSymbol('SI=F',CUR)==='SI=F'&&yahooSymbol('CL=F',CUR)==='CL=F'&&yahooSymbol('BZ=F',CUR)==='BZ=F');
 check('změna %',changePct(101,100)===1&&changePct(99.5,100)===-0.5&&changePct(1,0)===0&&changePct(Number.NaN,100)===0);
 const t0=Date.UTC(2026,9,9,8,0)/1000;
 const yj={chart:{result:[{meta:{regularMarketPrice:1.0912,chartPreviousClose:1.09,regularMarketTime:t0+1800},timestamp:[t0,t0+900,t0+1800],indicators:{quote:[{close:[1.09,null,1.0912]}]}}]}};

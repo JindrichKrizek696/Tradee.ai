@@ -1,6 +1,7 @@
 // Kontrola seznamu trhů a předvoleb barev: node --experimental-strip-types scripts/check-market-view.mjs
 import {toItem,topSignals,heatmapGroups,sortItems,filterItems,matchesQuery,matchesText,intensity,textOn,hexContrastOnWhite} from '../lib/market-view.ts';
 import {palettes,getPalette,isPalette,DEFAULT_PALETTE} from '../lib/palettes.ts';
+import {instruments,groups,assetNames,marketScore,isCommodity,technicalMethodText} from '../lib/markets.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const it=(id,group,score,coverage=80,name=id)=>({id,name,group,score,trend:null,coverage,bias:''});
@@ -17,6 +18,25 @@ check('top: prázdný vstup',topSignals([]).bull.length===0&&topSignals([]).bear
 const h=heatmapGroups(items,{fx:'FX páry',currency:'Měnové indexy',index:'Akciové indexy',crypto:'Krypto',stock:'Akcie'});
 check('heatmapa: pořadí skupin',h.map(g=>g.group).join()==='fx,currency,index,crypto,stock',h.map(g=>g.group));
 check('heatmapa: fx sestupně, null na konci',h[0].items.map(i=>i.id).join()==='EUR/USD,AUD/USD,NZD/USD,GBP/USD,USD/JPY',h[0].items.map(i=>i.id));
+const hc=heatmapGroups([...items,it('GC=F','commodities',-20,100,'Zlato · XAU/USD'),it('CL=F','commodities',40,100,'Ropa WTI')],groups);
+check('heatmapa: komodity mezi indexy a kryptem, sestupně',hc.map(g=>g.group).join()==='fx,currency,index,commodities,crypto,stock'&&hc[3].label==='Komodity'&&hc[3].items.map(i=>i.id).join()==='CL=F,GC=F',hc.map(g=>g.group));
+// komodity v lib/markets.ts: skupina, názvy, hledání
+const com=instruments.filter(i=>i.group==='commodities');
+check('komodity: 4 futures trhy ve skupině Komodity',com.map(i=>i.id).join()==='GC=F,SI=F,CL=F,BZ=F'&&groups.commodities==='Komodity'&&com.every(i=>isCommodity(i.id)&&assetNames[i.id])&&!isCommodity('BTC-USD'),com);
+check('komodity: hledání xauusd, zlato, wti, brent',matchesQuery(it('GC=F','commodities',0,0,'Zlato · XAU/USD'),'xauusd')&&matchesQuery(it('GC=F','commodities',0,0,'Zlato · XAU/USD'),'zlato')&&matchesQuery(it('CL=F','commodities',0,0,'Ropa WTI'),'wti')&&matchesQuery(it('BZ=F','commodities',0,0,'Ropa Brent'),'brent'),null);
+{// skóre komodit: technický model + COT (managed money); Brent bez COT
+ const NOW=Date.parse('2026-10-12T12:00:00Z'),day=d=>new Date(NOW-d*86400000).toISOString().slice(0,10);
+ const price={asOf:day(1),checkedAt:new Date(NOW-3600000).toISOString(),sourceUrl:'',reference:1,gma50:1,gma200:1,trend:1,months:{},currentMonth:10,currentYear:2026,currentPath:[],pricePath:[]};
+ const rows=Array.from({length:30},(_,i)=>({date:day(7*(29-i)+6),openInterest:1000,groups:{managedMoney:{long:300,short:100,spread:0,net:200-(29-i)*2}}}));
+ const ct={contract:'GOLD',code:'088691',isProxy:false,sourceUrl:'',checkedAt:new Date(NOW-3600000).toISOString(),history:rows};
+ const M={prices:{'GC=F':price,'BZ=F':price},cot:{},legacy:{'GC=F':ct},refresh:{attemptedAt:'',issues:[]}};
+ const g=marketScore({},M,'GC=F',NOW),b=marketScore({},M,'BZ=F',NOW),stale=marketScore({},{...M,legacy:{'GC=F':{...ct,checkedAt:new Date(NOW-3*86400000).toISOString()}}},'GC=F',NOW);
+ const cot=g.parts.find(p=>p.id==='cot');
+ check('komodity: zlato = trend 50 + COT 30 + sezonalita 20',g.method==='technical-cot-v1'&&g.parts.map(p=>p.id+p.weight).join()==='trend50,cot30,seasonality20'&&cot.signal>0&&Math.abs(g.score-(50+30*cot.signal))<0.11&&g.coverage===80,g.parts);
+ check('komodity: COT starší než 48 h kontroly se nezapočítá',stale.parts.find(p=>p.id==='cot').signal===null&&stale.score===50,stale.parts);
+ check('komodity: Brent bez COT = technický model 70/30',b.method==='technical-v1.1'&&b.parts.map(p=>p.id+p.weight).join()==='trend70,seasonality30'&&b.score===70,b.parts);
+ check('komodity: text výpočtu zmiňuje COT jen u trhů s kontraktem',/COT/.test(technicalMethodText('GC=F'))&&/managed money/.test(technicalMethodText('CL=F'))&&!/30 %/.test(technicalMethodText('BZ=F').replace('sezonalita 30 %',''))&&technicalMethodText('AAPL').startsWith('Technický model: denní trend 70 %'),null);
+}
 check('heatmapa: prázdné skupiny vynechá',heatmapGroups([it('A','fx',1)],{}).length===1,null);
 
 check('řazení skóre sestupně, null na konci',sortItems(items,'score',-1).map(i=>i.score).slice(-1)[0]===null&&sortItems(items,'score',-1)[0].id==='BTC-USD',sortItems(items,'score',-1).map(i=>i.id));

@@ -81,12 +81,17 @@ export function filterEvents(events:CalendarEvent[],f:Filters,now:number){
  });
 }
 
-// Vlaječky jsou na instrumentech (EUR/USD, USD, BTC-USD, ^NDX, AAPL) → trhy kalendáře.
+// Komodity (futures id z lib/markets.ts) → trhy kalendáře: drahé kovy hýbou hlavně USD zprávy (+ štítek Zlato), ropu EIA zásoby a OPEC (štítek Ropa).
+export const COMMODITY_MARKETS:Record<string,string[]>={'GC=F':['GOLD','USD'],'SI=F':['GOLD','USD'],'CL=F':['OIL'],'BZ=F':['OIL']};
+// Ropné události (OIL) pro pravidla kolem zpráv: týdenní zásoby EIA a schůzky OPEC i bez signálu 3.
+export const OIL_KINDS=['eia-oil','opec'];
+// Vlaječky jsou na instrumentech (EUR/USD, USD, BTC-USD, ^NDX, AAPL, GC=F) → trhy kalendáře.
 export function flaggedMarkets(flags:Record<string,string>){
  const out=new Set<string>();
  for(const [id,flag] of Object.entries(flags)){
   if(!flag||flag==='none')continue;
   if(id.includes('/'))id.split('/').forEach(c=>out.add(c));
+  else if(COMMODITY_MARKETS[id])COMMODITY_MARKETS[id].forEach(c=>out.add(c));
   else if(id.endsWith('-USD'))out.add(id.slice(0,-4));
   else if(id.startsWith('^'))out.add('INDEX');
   else out.add(id);

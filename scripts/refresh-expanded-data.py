@@ -3,7 +3,11 @@ import json,datetime as dt,urllib.request,urllib.parse,math,statistics as st,cal
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 CODES={'CAD':'090741','JPY':'097741','EUR':'099741','AUD':'232741','USD':'098662','NZD':'112741','GBP':'096742','CHF':'092741'}
-ASSETS={'BTC-USD':'Bitcoin','ETH-USD':'Ethereum','SOL-USD':'Solana','^NDX':'Nasdaq 100','^GSPC':'S&P 500','AAPL':'Apple','MSFT':'Microsoft','NVDA':'NVIDIA','AMZN':'Amazon','GOOGL':'Alphabet','META':'Meta','TSLA':'Tesla','BRK-B':'Berkshire Hathaway','JPM':'JPMorgan Chase','AVGO':'Broadcom'}
+ASSETS={'BTC-USD':'Bitcoin','ETH-USD':'Ethereum','SOL-USD':'Solana','^NDX':'Nasdaq 100','^GSPC':'S&P 500','AAPL':'Apple','MSFT':'Microsoft','NVDA':'NVIDIA','AMZN':'Amazon','GOOGL':'Alphabet','META':'Meta','TSLA':'Tesla','BRK-B':'Berkshire Hathaway','JPM':'JPMorgan Chase','AVGO':'Broadcom','GC=F':'Zlato','SI=F':'Stříbro','CL=F':'Ropa WTI','BZ=F':'Ropa Brent'}
+# Komodity: COT z CFTC Disaggregated (futures only), skupina managed money jde do skóre (lib/markets.ts).
+# Brent chybí záměrně: hlavní ICE Brent CFTC nevykazuje a NYMEX Brent Last Day má zanedbatelné pozice fondů.
+DISAGG={'GC=F':'088691','SI=F':'084691','CL=F':'067651'}
+DISAGG_GROUPS=[('managedMoney','m_money_positions_long_all','m_money_positions_short_all','m_money_positions_spread'),('producers','prod_merc_positions_long','prod_merc_positions_short',None),('swapDealers','swap_positions_long_all','swap__positions_short_all','swap__positions_spread_all'),('other','other_rept_positions_long','other_rept_positions_short','other_rept_positions_spread'),('nonreportable','nonrept_positions_long_all','nonrept_positions_short_all',None)]
 def get(url):
  with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 Tradee.ai Research'}),timeout=40) as r:return json.load(r)
 def run():
@@ -24,6 +28,23 @@ def run():
    d['legacy'][cc]={'contract':rr[-1]['contract_market_name'],'code':code,'isProxy':cc=='USD','sourceUrl':'https://publicreporting.cftc.gov/d/6dca-aqww','checkedAt':stamp,'history':history[-56:]}
   print('Legacy:',len(d['legacy']),flush=True)
  except Exception as e:issues.append('Legacy COT: '+str(e))
+ try:
+  # komodity se ukládají do stejného slovníku jako Legacy COT měn, klíčem je id trhu (GC=F…)
+  url='https://publicreporting.cftc.gov/resource/72hh-3qpy.json?'+urllib.parse.urlencode({'$where':"cftc_contract_market_code in ("+','.join("'"+x+"'" for x in DISAGG.values())+")",'$order':'report_date_as_yyyy_mm_dd DESC','$limit':str(60*len(DISAGG))})
+  rows=get(url)
+  for sym,code in DISAGG.items():
+   rr=sorted([r for r in rows if r['cftc_contract_market_code']==code and dt.date.fromisoformat(r['report_date_as_yyyy_mm_dd'][:10])<=today],key=lambda r:r['report_date_as_yyyy_mm_dd']);assert len(rr)>=26,sym+': málo reportů'
+   history=[]
+   for r in rr:
+    oi=int(r['open_interest_all']);assert oi>0
+    groups={}
+    for name,a,b,c in DISAGG_GROUPS:
+     l,sh=int(r[a]),int(r[b]);groups[name]={'long':l,'short':sh,'spread':int(r[c]) if c else 0,'net':l-sh}
+    history.append({'date':r['report_date_as_yyyy_mm_dd'][:10],'openInterest':oi,'groups':groups})
+   assert 0<=(today-dt.date.fromisoformat(history[-1]['date'])).days<=14,sym+': starý report'
+   d['legacy'][sym]={'contract':rr[-1]['market_and_exchange_names'],'code':code,'isProxy':False,'report':'disaggregated','sourceUrl':'https://publicreporting.cftc.gov/d/72hh-3qpy','checkedAt':stamp,'history':history[-56:]}
+  print('Disaggregated:',len(DISAGG),flush=True)
+ except Exception as e:issues.append('Disaggregated COT: '+str(e))
  def price(symbol):
   url='https://query1.finance.yahoo.com/v8/finance/chart/'+urllib.parse.quote(symbol)+'?range=15y&interval=1d'
   raw=get(url)['chart']['result'][0];adj=raw['indicators'].get('adjclose',[{}])[0].get('adjclose',raw['indicators']['quote'][0]['close']);tz=dt.timezone(dt.timedelta(seconds=raw['meta']['gmtoffset']))

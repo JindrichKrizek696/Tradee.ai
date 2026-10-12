@@ -43,6 +43,7 @@ export function marketTypeOf(instrument:string|null|undefined,symbol=''):MarketT
   if(instrument.includes('/')||CURRENCIES.includes(instrument))return 'fx';
   if(instrument.startsWith('^'))return 'index';
   if(instrument.endsWith('-USD'))return 'crypto';
+  if(instrument.endsWith('=F'))return 'commodity'; // futures komodit (GC=F, CL=F…)
   return 'stock';
  }
  return COMMODITY.test(String(symbol).trim().toUpperCase().replace(/^[#.]+/,''))?'commodity':'other';
