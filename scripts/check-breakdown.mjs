@@ -116,7 +116,7 @@ check(`reálná data: ${n} párů, rozsahy a symetrie`,bad.length===0,bad.slice(
  const t4=pairBreakdown('USD/CAD',d({},{USD:rs(-0.5,'2026-08','m/m',1.13),CAD:rs(0.2,'2026-07')}),market,NOW),r4=row(t4,'retailSales');
  check('maloobchod: oficiální statistika přebije pozorování; detail se zdrojem a předchozí hodnotou',r4.score===-1&&/FRED\/Census/.test(r4.detail)&&/srpen 2026/.test(r4.detail)&&/předtím 1,13 %/.test(r4.detail)&&r4.source==='https://fred.test/RSAFS',r4);
  const t5=pairBreakdown('USD/CAD',d({},{CAD:rs(3.5,'2026 Q2','q/q')}),market,NOW);
- check('maloobchod q/q se do m/m složky nepoužije',!/FRED/.test(row(t5,'retailSales').detail)&&row(t5,'retailSales').score===2,row(t5,'retailSales'));
+ check('maloobchod q/q (čtvrtletní řada) se přepočte na m/m ekvivalent ÷ 3',/q\/q ÷ 3/.test(row(t5,'retailSales').detail)&&/CAD \+1,2 %/.test(row(t5,'retailSales').detail)&&row(t5,'retailSales').score===0,row(t5,'retailSales'));
  const t6=pairBreakdown('USD/CAD',d({},{CAD:rs(3.5,'2026-05')}),market,NOW);
  check('maloobchod starší než 120 dní od konce období → pozorování',!/FRED/.test(row(t6,'retailSales').detail),row(t6,'retailSales'));
  const t7=pairBreakdown('USD/CAD',d({USD:{retailSales:te(1,'2026-09')}},{USD:rs(1,'2026-08')}),market,NOW);
