@@ -234,7 +234,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    const g=drag.current;if(!g)return;drag.current=null;
    if(g.cur){if(g.temp)setTemp(g.cur);else commit(S.current.drawings.map(d=>d.id===g.id?g.cur!:d))}
    // klik (bez tažení) na popisek R:R otevře panel stylu se zadáním R:R
-   else if(g.rr&&!g.temp){keepStyle.current=true;setStyleOpen(true);setRrFocus({id:g.id,n:Date.now()})}
+   else if(g.rr&&!g.temp){keepStyle.current=true;setTimeout(()=>{keepStyle.current=false},0);setStyleOpen(true);setRrFocus({id:g.id,n:Date.now()})}
   }
   const opt={capture:true,passive:false} as const;
   box.addEventListener('mousedown',down,opt);box.addEventListener('touchstart',down,opt);
