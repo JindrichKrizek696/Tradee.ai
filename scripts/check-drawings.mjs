@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput} from '../lib/chart/drawings.ts';
+import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -330,5 +330,17 @@ check('kanál: krajní polohy 0 a 1 projdou',parseDrawings([{...chM,s:{midp:0}}]
 const cl=channelLine({x:0,y:50},{x:100,y:70},-40,.25),cl5=channelLine({x:0,y:50},{x:100,y:70},-40,.5);
 check('kanál: čára uvnitř kanálu podle podílu',cl[0].x===0&&cl[0].y===40&&cl[1].x===100&&cl[1].y===60&&cl5[0].y===30&&cl5[1].y===50&&channelLine({x:0,y:50},{x:1,y:50},-40,1)[0].y===10,[cl,cl5]);
 check('číslo: čárka i tečka, rozsah, zaokrouhlení',numInput('0,25',0,1,3)===.25&&numInput('0.3333',0,1,3)===.333&&numInput('1',0,1,3)===1&&numInput('1,5',0,1,3)===null&&numInput('-0',0,1,3)===0&&numInput('abc',0,1,3)===null&&numInput(' ',0,1,3)===null);
+// popisek úrovně do dotyku
+const sTo=styleOf({type:'touch',color:'brand'});
+check('dotyk: výchozí popisek nad čarou vpravo',sTo.la==='top'&&sTo.lx==='right'&&capsOf('touch').label&&!capsOf('hline').label);
+const toD={id:'to',type:'touch',a:[{t:T,p:1}],color:'brand'};
+check('dotyk: styl popisku projde, neplatný ne',parseDrawings([{...toD,s:{la:'bottom',lx:'left'}}]).drawings[0].s.lx==='left'&&!parseDrawings([{...toD,s:{la:'left'}}]).ok&&!parseDrawings([{...toD,s:{lx:'middle'}}]).ok);
+const tl=touchLabelAt({x:50,y:100},300,400,true,'top','right',40);
+check('dotyk: popisek výchozí – u bodu dotyku nad čarou (jako dřív)',tl.x===300&&tl.y===96&&tl.align==='right'&&tl.base==='bottom'&&tl.box===null,tl);
+check('dotyk: bez dotyku vpravo kus před okrajem, dotyk za okrajem u okraje',touchLabelAt({x:50,y:100},400,400,false,'top','right',40).x===340&&touchLabelAt({x:50,y:100},500,400,true,'top','right',40).x===396);
+const tlL=touchLabelAt({x:50,y:100},300,400,true,'bottom','left',40);
+check('dotyk: vlevo u kotvy pod čarou',tlL.x===54&&tlL.y===104&&tlL.align==='left'&&tlL.base==='top'&&tlL.box===null,tlL);
+const tlM=touchLabelAt({x:50,y:100},300,400,true,'middle','right',40),tlML=touchLabelAt({x:50,y:100},300,400,true,'middle','left',40);
+check('dotyk: na čáře s podkladem (vpravo i vlevo)',tlM.x===292&&tlM.y===100&&tlM.base==='middle'&&tlM.box.x===248&&tlM.box.w===48&&tlM.box.y===91&&tlML.x===58&&tlML.box.x===54,[tlM,tlML]);
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

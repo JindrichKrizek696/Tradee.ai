@@ -1,7 +1,7 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,channelLine,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,channelLine,touchLabelAt,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 
 export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
@@ -125,7 +125,10 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
    case 'touch':{
     const t=this.env.touch(d),x1=shape.touchX??w;line(a,{x:x1,y:a.y});
     ctx.setLineDash([]);if(t.x!==null){ctx.beginPath();ctx.arc(x1,a.y,3,0,Math.PI*2);ctx.fill()}
-    ctx.font=FONT;const tx=t.x!==null?Math.min(x1,w-4):w-60;label(t.label,tx,a.y-4,t.x!==null?'right':'right');
+    // popisek podle stylu (výchozí nad čarou u pravého konce)
+    ctx.font=FONT;const L=touchLabelAt(a,x1,w,t.x!==null,st.la,st.lx,ctx.measureText(t.label).width);
+    if(L.box){ctx.fillStyle=P.bg;pill(ctx,L.box.x,L.box.y,L.box.w,L.box.h,4);ctx.fill();ctx.fillStyle=c}
+    label(t.label,L.x,L.y,L.align,L.base);
     break;
    }
    case 'path':case 'brush':{ctx.beginPath();shape.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();break}

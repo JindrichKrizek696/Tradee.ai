@@ -435,6 +435,10 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
    <div className="mc-row"><span>Barva textu</span><Swatches value={st.tc} onPick={c=>onStyle({tc:c})} label="Barva textu" custom={pp.colors}/></div>
   </>}
   {caps.line&&<div className="mc-row"><span>Čára</span><Seg label="Tloušťka čáry" value={st.lw} options={[[1,'S'],[2,'M'],[3,'L'],[4,'XL']]} onPick={v=>onStyle({lw:v})}/><Seg label="Styl čáry" value={st.ls} options={[['solid','Plná'],['dashed','Čárky'],['dotted','Tečky']]} onPick={v=>onStyle({ls:v})}/></div>}
+  {caps.label&&<div className="mc-row" role="group" aria-label="Popisek dotyku"><span>Popisek</span>
+   <Seg label="Popisek dotyku nad, na nebo pod čarou" value={st.la} options={[['top','Nahoře'],['middle','Uprostřed'],['bottom','Dole']]} onPick={v=>onStyle({la:v==='top'?undefined:v})}/>
+   <Seg label="Popisek dotyku u konce čáry" value={st.lx} options={[['left','Vlevo'],['right','Vpravo']]} onPick={v=>onStyle({lx:v==='right'?undefined:v})}/>
+  </div>}
   {caps.levels&&<FibRows type={d.type} st={st} onStyle={onStyle}/>}
   {caps.mid&&<div className="mc-row" role="group" aria-label="Střední čára kanálu"><span>Střed</span>
    <label className="mc-check"><input type="checkbox" checked={st.mid} onChange={e=>onStyle({mid:e.target.checked?undefined:false})}/>Střední čára</label>

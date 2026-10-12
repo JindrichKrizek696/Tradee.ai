@@ -26,10 +26,14 @@ export type TextSize=typeof TEXT_SIZES[number];
 // popisky hladin Fibonacciho: hladina i cena / jen hladina / jen cena / bez popisků
 export const LABEL_MODES=['both','level','price','none'] as const;
 export type LabelMode=typeof LABEL_MODES[number];
+// automatický popisek (úroveň do dotyku): u levého nebo pravého konce čáry
+export const LABEL_ENDS=['left','right'] as const;
+export type LabelEnd=typeof LABEL_ENDS[number];
 // hladina Fibonacciho: hodnota (0,618) a zda se kreslí
 export type FibLevel={v:number;on:boolean};
 // styl kresby – všechna pole volitelná (staré kresby styl nemají a vykreslí se stejně jako dřív)
-// lv/lb/pct = hladiny a popisky Fibonacciho; mid/midp/midc = střední čára kanálu (zapnutá, poloha 0–1 od čáry a–b, barva)
+// lv/lb/pct = hladiny a popisky Fibonacciho; mid/midp/midc = střední čára kanálu (zapnutá, poloha 0–1 od čáry a–b, barva);
+// la/lx = automatický popisek úrovně do dotyku (nad/na/pod čarou, u levého/pravého konce)
 export type DrawStyle={
  lw?:1|2|3|4;ls?:LineStyleName;op?:number;
  fill?:boolean;border?:boolean;bc?:DrawColor;
@@ -38,6 +42,7 @@ export type DrawStyle={
  risk?:number;
  lv?:FibLevel[];lb?:LabelMode;pct?:boolean;
  mid?:boolean;midp?:number;midc?:DrawColor;
+ la?:TextAlign;lx?:LabelEnd;
 };
 export type Drawing={id:string;type:DrawType;a:Anchor[];color:DrawColor;text?:string;ray?:boolean;s?:DrawStyle;tfs?:string[]};
 export const MAX_DRAWINGS=200,MAX_TEXT=200,MAX_POINTS=300,MAX_PATH=100,MAX_TOTAL_POINTS=20000;
@@ -62,7 +67,7 @@ const num=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v);
 const anchorOk=(a:unknown):a is Anchor=>!!a&&typeof a==='object'&&num((a as Anchor).t)&&num((a as Anchor).p)&&(a as Anchor).t>=0&&(a as Anchor).t<7258118400000&&Math.abs((a as Anchor).p)<1e12;
 
 // --- schopnosti stylu podle typu (co nabídnout v panelu) ---
-export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean;mid:boolean};
+export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean;mid:boolean;label:boolean};
 const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange','fibext','pitchfork','gann'];
 export function capsOf(t:DrawType):Caps{
  return {
@@ -73,9 +78,10 @@ export function capsOf(t:DrawType):Caps{
   risk:t==='long'||t==='short',
   levels:t==='fib'||t==='fibext',
   mid:t==='channel',
+  label:t==='touch',
  };
 }
-export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor};
+export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor;la:TextAlign;lx:LabelEnd};
 // výchozí hladiny podle nástroje (u ostatních nástrojů žádné)
 export const defaultLevels=(t:DrawType):FibLevel[]=>t==='fib'?FIB_DEFAULT:t==='fibext'?FIB_EXT_DEFAULT:[];
 // výchozí styl doplněný o uložené hodnoty (staré kresby: čáry 2 px, zóna s výplní i okrajem 1 px, text bez pozadí; pozice bez okraje)
@@ -89,6 +95,7 @@ export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
   risk:s.risk??null,
   lv:s.lv??defaultLevels(d.type),lb:s.lb??'both',pct:s.pct??false,
   mid:s.mid??true,midp:s.midp??.5,midc:s.midc??d.color,
+  la:s.la??'top',lx:s.lx??'right',
  };
 }
 export const TEXT_PX:Record<TextSize,number>={S:10,M:12,L:16,XL:22};
@@ -139,6 +146,8 @@ export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:str
  if(r.lb!==undefined){if(!(LABEL_MODES as readonly unknown[]).includes(r.lb))return BAD_STYLE;s.lb=r.lb as LabelMode}
  if(r.midp!==undefined){if(!num(r.midp)||r.midp<0||r.midp>1)return BAD_STYLE;s.midp=Math.round(r.midp*1000)/1000}
  if(r.midc!==undefined){if(!color(r.midc))return BAD_STYLE;s.midc=normColor(r.midc as DrawColor)}
+ if(r.la!==undefined){if(!(TEXT_ALIGNS as readonly unknown[]).includes(r.la))return BAD_STYLE;s.la=r.la as TextAlign}
+ if(r.lx!==undefined){if(!(LABEL_ENDS as readonly unknown[]).includes(r.lx))return BAD_STYLE;s.lx=r.lx as LabelEnd}
  return {ok:true,s:Object.keys(s).length?s:undefined};
 }
 // validace a normalizace (neznámé klíče se zahodí); chyby česky
@@ -471,6 +480,15 @@ export function moveEdge(d:Drawing,edge:Edge,a:Anchor):Drawing{
 export function firstTouch(bars:{high:number;low:number}[],from:number,price:number):number|null{
  for(let i=Math.max(0,Math.floor(from)+1);i<bars.length;i++){const b=bars[i];if(b.low<=price&&b.high>=price)return i}
  return null;
+}
+// popisek „dotyk …“ (px): vpravo u bodu dotyku (bez dotyku kus před okrajem), vlevo u kotvy; nad / na / pod čarou
+// na čáře má podklad v barvě pozadí (box), aby byl čitelný; tw = šířka textu
+export function touchLabelAt(a:Pt,x1:number,w:number,touched:boolean,la:TextAlign,lx:LabelEnd,tw:number):{x:number;y:number;align:'left'|'right';base:'bottom'|'middle'|'top';box:Box|null}{
+ const right=lx==='right',mid=la==='middle';
+ let x=right?(touched?Math.min(x1,w-4):w-60):a.x+4;
+ if(mid)x+=right?-8:4;
+ const y=la==='top'?a.y-4:la==='bottom'?a.y+4:a.y,base=la==='top'?'bottom':la==='bottom'?'top':'middle';
+ return {x,y,align:right?'right':'left',base,box:mid?{x:right?x-tw-4:x-4,y:a.y-9,w:tw+8,h:18}:null};
 }
 
 // --- zjednodušení tahu štětce (Douglas–Peucker v pixelech); vrací indexy zachovaných bodů ---
