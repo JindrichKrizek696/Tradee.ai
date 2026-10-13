@@ -99,5 +99,27 @@ for(const V of variants){const step=results[V.id];if(!step){out.push(`${V.id} vy
  if(step.opens.length||step.closes.length)changed=true;
  out.push(`${V.id}: +${step.opens.length}/−${step.closes.length}, pozic ${step.openCount}, zůstatek ${step.balance} Kč, otevřený P&L ${step.openPnl} Kč`);
 }
+// Uzavřené obchody → hned upozornění jen vlastníkovi (mail přes Resend + push na jeho odběry)
+const closedNow=variants.flatMap(V=>(results[V.id]?.closes||[]).map(c=>({V,c,t:tradesOf[V.id].find(t=>t.id===c.id)})));
+if(closedNow.length&&!dry){
+ try{
+  const ld=f=>{try{return Object.fromEntries(readFileSync(new URL('../'+f,import.meta.url),'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim().replace(/^(["'])(.*)\1$/,'$2')]))}catch{return {}}};
+  const ne={...ld('.auth.env'),...ld('.notify.env')},to=(process.env.OWNER_EMAIL||ne.OWNER_EMAIL||'').trim();
+  const cz=n=>(n<0?'−':'+')+Math.abs(Math.round(n)).toLocaleString('cs-CZ');
+  const REASON={sl:'stop-loss',tp:'take-profit',time:'časový limit',signal:'zeslábl signál',mean:'návrat k GMA50'};
+  const line=({V,c,t})=>`${V.id} · ${t?.instrument??c.id} ${t?.direction==='short'?'short':'long'} → ${REASON[c.exitReason]||c.exitReason}: ${c.r>=0?'+':'−'}${Math.abs(c.r).toFixed(2)} R, ${cz(c.pnlCzk)} Kč`;
+  const subject=closedNow.length===1?`Simulace: ${line(closedNow[0])}`:`Simulace: uzavřeno ${closedNow.length} obchodů (${cz(closedNow.reduce((a,x)=>a+x.c.pnlCzk,0))} Kč)`;
+  const esc=x=>String(x??'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  const html=`<div style="font-family:system-ui,sans-serif;max-width:560px">${closedNow.map(x=>`<h3 style="margin:18px 0 6px">${esc(line(x))}</h3><p style="margin:0 0 6px;color:#555"><b>Proč jsem šel dovnitř:</b> ${esc(x.t?.why)}</p><p style="margin:0;color:#555"><b>Výsledek:</b> ${esc(x.c.resultNote)}</p>`).join('')}<p style="margin-top:20px"><a href="https://tradee.eu/laborator#paper">Otevřít Simulaci</a></p></div>`;
+  const text=closedNow.map(x=>`${line(x)}\nProč: ${x.t?.why??''}\nVýsledek: ${x.c.resultNote}`).join('\n\n');
+  if(ne.RESEND_API_KEY&&to){const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+ne.RESEND_API_KEY,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),body:JSON.stringify({from:ne.MAIL_FROM||'Tradee <info@dejny.eu>',to:[to],subject,html,text})});if(!r.ok)console.log('lab-paper: mail HTTP',r.status)}
+  if(ne.VAPID_PUBLIC_KEY&&ne.VAPID_PRIVATE_KEY&&ne.VAPID_SUBJECT){
+   const webpush=(await import('web-push')).default;webpush.setVapidDetails(ne.VAPID_SUBJECT,ne.VAPID_PUBLIC_KEY,ne.VAPID_PRIVATE_KEY);
+   const subs=(await d.prepare('SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=?').bind(uid).all()).results;
+   const body=JSON.stringify({title:'Tradee · Simulace',body:subject.replace(/^Simulace: /,''),url:'https://tradee.eu/laborator#paper',tag:'lab-close'});
+   for(const sub of subs){try{await webpush.sendNotification({endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},body,{TTL:86400,timeout:10000})}catch{}}
+  }
+ }catch(e){console.error('lab-paper: upozornění',e.message)}
+}
 if(changed){try{const {refreshSummary}=await import('../lib/lab/store.ts');await refreshSummary(d,uid)}catch(e){console.error('lab-paper: shrnutí pro AI',e.message)}}
 console.log('lab-paper ok · '+out.join(' · '));
