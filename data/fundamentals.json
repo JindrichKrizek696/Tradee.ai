@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-14T06:35:00Z",
+  "checkedAt": "2026-10-14T18:31:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,49 +11,49 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "ecb-report": {
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání 29. září",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-09-29.html",
       "publishedAt": "2026-10-13",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -131,13 +131,13 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
@@ -173,7 +173,7 @@
       "label": "RBA — rozhodnutí 29. září",
       "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
       "publishedAt": "2026-09-29",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "abs-mhsi-aug26": {
       "label": "ABS — srpnový MHSI",
@@ -323,7 +323,7 @@
       "label": "Fed — zápis FOMC 15.–16. září",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcminutes20260916.htm",
       "publishedAt": "2026-10-07",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "eur-retail-aug26": {
       "label": "Eurostat — maloobchod za srpen",
@@ -341,7 +341,7 @@
       "label": "ECB — zápis (account) ze zasedání 9.–10. září",
       "url": "https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg261008~a10153d090.en.html",
       "publishedAt": "2026-10-08",
-      "checkedAt": "2026-10-14T06:35:00Z"
+      "checkedAt": "2026-10-14T18:31:00Z"
     },
     "boe-cal": {
       "label": "Bank of England — termíny MPC 2026",
@@ -360,6 +360,12 @@
       "url": "https://www.seco.admin.ch/de/newnsb/Cdju9-o8WGML",
       "publishedAt": "2026-10-06",
       "checkedAt": "2026-10-09T18:32:00Z"
+    },
+    "bls-cpi-sep26": {
+      "label": "BLS — CPI za září",
+      "url": "https://www.bls.gov/news.release/cpi.nr0.htm",
+      "publishedAt": "2026-10-14",
+      "checkedAt": "2026-10-14T18:31:00Z"
     }
   },
   "currencies": {
@@ -710,12 +716,14 @@
       "currency": "USD",
       "at": "2026-10-14T12:30:00Z",
       "title": "USA • CPI za září",
-      "source": "bls-cal",
-      "watch": "Jádrová a celková inflace; bez ověřeného konsensu nepočítat překvapení.",
+      "source": "bls-cpi-sep26",
+      "watch": "Zveřejněno 08:30 ET (EDT, UTC−4). Fakta BLS: celková CPI +0,6 % m/m a +3,7 % y/y, jádrová +0,3 % m/m a +2,6 % y/y; energie +5,2 % m/m (+20,4 % y/y), bydlení +0,4 % m/m. Interpretace: zrychlení tahají hlavně energie, jádrová inflace zrychlila mírněji. Předem ověřený konsensus chybí, překvapení se proto nepočítá.",
       "timeKnown": true,
       "importance": "vysoká",
       "consensus": null,
-      "actual": null
+      "previous": "CPI +0,4 % m/m, +3,4 % y/y; jádrová +2,4 % y/y",
+      "actual": "CPI +0,6 % m/m, +3,7 % y/y; jádrová +0,3 % m/m, +2,6 % y/y",
+      "verifiedAt": "2026-10-14T18:31:00Z"
     },
     {
       "id": "rbnz-oct",
@@ -1126,6 +1134,11 @@
   ],
   "changes": [
     {
+      "at": "2026-10-14T18:31:00Z",
+      "title": "Banky znovu ověřeny; americká CPI za září 3,7 %",
+      "body": "Oficiální RSS Fedu (poslední položka 13. 10. zápis z jednání o diskontní sazbě, poslední rozhodnutí FOMC 16. 9.), ECB (14. 10. projev Eldersona; poslední zápis ze zasedání 8. 10.), BoE (13. 10. zápis Money Market Committee; poslední Bank Rate 3,75 % 17. 9.), BoJ (14. 10. trojstranné setkání guvernérů PBOC–BoJ–BoK a statistiky; poslední rozhodnutí 18. 9.), SNB (poslední 1. 10. dohoda o rozdělení zisku) a RBNZ (poslední OCR 2. 9., 2,75 %; od 8. 10. bez nové položky) a stránky RBA (4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney; 14. 10. jen jmenování Chief Risk Officer) a BoC (2,25 %, poslední rozhodnutí 2. 9.) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí a měnových observations rates obnoven. BLS: americká CPI za září +0,6 % m/m a +3,7 % y/y (srpen +0,4 % / +3,4 %), jádrová +0,3 % m/m a +2,6 % y/y (srpen 2,4 %); hlavní příspěvek energie +5,2 % m/m. Konsensus neověřen. Makro vstupy a váhy beze změny."
+    },
+    {
       "at": "2026-10-14T06:35:00Z",
       "title": "Banky znovu ověřeny; bez nových vstupů",
       "body": "Oficiální RSS Fedu (poslední položka 13. 10. zápis z jednání o diskontní sazbě, poslední rozhodnutí FOMC 16. 9.), ECB (13. 10. projev Lanea; poslední zápis ze zasedání 8. 10.), BoE (13. 10. zápis Money Market Committee), BoJ (14. 10. účty BoJ a peněžní zásoba, nikoli rozhodnutí o sazbě), SNB (poslední 1. 10. dohoda o rozdělení zisku) a RBNZ (poslední OCR 2. 9., 2,75 %; od 8. 10. bez nové položky) a stránky RBA (4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney; 14. 10. jen jmenování Chief Risk Officer) a BoC (2,25 %, poslední rozhodnutí 2. 9., další 28. 10.) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí a měnových observations rates obnoven. Říjnové vydání ONS o trhu práce vyjde podle ONS 20. 10. Americká CPI za září vychází dnes 12:30 UTC. Makro vstupy a váhy beze změny."
@@ -1469,16 +1482,16 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
-        "value": "CPI +3,4 % meziročně; jádrová +2,4 %; CPI +0,4 % meziměsíčně SA",
-        "period": "2026-08",
-        "checkedAt": "2026-09-28T08:44:03.162087+00:00",
-        "sourceUrl": "https://www.bls.gov/news.release/archives/cpi_09112026.htm",
-        "note": "Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
+        "value": "CPI +0,6 % meziměsíčně SA (předchozí +0,4 %); +3,7 % meziročně (předchozí +3,4 %); jádrová +0,3 % m/m, +2,6 % meziročně (předchozí +2,4 %)",
+        "period": "2026-09",
+        "checkedAt": "2026-10-14T18:31:00Z",
+        "sourceUrl": "https://www.bls.gov/news.release/cpi.nr0.htm",
+        "note": "BLS, vydání 14. 10. 2026 08:30 ET. Energie +5,2 % m/m (srpen +2,1 %) a +20,4 % meziročně; bydlení +0,4 % m/m (srpen +0,3 %). Srpnové hodnoty z předchozího vydání (https://www.bls.gov/news.release/archives/cpi_09112026.htm). Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "employment": {
         "value": "NFP +29 000; nezaměstnanost 4,2 %",
@@ -1548,7 +1561,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1627,7 +1640,7 @@
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1706,7 +1719,7 @@
       "rates": {
         "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
         "period": "Rozhodnutí 2026-09-29",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
         "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
@@ -1785,7 +1798,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1864,7 +1877,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1887,7 +1900,7 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -1966,7 +1979,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-10-14T06:35:00Z",
+        "checkedAt": "2026-10-14T18:31:00Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
