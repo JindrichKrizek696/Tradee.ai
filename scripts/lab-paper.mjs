@@ -1,19 +1,21 @@
-// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
+// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS) a S01… ze sweepu (pravidla z lab_paper_accounts.rules) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
 // Cron: scripts/refresh-live.sh hned po živých cenách (každých 15 min, flock /tmp/tradee-lab-paper.lock; chyba nesmí shodit živé ceny).
-// node --experimental-strip-types scripts/lab-paper.mjs [--dry] [--why] [--near] [--owner-email x@y]   (--near = u C vypíše, proč který trh nesplnil vstup)
+// node --experimental-strip-types scripts/lab-paper.mjs [--dry] [--why] [--near] [--owner-email x@y] [--try-combo N]   (--near = u C vypíše, proč který trh nesplnil vstup;
+//   --try-combo N = jen s --dry: přidá dočasnou variantu S99 z kombinace N sweepu, nic se neukládá)
 //   --dry = nic neukládá, jen vypíše, co by udělal; bez .mariadb.env vezme živé ceny a denní svíčky přímo z Yahoo (prázdný účet).
 // Idempotentní: id vstupu = slot 15 min + trh (INSERT IGNORE), výstup jen u ještě otevřeného obchodu, snímek equity podle slotu.
 import {readFileSync,existsSync} from 'node:fs';
 import {marketScore,instruments,fxCurrencies} from '../lib/markets.ts';
 import {highNews} from '../lib/discipline/news.ts';
-import {paperStep,toPaperSignal,slotOf,fmtPx,signed,marketGroup,contraSetup,PAPER_VARIANTS,VARIANT_IDS} from '../lib/lab/paper.ts';
+import {paperStep,toPaperSignal,slotOf,fmtPx,signed,marketGroup,contraSetup,sweepVariant,PAPER_VARIANTS,VARIANT_IDS} from '../lib/lab/paper.ts';
+import {comboAt,SWEEP_SIZE} from '../lib/lab/sweep.ts';
 import {cotForInstrument} from '../lib/lab/study.ts';
 import {cotFromMarketJson} from '../lib/lab/store.ts';
 
 const args=process.argv.slice(2),dry=args.includes('--dry'),opt=k=>{const i=args.indexOf(k);return i>=0?args[i+1]:null};
 const read=n=>JSON.parse(readFileSync(new URL('../data/'+n,import.meta.url),'utf8'));
 const now=Date.now(),DAY=86400000,H=3600000;
-const variants=VARIANT_IDS.map(v=>PAPER_VARIANTS[v]);
+let variants=VARIANT_IDS.map(v=>PAPER_VARIANTS[v]);
 
 // skóre stejně jako aplikace / capture-score-history.mjs
 const f=read('fundamentals.json');
@@ -24,11 +26,15 @@ const names=Object.fromEntries(tradable.map(i=>[i.id,i.name]));
 const signals={};
 for(const i of tradable){try{signals[i.id]=toPaperSignal(marketScore(data,market,i.id,now))}catch(e){console.warn('skóre',i.id,e.message)}}
 const news=highNews(read('calendar.json').events,f.events,f.sources);
-const minScore=Math.min(...variants.filter(v=>v.kind==='score').map(v=>v.rules.minScore));
-const strong=Object.entries(signals).filter(([,s])=>s.score!==null&&Math.abs(s.score)>=minScore).map(([id])=>id);
-// kontra (C): celý vesmír trhů varianty – trend potřebuje 200 denních svíček (~400 kalendářních dní)
-const contraIds=tradable.map(i=>i.id).filter(id=>variants.some(v=>v.kind==='contra'&&v.groups.includes(marketGroup(id))));
-const needD1=[...new Set([...strong,...contraIds])];
+let minScore,strong,contraIds,needD1;
+const plan=()=>{
+ minScore=Math.min(...variants.filter(v=>v.kind!=='contra').map(v=>v.rules.minScore));
+ strong=Object.entries(signals).filter(([,s])=>s.score!==null&&Math.abs(s.score)>=minScore).map(([id])=>id);
+ // kontra (C): celý vesmír trhů varianty – trend potřebuje 200 denních svíček (~400 kalendářních dní)
+ contraIds=tradable.map(i=>i.id).filter(id=>variants.some(v=>v.kind==='contra'&&v.groups.includes(marketGroup(id))));
+ needD1=[...new Set([...strong,...contraIds])];
+};
+plan();
 
 // ---- zdroje: DB (VPS) nebo Yahoo (lokální --dry)
 const envFile=new URL('../.mariadb.env',import.meta.url);
@@ -43,12 +49,16 @@ if(existsSync(envFile)){
  if(!owner){console.log('lab-paper: vlastník nenalezen (OWNER_EMAIL / --owner-email) – nic nedělám');process.exit(0)}
  uid=owner.id;
  const ps=await import('../lib/lab/paper-store.ts');
- // každá varianta má vlastní účet; B/C/D vzniknou při prvním běhu (start = teď)
+ // každá varianta má vlastní účet; B/C/D vzniknou při prvním běhu (start = teď); S01… jen ty, které vlastník pustil ze sweepu
  for(const v of VARIANT_IDS){accounts[v]=dry?await ps.getAccount(d,uid,v):await ps.ensureAccount(d,uid,now,v);tradesOf[v]=accounts[v]?await ps.listTrades(d,uid,{variant:v}):[]}
+ const accs=await ps.listAccounts(d,uid);
+ variants=ps.variantsOf(accs);
+ for(const V of variants)if(!(V.id in accounts)){accounts[V.id]=accs.find(a=>a.variant===V.id)??null;tradesOf[V.id]=await ps.listTrades(d,uid,{variant:V.id})}
+ plan();
  const {liveQuotes}=await import('../lib/live-store.ts');
  for(const [id,q] of Object.entries((await liveQuotes(d)).quotes))quotes[id]={price:q.price,marketTime:q.marketTime};
  const {loadBars}=await import('../lib/bars/query.ts');
- const openAll=VARIANT_IDS.flatMap(v=>tradesOf[v].filter(t=>t.closed===null)),since=new Map();
+ const openAll=variants.flatMap(V=>tradesOf[V.id].filter(t=>t.closed===null)),since=new Map();
  for(const t of openAll)since.set(t.instrument,Math.min(since.get(t.instrument)??Infinity,t.opened));
  for(const [id,from] of since){
   h1[id]=await loadBars(d,id,'H1',from-H,now+H);
@@ -68,6 +78,12 @@ if(existsSync(envFile)){
   try{d1[id]=parseBars(await get(planUrl(sym,{tf:'D1',interval:'1d',range:'2y'}))).bars}catch(e){console.warn('svíčky',id,e.message)}
  }
 }
+const tryCombo=opt('--try-combo');
+if(tryCombo!==null){if(!dry){console.error('lab-paper: --try-combo jen s --dry');process.exit(1)}const n=Number(tryCombo);if(!(n>=0&&n<SWEEP_SIZE)){console.error('lab-paper: neplatná kombinace');process.exit(1)}
+ const V=sweepVariant('S99',comboAt(n));variants=[...variants,V];accounts.S99=null;tradesOf.S99=[];plan();
+ if(!d)for(const id of needD1)if(!d1[id]){const {yahooSymbol}=await import('../lib/live.ts');const {parseBars,planUrl}=await import('../lib/bars/yahoo.ts');const sym=yahooSymbol(id,fxCurrencies);if(!sym)continue;
+  try{const r=await fetch(planUrl(sym,{tf:'D1',interval:'1d',range:'2y'}),{headers:{'User-Agent':'Mozilla/5.0'}});d1[id]=parseBars(await r.json()).bars;const q=await (await fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?range=1d&interval=15m',{headers:{'User-Agent':'Mozilla/5.0'}})).json();const {parseChart}=await import('../lib/live.ts');const p=parseChart(q);if(p)quotes[id]={price:p.price,marketTime:p.marketTime}}catch(e){console.warn('svíčky',id,e.message)}}
+}
 cotSrc??=cotFromMarketJson(core,extra.legacy);
 const cot={};for(const id of contraIds){const fn=cotForInstrument(cotSrc,id),v=fn?fn(now):undefined;if(v!==undefined)cot[id]=v}
 
@@ -84,7 +100,7 @@ if(dry||!d){
   console.log(`\n== ${V.id} – ${V.name} (${V.rulesVersion}) · účet ${accounts[V.id]?'nalezen':'zatím není'} · otevřeno ${tradesOf[V.id].filter(t=>t.closed===null).length}`);
   if(!step){console.log('vypnutá');continue}
   for(const c of step.closes)console.log('ZAVŘEL BY',c.id,c.exitReason,signed(c.r,2)+' R',c.pnlCzk+' Kč');
-  for(const t of step.opens)console.log('OTEVŘEL BY',t.instrument.padEnd(9),t.direction.padEnd(5),V.kind==='contra'?'natažení '+signed(t.partsAtEntry.contra.extAtr,2).padStart(6)+' ATR':'skóre '+signed(t.scoreAtEntry,1).padStart(6),'jistota',String(t.confidence).padStart(3)+' %','vstup',fmtPx(t.entry),'SL',fmtPx(t.sl),'TP',fmtPx(t.tp),'riziko',t.riskCzk+' Kč');
+  for(const t of step.opens)console.log('OTEVŘEL BY',t.instrument.padEnd(9),t.direction.padEnd(5),V.kind==='contra'&&t.partsAtEntry.contra?'natažení '+signed(t.partsAtEntry.contra.extAtr,2).padStart(6)+' ATR':'skóre '+signed(t.scoreAtEntry,1).padStart(6),'jistota',String(t.confidence).padStart(3)+' %','vstup',fmtPx(t.entry),'SL',fmtPx(t.sl),'TP',fmtPx(t.tp),'riziko',t.riskCzk+' Kč');
   for(const s of step.skipped)console.log('přeskočen  ',s.instrument.padEnd(9),signed(s.score,1).padStart(6),'–',s.reason);
   if(V.kind==='contra'&&args.includes('--near'))for(const id of contraIds){const q=quotes[id];if(!q)continue;const r=contraSetup(d1[id]||[],now,q.price,cot[id],V.rules);if(!r.setup)console.log('  kontra ne',id.padEnd(9),r.reason)}
   if(args.includes('--why'))for(const t of step.opens)console.log('\n'+t.why);

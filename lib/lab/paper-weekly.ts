@@ -1,9 +1,9 @@
-// Laboratoř · Simulace: týdenní souhrn všech variant (čistá funkce; odesílá scripts/lab-paper-weekly.mjs jen vlastníkovi).
+// Laboratoř · Simulace: týdenní souhrn všech variant A–D i S… ze sweepu (čistá funkce; odesílá scripts/lab-paper-weekly.mjs jen vlastníkovi).
 // Týden = posledních 7 dní před now. P&L týdne = equity teď (vč. otevřených) − equity na začátku týdne (poslední snímek ≤ začátek,
 // jinak start účtu, když začal až během týdne). Nejlepší / nejhorší = uzavřené během týdne podle R.
 import {PAPER_VARIANTS,fmtCzk,fmtPx,signed,type PaperTrade,type PaperEquityPoint,type VariantId,type PaperStats} from './paper.ts';
 
-export type WeeklyVariantIn={id:VariantId;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[];
+export type WeeklyVariantIn={id:VariantId;name?:string;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[];
  trades:PaperTrade[];open:(PaperTrade&{mark?:{price:number;r:number;pnlCzk:number}|null})[]};
 export type WeeklyVariantOut={id:VariantId;name:string;started:number|null;weekStartEquity:number;equity:number;weekPnl:number;weekPct:number;totalPnl:number;totalPct:number;
  opened:PaperTrade[];closed:PaperTrade[];best:PaperTrade|null;worst:PaperTrade|null;open:WeeklyVariantIn['open']};
@@ -18,14 +18,14 @@ const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 const rTxt=(t:PaperTrade)=>t.r===null?'–':signed(t.r,2)+' R';
 
 export function weeklyVariant(v:WeeklyVariantIn,now:number):WeeklyVariantOut{
- const from=now-WEEK,V=PAPER_VARIANTS[v.id];
+ const from=now-WEEK,name=v.name??(PAPER_VARIANTS as Record<string,{name:string}|undefined>)[v.id]?.name??v.id;
  const before=v.equity.filter(p=>p.t<=from).sort((a,b)=>a.t-b.t);
  const weekStartEquity=before.length?before[before.length-1].equity:v.startEquity;
  const eq=v.stats.equity,weekPnl=round(eq-weekStartEquity,2),totalPnl=round(eq-v.startEquity,2);
  const opened=v.trades.filter(t=>t.opened>from&&t.opened<=now).sort((a,b)=>a.opened-b.opened);
  const closed=v.trades.filter(t=>t.closed!==null&&t.closed>from&&t.closed<=now).sort((a,b)=>(a.closed??0)-(b.closed??0));
  const byR=[...closed].sort((a,b)=>(b.r??0)-(a.r??0)||a.id.localeCompare(b.id));
- return {id:v.id,name:V.name,started:v.started,weekStartEquity,equity:eq,weekPnl,weekPct:weekStartEquity?round(weekPnl/weekStartEquity*100,2):0,totalPnl,totalPct:round(totalPnl/v.startEquity*100,2),
+ return {id:v.id,name,started:v.started,weekStartEquity,equity:eq,weekPnl,weekPct:weekStartEquity?round(weekPnl/weekStartEquity*100,2):0,totalPnl,totalPct:round(totalPnl/v.startEquity*100,2),
   opened,closed,best:byR[0]??null,worst:byR.length>1?byR[byR.length-1]:null,open:v.open};
 }
 

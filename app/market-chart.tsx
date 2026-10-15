@@ -39,7 +39,7 @@ const KEY='tradee.chart';
 const DEFAULT:Prefs={tf:'H4',layers:{trades:true,news:true,score:true,sessions:true,paper:true},type:'candles',fpTf:'M15',paperVariant:'all'};
 // varianty simulace A/B/C/D: barva značek a čar (A = barva značky, jako dřív)
 const PAPER_PICKS:PaperPick[]=['all','A','B','C','D'];
-const PAPER_COLORS:Record<VariantId,[string,string]>={A:['--t-brand','#7c3aed'],B:['--t-fg-2','#64748b'],C:['--mc-paper-c','#d97706'],D:['--mc-paper-d','#0891b2']};
+const PAPER_COLORS:Partial<Record<VariantId,[string,string]>>&{A:[string,string]}={A:['--t-brand','#7c3aed'],B:['--t-fg-2','#64748b'],C:['--mc-paper-c','#d97706'],D:['--mc-paper-d','#0891b2']};
 // denní a delší TF: popisky jen s datem, výřez podle délky svíčky
 const dailyUp=(tf:ChartTf)=>tf==='D1'||tf==='W1'||tf==='MN',VIEW_BARS:Partial<Record<ChartTf,number>>={D1:180,W1:150,MN:60};
 // barvu z CSS převést na #rrggbb / rgba() (kvůli průhlednosti)
@@ -192,7 +192,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    let text:string[]=[];
    if(id.startsWith('n:')){const e=L.news.get(id.slice(2)),now=Date.now();if(e){const country=eventCountry(e);text=[e.title,(country?country+' · ':'')+eventTime(e)+' · '+impact(e)+' zpráva'+(Date.parse(e.at)>now?' · '+relative(e.at,now):''),forecastLine(e),'Klikni pro detail a reakci trhu'].filter(Boolean)}}
    else if(id==='n+'){const hidden=hiddenUp(c,L.up);if(hidden.length)text=[(hidden.length===1?'Další zpráva':'Další zprávy ('+hidden.length+')')+' vpravo v budoucnosti',hidden[0].event.title+' · '+eventTime(hidden[0].event),'Klikni pro posun grafu na ni']}
-   else if(id.startsWith('p:')){const t=L.paper.get(id.slice(2));if(t)text=['Simulace '+(t.variant??'A')+' · '+(t.direction==='long'?'Long':'Short')+' · jistota '+t.confidence+' %','Vstup '+fmtPrice(t.entry)+' · SL '+fmtPrice(t.sl)+' · TP '+fmtPrice(t.tp),t.closed!==null?'Výstup '+(t.exit!==null?fmtPrice(t.exit):'–')+' ('+(PAPER_EXIT[t.exitReason??'']??'')+') · '+paperR(t.r??0)+' · '+paperKc(t.pnlCzk??0):t.mark?'Teď '+paperR(t.mark.r)+' · '+paperKc(t.mark.pnlCzk):'Otevřená pozice','Klikni pro detail v Laboratoři']}
+   else if(id.startsWith('p:')){const t=L.paper.get(id.slice(2));if(t)text=['Simulace '+(t.variant??'A')+' · '+(t.direction==='long'?'Long':'Short')+' · jistota '+t.confidence+' %','Vstup '+fmtPrice(t.entry)+' · SL '+fmtPrice(t.sl)+' · TP '+(t.tp>0?fmtPrice(t.tp):'–'),t.closed!==null?'Výstup '+(t.exit!==null?fmtPrice(t.exit):'–')+' ('+(PAPER_EXIT[t.exitReason??'']??'')+') · '+paperR(t.r??0)+' · '+paperKc(t.pnlCzk??0):t.mark?'Teď '+paperR(t.mark.r)+' · '+paperKc(t.mark.pnlCzk):'Otevřená pozice','Klikni pro detail v Laboratoři']}
    else if(id.startsWith('t:')){const t=L.trades.get(id.slice(2));if(t)text=[(t.side==='buy'?'Buy':t.side==='sell'?'Sell':'Ruční obchod')+' · '+tradeResult(t)+(t.r!==null?' · '+fmtMoney(t.pnl,t.currency):''),(t.openPrice!==null?'Vstup '+fmtPrice(t.openPrice):'')+(t.closePrice!==null?' → výstup '+fmtPrice(t.closePrice):''),'Klikni pro detail v Deníku'].filter(Boolean)}
    const w=el.current?.clientWidth||0;setTip(text.length?{x:p.point.x,y:p.point.y,flip:p.point.x>w*.6,lines:text,id}:null);
   });
@@ -335,7 +335,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   for(const t of visiblePaper)if(t.closed===null){
    lines.current.push(s.createPriceLine({price:t.entry,color:simColor(t),lineStyle:LineStyle.Dotted,lineWidth:1,title:'Sim '+(t.variant??'A')+' '+(t.direction==='long'?'long':'short')+(t.mark?' · '+paperR(t.mark.r):''),axisLabelVisible:true}));
    lines.current.push(s.createPriceLine({price:t.sl,color:bear,lineStyle:LineStyle.Dotted,lineWidth:1,title:'Sim '+(t.variant??'A')+' SL',axisLabelVisible:true}));
-   lines.current.push(s.createPriceLine({price:t.tp,color:bull,lineStyle:LineStyle.Dotted,lineWidth:1,title:'Sim '+(t.variant??'A')+' TP',axisLabelVisible:true}));
+   if(t.tp>0)lines.current.push(s.createPriceLine({price:t.tp,color:bull,lineStyle:LineStyle.Dotted,lineWidth:1,title:'Sim '+(t.variant??'A')+' TP',axisLabelVisible:true})); // tp 0 = bez TP (varianta ze sweepu)
   }
   // pás skóre v samostatném panelu pod cenou
   const band=layers.score?scoreBand(scores,times,sec,{bull,bear}):[];

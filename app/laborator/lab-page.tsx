@@ -11,6 +11,8 @@ import type {LabNote,LabRuleRow} from '@/lib/lab/core';
 import type {BacktestSummary} from '@/lib/backtest/metrics';
 import type {EquityPoint,MarketResult} from '@/lib/backtest/engine';
 import type {PaperTrade,PaperStats,PaperEquityPoint,VariantId} from '@/lib/lab/paper';
+import {ENTRY_LABELS,EXIT_LABELS as SWEEP_EXIT_LABELS,SET_LABELS,type SweepCombo} from '@/lib/lab/sweep-grid';
+import {SweepTab} from './sweep-tab';
 import '../mt.css';
 import '../journaling/backtest/backtest.css';
 import './lab.css';
@@ -25,7 +27,7 @@ const pct=(v:number|null,d=2)=>v===null?'–':(v>0?'+':'')+fmtNum(v,d)+' %';
 const num=(v:number|null,d=2)=>v===null?'–':fmtNum(v,d);
 const sgn=(v:number|null)=>v===null?'':v>0?'pos':v<0?'neg':'';
 const day=(t:number|null)=>t===null?'–':new Date(t).toLocaleDateString('cs-CZ');
-const TABS=[['study','Předpovídá to cenu?'],['paper','Simulace'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
+const TABS=[['study','Předpovídá to cenu?'],['sweep','Hledání prahů'],['paper','Simulace'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
 type Tab=typeof TABS[number][0];
 
 export default function LabPage(){
@@ -40,7 +42,7 @@ export default function LabPage(){
    <h1>Laboratoř</h1>
    <p className="mt-lead">Soukromý výzkum – vidíš ho jen ty. Testy běží nad historickými denními svíčkami a vždy jen s daty, která byla v daný den opravdu známá.</p>
    <div className="mt-chips lb-tabs" role="tablist">{TABS.map(([k,l])=><button key={k} role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>
-   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:<Summary/>}
+   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:tab==='sweep'?<SweepTab/>:<Summary/>}
   </main>
  </div>;
 }
@@ -205,9 +207,15 @@ function Notes(){
 
 // ---------------- Simulace 100 000 Kč
 type PaperRow=Omit<PaperTrade,'partsAtEntry'>&{partsAtEntry?:unknown;mark:{price:number;r:number;pnlCzk:number;pct:number;at:number}|null};
-type PaperVariantRow={id:VariantId;name:string;kind:string;rulesVersion:string;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[]};
+type SweepOriginRow={sweepId:string|null;combo:number;params:SweepCombo;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;nb:number|null;chance:number|null;at:string};
+type PaperVariantRow={id:VariantId;name:string;kind:string;rulesVersion:string;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[];sweep?:SweepOriginRow|null};
 type PaperData={variant:VariantId;account:{startEquity:number;started:number;rulesVersion:string;active:boolean}|null;stats:PaperStats;equity:PaperEquityPoint[];open:PaperRow[];closed:PaperRow[];log:{at:number;text:string}[];rules:{version:string;name:string;text:string[]};variants:PaperVariantRow[];names:Record<string,string>;now:number};
-const VARIANTS:{id:VariantId;cls:'a'|'b'|'c'|'d';hint:string}[]=[{id:'A',cls:'a',hint:'všechny trhy, |skóre| ≥ 50'},{id:'B',cls:'b',hint:'jen FX páry'},{id:'C',cls:'c',hint:'proti nataženému trendu'},{id:'D',cls:'d',hint:'|skóre| ≥ 65, max 1 krypto'}];
+type VCls='a'|'b'|'c'|'d'|'e';
+const VARIANTS:{id:VariantId;cls:VCls;hint:string}[]=[{id:'A',cls:'a',hint:'všechny trhy, |skóre| ≥ 50'},{id:'B',cls:'b',hint:'jen FX páry'},{id:'C',cls:'c',hint:'proti nataženému trendu'},{id:'D',cls:'d',hint:'|skóre| ≥ 65, max 1 krypto'}];
+const isVid=(v:string)=>/^[A-D]$|^S(0[1-9]|1\d|20)$/.test(v);
+// A–D pevně, S… ze sweepu podle účtů (barva „e“)
+const variantList=(rows:PaperVariantRow[])=>[...VARIANTS,...rows.filter(v=>v.id.startsWith('S')).map(v=>({id:v.id,cls:'e' as VCls,hint:v.sweep?sweepHint(v.sweep.params):'ze sweepu'}))];
+const sweepHint=(c:SweepCombo)=>`${ENTRY_LABELS[c.entry]}, |skóre| ≥ ${c.threshold}, SL ${fmtNum(c.slAtr,1)} ATR, ${SWEEP_EXIT_LABELS[c.exit]}, max ${c.hold} d, ${SET_LABELS[c.set]}${c.corrCap?', kor. limit':''}${c.cooldown?', ochlazení':''}`;
 const VKEY='tradee.lab.paperVariant';
 const curveOf=(start:number|null,startEquity:number,equity:PaperEquityPoint[],now:number,last:number):EquityPoint[]=>{if(start===null)return [];const pts=[{t:start,equity:startEquity},...equity.filter(p=>p.t>=start)];if(pts.length===1)pts.push({t:Math.max(now,start+60000),equity:last});return pts};
 const kc=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(Math.round(v)),0)+' Kč';
@@ -219,13 +227,16 @@ const slug=(id:string)=>'/graf/'+encodeURIComponent(id.replace(/\//g,'-'));
 function Paper(){
  const [d,setD]=useState<PaperData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[openId,setOpenId]=useState<string|null>(null),[busy,setBusy]=useState(false);
  const [variant,setVariant]=useState<VariantId>('A');
- useEffect(()=>{try{const v=localStorage.getItem(VKEY);if(v&&VARIANTS.some(x=>x.id===v))setVariant(v as VariantId)}catch{}},[]);
+ useEffect(()=>{try{const v=localStorage.getItem(VKEY);if(v&&isVid(v))setVariant(v as VariantId)}catch{}},[]);
  const pickVariant=(v:VariantId)=>{setVariant(v);setOpenId(null);try{localStorage.setItem(VKEY,v)}catch{}};
- const load=useCallback(()=>{call<PaperData>('/api/laborator/paper?variant='+variant).then(j=>{setD(j);setErr('')}).catch(e=>{if((e as HttpError).status===503)setMissing(true);else setErr((e as Error).message)})},[variant]);
+ const load=useCallback(()=>{call<PaperData>('/api/laborator/paper?variant='+variant).then(j=>{setD(j);setErr('')}).catch(e=>{const st=(e as HttpError).status;if(st===503)setMissing(true);else if(st===404&&variant!=='A')pickVariant('A');else setErr((e as Error).message)})},[variant]);
  useEffect(()=>{load();const t=setInterval(()=>{if(document.visibilityState==='visible')load()},5*60000);return()=>clearInterval(t)},[load]);
+ async function remove(){if(!confirm(`Odebrat variantu ${variant}? Smaže se její účet, obchody, křivka i deník. Kombinaci jde ze sweepu pustit znovu.`))return;setBusy(true);try{await call('/api/laborator/paper','POST',{action:'remove',confirm:'ODEBRAT',variant});pickVariant('A')}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
  async function reset(){if(!confirm(`Restartovat variantu ${variant}? Smažou se všechny její virtuální obchody, křivka i deník a účet začne znovu se 100 000 Kč. Ostatní varianty zůstanou.`))return;setBusy(true);try{await call('/api/laborator/paper','POST',{action:'reset',confirm:'RESTART',variant});load()}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
  const curve=useMemo(()=>d?curveOf(d.account?.started??null,d.account?.startEquity??0,d.equity,d.now,d.stats.equity):[],[d]);
- const combined=useMemo(()=>d?VARIANTS.flatMap(({id,cls})=>{const v=d.variants.find(x=>x.id===id);const pts=v?curveOf(v.started,v.startEquity,v.equity,d.now,v.stats.equity):[];return pts.length?[{label:`${id} – ${v!.name}`,points:pts,cls}]:[]}):[],[d]);
+ const list=useMemo(()=>d?variantList(d.variants):VARIANTS,[d]);
+ // graf porovnání: A–D a vybraná varianta ze sweepu (jinak by se 20 křivek slilo)
+ const combined=useMemo(()=>d?list.filter(x=>x.cls!=='e'||x.id===variant).flatMap(({id,cls})=>{const v=d.variants.find(x=>x.id===id);const pts=v?curveOf(v.started,v.startEquity,v.equity,d.now,v.stats.equity):[];return pts.length?[{label:`${id} – ${v!.name}`,points:pts,cls}]:[]}):[],[d,list,variant]);
  if(missing)return <section className="mt-card"><p className="mt-alert">Simulace ještě nejde – chybí migrace databáze (0026_lab_paper.sql / 0027_lab_paper_variants.sql).</p></section>;
  if(!d)return <section className="mt-card">{err?<p className="mt-alert" role="alert">{err}</p>:<p className="mt-empty">Načítám…</p>}</section>;
  const s=d.stats,name=(id:string)=>d.names[id]||id;
@@ -235,16 +246,17 @@ function Paper(){
  return <>
   <section className="mt-card">
    <h2>Porovnání variant</h2>
-   <p className="mt-lead">Čtyři virtuální účty po 100 000 Kč běží souběžně, každý podle jiných pravidel. Každou neděli v 18:00 přijde souhrn týdne (push + e-mail).</p>
-   <div className="lb-scroll"><table className="mt-table lb-table lb-compare"><thead><tr><th>Varianta</th><th>Equity</th><th>Výnos</th><th>Obchody</th><th>Win rate</th><th>Průměr R</th><th>Max. DD</th></tr></thead>
-    <tbody>{VARIANTS.map(({id,cls,hint})=>{const v=d.variants.find(x=>x.id===id);if(!v)return null;const st=v.stats;return <tr key={id} className={id===variant?'on':''}>
+   <p className="mt-lead">Virtuální účty po 100 000 Kč běží souběžně, každý podle jiných pravidel – A–D pevně, S01… z „Hledání prahů“. Každou neděli v 18:00 přijde souhrn týdne (push + e-mail).</p>
+   <div className="lb-scroll lb-compare-wrap"><table className="mt-table lb-table lb-compare"><thead><tr><th>Varianta</th><th>Equity</th><th>Výnos</th><th>Obchody</th><th>Win rate</th><th>Průměr R</th><th>Max. DD</th></tr></thead>
+    <tbody>{list.map(({id,cls,hint})=>{const v=d.variants.find(x=>x.id===id);if(!v)return null;const st=v.stats;return <tr key={id} className={id===variant?'on':''}>
      <td><button className="lb-link lb-exp" onClick={()=>pickVariant(id)} aria-pressed={id===variant}><i className={'bt-dot '+cls}/>{id} – {v.name}</button><small>{v.started===null?'začne při příštím běhu':hint+' · od '+when(v.started)}</small></td>
      <td>{v.started===null?'–':fmtNum(Math.round(st.equity),0)+' Kč'}</td><td className={sgn(v.started===null?null:st.returnPct)}>{v.started===null?'–':pct(st.returnPct)}</td><td>{st.trades}{st.open?<small>+{st.open} otevř.</small>:null}</td>
      <td>{st.winRate===null?'–':num(st.winRate,1)+' %'}</td><td className={sgn(st.avgR)}>{rr(st.avgR)}</td><td className={st.maxDrawdownPct<0?'neg':''}>{num(st.maxDrawdownPct,1)} %</td></tr>})}</tbody></table></div>
    {combined.length?<EquityChart series={combined} fmt={v=>fmtNum(Math.round(v),0)+' Kč'} base={100000}/>:<p className="mt-empty">Křivky se ukážou po prvním běhu.</p>}
   </section>
   <section className="mt-card">
-   <div className="lb-variants" role="group" aria-label="Varianta simulace">{VARIANTS.map(({id,cls})=>{const v=d.variants.find(x=>x.id===id);return <button key={id} type="button" className={'mt-btn'+(id===variant?' on':'')} aria-pressed={id===variant} onClick={()=>pickVariant(id)}><i className={'bt-dot '+cls}/>{id}{v?' – '+v.name:''}</button>})}</div>
+   <div className="lb-variants" role="group" aria-label="Varianta simulace">{VARIANTS.map(({id,cls})=>{const v=d.variants.find(x=>x.id===id);return <button key={id} type="button" className={'mt-btn'+(id===variant?' on':'')} aria-pressed={id===variant} onClick={()=>pickVariant(id)}><i className={'bt-dot '+cls}/>{id}{v?' – '+v.name:''}</button>})}
+    {list.length>VARIANTS.length&&<select className={'lb-select'+(variant.startsWith('S')?' on':'')} aria-label="Varianta ze sweepu" value={variant.startsWith('S')?variant:''} onChange={e=>{if(e.target.value)pickVariant(e.target.value as VariantId)}}><option value="">Ze sweepu ({list.length-VARIANTS.length})…</option>{list.filter(x=>x.cls==='e').map(x=><option key={x.id} value={x.id}>{x.id} – {d.variants.find(v=>v.id===x.id)?.name}</option>)}</select>}</div>
    <h2>Simulace {d.variant} – {d.rules.name}</h2>
    <p className="mt-lead">Virtuální účet, který každých 15 minut obchoduje podle pevných pravidel varianty – bez zásahu. Ke každému obchodu si zapíše, proč do něj šel, jak moc si byl jistý a jak dopadl.{d.account?` Start ${when(d.account.started)}, pravidla ${d.account.rulesVersion}.`:' Spustí se při příštím běhu po živých cenách.'}</p>
    {err&&<p className="mt-alert" role="alert">{err}</p>}
@@ -258,12 +270,13 @@ function Paper(){
     ['Max. drawdown',num(s.maxDrawdownPct,1)+' %','z equity vč. otevřených',s.maxDrawdownPct<0?'neg':''],
    ] as [string,string,string,string][]).map(([k,v,sub,cls])=><div key={k} className="bt-tile"><dt>{k}</dt><dd className={cls}>{v}</dd><dd className="sub">{sub}</dd></div>)}</dl>
    <EquityChart series={[{label:'Equity',points:curve,cls:'a'}]} fmt={v=>fmtNum(Math.round(v),0)+' Kč'} base={s.startEquity}/>
+   {(()=>{const o=d.variants.find(v=>v.id===d.variant)?.sweep;return o?<p className="lb-meta">Ze sweepu {o.at?new Date(o.at).toLocaleDateString('cs-CZ'):''}: IS {o.is?.isN??'–'} obch. {rr(o.is?.isAvg??null)} (PF {num(o.is?.isPf??null)}) · OOS {o.oos?.oosN??'–'} obch. {rr(o.oos?.oosAvg??null)} (PF {num(o.oos?.oosPf??null)}, DD {num(o.oos?.oosDd??null,1)} R) · okolí {rr(o.nb)} · hranice náhody {rr(o.chance)}. Živě se práh porovnává se skutečným skóre Tradee (FX i s fundamenty).</p>:null})()}
    <details className="lb-details"><summary>Pravidla {d.variant} · {d.rules.version} (uložená u každého obchodu)</summary><ul className="lb-notes">{d.rules.text.map(t=><li key={t}>{t}</li>)}</ul></details>
   </section>
   <section className="mt-card">
    <h2>Otevřené pozice ({d.open.length})</h2>
    {!d.open.length?<p className="mt-empty">Žádná otevřená pozice.</p>:<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>Směr</th><th>Vstup</th><th>SL</th><th>TP</th><th>Aktuální cena</th><th>P&L</th><th>Jistota</th><th>Otevřeno</th></tr></thead>
-    <tbody>{d.open.map(t=><Fragment key={t.id}><tr>{mkt(t)}<td>{t.direction==='long'?'Long':'Short'}</td><td>{px(t.entry)}</td><td>{px(t.sl)}</td><td>{px(t.tp)}</td><td>{t.mark?px(t.mark.price):'–'}</td><td className={sgn(t.mark?.pnlCzk??null)}>{t.mark?<>{kc(t.mark.pnlCzk)}<small>{rr(t.mark.r)}</small></>:'–'}</td><td>{t.confidence} %</td><td>{when(t.opened)}</td></tr>{notes(t,9)}</Fragment>)}</tbody></table></div>}
+    <tbody>{d.open.map(t=><Fragment key={t.id}><tr>{mkt(t)}<td>{t.direction==='long'?'Long':'Short'}</td><td>{px(t.entry)}</td><td>{px(t.sl)}</td><td>{t.tp>0?px(t.tp):'bez TP'}</td><td>{t.mark?px(t.mark.price):'–'}</td><td className={sgn(t.mark?.pnlCzk??null)}>{t.mark?<>{kc(t.mark.pnlCzk)}<small>{rr(t.mark.r)}</small></>:'–'}</td><td>{t.confidence} %</td><td>{when(t.opened)}</td></tr>{notes(t,9)}</Fragment>)}</tbody></table></div>}
   </section>
   <section className="mt-card">
    <h2>Uzavřené obchody ({d.closed.length})</h2>
@@ -272,7 +285,7 @@ function Paper(){
   </section>
   <section className="mt-card">
    <details className="lb-details"><summary>Deník simulace ({d.log.length})</summary>{!d.log.length?<p className="mt-empty">Prázdný.</p>:<ul className="lb-log">{d.log.map((l,i)=><li key={i}><time>{when(l.at)}</time> {l.text}</li>)}</ul>}</details>
-   <div className="lb-form lb-actions"><button className="mt-btn" disabled={busy} onClick={reset}><RotateCcw size={15}/>{busy?'Restartuji…':`Restartovat variantu ${d.variant}`}</button><span className="lb-hint">P&L v Kč = R × riziko (abstrahuje od velikosti kontraktu a převodu měn). Ceny z Yahoo, bez skutečného brokera.</span></div>
+   <div className="lb-form lb-actions"><button className="mt-btn" disabled={busy} onClick={reset}><RotateCcw size={15}/>{busy?'Restartuji…':`Restartovat variantu ${d.variant}`}</button>{d.variant.startsWith('S')&&<button className="mt-btn" disabled={busy} onClick={remove}><Trash2 size={15}/>Odebrat variantu {d.variant}</button>}<span className="lb-hint">P&L v Kč = R × riziko (abstrahuje od velikosti kontraktu a převodu měn). Ceny z Yahoo, bez skutečného brokera.</span></div>
   </section>
  </>;
 }

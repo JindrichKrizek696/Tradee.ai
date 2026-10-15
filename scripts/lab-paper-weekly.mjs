@@ -1,4 +1,4 @@
-// Laboratoř · Simulace: týdenní souhrn všech variant A/B/C/D – jen VLASTNÍKOVI (OWNER_EMAIL), nikomu jinému.
+// Laboratoř · Simulace: týdenní souhrn všech variant A/B/C/D i S01… ze sweepu – jen VLASTNÍKOVI (OWNER_EMAIL), nikomu jinému.
 // Každou neděli v 18:00 Europe/Prague: (a) Web Push na odběry vlastníka (push_subscriptions jeho members.id, VAPID z .notify.env),
 // (b) e-mail přes Resend (RESEND_API_KEY, MAIL_FROM z .notify.env; výchozí odesílatel Tradee <info@dejny.eu>) na OWNER_EMAIL,
 // (c) text do lab_paper_log (variant '*') a do „Shrnutí pro AI“ (lab_summary přes refreshSummary).
@@ -33,7 +33,7 @@ if(!force&&!dry){const last=await ps.lastWeekly(d,uid);if(last&&now-last.at<20*3
 const {liveQuotes}=await import('../lib/live-store.ts');
 const quotes={};for(const [id,q] of Object.entries((await liveQuotes(d).catch(()=>({quotes:{}}))).quotes))quotes[id]={price:q.price,marketTime:q.marketTime};
 const all=await ps.paperAll(d,uid,quotes);
-const s=weeklySummary(all.map(x=>({id:x.variant,started:x.account?.started??null,startEquity:x.account?.startEquity??100000,stats:x.stats,equity:x.equity,trades:x.trades,open:x.open})),now);
+const s=weeklySummary(all.map(x=>({id:x.variant,name:x.V.name,started:x.account?.started??null,startEquity:x.account?.startEquity??100000,stats:x.stats,equity:x.equity,trades:x.trades,open:x.open})),now);
 
 if(dry){
  console.log('PUSH  ',s.pushTitle,'|',s.pushBody);

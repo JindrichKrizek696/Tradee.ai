@@ -5,7 +5,7 @@ import {useId,useMemo,useState} from 'react';
 import type {EquityPoint} from '@/lib/backtest/engine';
 import {drawdownSeries} from '@/lib/backtest/metrics';
 import {fmtNum} from '@/lib/journal/format';
-export type Series={label:string;points:EquityPoint[];cls:'a'|'b'|'c'|'d';raw?:EquityPoint[]}; // raw = skutečná equity pro drawdown, když points jsou přepočtené (např. na %)
+export type Series={label:string;points:EquityPoint[];cls:'a'|'b'|'c'|'d'|'e';raw?:EquityPoint[]}; // raw = skutečná equity pro drawdown, když points jsou přepočtené (např. na %)
 // poslední bod s t ≤ time (equity je schodovitá – mění se jen při uzavření obchodu)
 function at<T extends {t:number}>(a:T[],time:number):T|null{let lo=0,hi=a.length-1,r=-1;while(lo<=hi){const m=(lo+hi)>>1;if(a[m].t<=time){r=m;lo=m+1}else hi=m-1}return r<0?null:a[r]}
 export function EquityChart({series,fmt,base}:{series:Series[];fmt:(v:number)=>string;base?:number}){

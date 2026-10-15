@@ -1,7 +1,7 @@
 // Kontrola Simulace v Laboratoři (výpočty, výstupy, limity, zprávy, jistota, idempotence, přístup): node --experimental-strip-types scripts/check-lab-paper.mjs
 import {readFileSync} from 'node:fs';
 import {paperStep,checkExit,rOf,pctOf,halfSpread,atrLast,tradingDays,paperConfidence,freshnessOf,markToMarket,legs,marketCurrencies,paperStats,paperSummaryMd,maxDrawdownPct,toPaperSignal,tradeId,PAPER_RULES_VERSION,
- PAPER_VARIANTS,VARIANT_IDS,marketGroup,gmaLast,trendLast,contraSetup,contraConfidence} from '../lib/lab/paper.ts';
+ PAPER_VARIANTS,VARIANT_IDS,marketGroup,gmaLast,trendLast,contraSetup,contraConfidence,sweepVariant,sweepRules,sweepEntryCheck,isVariantId,isSweepVariant,SWEEP_VARIANT_IDS} from '../lib/lab/paper.ts';
 import {weeklySummary} from '../lib/lab/paper-weekly.ts';
 import {isMissingLabTable} from '../lib/lab/core.ts';
 import {labGate} from '../lib/lab/access.ts';
@@ -190,6 +190,47 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  check('C: checkExit s GMA50 – long se zavře nad GMA50',checkExit({...s2.opens[0],opened:NOW-H},{now:NOW,quote:quote(gd+0.0001),gma50:gd})?.exitReason==='mean'&&checkExit({...s2.opens[0],opened:NOW-H},{now:NOW,quote:quote(gd-0.0001),gma50:gd})===null);
 }
 
+// ---- varianty ze sweepu (S01…S20)
+{
+ const C=(o={})=>({threshold:50,entry:'immediate',slAtr:1,exit:'tp2',hold:5,corrCap:false,cooldown:false,set:'fx',...o});
+ check('S: id S01…S20, max 20, jiné ne',SWEEP_VARIANT_IDS.length===20&&isVariantId('S01')&&isVariantId('S20')&&isSweepVariant('S07')&&!isVariantId('S21')&&!isVariantId('S1')&&!isVariantId('X')&&isVariantId('A'));
+ const V=sweepVariant('S01',C()),R=V.rules;
+ check('S: pravidla z kombinace (práh, SL, TP v ATR = R × SL, držení, výstup signálem jen bez TP)',V.kind==='sweep'&&R.minScore===50&&R.slAtr===1&&R.tpAtr===2&&R.maxTradingDays===5&&R.signalExit===false&&R.exitScore===25&&R.fxMinCoverage===0&&V.rulesVersion==='sweep-S01-v1'&&V.rulesVersion.length<=20&&V.text.some(t=>t.includes('fundamenty')),R);
+ const s1=sweepRules(C({exit:'signal',corrCap:true,cooldown:true,slAtr:1.5,entry:'contra'}));
+ check('S: bez TP, korelační limit, ochlazení 5 dní, kontra 2 ATR',s1.tpAtr===0&&s1.signalExit===true&&s1.maxPerCurrencyDir===2&&s1.maxPerGroup===2&&s1.lossCooldownMs===5*DAY&&s1.minExtAtr===2&&s1.entryMode==='contra');
+ const run=(V,o={})=>paperStep({...base,signals:o.signals??{'EUR/USD':sig(62)},quotes:o.quotes??{'EUR/USD':quote(1.1)},d1:o.d1??{'EUR/USD':d1()},variant:V,trades:o.trades??[]});
+ const t=run(V).opens[0];
+ check('S: okamžitý vstup, SL 1 ATR, TP 2 R, id s variantou',t&&t.variant==='S01'&&t.id.startsWith('pS01')&&near(t.entry-t.sl,0.01,1e-12)&&near(rOf(t,t.tp),2,1e-9)&&t.rulesVersion==='sweep-S01-v1'&&t.why.includes('Plán (S01, práh 50)'),t);
+ check('S: pod prahem nic, jen trhy sady (FX sada bez zlata)',run(sweepVariant('S01',C({threshold:70}))).opens.length===0&&run(V,{signals:{'GC=F':sig(80)},quotes:{'GC=F':quote(2000)},d1:{'GC=F':d1(2000)}}).opens.length===0);
+ const nt=run(sweepVariant('S02',C({exit:'signal'}))).opens[0];
+ check('S: bez TP → tp 0, TP se nikdy nezasáhne',nt.tp===0&&checkExit({...nt,opened:NOW-10*H},{now:NOW,h1:[{t:NOW-8*H,o:1.1,h:5,l:1.1,c:1.1}],quote:quote(1.1),signal:sig(60),rules:sweepRules(C({exit:'signal'}))})===null);
+ const RS=sweepRules(C({exit:'signal'})),op={...nt,opened:NOW-H};
+ check('S: výstup signálem pod práh/2 (25), TP varianta signálem nekončí',checkExit(op,{now:NOW,quote:quote(1.1),signal:sig(24),rules:RS})?.exitReason==='signal'&&checkExit(op,{now:NOW,quote:quote(1.1),signal:sig(26),rules:RS})===null&&checkExit({...t,opened:NOW-H},{now:NOW,quote:quote(1.1),signal:sig(5),rules:R})===null);
+ check('S kontra: výstup podle směru PŮVODNÍHO signálu (short proti skóre +)',checkExit({...op,direction:'short',sl:1.2},{now:NOW,quote:quote(1.1),signal:sig(24),rules:RS,signalSign:-1})?.exitReason==='signal'&&checkExit({...op,direction:'short',sl:1.2},{now:NOW,quote:quote(1.1),signal:sig(60),rules:RS,signalSign:-1})===null);
+ // pullback: GMA20 / 1 ATR proti signálu z dokončených svíček
+ const pb=sweepEntryCheck('pullback',d1(),NOW,1.1,60,RS);
+ check('S pullback: limit = GMA20 (= close) když není pod cenou → close − 1 ATR',pb.ok===false&&near(pb.level,1.09,1e-9)&&pb.reason.includes('čeká'),pb);
+ check('S pullback: cena na limitu → vstup long; short zrcadlově',sweepEntryCheck('pullback',d1(),NOW,1.0899,60,RS).ok&&sweepEntryCheck('pullback',d1(),NOW,1.1101,-60,RS).ok&&sweepEntryCheck('pullback',d1(),NOW,1.1101,-60,RS).direction==='short');
+ const PV=sweepVariant('S03',C({entry:'pullback'}));
+ check('S pullback v kroku: čeká / vstoupí',run(PV).opens.length===0&&run(PV).skipped[0].reason.startsWith('pullback')&&run(PV,{quotes:{'EUR/USD':quote(1.0895)}}).opens.length===1);
+ // kontra: trend +2 a natažení
+ const up=Array.from({length:260},(_,i)=>{const c=Math.exp(0.002*i);return {t:NOW-(260-i)*DAY,o:c,h:c*1.003,l:c*0.997,c}}),g=gmaLast(up,NOW),a=atrLast(up,NOW);
+ const KV=sweepVariant('S04',C({entry:'contra'}));
+ const k=run(KV,{d1:{'EUR/USD':up},quotes:{'EUR/USD':quote(g+2.5*a)},signals:{'EUR/USD':sig(60)}});
+ check('S kontra: skóre +60, trend +2, 2,5 ATR nad GMA50 → short',k.opens[0]?.direction==='short'&&k.opens[0].partsAtEntry.contra?.trend===2&&k.opens[0].why.includes('Kontra (S04)'),k);
+ check('S kontra: skóre proti trendu nebo malé natažení → nic',run(KV,{d1:{'EUR/USD':up},quotes:{'EUR/USD':quote(g+2.5*a)},signals:{'EUR/USD':sig(-60)}}).opens.length===0&&run(KV,{d1:{'EUR/USD':up},quotes:{'EUR/USD':quote(g+a)},signals:{'EUR/USD':sig(60)}}).opens.length===0);
+ // ochlazení po ztrátě, korelační limit
+ const loss={...t,id:'l',closed:NOW-3*DAY,exit:t.sl,exitReason:'sl',r:-1,pnlCzk:-1000,pct:-1};
+ const CV=sweepVariant('S05',C({cooldown:true}));
+ check('S: ochlazení 5 dní po ztrátě (bez ochlazení po 24 h vstup)',run(CV,{trades:[loss]}).skipped[0]?.reason.startsWith('ochlazení')&&run(V,{trades:[loss]}).opens.length===1&&run(CV,{trades:[{...loss,closed:NOW-6*DAY}]}).opens.length===1);
+ const ids=['EUR/USD','EUR/JPY','EUR/GBP'],q=Object.fromEntries(ids.map(id=>[id,quote(id.includes('JPY')?150:1.1)])),dd=Object.fromEntries(ids.map(id=>[id,d1(id.includes('JPY')?150:1.1)])),sg=Object.fromEntries(ids.map((id,i)=>[id,sig(70-i)]));
+ check('S: korelační limit 2 na měnu a směr; bez limitu 3',run(sweepVariant('S06',C({corrCap:true})),{signals:sg,quotes:q,d1:dd}).opens.length===2&&run(V,{signals:sg,quotes:q,d1:dd}).opens.length===3);
+ const gm=['GC=F','SI=F','CL=F'],gq=Object.fromEntries(gm.map(id=>[id,quote(100)])),gd=Object.fromEntries(gm.map(id=>[id,d1(100)])),gs=Object.fromEntries(gm.map((id,i)=>[id,sig(80-i)]));
+ check('S: skupina kovy nejvýš 2 (zlato, stříbro + ropa)',run(sweepVariant('S07',C({corrCap:true,set:'ci'})),{signals:{...gs,'PL=F':sig(90)},quotes:{...gq,'PL=F':quote(100)},d1:{...gd,'PL=F':d1(100)}}).opens.map(x=>x.instrument).sort().join()==='CL=F,GC=F,SI=F');
+ const w=weeklySummary([{id:'S01',name:'Hned 50',started:NOW-2*DAY,startEquity:100000,stats:paperStats([],100000,0,[]),equity:[],trades:[],open:[]}],NOW);
+ check('S: týdenní souhrn s názvem varianty ze sweepu',w.md.includes('S01 – Hned 50'));
+}
+
 // ---- migrace 0027: varianta A jako výchozí, existující řádky zůstanou A
 {
  const sql=readFileSync(new URL('../drizzle/mariadb/0027_lab_paper_variants.sql',import.meta.url),'utf8');
@@ -233,7 +274,7 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  const src=readFileSync(new URL('../app/api/laborator/paper/route.ts',import.meta.url),'utf8');
  const handlers=src.split(/export async function /).slice(1);
  check('route: každý handler začíná labUser (404)',handlers.length===2&&handlers.every(h=>/^(GET|POST)\(req:Request\)\{try\{const u=await labUser\(req\);if\(u instanceof Response\)return u;/.test(h)));
- check('route: reset jen sameOrigin + potvrzení',/POST[\s\S]*sameOrigin\(req\)[\s\S]*sec-fetch-site[\s\S]*confirm!=='RESTART'/.test(src));
+ check('route: reset / odebrání jen sameOrigin + potvrzení',/POST[\s\S]*sameOrigin\(req\)[\s\S]*sec-fetch-site[\s\S]*confirm!=='RESTART'[\s\S]*confirm!=='ODEBRAT'/.test(src));
  const chart=readFileSync(new URL('../app/market-chart.tsx',import.meta.url),'utf8');
  const fetches=[...chart.matchAll(/fetch\('\/api\/laborator\/paper/g)].length,guard=/if\(!owner\)return;[\s\S]{0,200}\/api\/laborator\/paper/.test(chart);
  check('graf: data simulace jen pro vlastníka',fetches===1&&guard);

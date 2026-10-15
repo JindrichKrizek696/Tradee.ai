@@ -72,10 +72,17 @@ export function instrumentSpec(id:string):InstrumentSpec{
  if(id.endsWith('-USD'))return {group:'crypto',pip:1,base:null,quote:null};
  return {group:'stock',pip:1,base:null,quote:null};
 }
-export const defaultSpread=(id:string)=>{const g=instrumentSpec(id).group;return {group:g,value:DEFAULT_SPREADS[g],unit:SPREAD_UNIT[g]}};
+// Výchozí spread konkrétního trhu (v bodech jeho skupiny, bod kovů = 0,01 USD), když se liší od skupiny: zlato je s 3 body
+// (0,03 USD) nereálně levné → 30 bodů = 0,30 USD; stříbro 3 body = 0,03 USD. Přepis skupiny v pravidlech má přednost.
+export function instrumentSpread(id:string):number|undefined{
+ if(/^XAU|^GC=F$/.test(id))return 30;
+ if(/^XAG|^SI=F$/.test(id))return 3;
+ return undefined;
+}
+export const defaultSpread=(id:string)=>{const g=instrumentSpec(id).group;return {group:g,value:instrumentSpread(id)??DEFAULT_SPREADS[g],unit:SPREAD_UNIT[g]}};
 // spread v cenových jednotkách pro daný trh a cenu (procentní skupiny se počítají z ceny)
 export function spreadPrice(id:string,price:number,rules:Pick<StrategyRules,'costs'>):number{
- const s=instrumentSpec(id),v=rules.costs.spread[s.group]??DEFAULT_SPREADS[s.group];
+ const s=instrumentSpec(id),v=rules.costs.spread[s.group]??instrumentSpread(id)??DEFAULT_SPREADS[s.group];
  return SPREAD_UNIT[s.group]==='pct'?v/100*price:v*s.pip;
 }
 

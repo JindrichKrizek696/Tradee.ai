@@ -1,31 +1,64 @@
 // Laboratoř · Simulace – databáze (lab_paper_*). Volá se z /api/laborator/paper za labGate a ze scripts/lab-paper.mjs (jen pro vlastníka).
 // Všechny dotazy filtrují user_id vlastníka (a variantu A/B/C/D, migrace 0027); nikdy se nepoužívá ?as= (lib/admin/http.ts viewAs).
 import type {Db} from '../mysql.ts';
-import {PAPER_RULES,PAPER_VARIANTS,VARIANT_IDS,isVariantId,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
+import {PAPER_RULES,PAPER_VARIANTS,VARIANT_IDS,SWEEP_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,sweepVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
+import {normalizeCombo,comboIndex,type SweepCombo} from './sweep.ts';
 
 export const toSql=(ms:number,frac=false)=>{const s=new Date(ms).toISOString().replace('T',' ');return frac?s.slice(0,23):s.slice(0,19)};
 export const fromSql=(s:unknown)=>s===null||s===undefined?null:Date.parse(String(s).replace(' ','T')+(String(s).endsWith('Z')?'':'Z'));
 const num=(v:unknown)=>v===null||v===undefined?null:Number(v);
 const json=<T,>(s:unknown,def:T):T=>{if(typeof s!=='string'||!s)return def;try{return JSON.parse(s) as T}catch{return def}};
 
-export type PaperAccount={variant:VariantId;startEquity:number;started:number;rulesVersion:string;active:boolean};
-type AccRow={variant:string;start_equity:number;started:string;rules_version:string;active:number};
-const toAcc=(r:AccRow):PaperAccount=>({variant:(isVariantId(r.variant)?r.variant:'A'),startEquity:Number(r.start_equity),started:fromSql(r.started)!,rulesVersion:r.rules_version,active:Number(r.active)===1});
+// sweep = původ varianty S01… (kombinace a výsledek sweepu v době spuštění); u A–D null
+export type SweepOrigin={sweepId:string|null;combo:number;params:SweepCombo;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;nb:number|null;chance:number|null;at:string};
+export type PaperAccount={variant:VariantId;startEquity:number;started:number;rulesVersion:string;active:boolean;sweep:SweepOrigin|null};
+type AccRow={variant:string;start_equity:number;started:string;rules_version:string;active:number;rules:string|null};
+const toAcc=(r:AccRow):PaperAccount=>{const j=json<{sweep?:unknown;origin?:SweepOrigin}>(r.rules,{}),c=normalizeCombo(j.sweep);
+ return {variant:(isVariantId(r.variant)?r.variant:'A'),startEquity:Number(r.start_equity),started:fromSql(r.started)!,rulesVersion:r.rules_version,active:Number(r.active)===1,
+  sweep:isSweepVariant(r.variant)&&c?{...(j.origin??{sweepId:null,combo:comboIndex(c),is:null,oos:null,nb:null,chance:null,at:''}),params:c}:null}};
+const ACC_COLS='variant,start_equity,started,rules_version,active,rules';
 export async function getAccount(d:Db,uid:string,variant:VariantId='A'):Promise<PaperAccount|null>{
- const r=await d.prepare('SELECT variant,start_equity,started,rules_version,active FROM lab_paper_accounts WHERE user_id=? AND variant=?').bind(uid,variant).first<AccRow>();
+ const r=await d.prepare(`SELECT ${ACC_COLS} FROM lab_paper_accounts WHERE user_id=? AND variant=?`).bind(uid,variant).first<AccRow>();
  return r?toAcc(r):null;
 }
 export async function listAccounts(d:Db,uid:string):Promise<PaperAccount[]>{
- return (await d.prepare('SELECT variant,start_equity,started,rules_version,active FROM lab_paper_accounts WHERE user_id=? ORDER BY variant').bind(uid).all<AccRow>()).results.map(toAcc);
+ return (await d.prepare(`SELECT ${ACC_COLS} FROM lab_paper_accounts WHERE user_id=? ORDER BY variant`).bind(uid).all<AccRow>()).results.map(toAcc);
 }
-const rulesJson=(v:VariantId)=>{const V=PAPER_VARIANTS[v];return JSON.stringify({variant:V.id,name:V.name,kind:V.kind,groups:V.groups,rules:V.rules,text:V.text})};
-// nový účet varianty (start = první běh); u existujícího jen doplní uložená pravidla, když chybí (A z doby před 0027)
+// pravidla varianty: A–D z kódu, S… z uložené kombinace (bez platné kombinace = null → varianta se neobchoduje)
+export function variantOf(id:VariantId,acc?:PaperAccount|null):PaperVariant|null{
+ if(isBaseVariant(id))return PAPER_VARIANTS[id];
+ return acc?.sweep?sweepVariant(id,acc.sweep.params):null;
+}
+// všechny varianty vlastníka: A–D vždy, S… podle účtů (seřazené)
+export const variantsOf=(accounts:PaperAccount[])=>[...VARIANT_IDS.map(v=>PAPER_VARIANTS[v]),...accounts.filter(a=>isSweepVariant(a.variant)).sort((a,b)=>a.variant.localeCompare(b.variant)).map(a=>variantOf(a.variant,a)).filter((v):v is PaperVariant=>!!v)];
+const rulesJson=(V:PaperVariant,origin?:SweepOrigin)=>JSON.stringify({variant:V.id,name:V.name,kind:V.kind,groups:V.groups,rules:V.rules,text:V.text,...(V.sweep?{sweep:V.sweep,markets:V.markets,origin}:{})});
+// nový účet varianty (start = první běh); u existujícího jen doplní uložená pravidla, když chybí (A z doby před 0027). Jen A–D; S… vzniká createSweepVariant.
 export async function ensureAccount(d:Db,uid:string,now:number,variant:VariantId='A'):Promise<PaperAccount>{
- const V=PAPER_VARIANTS[variant],a=await getAccount(d,uid,variant);
- if(a){await d.prepare('UPDATE lab_paper_accounts SET rules=? WHERE user_id=? AND variant=? AND rules IS NULL').bind(rulesJson(variant),uid,variant).run();return a}
- await d.prepare('INSERT IGNORE INTO lab_paper_accounts(user_id,variant,start_equity,started,rules_version,rules,active,updated) VALUES(?,?,?,?,?,?,1,?)').bind(uid,variant,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(variant),toSql(now)).run();
+ const a=await getAccount(d,uid,variant);
+ if(!isBaseVariant(variant)){if(a)return a;throw Error('Varianta ze sweepu neexistuje.')}
+ const V=PAPER_VARIANTS[variant];
+ if(a){await d.prepare('UPDATE lab_paper_accounts SET rules=? WHERE user_id=? AND variant=? AND rules IS NULL').bind(rulesJson(V),uid,variant).run();return a}
+ await d.prepare('INSERT IGNORE INTO lab_paper_accounts(user_id,variant,start_equity,started,rules_version,rules,active,updated) VALUES(?,?,?,?,?,?,1,?)').bind(uid,variant,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(V),toSql(now)).run();
  await addLog(d,uid,now,`Start simulace ${variant} (${V.name}): ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,variant);
  return (await getAccount(d,uid,variant))!;
+}
+// „Pustit do simulace“: nová varianta S01…S20 z kombinace sweepu (start = teď, obchoduje od dalšího běhu cronu)
+export async function createSweepVariant(d:Db,uid:string,now:number,combo:SweepCombo,origin:Omit<SweepOrigin,'params'>):Promise<VariantId>{
+ const accs=(await listAccounts(d,uid)).filter(a=>isSweepVariant(a.variant));
+ const dup=accs.find(a=>a.sweep&&comboIndex(a.sweep.params)===comboIndex(combo));
+ if(dup)throw Error(`Tahle kombinace už běží jako ${dup.variant}.`);
+ const id=SWEEP_VARIANT_IDS.find(v=>!accs.some(a=>a.variant===v));
+ if(!id)throw Error(`Nejvýš ${SWEEP_VARIANT_IDS.length} variant ze sweepu – nejdřív nějakou odeber.`);
+ const V=sweepVariant(id,combo);
+ const r=await d.prepare('INSERT IGNORE INTO lab_paper_accounts(user_id,variant,start_equity,started,rules_version,rules,active,updated) VALUES(?,?,?,?,?,?,1,?)').bind(uid,id,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(V,{...origin,params:combo}),toSql(now)).run();
+ if(!r.meta.changes)throw Error('Variantu se nepodařilo založit, zkus to znovu.');
+ await addLog(d,uid,now,`Start simulace ${id} (${V.name}) ze sweepu: ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,id);
+ return id;
+}
+// odebrání varianty ze sweepu (jen S…): smaže účet, obchody, křivku i deník
+export async function removeSweepVariant(d:Db,uid:string,variant:VariantId){
+ if(!isSweepVariant(variant))throw Error('Odebrat jde jen variantu ze sweepu.');
+ for(const t of ['lab_paper_trades','lab_paper_equity','lab_paper_log','lab_paper_accounts'])await d.prepare(`DELETE FROM ${t} WHERE user_id=? AND variant=?`).bind(uid,variant).run();
 }
 
 type TradeRow={id:string;variant:string;instrument:string;direction:string;opened:string;entry:number;sl:number;tp:number;risk_czk:number;confidence:number;score_at_entry:number;parts_at_entry:string;why:string;closed:string|null;exit_price:number|null;exit_reason:string|null;r:number|null;pnl_czk:number|null;pct:number|null;score_at_exit:number|null;result_note:string|null;rules_version:string};
@@ -62,10 +95,11 @@ export async function applyStep(d:Db,uid:string,now:number,slot:number,s:PaperSt
 }
 // restart jedné varianty: smaže její obchody, křivku i deník a začne znovu se 100 000 Kč (ostatní varianty beze změny)
 export async function resetPaper(d:Db,uid:string,now:number,variant:VariantId='A'){
- const V=PAPER_VARIANTS[variant];
+ const acc=await getAccount(d,uid,variant),V=variantOf(variant,acc);
+ if(!V)throw Error('Neznámá varianta.');
  for(const t of ['lab_paper_trades','lab_paper_equity','lab_paper_log'])await d.prepare(`DELETE FROM ${t} WHERE user_id=? AND variant=?`).bind(uid,variant).run();
  await d.prepare('INSERT INTO lab_paper_accounts(user_id,variant,start_equity,started,rules_version,rules,active,updated) VALUES(?,?,?,?,?,?,1,?) ON DUPLICATE KEY UPDATE start_equity=VALUES(start_equity),started=VALUES(started),rules_version=VALUES(rules_version),rules=VALUES(rules),active=1,updated=VALUES(updated)')
-  .bind(uid,variant,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(variant),toSql(now)).run();
+  .bind(uid,variant,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(V,acc?.sweep??undefined),toSql(now)).run();
  await addLog(d,uid,now,`Simulace ${variant} restartována: ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,variant);
 }
 
@@ -77,21 +111,22 @@ export function withMarks(trades:PaperTrade[],quotes:Quotes){
 // stav všech variant z jednoho načtení (porovnání, týdenní souhrn, shrnutí pro AI)
 export async function paperAll(d:Db,uid:string,quotes:Quotes){
  const [accounts,trades,equity]=await Promise.all([listAccounts(d,uid),listTrades(d,uid),equitySeries(d,uid)]);
- return VARIANT_IDS.map(v=>{
-  const account=accounts.find(a=>a.variant===v)??null,mine=trades.filter(t=>(t.variant??'A')===v),eq=equity.filter(p=>p.variant===v).map(({t,equity})=>({t,equity}));
+ return variantsOf(accounts).map(V=>{
+  const v=V.id,account=accounts.find(a=>a.variant===v)??null,mine=trades.filter(t=>(t.variant??'A')===v),eq=equity.filter(p=>p.variant===v).map(({t,equity})=>({t,equity}));
   const marked=withMarks(mine,quotes),open=marked.filter(t=>t.closed===null),closed=marked.filter(t=>t.closed!==null).sort((a,b)=>(b.closed??0)-(a.closed??0));
   const openPnl=open.reduce((s,t)=>s+(t.mark?.pnlCzk??0),0),start=account?.startEquity??PAPER_RULES.startEquity;
-  return {variant:v,account,trades:mine,stats:paperStats(mine,start,openPnl,eq),equity:eq,open,closed};
+  return {variant:v,V,account,trades:mine,stats:paperStats(mine,start,openPnl,eq),equity:eq,open,closed};
  });
 }
 export async function paperView(d:Db,uid:string,quotes:Quotes,variant:VariantId='A'){
  const [all,log]=await Promise.all([paperAll(d,uid,quotes),listLog(d,uid,variant)]);
- const me=all.find(x=>x.variant===variant)!;
- const variants=all.map(x=>{const V=PAPER_VARIANTS[x.variant];return {id:x.variant,name:V.name,kind:V.kind,rulesVersion:x.account?.rulesVersion??V.rulesVersion,started:x.account?.started??null,startEquity:x.account?.startEquity??V.rules.startEquity,stats:x.stats,equity:x.equity}});
- return {variant,account:me.account,stats:me.stats,equity:me.equity,open:me.open,closed:me.closed,log,variants};
+ const me=all.find(x=>x.variant===variant);
+ if(!me)return null;
+ const variants=all.map(({V,...x})=>({id:x.variant,name:V.name,kind:V.kind,rulesVersion:x.account?.rulesVersion??V.rulesVersion,started:x.account?.started??null,startEquity:x.account?.startEquity??V.rules.startEquity,stats:x.stats,equity:x.equity,sweep:x.account?.sweep??null}));
+ return {variant,V:me.V,account:me.account,stats:me.stats,equity:me.equity,open:me.open,closed:me.closed,log,variants};
 }
 export async function paperSummary(d:Db,uid:string,quotes:Quotes){
  const [all,weekly]=await Promise.all([paperAll(d,uid,quotes),lastWeekly(d,uid).catch(()=>null)]);
- const parts=all.map(x=>paperSummaryMd({started:x.account?.started??null,stats:x.stats,open:x.open,closed:x.closed,variant:PAPER_VARIANTS[x.variant]}));
+ const parts=all.map(x=>paperSummaryMd({started:x.account?.started??null,stats:x.stats,open:x.open,closed:x.closed,variant:x.V}));
  return parts.join('\n')+(weekly?`\n## Poslední týdenní souhrn simulace (${toSql(weekly.at)} UTC)\n\n${weekly.text}\n`:'');
 }
