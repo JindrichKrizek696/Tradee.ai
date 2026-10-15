@@ -63,8 +63,8 @@
 .n-donut>.n-donut-hover{background:var(--t-surface,#fff)}
 .n-donut:hover>.n-donut-hover,.n-donut:focus-visible>.n-donut-hover{opacity:1}
 .n-donut:hover>.n-donut-c,.n-donut:focus-visible>.n-donut-c{opacity:0}
-.n-donut-hover span{display:flex;align-items:baseline;gap:4px;line-height:1.1}
+.n-donut-hover span{display:flex;align-items:baseline;justify-content:center;gap:4px;line-height:1.15;white-space:nowrap}
 .n-donut-hover b{font-size:15px!important;font-weight:600}
-.n-donut-hover small{font-size:10px!important;letter-spacing:.5px;text-transform:uppercase;margin:0!important}
+.score-v2 .n-donut-hover small,.n-donut-hover small{display:inline!important;font-size:9px!important;letter-spacing:.5px;text-transform:uppercase;margin:0!important;color:var(--t-muted,#71717a)}
 .n-donut-hover .long b{color:var(--bull)}.n-donut-hover .short b{color:var(--bear)}
 .n-donut:focus-visible{box-shadow:0 0 0 3px var(--t-accent-soft,#dbe4ff)}
