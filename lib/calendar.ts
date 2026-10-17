@@ -4,11 +4,20 @@ export type Signal=1|2|3;
 export type CalendarEvent={id:string;at:string;timeKnown:boolean;title:string;category:Category;markets:string[];kind?:string;signal:Signal;global:boolean;verified:boolean;source:string;watch?:string;consensus?:string|null;forecast?:string|null;previous?:string|null;actual?:string|null;verifiedAt?:string};
 export type AutoEvent={id:string;at:string;timeKnown:boolean;title:string;category:Category;markets:string[];kind?:string;source:string;origin?:string};
 export type CuratedEvent={id:string;at:string;title:string;source:string;timeKnown:boolean;currency?:string;importance?:string;watch?:string;consensus?:string|null;actual?:string|null;category?:Category;markets?:string[];kind?:string;signal?:Signal;global?:boolean;previous?:string|null;verifiedAt?:string};
-export type Filters={categories:Category[];markets:string[];minSignal:Signal;showGlobal:boolean;hidePast:boolean};
+export type Filters={categories:Category[];markets:string[];signals:Signal[];showGlobal:boolean;hidePast:boolean};
 
 export const categories:Record<Category,string>={macro:'Makro','central-bank':'Centrální banky',exchange:'Burzy',commodity:'Komodity',crypto:'Krypto',equity:'Akcie',politics:'Politika'};
 export const marketLabels:Record<string,string>={USD:'USD',EUR:'EUR',GBP:'GBP',JPY:'JPY',CHF:'CHF',AUD:'AUD',NZD:'NZD',CAD:'CAD',BTC:'BTC',ETH:'ETH',SOL:'SOL',OIL:'Ropa',GOLD:'Zlato',GAS:'Plyn',INDEX:'Indexy',STOCKS:'Akcie'};
+// Skupiny trhů ve filtru kalendáře (pořadí = pořadí v marketLabels).
+export const marketGroups:[string,string[]][]=[['Měny',['USD','EUR','GBP','JPY','CHF','AUD','NZD','CAD']],['Krypto',['BTC','ETH','SOL']],['Komodity',['OIL','GOLD','GAS']],['Akcie',['INDEX','STOCKS']]];
 export const signalLabels:Record<Signal,string>={1:'Slabá',2:'Střední',3:'Silná'};
+// Časová pásma kalendáře; 'local' = pásmo zařízení.
+export const TIMEZONES:[string,string][]=[['Europe/Prague','Praha'],['Europe/London','Londýn'],['America/New_York','New York'],['Asia/Tokyo','Tokio'],['UTC','UTC'],['local','Podle zařízení']];
+export const DEFAULT_TZ='Europe/Prague';
+export const isTz=(v:unknown):v is string=>typeof v==='string'&&TIMEZONES.some(([id])=>id===v);
+export const resolveTz=(tz:string)=>tz==='local'?Intl.DateTimeFormat().resolvedOptions().timeZone||DEFAULT_TZ:tz;
+// Posun pásma v daném okamžiku („UTC+2“) – mění se s letním časem.
+export function tzOffset(tz:string,at:number){const v=new Intl.DateTimeFormat('en-US',{timeZone:resolveTz(tz),timeZoneName:'shortOffset'}).formatToParts(new Date(at)).find(p=>p.type==='timeZoneName')?.value||'GMT';return v.replace('GMT','UTC')}
 // Výchozí síla podle typu, když ji agent nedoplnil.
 export const DEFAULT_SIGNAL:Record<string,Signal>={'us-nfp':3,'us-cpi':3,'us-gdp':3,'us-pce':3,fomc:3,'ecb-rates':3,'us-ppi':2,'us-jolts':2,'us-eci':2,'us-trade':2,'eia-oil':2,'eia-gas':2,'rig-count':1,opex:2,'nyse-holiday':1};
 // Události, které hýbou všemi trhy (štítek VŠE). Agent může VŠE přidat i jiným událostem polem global.
@@ -69,13 +78,13 @@ export function mergeCalendar(auto:AutoEvent[],curated:CuratedEvent[],sources?:R
 // Akciové tickery spadají pod filtr „Akcie“.
 export const filterMarket=(m:string)=>marketLabels[m]?m:STOCK.test(m)?'STOCKS':m;
 
-export const defaultFilters:Filters={categories:Object.keys(categories) as Category[],markets:Object.keys(marketLabels),minSignal:2,showGlobal:true,hidePast:false};
+export const defaultFilters:Filters={categories:Object.keys(categories) as Category[],markets:Object.keys(marketLabels),signals:[2,3],showGlobal:true,hidePast:false};
 
 export function filterEvents(events:CalendarEvent[],f:Filters,now:number){
  return events.filter(e=>{
   if(f.hidePast&&Date.parse(e.at)<now-3600000)return false;
   if(f.showGlobal&&e.global)return true;
-  if(e.signal<f.minSignal)return false;
+  if(!f.signals.includes(e.signal))return false;
   if(!f.categories.includes(e.category))return false;
   return !e.markets.length||e.markets.some(m=>f.markets.includes(filterMarket(m)));
  });
@@ -117,7 +126,8 @@ export function readFilters(raw:string|null):Filters{
   return {
    categories:Array.isArray(v.categories)?v.categories.filter((c:string)=>c in categories):defaultFilters.categories,
    markets:Array.isArray(v.markets)?v.markets.filter((m:string)=>m in marketLabels):defaultFilters.markets,
-   minSignal:[1,2,3].includes(v.minSignal)?v.minSignal:defaultFilters.minSignal,
+   // starší uložené filtry měly jednu minimální sílu (minSignal) → převedou se na zaškrtnuté síly
+   signals:Array.isArray(v.signals)?([1,2,3] as Signal[]).filter(s=>v.signals.includes(s)):[1,2,3].includes(v.minSignal)?([1,2,3] as Signal[]).filter(s=>s>=v.minSignal):defaultFilters.signals,
    showGlobal:typeof v.showGlobal==='boolean'?v.showGlobal:true,
    hidePast:v.hidePast===true,
   };

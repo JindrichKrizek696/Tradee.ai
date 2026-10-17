@@ -47,7 +47,10 @@ check('ticker → Akcie',filterMarket('AAPL')==='STOCKS'&&filterMarket('OIL')===
 check('readFilters: null',JSON.stringify(readFilters(null))===JSON.stringify(defaultFilters),readFilters(null));
 check('readFilters: rozbitý JSON',JSON.stringify(readFilters('{nope'))===JSON.stringify(defaultFilters),readFilters('{nope'));
 const rf=readFilters('{"categories":["macro","xxx"],"minSignal":7,"hidePast":true}');
-check('readFilters: neznámé hodnoty zahodí',rf.categories.join()==='macro'&&rf.minSignal===2&&rf.hidePast===true&&rf.showGlobal===true,rf);
+check('readFilters: neznámé hodnoty zahodí',rf.categories.join()==='macro'&&rf.signals.join()==='2,3'&&rf.hidePast===true&&rf.showGlobal===true,rf);
+check('readFilters: staré minSignal → zaškrtnuté síly',readFilters('{"minSignal":1}').signals.join()==='1,2,3'&&readFilters('{"minSignal":3}').signals.join()==='3',[readFilters('{"minSignal":1}').signals,readFilters('{"minSignal":3}').signals]);
+check('readFilters: signals pořadí a neznámé hodnoty',readFilters('{"signals":[3,9,1]}').signals.join()==='1,3',readFilters('{"signals":[3,9,1]}').signals);
+check('jen slabé a silné (bez střední)',(()=>{const ids=filterEvents(m,{...defaultFilters,signals:[1,3],showGlobal:false},now).map(e=>e.id);return ids.includes('rig-count-2026-10-02')&&!ids.includes('eia-oil-2026-10-07')})(),filterEvents(m,{...defaultFilters,signals:[1,3],showGlobal:false},now).map(e=>e.id));
 
 const fm=[...flaggedMarkets({'EUR/USD':'green','BTC-USD':'red','^NDX':'orange',AAPL:'none',USD:'green'})].sort().join();
 check('vlaječky komodit: zlato → GOLD+USD, ropa → OIL',[...flaggedMarkets({'GC=F':'green','CL=F':'red','BZ=F':'none'})].sort().join()==='GOLD,OIL,USD',[...flaggedMarkets({'GC=F':'green','CL=F':'red'})]);
