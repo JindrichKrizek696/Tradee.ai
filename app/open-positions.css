@@ -1,5 +1,4 @@
 /* Otevřené pozice: karta na Dashboardu, záložka v Deníku, pruh v detailu trhu. Barvy jen z tokenů. */
-.d-dash .d-op{grid-column:1/-1}
 .op-card{padding:16px}
 .op-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
 .op-tile{--c:var(--t-muted-2);--ct:var(--t-fg-2);display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px 14px;border-radius:14px;background:linear-gradient(140deg,color-mix(in srgb,var(--c) 15%,var(--t-surface)),color-mix(in srgb,var(--c) 4%,var(--t-surface)));border:1px solid color-mix(in srgb,var(--c) 24%,var(--t-surface))}

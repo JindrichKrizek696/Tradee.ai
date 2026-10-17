@@ -1,13 +1,18 @@
 /* Dlaždice Riziko na Dashboardu. Barvy jen z tokenů; amber stejný jako Disciplína. */
-.d-dash .d-card.d-risk{grid-column:1/-1;padding:0}
-.d-dash .rk-main{box-sizing:border-box;display:grid;align-content:start;gap:6px;padding:22px;color:var(--t-fg);cursor:pointer}
-.d-dash .rk-main:hover{background:var(--t-surface-2)}
-.d-dash .rk-main:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px;border-radius:20px}
-.d-dash .rk-main h2{display:flex;align-items:center;gap:8px;margin:0;font-size:15px}
+.d-dash .d-card.d-risk{padding:0;flex-direction:row;flex-wrap:wrap}
+/* široká dlaždice: souhrn vlevo, tabulka účtů vpravo; úzká: pod sebou */
+.d-dash .d-risk>.rk-main{flex:1 1 300px}
+.d-dash .d-risk>.rk-table{flex:2.2 1 540px;align-self:center}
+@container (min-width:842px){.d-dash .d-risk>.rk-table{border-top:0;border-left:1px solid var(--t-border);align-self:stretch;display:flex;flex-direction:column;justify-content:center}}
+.d-dash .rk-main{box-sizing:border-box;display:grid;align-content:start;gap:6px;padding:20px;color:var(--t-fg);cursor:pointer}
+.d-dash .rk-main:hover{background:color-mix(in srgb,var(--t-brand) 4%,transparent)}
+.d-dash .rk-main:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px;border-radius:18px}
+.d-dash .rk-main h2{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:15px;font-weight:650;letter-spacing:-.015em}
+.d-dash .rk-main h2 svg{color:var(--t-brand-fg)}
 .d-dash .rk-main h2 span{font-weight:400;color:var(--t-muted)}
 .d-dash .rk-main p{margin:0}
 .d-dash .rk-big{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px}
-.d-dash .rk-pct{font-size:40px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.d-dash .rk-pct{font-size:40px;font-weight:650;letter-spacing:-.04em;line-height:1.05;font-variant-numeric:tabular-nums}
 .d-dash .rk-money{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
 .d-dash .rk-money span{font-weight:400;color:var(--t-muted);font-size:13.5px}
 .d-dash .rk-none{font-size:22px;font-weight:600}
@@ -26,6 +31,13 @@
 .d-dash .rk-name{font-weight:600;overflow-wrap:anywhere}
 .d-dash .rk-tr em{font-style:normal;color:var(--bear-text)}
 .d-dash .rk-sum{font-weight:600;background:var(--t-surface-2)}
+/* úzká dlaždice (vedle otevřených pozic): tabulka účtů ve dvou sloupcích s popisky */
+@container (max-width:620px){
+ .d-dash .rk-th{display:none}
+ .d-dash .rk-tr{grid-template-columns:1fr 1fr;gap:4px 12px;padding:10px 20px}
+ .d-dash .rk-tr .rk-name{grid-column:1/-1}
+ .d-dash .rk-tr span[data-l]:not(.rk-name)::before{content:attr(data-l) ' ';color:var(--t-muted);font-weight:400;font-size:12px;display:block}
+}
 @media(max-width:860px){
  .d-dash .rk-main{padding:18px}
  .d-dash .rk-th{display:none}
