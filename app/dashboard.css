@@ -1,8 +1,7 @@
 /* Tradee.ai shell + dashboard */
 .t-app{min-height:100vh;display:flex;flex-direction:column}
-.t-top{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;height:64px;padding:0 24px;border-bottom:1px solid transparent;transition:background-color .2s,border-color .2s}
-/* nahoře průhledná (modrá záře pozadí jde až k horní hraně), po odscrollování sklo */
-.t-top.stuck{background-color:color-mix(in srgb,var(--t-canvas-solid,var(--t-surface)) 72%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border-bottom-color:var(--t-border)}
+/* hlavička bez pozadí a nelepí se (logo a tlačítka odjedou se stránkou) – žádný pruh přes modrou záři; od 901 px zůstává nahoře jen výřez navigace */
+.t-top{position:relative;z-index:20;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;height:64px;padding:0 24px}
 .t-brand{display:flex;align-items:center;gap:10px;justify-self:start;font-size:19px;font-weight:700;letter-spacing:-.03em;color:var(--t-fg)}
 .t-brand img{width:30px;height:30px;border-radius:9px}
 .t-mark{width:34px;height:auto;flex:none;color:var(--t-fg)}
@@ -51,6 +50,8 @@
 }
 /* Přejíždějící pilulka aktivní položky navigace */
 .t-nav.has-pill{position:relative}
+/* výřez visí z horní hrany okna i po odscrollování (až za .has-pill, jinak by ho přebilo position:relative) */
+@media(min-width:901px){.t-top>.t-nav{position:fixed;top:0;left:50%;transform:translateX(-50%)}.t-top>.t-actions{grid-column:3}}
 .t-nav.has-pill button{position:relative;z-index:1}
 .t-nav.has-pill button.active{background:transparent;box-shadow:none;color:#fff}
 .t-pill{position:absolute;left:0;top:0;z-index:0;border-radius:999px;background:var(--t-brand);box-shadow:0 4px 14px -6px var(--t-brand);pointer-events:none}

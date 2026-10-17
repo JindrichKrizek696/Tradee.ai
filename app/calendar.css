@@ -3,7 +3,13 @@
 .c-head{margin:0 0 12px}
 .c-head h1{font-size:24px}
 .c-head p{font-size:13px}
-.c-filters{position:sticky;top:64px;z-index:10;display:grid;gap:6px;padding:8px 12px;margin-bottom:12px;background:color-mix(in srgb,var(--t-surface) 92%,transparent);backdrop-filter:blur(10px);border:1px solid var(--t-border);border-radius:14px}
+.c-filters{position:sticky;top:0;z-index:10;display:grid;gap:6px;padding:8px 12px;margin-bottom:12px;background:color-mix(in srgb,var(--t-surface) 92%,transparent);backdrop-filter:blur(10px);border:1px solid var(--t-border);border-radius:0 0 14px 14px}
+/* od 901 px visí nahoře výřez navigace (54 px): filtry se zastaví pod ním a prostor nad nimi zakryje pozadí stránky */
+@media(min-width:901px){
+ .c-filters{top:62px;border-radius:14px}
+ .c-filters.stuck{background:var(--t-surface);backdrop-filter:none}
+ .c-filters.stuck::before{content:'';position:absolute;left:-1px;right:-1px;bottom:100%;height:62px;background:var(--t-page-bg);background-attachment:fixed}
+}
 .c-frow{display:flex;align-items:flex-start;gap:10px}
 .c-flab{width:64px;flex:none;padding-top:5px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--t-muted-2)}
 .c-fopts{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}

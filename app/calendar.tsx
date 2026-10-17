@@ -45,8 +45,10 @@ function EventDetail({e,flags,now,zone}:{e:CalendarEvent;flags:Record<string,str
 
 export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEvent[];now:number;flags:Record<string,string>;generatedAt:string}){
  // Kalendář se vykreslí až po přepnutí pohledu v prohlížeči, localStorage je tedy dostupné hned.
- const [f,setF]=useState<Filters>(()=>{let raw:string|null=null;try{raw=localStorage.getItem(KEY)}catch{}return readFilters(raw)}),[open,setOpen]=useState<string|null>(null),[panel,setPanel]=useState(false),nowLine=useRef<HTMLDivElement>(null),scrolled=useRef(false);
+ const [f,setF]=useState<Filters>(()=>{let raw:string|null=null;try{raw=localStorage.getItem(KEY)}catch{}return readFilters(raw)}),[open,setOpen]=useState<string|null>(null),[panel,setPanel]=useState(false),nowLine=useRef<HTMLDivElement>(null),scrolled=useRef(false),filters=useRef<HTMLDivElement>(null),[stuck,setStuck]=useState(false);
  const {pick,zone}=useCalendarTz();
+ // přilepené filtry dostanou nad sebou kryt s pozadím stránky (calendar.css), aby nad nimi neprojížděly události
+ useEffect(()=>{const on=()=>{const el=filters.current,s=el&&getComputedStyle(el);setStuck(!!s&&s.position==='sticky'&&el!.getBoundingClientRect().top<=parseFloat(s.top)+.5)};on();addEventListener('scroll',on,{passive:true});addEventListener('resize',on);return()=>{removeEventListener('scroll',on);removeEventListener('resize',on)}},[]);
  const update=(next:Filters)=>{setF(next);try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}};
  const mine=useMemo(()=>flaggedMarkets(flags),[flags]);
  const shown=useMemo(()=>filterEvents(events,f,now),[events,f,now]);
@@ -71,7 +73,7 @@ export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEven
    <label className="c-tz"><Globe2 size={15} aria-hidden="true"/>Časové pásmo<select value={pick} onChange={x=>pickTz(x.target.value)}>{TIMEZONES.map(([id,l])=><option key={id} value={id}>{l} ({tzOffset(id,now)})</option>)}</select></label>
   </div>
   <button type="button" className="c-filter-toggle" aria-expanded={panel} onClick={()=>setPanel(!panel)}><SlidersHorizontal size={16}/>Filtry</button>
-  <div className={'c-filters'+(panel?' open':'')}>
+  <div ref={filters} className={'c-filters'+(panel?' open':'')+(stuck?' stuck':'')}>
    <div className="c-frow"><span className="c-flab">Síla</span><div className="c-fopts">{([1,2,3] as Signal[]).map(s=>chip(f.signals.includes(s),<><SignalBars signal={s}/>{signalLabels[s]}</>,()=>update({...f,signals:toggle(f.signals,s)}),'s'+s))}</div></div>
    <div className="c-frow"><span className="c-flab">Skupiny</span><div className="c-fopts">{allCats.map(c=>chip(f.categories.includes(c),categories[c],()=>update({...f,categories:toggle(f.categories,c)}),c))}</div>{all(f.categories.length===allCats.length,on=>update({...f,categories:on?allCats:[]}))}</div>
    <div className="c-frow"><span className="c-flab">Trhy</span><div className="c-fopts">{marketGroups.map(([g,ms])=><span key={g} className="c-fgroup"><small>{g}</small>{ms.map(m=>chip(f.markets.includes(m),marketLabels[m],()=>update({...f,markets:toggle(f.markets,m)}),m))}</span>)}</div>{all(f.markets.length===allMarkets.length,on=>update({...f,markets:on?allMarkets:[]}))}</div>

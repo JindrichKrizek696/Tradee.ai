@@ -7,8 +7,10 @@
  --background:#000;--foreground:#f2f4f8;--card:#060709;--card-foreground:#f2f4f8;--popover:#060709;--popover-foreground:#f2f4f8;--secondary:#15171f;--secondary-foreground:#f2f4f8;--muted:#15171f;--muted-foreground:#8a91a3;--accent:#111b40;--accent-foreground:#8aa6ff;--border:#171a25;--input:#272c3c;
  /* Barvy signálu nastavuje palette.tsx inline; na tmavém pozadí potřebují světlejší text. */
  --bull-text:color-mix(in srgb,var(--bull) 70%,#fff)!important;--bear-text:color-mix(in srgb,var(--bear) 70%,#fff)!important}
-/* Pozadí s jemnou modrou září nahoře (víc odstínů než čistá bílá/černá) */
-:root body{background:radial-gradient(1200px 640px at 8% -180px,var(--t-glow-1),transparent 70%),radial-gradient(1000px 600px at 100% -120px,var(--t-glow-2),transparent 70%),radial-gradient(1400px 700px at 50% 120%,var(--t-glow-3),transparent 70%),var(--t-canvas);background-attachment:fixed;color:var(--t-fg)}
+/* Pozadí s jemnou modrou září nahoře (víc odstínů než čistá bílá/černá); --t-page-bg s background-attachment:fixed
+   použijí i kryty, které mají splynout s pozadím stránky (kalendář nad přilepenými filtry) */
+:root{--t-page-bg:radial-gradient(1200px 640px at 8% -180px,var(--t-glow-1),transparent 70%),radial-gradient(1000px 600px at 100% -120px,var(--t-glow-2),transparent 70%),radial-gradient(1400px 700px at 50% 120%,var(--t-glow-3),transparent 70%),var(--t-canvas)}
+:root body{background:var(--t-page-bg);background-attachment:fixed;color:var(--t-fg)}
 :root .c-tag.c-all{background:var(--t-accent-soft);color:var(--t-brand-fg)}
 /* Grafy kreslené SVG atributy (tradee.tsx, score-analyzer.tsx) */
 :root[data-theme=dark] svg [fill="#737985"],:root[data-theme=dark] svg [fill="#707580"],:root[data-theme=dark] svg [fill="#7b8290"]{fill:var(--t-muted)}
