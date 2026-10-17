@@ -14,6 +14,8 @@ import type {PaperTrade,PaperStats,PaperEquityPoint,VariantId} from '@/lib/lab/p
 import {ENTRY_LABELS,EXIT_LABELS as SWEEP_EXIT_LABELS,SET_LABELS,type SweepCombo} from '@/lib/lab/sweep-grid';
 import {SweepTab} from './sweep-tab';
 import {ForecastsTab} from './forecasts-tab';
+import {KnownTab} from './known-tab';
+import {AgentsTab} from './agents-tab';
 import '../mt.css';
 import '../journaling/backtest/backtest.css';
 import './lab.css';
@@ -28,7 +30,7 @@ const pct=(v:number|null,d=2)=>v===null?'–':(v>0?'+':'')+fmtNum(v,d)+' %';
 const num=(v:number|null,d=2)=>v===null?'–':fmtNum(v,d);
 const sgn=(v:number|null)=>v===null?'':v>0?'pos':v<0?'neg':'';
 const day=(t:number|null)=>t===null?'–':new Date(t).toLocaleDateString('cs-CZ');
-const TABS=[['study','Předpovídá to cenu?'],['sweep','Hledání prahů'],['paper','Simulace'],['forecasts','Prognózy'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
+const TABS=[['study','Předpovídá to cenu?'],['sweep','Hledání prahů'],['known','Známé strategie'],['paper','Simulace'],['agents','Agenti'],['forecasts','Prognózy'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
 type Tab=typeof TABS[number][0];
 
 export default function LabPage(){
@@ -43,7 +45,7 @@ export default function LabPage(){
    <h1>Laboratoř</h1>
    <p className="mt-lead">Soukromý výzkum – vidíš ho jen ty. Testy běží nad historickými denními svíčkami a vždy jen s daty, která byla v daný den opravdu známá.</p>
    <div className="mt-chips lb-tabs" role="tablist">{TABS.map(([k,l])=><button key={k} role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>
-   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:tab==='sweep'?<SweepTab/>:tab==='forecasts'?<ForecastsTab/>:<Summary/>}
+   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:tab==='sweep'?<SweepTab/>:tab==='known'?<KnownTab/>:tab==='agents'?<AgentsTab/>:tab==='forecasts'?<ForecastsTab/>:<Summary/>}
   </main>
  </div>;
 }
@@ -223,7 +225,7 @@ const kc=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(
 const rr=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(v),2)+' R';
 const px=(v:number|null)=>v===null?'–':fmtNum(v,Math.abs(v)<10?5:Math.abs(v)<1000?3:2);
 const when=(t:number|null)=>t===null?'–':new Date(t).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
-const EXIT:Record<string,string>={sl:'SL',tp:'TP',time:'Čas',signal:'Signál',mean:'GMA50'};
+const EXIT:Record<string,string>={sl:'SL',tp:'TP',time:'Čas',signal:'Signál',mean:'GMA50',trail:'Trailing'};
 const slug=(id:string)=>'/graf/'+encodeURIComponent(id.replace(/\//g,'-'));
 function Paper(){
  const [d,setD]=useState<PaperData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[openId,setOpenId]=useState<string|null>(null),[busy,setBusy]=useState(false);

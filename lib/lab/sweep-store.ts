@@ -15,10 +15,12 @@ async function streamBytes(input:Uint8Array,t:CompressionStream|DecompressionStr
 }
 const b64=(u:Uint8Array)=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode(...u.subarray(i,i+0x8000));return btoa(s)};
 const unb64=(s:string)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-export async function packResult(r:SweepResult):Promise<string>{return 'gz:'+b64(await streamBytes(new TextEncoder().encode(JSON.stringify(r)),new CompressionStream('gzip')))}
-export async function unpackResult(s:string):Promise<SweepResult|null>{
+export async function packJson(r:unknown):Promise<string>{return 'gz:'+b64(await streamBytes(new TextEncoder().encode(JSON.stringify(r)),new CompressionStream('gzip')))}
+export async function unpackJson<T>(s:string):Promise<T|null>{
  try{if(s.startsWith('gz:'))return JSON.parse(new TextDecoder().decode(await streamBytes(unb64(s.slice(3)),new DecompressionStream('gzip'))));return JSON.parse(s)}catch{return null}
 }
+export const packResult=(r:SweepResult)=>packJson(r);
+export const unpackResult=(s:string)=>unpackJson<SweepResult>(s);
 
 export type SweepSummary={combos:number;robust:number;best:{combo:number;oosAvg:number|null}|null;chance:number|null;ms:number;from:string;split:string;to:string;markets:number};
 export function sweepSummary(r:SweepResult):SweepSummary{

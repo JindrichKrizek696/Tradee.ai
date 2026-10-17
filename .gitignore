@@ -57,3 +57,6 @@ tsconfig.tsbuildinfo
 __pycache__/
 logs/
 .notify.env
+
+# Laboratoř · AI analytik (pracovní složka a logy na VPS)
+/.lab-analyst/

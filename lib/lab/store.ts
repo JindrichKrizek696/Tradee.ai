@@ -7,6 +7,8 @@ import type {CotSource,ScoreSnap,StudyResult} from './study.ts';
 import {fxCurrencies} from '../markets.ts';
 import {liveQuotes} from '../live-store.ts';
 import {paperSummary} from './paper-store.ts';
+import {agentsData,listEvolution} from './agents-store.ts';
+import {agentsSummaryMd} from './agents-report.ts';
 
 const sqlNow=()=>new Date().toISOString().slice(0,19).replace('T',' ');
 const iso=(s:unknown)=>typeof s==='string'&&/^\d{4}-\d\d-\d\d \d/.test(s)?s.replace(' ','T')+'Z':String(s??'');
@@ -59,8 +61,12 @@ export async function refreshSummary(d:Db,uid:string){
  const [notes,rules,study]=await Promise.all([listNotes(d,uid),listRules(d,uid),latestStudy(d,uid)]);
  // simulace (lab_paper_*): bez migrace 0026 nebo živých cen se jen vynechá
  let paper='';
- try{paper=await paperSummary(d,uid,(await liveQuotes(d).catch(()=>({quotes:{}}))).quotes)}catch(e){if(!isMissingLabTable(e))console.error(e)}
- const body=aiSummary(notes,rules,study?.result??null)+(paper?'\n'+paper:''),now=sqlNow();
+ const quotes=(await liveQuotes(d).catch(()=>({quotes:{}}))).quotes;
+ try{paper=await paperSummary(d,uid,quotes)}catch(e){if(!isMissingLabTable(e))console.error(e)}
+ // populace agentů (lab_evolution, migrace 0030): bez migrace se jen vynechá
+ let agents='';
+ try{const [a,ev]=await Promise.all([agentsData(d,uid,quotes,Date.now()),listEvolution(d,uid,40)]);agents=agentsSummaryMd(a.rows,ev)}catch(e){if(!isMissingLabTable(e))console.error(e)}
+ const body=aiSummary(notes,rules,study?.result??null)+(paper?'\n'+paper:'')+(agents?'\n'+agents:''),now=sqlNow();
  await d.prepare('INSERT INTO lab_summary(user_id,body,updated) VALUES(?,?,?) ON DUPLICATE KEY UPDATE body=VALUES(body),updated=VALUES(updated)').bind(uid,body,now).run();
  return {body,updated:iso(now)};
 }

@@ -7,6 +7,10 @@ import {spreadPrice} from '../backtest/rules.ts';
 import {trendStates} from './study.ts';
 import {ENTRY_LABELS,EXIT_LABELS as SWEEP_EXIT_LABELS,SET_LABELS,SWEEP_COMMODITIES,SWEEP_INDICES,COOLDOWN_DAYS,CAP_PER_GROUP,PULLBACK_BARS,CONTRA_EXT,corrGroup,tpOf,type SweepCombo} from './sweep.ts';
 import {pairs} from '../score-engine.ts';
+import {knownLive,type KnownLive,type RateSource} from './known.ts';
+import type {StepFn} from './study.ts';
+import {isAgentVariant,agentMarkets,genomeText,FAMILY_SHORT,AGENT_SET_GROUPS,AGENT_SET_LABELS,type Genome} from './agents.ts';
+import {familyDef} from './known-grid.ts';
 
 export const PAPER_RULES_VERSION='paper-v1';
 export const PAPER_RULES={
@@ -18,7 +22,9 @@ export const PAPER_RULES={
 // maxCrypto = nejvýš otevřených krypto pozic (D); minExtAtr/minCot = vstup kontra (C)
 export type PaperRules={-readonly [K in keyof typeof PAPER_RULES]:number}&{maxCrypto?:number;minExtAtr?:number;minCot?:number;gmaPeriod?:number;
  // varianty ze sweepu (S01…): vstup, výstup signálem ano/ne, limit skupiny (kovy/ropa/indexy), ochlazení po ztrátě
- entryMode?:'immediate'|'pullback'|'contra';signalExit?:boolean;maxPerGroup?:number;lossCooldownMs?:number};
+ entryMode?:'immediate'|'pullback'|'contra';signalExit?:boolean;maxPerGroup?:number;lossCooldownMs?:number;
+ // agenti (G01…): trailing stop v násobcích ATR při vstupu (0 = vypnutý)
+ trailAtr?:number};
 // Pravidla v1 v textu pro UI a shrnutí pro AI (měnit jen spolu s PAPER_RULES_VERSION)
 export const PAPER_RULES_TEXT=[
  'Virtuální účet 100 000 Kč (start = první běh simulace). Riziko 1 % aktuálního uzavřeného zůstatku na obchod.',
@@ -36,13 +42,14 @@ export const PAPER_RULES_TEXT=[
 // A = paper-v1 beze změny (existující účet). B/C/D začínají prvním během po nasazení (migrace 0027 – sloupec variant).
 // S01…S20 = varianty vytvořené z „Hledání prahů“ (pravidla v lab_paper_accounts.rules, viz sweepVariant)
 export type BaseVariantId='A'|'B'|'C'|'D';
-export type VariantId=BaseVariantId|`S${string}`;
+export type VariantId=BaseVariantId|`S${string}`|`G${string}`;
 export const VARIANT_IDS:BaseVariantId[]=['A','B','C','D'];
 export const MAX_SWEEP_VARIANTS=20;
 export const SWEEP_VARIANT_IDS=Array.from({length:MAX_SWEEP_VARIANTS},(_,i)=>'S'+String(i+1).padStart(2,'0') as VariantId);
 export const isBaseVariant=(v:unknown):v is BaseVariantId=>typeof v==='string'&&(VARIANT_IDS as string[]).includes(v);
 export const isSweepVariant=(v:unknown):v is VariantId=>typeof v==='string'&&(SWEEP_VARIANT_IDS as string[]).includes(v);
-export const isVariantId=(v:unknown):v is VariantId=>isBaseVariant(v)||isSweepVariant(v);
+export const isVariantId=(v:unknown):v is VariantId=>isBaseVariant(v)||isSweepVariant(v)||isAgentVariant(v);
+export {isAgentVariant};
 export type MarketGroup='fx'|'currency'|'commodities'|'index'|'crypto'|'stock';
 // skupina trhu podle id (stejné dělení jako lib/markets.ts instruments)
 export function marketGroup(id:string):MarketGroup{
@@ -53,7 +60,7 @@ export function marketGroup(id:string):MarketGroup{
  if(id.endsWith('-USD'))return 'crypto';
  return 'stock';
 }
-export type PaperVariant={id:VariantId;name:string;rulesVersion:string;kind:'score'|'contra'|'sweep';groups:MarketGroup[];rules:PaperRules;text:string[];markets?:string[];sweep?:SweepCombo};
+export type PaperVariant={id:VariantId;name:string;rulesVersion:string;kind:'score'|'contra'|'sweep'|'agent';groups:MarketGroup[];rules:PaperRules;text:string[];markets?:string[];sweep?:SweepCombo;genome?:Genome};
 export const CONTRA_RULES:PaperRules={...PAPER_RULES,minExtAtr:2,minCot:0.5,gmaPeriod:50};
 export const CONTRA_TEXT=[
  'Kontra (mean reversion): hypotéza ze studie Laboratoře – když je trend „přepálený“, cena se spíš vrací k průměru. Obchoduje PROTI trendu.',
@@ -102,9 +109,35 @@ export function sweepVariant(id:VariantId,c:SweepCombo):PaperVariant{
   markets:sweepMarkets(c.set),rules:sweepRules(c),text:sweepText(c),sweep:c};
 }
 
+// ---- agent populace (G01…): pravidla z genomu (lib/lab/agents.ts). Uloží se k účtu i ke každému obchodu, po založení se nemění.
+// Rodina 'score' = skóre Tradee jako u variant ze sweepu (práh, hned / pullback / kontra); ostatní rodiny = technický signál známé
+// strategie (lib/lab/known.ts knownLive – stejná funkce jako historický test) z DOKONČENÝCH denních svíček, vstup za živou cenu.
+const DAY_MS=86400000;
+export function agentRules(g:Genome):PaperRules{
+ const score=g.family==='score';
+ return {...PAPER_RULES,riskPct:g.riskPct,maxOpen:g.maxOpen,minScore:score?g.threshold:101,fxMinCoverage:0,fxMinAlignment:0,slAtr:g.slAtr,tpAtr:g.exit==='tp'?g.tpR*g.slAtr:0,
+  maxTradingDays:g.hold,exitScore:score?g.threshold/2:0,maxPerCurrencyDir:g.corrCap?CAP_PER_GROUP:99,lossCooldownMs:g.cooldown?COOLDOWN_DAYS*DAY_MS:0,
+  signalExit:score&&g.exit==='signal',trailAtr:g.exit==='trail'?g.trailAtr:0,
+  ...(g.corrCap?{maxPerGroup:CAP_PER_GROUP}:{}),...(score?{entryMode:g.entry}:{}),...(score&&g.entry==='contra'?{minExtAtr:CONTRA_EXT,gmaPeriod:50}:{})};
+}
+export function agentText(g:Genome):string[]{
+ const f=familyDef(g.family);
+ return [
+  `Agent populace: ${genomeText(g)}.`,
+  g.family==='score'?'Signál = skóre Tradee (FX = score-v3 i s fundamenty, ostatní technický model) jako u variant ze sweepu.':`Signál = ${f?.label} – ${f?.desc}`,
+  g.family==='score'?'':'Signál se počítá z DOKONČENÝCH denních svíček stejnou funkcí jako historický test „Známé strategie“; vstup za živou cenu ± ½ spreadu při další příležitosti (otevřený trh, žádná zpráva se signálem 3).',
+  `Výstupy: SL ${String(g.slAtr).replace('.',',')} × ATR14${g.exit==='tp'?`, TP ${String(g.tpR).replace('.',',')} R`:g.exit==='trail'?`, trailing stop ${String(g.trailAtr).replace('.',',')} × ATR od nejlepší ceny`:''}${g.family==='score'?(g.exit==='signal'?', skóre ve směru signálu pod polovinou prahu':''):', výstupní signál strategie'}, nejdéle ${g.hold} obchodních dní.`,
+  `Limity: riziko ${String(g.riskPct).replace('.',',')} % zůstatku, nejvýš ${g.maxOpen} pozic, 1 na trh${g.corrCap?`, nejvýš ${CAP_PER_GROUP} se stejnou měnou a směrem a ${CAP_PER_GROUP} v jedné skupině`:''}; 24 h po uzavření na stejném trhu${g.cooldown?`, po ztrátě ${COOLDOWN_DAYS} dní`:''}; trhy ${AGENT_SET_LABELS[g.set]}.`,
+ ].filter(Boolean);
+}
+export function agentVariant(id:VariantId,g:Genome):PaperVariant{
+ return {id,name:`${FAMILY_SHORT[g.family]}${g.v?' '+g.v:''}${g.family==='score'?' '+g.threshold+(g.entry!=='immediate'?' '+g.entry:''):''} · ${g.set.toUpperCase()}`,rulesVersion:`agent-${id}-v1`,kind:'agent',
+  groups:AGENT_SET_GROUPS[g.set],markets:agentMarkets(g.set),rules:agentRules(g),text:agentText(g),genome:g};
+}
+
 export type Direction='long'|'short';
-export type ExitReason='sl'|'tp'|'time'|'signal'|'mean';
-export const EXIT_LABELS:Record<ExitReason,string>={sl:'stop-loss',tp:'take-profit',time:'čas (10 obchodních dní)',signal:'signál zeslábl',mean:'návrat ke GMA50'};
+export type ExitReason='sl'|'tp'|'time'|'signal'|'mean'|'trail';
+export const EXIT_LABELS:Record<ExitReason,string>={sl:'stop-loss',tp:'take-profit',time:'čas (10 obchodních dní)',signal:'signál zeslábl',mean:'návrat ke GMA50',trail:'trailing stop'};
 export type PaperPart={id:string;label:string;weight:number;value:number|null;contribution:number|null;detail:string;status:string};
 export type PaperSignal={score:number|null;coverage:number;alignment:number;method:string;parts:PaperPart[]};
 export type ContraSnap={trend:number;gma50:number;extAtr:number;cot:number|null};
@@ -124,6 +157,8 @@ export type PaperInput={
  h1?:Record<string,PaperBar[]|undefined>;points?:Record<string,[number,number][]|undefined>;d1:Record<string,PaperBar[]|undefined>;
  news:PaperNews[];names?:Record<string,string>;rules?:PaperRules;
  variant?:PaperVariant;cot?:Record<string,number|undefined>; // cot = COT signál trhu −1…+1 (jen varianta C)
+ // agenti se známou strategií: COT percentil (krokové funkce) a sazby pro carry; noEntries = archivovaný agent jen dobíhá otevřené pozice
+ known?:{cotPct?:Record<string,StepFn|null|undefined>;rates?:RateSource|null};noEntries?:boolean;
 };
 export type PaperSkip={instrument:string;score:number;reason:string};
 export type PaperStepResult={closes:PaperClose[];opens:PaperTrade[];skipped:PaperSkip[];log:string[];balance:number;openPnl:number;openCount:number};
@@ -233,6 +268,10 @@ export function whyNote(x:{instrument:string;name?:string;direction:Direction;sc
   ...(x.plan??[`Plán: vstup ${fmtPx(x.entry)}, SL ${fmtPx(x.sl)} (1,5× ATR ${fmtPx(x.snap.atr)}), TP ${fmtPx(x.tp)} (2 R), riziko ${cz(round(x.riskCzk,0),0)} Kč (1 % z ${cz(round(x.balance,0),0)} Kč), nejdéle 10 obchodních dní.`]),
  ].join('\n');
 }
+export function techResultNote(t:PaperTrade,c:{exitReason:ExitReason;exit:number;r:number;pnlCzk:number;pct:number;closed:number},g:Genome):string{
+ return [`Výstup: ${EXIT_LABELS[c.exitReason]} za ${fmtPx(c.exit)} → ${signed(c.r,2)} R, ${fmtCzk(c.pnlCzk)} (${signed(c.pct,2)} % ceny), drženo ${tradingDays(t.opened,c.closed)} obch. dní.`,
+  c.exitReason==='signal'?`Strategie ${familyDef(g.family)?.label??g.family} dala výstupní signál na dokončené denní svíčce.`:''].filter(Boolean).join('\n');
+}
 export function resultNote(t:PaperTrade,c:{exitReason:ExitReason;exit:number;r:number;pnlCzk:number;pct:number;closed:number},now:PaperSignal|undefined):string{
  const lines=[`Výstup: ${EXIT_LABELS[c.exitReason]} za ${fmtPx(c.exit)} → ${signed(c.r,2)} R, ${fmtCzk(c.pnlCzk)} (${signed(c.pct,2)} % ceny), drženo ${tradingDays(t.opened,c.closed)} obch. dní.`];
  if(!now||now.score===null)lines.push(`Skóre při vstupu ${signed(t.scoreAtEntry,1)}, teď bez platného skóre.`);
@@ -248,7 +287,8 @@ export function resultNote(t:PaperTrade,c:{exitReason:ExitReason;exit:number;r:n
 
 // ---- výstup jednoho obchodu: SL/TP podle svíček a bodů od vstupu, pak živá cena, pak čas a signál
 // signalSign −1 = obchod proti skóre (kontra ze sweepu): výstup, když skóre ve směru PŮVODNÍHO signálu zeslábne. tp ≤ 0 = bez TP.
-export function checkExit(t:PaperTrade,inp:{now:number;h1?:PaperBar[];points?:[number,number][];quote?:PaperQuote;signal?:PaperSignal;rules?:PaperRules;gma50?:number|null;signalSign?:1|-1}):Omit<PaperClose,'id'|'resultNote'|'scoreAtExit'>|null{
+// forceExit = výstupní signál známé strategie (agent) na dokončené svíčce po vstupu; trailAtr = trailing stop od nejlepší ceny (× ATR při vstupu)
+export function checkExit(t:PaperTrade,inp:{now:number;h1?:PaperBar[];points?:[number,number][];quote?:PaperQuote;signal?:PaperSignal;rules?:PaperRules;gma50?:number|null;signalSign?:1|-1;forceExit?:boolean}):Omit<PaperClose,'id'|'resultNote'|'scoreAtExit'>|null{
  const R:PaperRules=inp.rules??PAPER_RULES,now=inp.now,long=t.direction==='long';
  const firstBar=Math.ceil(t.opened/H)*H; // svíčka rozběhnutá před vstupem obsahuje ceny před ním → bere se až další
  const path=[...(inp.h1||[]).filter(b=>b.t>=firstBar&&b.t<=now).map(b=>({t:b.t,end:Math.min(now,b.t+H),h:b.h,l:b.l})),
@@ -257,10 +297,14 @@ export function checkExit(t:PaperTrade,inp:{now:number;h1?:PaperBar[];points?:[n
  if(q&&q.marketTime>t.opened)path.push({t:Math.min(now,q.marketTime),end:now,h:q.price,l:q.price});
  path.sort((a,b)=>a.t-b.t);
  const done=(reason:ExitReason,exit:number,closed:number)=>{const r=rOf(t,exit);return {closed,exit,exitReason:reason,r:round(r,4),pnlCzk:round(r*t.riskCzk,2),pct:round(pctOf(t,exit),4)}};
+ const trail=R.trailAtr&&R.trailAtr>0?R.trailAtr*(t.partsAtEntry?.atr||0):0;let best=t.entry;
  for(const b of path){
-  const hitSl=long?b.l<=t.sl:b.h>=t.sl,hitTp=t.tp>0&&(long?b.h>=t.tp:b.l<=t.tp);
-  if(hitSl)return done('sl',t.sl,b.end); // obojí v jedné svíčce = konzervativně SL
+  // trailing: úroveň z nejlepší ceny PŘED touto svíčkou (pořadí uvnitř svíčky neznáme – konzervativně), nikdy horší než původní SL
+  const stop=trail>0?(long?Math.max(t.sl,best-trail):Math.min(t.sl,best+trail)):t.sl;
+  const hitSl=long?b.l<=stop:b.h>=stop,hitTp=t.tp>0&&(long?b.h>=t.tp:b.l<=t.tp);
+  if(hitSl)return done(stop!==t.sl?'trail':'sl',stop,b.end); // obojí v jedné svíčce = konzervativně SL
   if(hitTp)return done('tp',t.tp,b.end);
+  if(trail>0)best=long?Math.max(best,b.h):Math.min(best,b.l);
  }
  if(!q||now-q.marketTime>R.staleQuoteMs)return null; // zavřený trh: čas i signál počkají na živou cenu
  const px=exitAtMarket(t,q.price);
@@ -268,6 +312,7 @@ export function checkExit(t:PaperTrade,inp:{now:number;h1?:PaperBar[];points?:[n
  const g=inp.gma50;
  if(g!==undefined&&g!==null&&(long?q.price>=g:q.price<=g))return done('mean',px,now);
  if(tradingDays(t.opened,now)>=R.maxTradingDays)return done('time',px,now);
+ if(inp.forceExit)return done('signal',px,now);
  const s=inp.signal?.score,sd=dirSign(t.direction)*(inp.signalSign??1);
  if(R.signalExit!==false&&s!==null&&s!==undefined&&Number.isFinite(s)&&sd*s<R.exitScore)return done('signal',px,now);
  return null;
@@ -295,10 +340,10 @@ export function sweepEntryCheck(mode:'immediate'|'pullback'|'contra',bars:PaperB
 }
 
 function sweepPlan(x:{V:PaperVariant;R:PaperRules;direction:Direction;score:number;entry:number;sl:number;tp:number;a:number;riskCzk:number;balance:number;setup?:ContraSetup;level?:number}):string[]{
- const c=x.V.sweep,R=x.R,out:string[]=[];
- if(c?.entry==='contra'&&x.setup)out.push(`Kontra (${x.V.id}): skóre ${signed(x.score,1)} a trend ${signed(x.setup.trend,0)}, cena ${cz(round(x.setup.extAtr,2),2)} × ATR od GMA50 ${fmtPx(x.setup.gma50)} → obchod proti.`);
- if(c?.entry==='pullback'&&x.level!==undefined)out.push(`Pullback (${x.V.id}): cena dosáhla limitu ${fmtPx(x.level)} (GMA20 nebo 1 × ATR proti signálu).`);
- out.push(`Plán (${x.V.id}, práh ${R.minScore}): vstup ${fmtPx(x.entry)}, SL ${fmtPx(x.sl)} (${cz(R.slAtr,1)}× ATR ${fmtPx(x.a)}), ${x.tp>0?`TP ${fmtPx(x.tp)} (${cz(round(R.tpAtr/R.slAtr,2),2)} R)`:`bez TP – výstup, když skóre ve směru signálu klesne pod ${cz(R.exitScore,1)}`}, riziko ${cz(round(x.riskCzk,0),0)} Kč (1 % z ${cz(round(x.balance,0),0)} Kč), nejdéle ${R.maxTradingDays} obchodních dní.`);
+ const R=x.R,mode=x.V.sweep?.entry??R.entryMode,out:string[]=[];
+ if(mode==='contra'&&x.setup)out.push(`Kontra (${x.V.id}): skóre ${signed(x.score,1)} a trend ${signed(x.setup.trend,0)}, cena ${cz(round(x.setup.extAtr,2),2)} × ATR od GMA50 ${fmtPx(x.setup.gma50)} → obchod proti.`);
+ if(mode==='pullback'&&x.level!==undefined)out.push(`Pullback (${x.V.id}): cena dosáhla limitu ${fmtPx(x.level)} (GMA20 nebo 1 × ATR proti signálu).`);
+ out.push(`Plán (${x.V.id}, práh ${R.minScore}): vstup ${fmtPx(x.entry)}, SL ${fmtPx(x.sl)} (${cz(R.slAtr,1)}× ATR ${fmtPx(x.a)}), ${x.tp>0?`TP ${fmtPx(x.tp)} (${cz(round(R.tpAtr/R.slAtr,2),2)} R)`:`bez TP – výstup, když skóre ve směru signálu klesne pod ${cz(R.exitScore,1)}`}, riziko ${cz(round(x.riskCzk,0),0)} Kč (${cz(R.riskPct,1)} % z ${cz(round(x.balance,0),0)} Kč), nejdéle ${R.maxTradingDays} obchodních dní${R.trailAtr?`, trailing stop ${cz(R.trailAtr,1)}× ATR`:''}.`);
  return out;
 }
 
@@ -307,16 +352,19 @@ export const slotOf=(now:number)=>Math.floor(now/(15*60000))*15*60000;
 // A má id beze změny (existující obchody); B/C/D mají písmeno varianty (base36 je malými písmeny → bez kolize)
 export const tradeId=(now:number,instrument:string,variant:VariantId='A')=>'p'+(variant==='A'?'':variant)+slotOf(now).toString(36)+'-'+instrument.replace(/[^A-Za-z0-9]/g,'');
 export function paperStep(inp:PaperInput):PaperStepResult{
- const V=inp.variant??PAPER_VARIANTS.A,R=inp.rules??V.rules,contra=V.kind==='contra',sweep=V.kind==='sweep',sweepContra=sweep&&R.entryMode==='contra',now=inp.now,log:string[]=[],name=(id:string)=>inp.names?.[id]||id;
+ const V=inp.variant??PAPER_VARIANTS.A,R=inp.rules??V.rules,contra=V.kind==='contra',G=V.kind==='agent'?V.genome:undefined,tech=!!G&&G.family!=='score';
+ const sweep=V.kind==='sweep'||(!!G&&!tech),sweepContra=sweep&&R.entryMode==='contra',now=inp.now,log:string[]=[],name=(id:string)=>inp.names?.[id]||id;
+ const live=(id:string,since?:number)=>knownLive(G!.family as Exclude<Genome['family'],'score'>,G!.v,inp.d1[id]||[],now,{id,cotPct:inp.known?.cotPct?.[id],rates:inp.known?.rates},since);
  const gmaOf=(id:string)=>contra?gmaLast(inp.d1[id]||[],now,R.gmaPeriod??50):null;
  const open=inp.trades.filter(t=>t.closed===null);
  // 1) výstupy
  const closes:PaperClose[]=[];
  for(const t of [...open].sort((a,b)=>a.opened-b.opened||a.id.localeCompare(b.id))){
   const g=gmaOf(t.instrument);
-  const ex=checkExit(t,{now,h1:inp.h1?.[t.instrument],points:inp.points?.[t.instrument],quote:inp.quotes[t.instrument],signal:contra?undefined:inp.signals[t.instrument],rules:R,gma50:g,signalSign:sweepContra?-1:1});
+  const kl=tech?live(t.instrument,t.opened):null,forceExit=!!kl&&(t.direction==='long'?kl.exitLong:kl.exitShort);
+  const ex=checkExit(t,{now,h1:inp.h1?.[t.instrument],points:inp.points?.[t.instrument],quote:inp.quotes[t.instrument],signal:contra||tech?undefined:inp.signals[t.instrument],rules:R,gma50:g,signalSign:sweepContra?-1:1,forceExit});
   if(!ex)continue;
-  const sig=inp.signals[t.instrument],note=contra?contraResultNote(t,ex,g):resultNote(t,ex,sig);
+  const sig=inp.signals[t.instrument],note=contra?contraResultNote(t,ex,g):tech?techResultNote(t,ex,G!):resultNote(t,ex,sig);
   closes.push({id:t.id,...ex,scoreAtExit:sig?.score??null,resultNote:note});
   log.push(`Zavřeno ${name(t.instrument)} ${t.direction}: ${EXIT_LABELS[ex.exitReason]}, ${signed(ex.r,2)} R, ${fmtCzk(ex.pnlCzk)}.`);
  }
@@ -340,8 +388,11 @@ export function paperStep(inp:PaperInput):PaperStepResult{
  let crypto=still.filter(t=>marketGroup(t.instrument)==='crypto').length;
  const inGroup=(id:string)=>V.groups.includes(marketGroup(id))&&(!V.markets||V.markets.includes(id));
  // kandidáti: skóre (A, B, D) = |skóre| ≥ práh; kontra (C) = trend ±2 + natažení od GMA50 (+ COT), pořadí podle natažení
- type Cand={id:string;direction:Direction;score:number;s?:PaperSignal;setup?:ContraSetup;wait?:string;level?:number};
- const cands:Cand[]=contra
+ type Cand={id:string;direction:Direction;score:number;s?:PaperSignal;setup?:ContraSetup;wait?:string;level?:number;tk?:KnownLive};
+ const cands:Cand[]=inp.noEntries?[]:tech
+  ?(V.markets??[]).filter(id=>inGroup(id)&&inp.d1[id]?.length).sort().flatMap(id=>{const k=live(id);return k.dir?[{id,direction:(k.dir>0?'long':'short') as Direction,score:k.str,tk:k}]:[]})
+    .sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id))
+  :contra
   ?Object.keys(inp.d1).filter(inGroup).sort().flatMap(id=>{const q=inp.quotes[id];if(!q||!(q.price>0))return [];
     const {setup}=contraSetup(inp.d1[id]||[],now,q.price,inp.cot?.[id],R);return setup?[{id,direction:setup.direction,score:round(setup.trend*setup.extAtr,2),setup}]:[]})
     .sort((a,b)=>b.setup!.extAtr-a.setup!.extAtr||a.id.localeCompare(b.id))
@@ -350,7 +401,7 @@ export function paperStep(inp:PaperInput):PaperStepResult{
      if(sweep&&R.entryMode&&R.entryMode!=='immediate'){const q=inp.quotes[id];if(!q||!(q.price>0))return {id,s:s!,score,direction:(score>0?'long':'short') as Direction,wait:'chybí živá cena'};
       const e=sweepEntryCheck(R.entryMode,inp.d1[id]||[],now,q.price,score,R);return {id,s:s!,score,direction:e.direction,setup:e.setup,level:e.level,wait:e.ok?undefined:e.reason}}
      return {id,s:s!,score,direction:(score>0?'long':'short') as Direction}}).sort((a,b)=>Math.abs(b.score)-Math.abs(a.score)||a.id.localeCompare(b.id));
- for(const {id,s,score,direction,setup,wait,level} of cands){
+ for(const {id,s,score,direction,setup,wait,level,tk} of cands){
   const skip=(reason:string)=>skipped.push({instrument:id,score,reason});
   if(held.has(id)){skip('pozice už je otevřená');continue}
   if(wait){skip(wait);continue}
@@ -366,13 +417,23 @@ export function paperStep(inp:PaperInput):PaperStepResult{
   const over=legs(id,direction).find(([c,sg])=>(exposure.get(c+':'+sg)??0)>=R.maxPerCurrencyDir);
   if(over){skip(`expozice: už ${R.maxPerCurrencyDir} pozice ${over[1]>0?'long':'short'} ${over[0]}`);continue}
   const cg=corrGroup(id);if(R.maxPerGroup!==undefined&&cg&&groupOpen(cg)>=R.maxPerGroup){skip(`skupina ${cg}: už ${R.maxPerGroup} pozice`);continue}
-  const a=setup?setup.atr:atrLast(inp.d1[id]||[],now,R.atrPeriod);if(a===null){skip('chybí denní svíčky pro ATR');continue}
+  const a=tk?tk.atr:setup?setup.atr:atrLast(inp.d1[id]||[],now,R.atrPeriod);if(a===null){skip('chybí denní svíčky pro ATR');continue}
   const sg=dirSign(direction),entry=q.price+sg*halfSpread(id,q.price),sl=entry-sg*R.slAtr*a,tp=R.tpAtr>0?entry+sg*R.tpAtr*a:0; // tp 0 = bez TP (sweep s výstupem signálem)
   const riskCzk=round(balance*R.riskPct/100,2);
   let t:PaperTrade;
   const common={id:tradeId(now,id,V.id),instrument:id,direction,opened:now,entry,sl,tp,riskCzk,
    closed:null,exit:null,exitReason:null,r:null,pnlCzk:null,pct:null,scoreAtExit:null,resultNote:null,rulesVersion:V.rulesVersion,variant:V.id};
-  if(setup&&!sweep){
+  if(tk&&G){
+   const sig=inp.signals[id],freshness=Math.max(0,Math.min(1,1-((now-q.marketTime)/60000-15)/105)),f=familyDef(G.family);
+   const snap:PaperSnapshot={method:`known-${G.family}-${G.v}`,coverage:100,alignment:100,freshness:round(freshness,3),atr:a,
+    parts:[{id:'family',label:f?.label??G.family,weight:0,value:round(tk.str,4),contribution:null,detail:`${f?.vLabels[G.v]??G.v}; signál ze svíčky ${tk.barT===null?'–':new Date(tk.barT).toISOString().slice(0,10)}`,status:'ok'}]};
+   const confidence=50,tp2=R.tpAtr>0;
+   const why=[`${inp.names?.[id]&&inp.names[id]!==id?inp.names[id]+' ('+id+')':id} ${direction} – ${f?.label??G.family} (${f?.vLabels[G.v]??G.v}), agent ${V.id}.`,
+    `Proč: signál strategie na zavření denní svíčky ${tk.barT===null?'–':new Date(tk.barT).toISOString().slice(0,10)} (síla ${cz(round(tk.str,3),3)}). Skóre Tradee ${sig?.score==null?'–':signed(sig.score,1)} (pro vstup se nepoužívá).`,
+    `Plán (${V.id}): vstup ${fmtPx(entry)}, SL ${fmtPx(sl)} (${cz(R.slAtr,1)}× ATR ${fmtPx(a)}), ${tp2?`TP ${fmtPx(tp)} (${cz(round(R.tpAtr/R.slAtr,2),2)} R)`:R.trailAtr?`trailing ${cz(R.trailAtr,1)}× ATR`:'bez TP'}, výstupní signál strategie, riziko ${cz(round(riskCzk,0),0)} Kč (${cz(R.riskPct,1)} % z ${cz(round(balance,0),0)} Kč), nejdéle ${R.maxTradingDays} obchodních dní.`].join('\n');
+   t={...common,confidence,scoreAtEntry:sig?.score??0,partsAtEntry:snap,why};
+   log.push(`Otevřeno ${name(id)} ${direction} (${V.id}, ${f?.label??G.family}) za ${fmtPx(entry)} (riziko ${cz(round(riskCzk,0),0)} Kč).`);
+  }else if(setup&&!sweep){
    const sig=inp.signals[id],confidence=contraConfidence(setup),freshness=sig?freshnessOf(sig.parts,now-q.marketTime):Math.max(0,Math.min(1,1-((now-q.marketTime)/60000-15)/105));
    const snap:PaperSnapshot={method:'contra-v1',coverage:sig?.coverage??0,alignment:sig?.alignment??0,freshness:round(freshness,3),atr:a,
     parts:[{id:'trend',label:'Trend D1',weight:0,value:setup.trend,contribution:null,detail:'GMA50/GMA200, 3 hlasy',status:'ok'},

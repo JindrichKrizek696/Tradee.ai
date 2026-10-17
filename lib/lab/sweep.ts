@@ -107,8 +107,8 @@ export function signalRows(ctx:SweepContext,set:SweepSet,thr:number):{start:Int3
 
 // ---- metriky segmentu
 export type Seg={n:number;wins:number;sum:number;sum2:number;gw:number;gl:number;cum:number;peak:number;dd:number;aw:number;al:number};
-const newSeg=():Seg=>({n:0,wins:0,sum:0,sum2:0,gw:0,gl:0,cum:0,peak:0,dd:0,aw:0,al:0});
-function addSeg(s:Seg,r:number){s.n++;s.sum+=r;s.sum2+=r*r;if(r>0){s.wins++;s.gw+=r}else s.gl-=r;s.cum+=r;if(s.cum>s.peak)s.peak=s.cum;if(s.cum-s.peak<s.dd)s.dd=s.cum-s.peak}
+export const newSeg=():Seg=>({n:0,wins:0,sum:0,sum2:0,gw:0,gl:0,cum:0,peak:0,dd:0,aw:0,al:0});
+export function addSeg(s:Seg,r:number){s.n++;s.sum+=r;s.sum2+=r*r;if(r>0){s.wins++;s.gw+=r}else s.gl-=r;s.cum+=r;if(s.cum>s.peak)s.peak=s.cum;if(s.cum-s.peak<s.dd)s.dd=s.cum-s.peak}
 export type SegMetrics={trades:number;winRate:number|null;avgR:number|null;totalR:number;pf:number|null;maxDd:number;sharpe:number|null;expectancy:number|null};
 const rd=(x:number,d=3)=>Math.round(x*10**d)/10**d;
 export function segMetrics(s:Seg):SegMetrics{

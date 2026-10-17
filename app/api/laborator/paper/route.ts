@@ -6,7 +6,7 @@ import {db,sameOrigin} from '@/lib/server';
 import {labUser,labFailed,labNotFound,LAB_HEADERS} from '@/lib/lab/http';
 import {listTrades,paperView,resetPaper,removeSweepVariant,withMarks} from '@/lib/lab/paper-store';
 import {refreshSummary} from '@/lib/lab/store';
-import {isVariantId,isSweepVariant} from '@/lib/lab/paper';
+import {isVariantId,isSweepVariant,isAgentVariant} from '@/lib/lab/paper';
 import {liveQuotes} from '@/lib/live-store';
 import {instruments} from '@/lib/markets';
 const known=new Set(instruments.map(i=>i.id));
@@ -29,6 +29,7 @@ export async function POST(req:Request){try{const u=await labUser(req);if(u inst
  const b=await req.json().catch(()=>({})) as {action?:unknown;confirm?:unknown;variant?:unknown};
  const variant=b.variant===undefined?'A':b.variant;
  if(!isVariantId(variant))throw Error('Neznámá varianta.');
+ if(isAgentVariant(variant))throw Error('Agenti populace jsou neměnní – nejde je restartovat ani odebrat (vyřazuje je jen týdenní evoluce, archivem).');
  if(b.action==='reset'){
   if(b.confirm!=='RESTART')throw Error('Restart je potřeba potvrdit.');
   await resetPaper(d,u.id,Date.now(),variant);

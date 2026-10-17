@@ -1,7 +1,7 @@
-// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS) a S01… ze sweepu (pravidla z lab_paper_accounts.rules) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
+// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS), S01… ze sweepu a agentů populace G01… (pravidla z lab_paper_accounts.rules; archivovaný agent jen dobíhá otevřené pozice) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
 // Cron: scripts/refresh-live.sh hned po živých cenách (každých 15 min, flock /tmp/tradee-lab-paper.lock; chyba nesmí shodit živé ceny).
 // node --experimental-strip-types scripts/lab-paper.mjs [--dry] [--why] [--near] [--owner-email x@y] [--try-combo N]   (--near = u C vypíše, proč který trh nesplnil vstup;
-//   --try-combo N = jen s --dry: přidá dočasnou variantu S99 z kombinace N sweepu, nic se neukládá)
+//   --try-combo N = jen s --dry: přidá dočasnou variantu S99 z kombinace N sweepu, nic se neukládá; --try-agents = jen s --dry bez DB: dočasná populace G01…G20)
 //   --dry = nic neukládá, jen vypíše, co by udělal; bez .mariadb.env vezme živé ceny a denní svíčky přímo z Yahoo (prázdný účet).
 // Idempotentní: id vstupu = slot 15 min + trh (INSERT IGNORE), výstup jen u ještě otevřeného obchodu, snímek equity podle slotu.
 import {readFileSync,existsSync} from 'node:fs';
@@ -11,6 +11,8 @@ import {paperStep,toPaperSignal,slotOf,fmtPx,signed,marketGroup,contraSetup,swee
 import {comboAt,SWEEP_SIZE} from '../lib/lab/sweep.ts';
 import {cotForInstrument} from '../lib/lab/study.ts';
 import {cotFromMarketJson} from '../lib/lab/store.ts';
+import {cotPctForInstrument,rateSeries,knownHistoryDays} from '../lib/lab/known.ts';
+import {isAgentVariant} from '../lib/lab/agents.ts';
 
 const args=process.argv.slice(2),dry=args.includes('--dry'),opt=k=>{const i=args.indexOf(k);return i>=0?args[i+1]:null};
 const read=n=>JSON.parse(readFileSync(new URL('../data/'+n,import.meta.url),'utf8'));
@@ -26,15 +28,25 @@ const names=Object.fromEntries(tradable.map(i=>[i.id,i.name]));
 const signals={};
 for(const i of tradable){try{signals[i.id]=toPaperSignal(marketScore(data,market,i.id,now))}catch(e){console.warn('skóre',i.id,e.message)}}
 const news=highNews(read('calendar.json').events,f.events,f.sources);
-let minScore,strong,contraIds,needD1;
+let minScore,strong,contraIds,needD1,techIds,histDays;
+// agenti se známou strategií: celý vesmír trhů agenta, historie podle rodiny (sezonalita ~17 let, TSMOM/MA200 ~1,5 roku)
+const techOf=V=>V.kind==='agent'&&V.genome&&V.genome.family!=='score';
 const plan=()=>{
  minScore=Math.min(...variants.filter(v=>v.kind!=='contra').map(v=>v.rules.minScore));
  strong=Object.entries(signals).filter(([,s])=>s.score!==null&&Math.abs(s.score)>=minScore).map(([id])=>id);
  // kontra (C): celý vesmír trhů varianty – trend potřebuje 200 denních svíček (~400 kalendářních dní)
  contraIds=tradable.map(i=>i.id).filter(id=>variants.some(v=>v.kind==='contra'&&v.groups.includes(marketGroup(id))));
- needD1=[...new Set([...strong,...contraIds])];
+ techIds=[...new Set(variants.filter(techOf).flatMap(V=>V.markets||[]))];
+ histDays={};for(const V of variants.filter(techOf))for(const id of V.markets||[])histDays[id]=Math.max(histDays[id]??0,knownHistoryDays(V.genome.family));
+ needD1=[...new Set([...strong,...contraIds,...techIds])];
 };
 plan();
+// --try-agents (jen --dry bez DB): přidá dočasnou populaci G01…G20 ze seedPopulation (náhodné v mezích), nic se neukládá
+if(args.includes('--try-agents')){
+ if(!dry){console.error('lab-paper: --try-agents jen s --dry');process.exit(1)}
+ const {seedPopulation,agentId}=await import('../lib/lab/agents.ts');const {agentVariant}=await import('../lib/lab/paper.ts');
+ variants=[...variants,...seedPopulation({sweep:[],known:[]},Number(opt('--seed')??42)).map((a,i)=>agentVariant(agentId(i+1),a.genome))];plan();
+}
 
 // ---- zdroje: DB (VPS) nebo Yahoo (lokální --dry)
 const envFile=new URL('../.mariadb.env',import.meta.url);
@@ -52,7 +64,7 @@ if(existsSync(envFile)){
  // každá varianta má vlastní účet; B/C/D vzniknou při prvním běhu (start = teď); S01… jen ty, které vlastník pustil ze sweepu
  for(const v of VARIANT_IDS){accounts[v]=dry?await ps.getAccount(d,uid,v):await ps.ensureAccount(d,uid,now,v);tradesOf[v]=accounts[v]?await ps.listTrades(d,uid,{variant:v}):[]}
  const accs=await ps.listAccounts(d,uid);
- variants=ps.variantsOf(accs);
+ variants=[...ps.variantsOf(accs),...ps.agentVariantsOf(accs)];
  for(const V of variants)if(!(V.id in accounts)){accounts[V.id]=accs.find(a=>a.variant===V.id)??null;tradesOf[V.id]=await ps.listTrades(d,uid,{variant:V.id})}
  plan();
  const {liveQuotes}=await import('../lib/live-store.ts');
@@ -64,7 +76,7 @@ if(existsSync(envFile)){
   h1[id]=await loadBars(d,id,'H1',from-H,now+H);
   points[id]=(await d.prepare('SELECT ts,price FROM market_intraday WHERE instrument=? AND ts>? ORDER BY ts').bind(id,from).all()).results.map(r=>[Number(r.ts),Number(r.price)]);
  }
- for(const id of new Set([...needD1,...since.keys()]))d1[id]=await loadBars(d,id,'D1',now-400*DAY,now+DAY);
+ for(const id of new Set([...needD1,...since.keys()]))d1[id]=await loadBars(d,id,'D1',now-Math.max(400,histDays[id]??0)*DAY,now+DAY);
  // COT: lab_cot (plná historie), jinak záloha z JSON souborů
  try{const {loadCot}=await import('../lib/lab/store.ts');const src=await loadCot(d);if(Object.keys(src).length)cotSrc=src}catch(e){console.warn('lab-paper: lab_cot nejde načíst –',e.code||e.message)}
 }else{
@@ -75,7 +87,7 @@ if(existsSync(envFile)){
  for(const id of needD1){
   const sym=yahooSymbol(id,fxCurrencies);if(!sym)continue;
   try{const q=parseChart(await get('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?range=1d&interval=15m'));if(q)quotes[id]={price:q.price,marketTime:q.marketTime}}catch(e){console.warn('cena',id,e.message)}
-  try{d1[id]=parseBars(await get(planUrl(sym,{tf:'D1',interval:'1d',range:'2y'}))).bars}catch(e){console.warn('svíčky',id,e.message)}
+  try{d1[id]=parseBars(await get(planUrl(sym,{tf:'D1',interval:'1d',range:(histDays[id]??0)>800?'20y':'2y'}))).bars}catch(e){console.warn('svíčky',id,e.message)}
  }
 }
 const tryCombo=opt('--try-combo');
@@ -86,12 +98,28 @@ if(tryCombo!==null){if(!dry){console.error('lab-paper: --try-combo jen s --dry')
 }
 cotSrc??=cotFromMarketJson(core,extra.legacy);
 const cot={};for(const id of contraIds){const fn=cotForInstrument(cotSrc,id),v=fn?fn(now):undefined;if(v!==undefined)cot[id]=v}
+// agenti: COT percentil (rodina cot) a sazby z FRED (rodina carry; cache ~/.cache/tradee-lab/rates.json, obnova jednou denně)
+const known={cotPct:{},rates:null};
+const fams=new Set(variants.filter(techOf).map(V=>V.genome.family));
+if(fams.has('cot'))for(const id of techIds)known.cotPct[id]=cotPctForInstrument(cotSrc,id);
+if(fams.has('carry')){
+ try{
+  const {homedir}=await import('node:os');const {statSync,mkdirSync,writeFileSync}=await import('node:fs');
+  const dir=homedir()+'/.cache/tradee-lab',file=dir+'/rates.json';let raw=null;
+  try{if(Date.now()-statSync(file).mtimeMs<86400000)raw=JSON.parse(readFileSync(file,'utf8'))}catch{}
+  if(!raw){const {loadRates}=await import('./lab-history.mjs');raw=await loadRates({});if(Object.keys(raw.rows).length){mkdirSync(dir,{recursive:true});writeFileSync(file,JSON.stringify(raw))}}
+  known.rates=Object.fromEntries(Object.entries(raw.rows).map(([k,v])=>[k,rateSeries(v)]));
+ }catch(e){console.warn('lab-paper: sazby pro carry nejdou načíst –',e.message)}
+}
 
+for(const V of variants){accounts[V.id]??=null;tradesOf[V.id]??=[]}
 const slot=slotOf(now),results={};
 for(const V of variants){
  const a=accounts[V.id];
- if(a&&!a.active){results[V.id]=null;continue}
- results[V.id]=paperStep({now,startEquity:a?.startEquity??V.rules.startEquity,trades:tradesOf[V.id],signals,quotes,h1,points,d1,news,names,variant:V,cot});
+ // archivovaný agent: žádné nové vstupy, jen dobíhají otevřené pozice (pak se už nic nezapisuje); ostatní vypnuté varianty nic
+ const winding=a&&!a.active&&isAgentVariant(V.id)&&tradesOf[V.id].some(t=>t.closed===null);
+ if(a&&!a.active&&!winding){results[V.id]=null;continue}
+ results[V.id]=paperStep({now,startEquity:a?.startEquity??V.rules.startEquity,trades:tradesOf[V.id],signals,quotes,h1,points,d1,news,names,variant:V,cot,known,noEntries:!!winding});
 }
 if(dry||!d){
  console.log(`lab-paper ${dry?'DRY':''} ${new Date(now).toISOString()} · silných signálů ${strong.length} · trhů pro kontra ${contraIds.length} (COT u ${Object.keys(cot).length})`);
@@ -116,7 +144,8 @@ for(const V of variants){const step=results[V.id];if(!step){out.push(`${V.id} vy
  out.push(`${V.id}: +${step.opens.length}/−${step.closes.length}, pozic ${step.openCount}, zůstatek ${step.balance} Kč, otevřený P&L ${step.openPnl} Kč`);
 }
 // Uzavřené obchody → hned upozornění jen vlastníkovi (mail přes Resend + push na jeho odběry)
-const closedNow=variants.flatMap(V=>(results[V.id]?.closes||[]).map(c=>({V,c,t:tradesOf[V.id].find(t=>t.id===c.id)})));
+// agenti populace (G…) se neposílají jednotlivě – 20 agentů by zahltilo schránku; jejich obchody jsou v týdenní analýze a v Laboratoři
+const closedNow=variants.filter(V=>!isAgentVariant(V.id)).flatMap(V=>(results[V.id]?.closes||[]).map(c=>({V,c,t:tradesOf[V.id].find(t=>t.id===c.id)})));
 if(closedNow.length&&!dry){
  try{
   const ld=f=>{try{return Object.fromEntries(readFileSync(new URL('../'+f,import.meta.url),'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim().replace(/^(["'])(.*)\1$/,'$2')]))}catch{return {}}};
