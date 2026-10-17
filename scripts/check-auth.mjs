@@ -22,6 +22,9 @@ check('pkce: pár sedí a verifier má 43+ znaků',pair.verifier.length>=43&&awa
 const claims={iss:'https://accounts.google.com',aud:'cid',sub:'999',email:'Ja@Gmail.com',email_verified:true,name:'Já',exp:now+100};
 const okc=checkIdClaims(claims,'cid',now);
 check('claims: platné → lowercase e-mail',okc.ok&&okc.email==='ja@gmail.com'&&okc.sub==='999'&&okc.name==='Já',okc);
+const given=checkIdClaims({...claims,name:'Pazdera Jakub',given_name:'Jakub'},'cid',now);
+check('claims: given_name → first, name beze změny',given.ok&&given.first==='Jakub'&&given.name==='Pazdera Jakub',given);
+check('claims: bez given_name → bez first',okc.ok&&!('first' in okc),okc);
 check('claims: jiný aud',!checkIdClaims({...claims,aud:'jiny'},'cid',now).ok);
 check('claims: cizí iss',!checkIdClaims({...claims,iss:'https://evil.com'},'cid',now).ok);
 check('claims: neověřený e-mail',!checkIdClaims({...claims,email_verified:false},'cid',now).ok);

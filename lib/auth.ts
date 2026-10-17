@@ -1,6 +1,7 @@
 // Čisté pomocné funkce pro přihlášení přes Google (bez DB a bez cloudflare:workers, aby šly testovat v Node).
 export const SESSION_COOKIE='tradee_session',OAUTH_COOKIE='tradee_oauth',SESSION_DAYS=30;
-export type Session={sub:string;email:string;name:string;exp:number};
+// first = křestní jméno z Googlu (given_name) pro oslovení; name bývá i ve tvaru „Příjmení Jméno“
+export type Session={sub:string;email:string;name:string;first?:string;exp:number};
 const enc=new TextEncoder(),dec=new TextDecoder();
 const ISSUERS=['accounts.google.com','https://accounts.google.com'];
 
@@ -15,7 +16,7 @@ export async function verifySession(token:string|null|undefined,secret:string,no
  try{
   if(!await crypto.subtle.verify('HMAC',await hmacKey(secret),fromB64url(parts[1]),enc.encode(parts[0])))return null;
   const s=JSON.parse(dec.decode(fromB64url(parts[0]))) as Session;
-  return typeof s.sub==='string'&&typeof s.email==='string'&&typeof s.name==='string'&&typeof s.exp==='number'&&s.exp>nowSec?s:null;
+  return typeof s.sub==='string'&&typeof s.email==='string'&&typeof s.name==='string'&&(s.first===undefined||typeof s.first==='string')&&typeof s.exp==='number'&&s.exp>nowSec?s:null;
  }catch{return null}
 }
 
@@ -25,7 +26,7 @@ export async function pkcePair(){const verifier=randomToken(32);return {verifier
 export function decodeJwtPayload(jwt:string):Record<string,unknown>|null{const p=jwt.split('.');if(p.length!==3)return null;try{const v=JSON.parse(dec.decode(fromB64url(p[1])));return v&&typeof v==='object'?v:null}catch{return null}}
 
 // Token přišel přímo z token endpointu Googlu přes TLS → podpis netřeba ověřovat (OIDC Core 3.1.3.7), jen claims.
-export function checkIdClaims(c:Record<string,unknown>|null,clientId:string,nowSec:number):{ok:true;sub:string;email:string;name:string}|{ok:false;reason:string}{
+export function checkIdClaims(c:Record<string,unknown>|null,clientId:string,nowSec:number):{ok:true;sub:string;email:string;name:string;first?:string}|{ok:false;reason:string}{
  if(!c)return {ok:false,reason:'chybí claims'};
  if(!ISSUERS.includes(String(c.iss)))return {ok:false,reason:'iss'};
  if(c.aud!==clientId)return {ok:false,reason:'aud'};
@@ -33,7 +34,8 @@ export function checkIdClaims(c:Record<string,unknown>|null,clientId:string,nowS
  if(c.email_verified!==true&&c.email_verified!=='true')return {ok:false,reason:'email_verified'};
  const email=normalizeEmail(c.email);if(!email||typeof c.sub!=='string'||!c.sub)return {ok:false,reason:'email/sub'};
  const name=typeof c.name==='string'&&c.name.trim()?c.name.trim().slice(0,200):email.split('@')[0];
- return {ok:true,sub:c.sub,email,name};
+ const first=typeof c.given_name==='string'&&c.given_name.trim()?c.given_name.trim().slice(0,100):undefined;
+ return {ok:true,sub:c.sub,email,name,...(first?{first}:{})};
 }
 
 export function normalizeEmail(v:unknown){if(typeof v!=='string')return null;const e=v.trim().toLowerCase();return e.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)?e:null}

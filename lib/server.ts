@@ -4,7 +4,7 @@ import {createDb,type Db} from './mysql';
 export const runtime=()=>env as unknown as {BUCKET:R2Bucket;OWNER_EMAIL?:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string;MARIADB_HOST?:string;MARIADB_PORT?:string;MARIADB_USER?:string;MARIADB_PASSWORD?:string;MARIADB_DB?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_CLIENT_SECRET?:string;SESSION_SECRET?:string;PUBLIC_URL?:string;VAPID_PUBLIC_KEY?:string};
 let cached:Db|null=null;
 export function db(){const e=runtime();if(!e.MARIADB_HOST||!e.MARIADB_USER||!e.MARIADB_DB)throw new Error('Databáze zatím není dostupná.');return cached??=createDb({host:e.MARIADB_HOST,port:Number(e.MARIADB_PORT||3306),user:e.MARIADB_USER,password:e.MARIADB_PASSWORD||'',database:e.MARIADB_DB})}
-export type User={id:string;email:string;name:string;role:string;owner:boolean};
+export type User={id:string;email:string;name:string;first?:string;role:string;owner:boolean};
 export function authEnv(){const e=runtime();if(!e.GOOGLE_CLIENT_ID||!e.GOOGLE_CLIENT_SECRET||!e.SESSION_SECRET)throw new Error('Přihlášení není nastavené.');return {clientId:e.GOOGLE_CLIENT_ID,clientSecret:e.GOOGLE_CLIENT_SECRET,sessionSecret:e.SESSION_SECRET,publicUrl:e.PUBLIC_URL||'https://tradee.eu'}}
 export function isOwner(email:string){const o=(runtime().OWNER_EMAIL||'').trim().toLowerCase();return !!o&&email.toLowerCase()===o}
 // Krátká cache přístupu: /auth/check se volá u každého assetu, bez ní by každý soubor otevíral spojení do DB.
@@ -22,7 +22,7 @@ export async function currentUser(req:Request):Promise<User|null>{
  const secret=runtime().SESSION_SECRET;if(!secret)return null;
  const s=await verifySession(readCookie(req.headers.get('cookie'),SESSION_COOKIE),secret);if(!s)return null;
  const role=await accessRole(s.sub,s.email);
- return role?{id:s.sub,email:s.email,name:s.name,role,owner:isOwner(s.email)}:null;
+ return role?{id:s.sub,email:s.email,name:s.name,first:s.first,role,owner:isOwner(s.email)}:null;
 }
 // Přístup podle ID člena (pro požadavky z EA, které nemají session cookie).
 export async function hasAccessById(id:string){const m=await db().prepare('SELECT email FROM members WHERE id=?').bind(id).first<{email:string}>();return !!m&&!!await accessRole(id,m.email)}
