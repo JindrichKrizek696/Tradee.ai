@@ -1,0 +1,4 @@
+<th>Q4/26</th><th>Q1/27</th><th>Q2/27</th><th>Q3/27</th>
+"name":"EURUSD","country":"Euro Area","iso2":"ea","last":1.12372,"decimals":5,"forecast1":1.12784,"forecast2":1.133609,"forecast3":1.138665,"forecast4":1.14361
+"name":"USDJPY","country":"Japan","iso2":"jp","last":158.038,"decimals":3,"forecast1":157.181961,"forecast2":155.983506,"forecast3":154.972063,"forecast4":153.976423
+"name":"USDCHF","country":"Switzerland","iso2":"ch","last":0.82402,"decimals":5,"forecast1":0.819969,"forecast2":0.814297,"forecast3":0.809517,"forecast4":0.804738

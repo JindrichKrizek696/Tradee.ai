@@ -1,0 +1,1444 @@
+{
+ "updated": "2026-10-17T22:29:12Z",
+ "attemptedAt": "2026-10-17T22:29:12Z",
+ "ingAttemptedAt": "2026-10-17T22:29:12Z",
+ "source": {
+  "te": "https://tradingeconomics.com/forecast/currency",
+  "ing": "https://think.ing.com/forecasts/"
+ },
+ "pairs": {
+  "EUR/USD": {
+   "te": {
+    "url": "https://tradingeconomics.com/euro-area/currency",
+    "asOf": "2026-10-16",
+    "current": 1.1235,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.12784
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.12784
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.13361
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.13867
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.14361
+     }
+    ],
+    "y12": {
+     "value": 1.14
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.13
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.13
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.16
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.16
+    }
+   }
+  },
+  "GBP/USD": {
+   "te": {
+    "url": "https://tradingeconomics.com/united-kingdom/currency",
+    "asOf": "2026-10-16",
+    "current": 1.3311,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.33844
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.33844
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.34637
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.35331
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.36024
+     }
+    ],
+    "y12": {
+     "value": 1.36
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.35
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.35
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.36
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.35
+    }
+   }
+  },
+  "USD/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/japan/currency",
+    "asOf": "2026-10-16",
+    "current": 157.955,
+    "q": {
+     "period": "2026-Q4",
+     "value": 157.182
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 157.182
+     },
+     {
+      "period": "2027-Q1",
+      "value": 155.984
+     },
+     {
+      "period": "2027-Q2",
+      "value": 154.972
+     },
+     {
+      "period": "2027-Q3",
+      "value": 153.976
+     }
+    ],
+    "y12": {
+     "value": 153.98
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 158
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 158
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 157
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 156
+    }
+   }
+  },
+  "USD/CHF": {
+   "te": {
+    "url": "https://tradingeconomics.com/switzerland/currency",
+    "asOf": "2026-10-16",
+    "current": 0.8231,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.81997
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.81997
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.8143
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.80952
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.80474
+     }
+    ],
+    "y12": {
+     "value": 0.8
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.82301
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.82301
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.81034
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.81897
+    },
+    "derived": true
+   }
+  },
+  "USD/CAD": {
+   "te": {
+    "url": "https://tradingeconomics.com/canada/currency",
+    "asOf": "2026-10-16",
+    "current": 1.4135,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.40984
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.40984
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.4039
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.39881
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.39386
+     }
+    ],
+    "y12": {
+     "value": 1.39
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.42
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.42
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.4
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.39
+    }
+   }
+  },
+  "AUD/USD": {
+   "te": {
+    "url": "https://tradingeconomics.com/australia/currency",
+    "asOf": "2026-10-16",
+    "current": 0.6946,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.69832
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.69832
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.70359
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.70817
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.71283
+     }
+    ],
+    "y12": {
+     "value": 0.71
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.7
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.71
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.72
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.73
+    }
+   }
+  },
+  "NZD/USD": {
+   "te": {
+    "url": "https://tradingeconomics.com/new-zealand/currency",
+    "asOf": "2026-10-16",
+    "current": 0.565,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.56869
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.56869
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.5735
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.57762
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.58175
+     }
+    ],
+    "y12": {
+     "value": 0.58
+    }
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.57
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.58
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.59
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.6
+    }
+   }
+  },
+  "EUR/CAD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.58807,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.59007
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.59007
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.59147
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.59277
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.59403
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.6046
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.6046
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.624
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.6124
+    },
+    "derived": true
+   }
+  },
+  "EUR/GBP": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.84404,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.84265
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.84265
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.84197
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.8414
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.84074
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.84
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.84
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.85
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.86
+    }
+   }
+  },
+  "EUR/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 177.462,
+    "q": {
+     "period": "2026-Q4",
+     "value": 177.276
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 177.276
+     },
+     {
+      "period": "2027-Q1",
+      "value": 176.824
+     },
+     {
+      "period": "2027-Q2",
+      "value": 176.461
+     },
+     {
+      "period": "2027-Q3",
+      "value": 176.089
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 179
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 179
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 182
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 181
+    }
+   }
+  },
+  "EUR/CHF": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.92475,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.92479
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.92479
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.92309
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.92177
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.92031
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.93
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.93
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.94
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.95
+    }
+   }
+  },
+  "EUR/AUD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.61748,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.61507
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.61507
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.61118
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.60789
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.60433
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.61429
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.59155
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.61111
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.58904
+    },
+    "derived": true
+   }
+  },
+  "EUR/NZD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.9885,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.98322
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.98322
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.97666
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.97129
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.96581
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.98246
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.94828
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.9661
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.93333
+    },
+    "derived": true
+   }
+  },
+  "GBP/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 210.254,
+    "q": {
+     "period": "2026-Q4",
+     "value": 210.379
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 210.379
+     },
+     {
+      "period": "2027-Q1",
+      "value": 210.012
+     },
+     {
+      "period": "2027-Q2",
+      "value": 209.724
+     },
+     {
+      "period": "2027-Q3",
+      "value": 209.444
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 213.3
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 213.3
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 213.52
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 210.6
+    },
+    "derived": true
+   }
+  },
+  "GBP/CHF": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.09563,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.09748
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.09748
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.09635
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.09552
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.09463
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.11106
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.11106
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.10207
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.1056
+    },
+    "derived": true
+   }
+  },
+  "GBP/CAD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.88151,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.88699
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.88699
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.89017
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.89301
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.89598
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.917
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.917
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.904
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.8765
+    },
+    "derived": true
+   }
+  },
+  "GBP/AUD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.91635,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.91666
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.91666
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.91358
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.91098
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.90823
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.92857
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.90141
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.88889
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.84932
+    },
+    "derived": true
+   }
+  },
+  "GBP/NZD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 2.35593,
+    "q": {
+     "period": "2026-Q4",
+     "value": 2.35355
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 2.35355
+     },
+     {
+      "period": "2027-Q1",
+      "value": 2.34766
+     },
+     {
+      "period": "2027-Q2",
+      "value": 2.34288
+     },
+     {
+      "period": "2027-Q3",
+      "value": 2.33818
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 2.36842
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 2.32759
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 2.30508
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 2.25
+    },
+    "derived": true
+   }
+  },
+  "CHF/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 191.903,
+    "q": {
+     "period": "2026-Q4",
+     "value": 191.693
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 191.693
+     },
+     {
+      "period": "2027-Q1",
+      "value": 191.556
+     },
+     {
+      "period": "2027-Q2",
+      "value": 191.438
+     },
+     {
+      "period": "2027-Q3",
+      "value": 191.337
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 191.978
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 191.978
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 193.745
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 190.484
+    },
+    "derived": true
+   }
+  },
+  "CAD/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 111.747,
+    "q": {
+     "period": "2026-Q4",
+     "value": 111.489
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 111.489
+     },
+     {
+      "period": "2027-Q1",
+      "value": 111.107
+     },
+     {
+      "period": "2027-Q2",
+      "value": 110.789
+     },
+     {
+      "period": "2027-Q3",
+      "value": 110.468
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 111.268
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 111.268
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 112.143
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 112.23
+    },
+    "derived": true
+   }
+  },
+  "CAD/CHF": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.58231,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.58161
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.58161
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.58003
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.57872
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.57735
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.57958
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.57958
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.57882
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.58918
+    },
+    "derived": true
+   }
+  },
+  "AUD/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 109.716,
+    "q": {
+     "period": "2026-Q4",
+     "value": 109.764
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 109.764
+     },
+     {
+      "period": "2027-Q1",
+      "value": 109.748
+     },
+     {
+      "period": "2027-Q2",
+      "value": 109.747
+     },
+     {
+      "period": "2027-Q3",
+      "value": 109.759
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 110.6
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 112.18
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 113.04
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 113.88
+    },
+    "derived": true
+   }
+  },
+  "AUD/CAD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.98182,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.98452
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.98452
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.98777
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.9906
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.99358
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.994
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.0082
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.008
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.0147
+    },
+    "derived": true
+   }
+  },
+  "AUD/CHF": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.57173,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.5726
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.5726
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.57293
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.57328
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.57364
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.57611
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.58434
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.58345
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.59784
+    },
+    "derived": true
+   }
+  },
+  "AUD/NZD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 1.22938,
+    "q": {
+     "period": "2026-Q4",
+     "value": 1.22794
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 1.22794
+     },
+     {
+      "period": "2027-Q1",
+      "value": 1.22684
+     },
+     {
+      "period": "2027-Q2",
+      "value": 1.22601
+     },
+     {
+      "period": "2027-Q3",
+      "value": 1.22531
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 1.22807
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 1.22414
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 1.22034
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 1.21667
+    },
+    "derived": true
+   }
+  },
+  "NZD/CHF": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.46505,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.46631
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.46631
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.467
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.4676
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.46816
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.46912
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.47735
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.4781
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.49138
+    },
+    "derived": true
+   }
+  },
+  "NZD/JPY": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 89.245,
+    "q": {
+     "period": "2026-Q4",
+     "value": 89.388
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 89.388
+     },
+     {
+      "period": "2027-Q1",
+      "value": 89.456
+     },
+     {
+      "period": "2027-Q2",
+      "value": 89.516
+     },
+     {
+      "period": "2027-Q3",
+      "value": 89.576
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 90.06
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 91.64
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 92.63
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 93.6
+    },
+    "derived": true
+   }
+  },
+  "NZD/CAD": {
+   "te": {
+    "url": "https://tradingeconomics.com/forecast/currency",
+    "asOf": "2026-10-17",
+    "current": 0.79863,
+    "q": {
+     "period": "2026-Q4",
+     "value": 0.80176
+    },
+    "quarters": [
+     {
+      "period": "2026-Q4",
+      "value": 0.80176
+     },
+     {
+      "period": "2027-Q1",
+      "value": 0.80513
+     },
+     {
+      "period": "2027-Q2",
+      "value": 0.80799
+     },
+     {
+      "period": "2027-Q3",
+      "value": 0.81088
+     }
+    ],
+    "derived": true
+   },
+   "ing": {
+    "asOf": "2026-10-15",
+    "url": "https://think.ing.com/forecasts/",
+    "q1": {
+     "period": "2026-Q4",
+     "value": 0.8094
+    },
+    "q2": {
+     "period": "2027-Q1",
+     "value": 0.8236
+    },
+    "q3": {
+     "period": "2027-Q2",
+     "value": 0.826
+    },
+    "q4": {
+     "period": "2027-Q3",
+     "value": 0.834
+    },
+    "derived": true
+   }
+  }
+ }
+}

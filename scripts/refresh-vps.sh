@@ -20,6 +20,8 @@ node --experimental-strip-types scripts/refresh-ff.mjs || echo "!! refresh-ff se
 # vlastní throttle ve skriptech: TE PMI max. 2× denně (11 h), maloobchod 1× za 12 h
 node --experimental-strip-types scripts/refresh-te-pmi.mjs || echo "!! refresh-te-pmi selhal"
 node --experimental-strip-types scripts/refresh-retail.mjs || echo "!! refresh-retail selhal"
+# prognózy FX (TE + ING): vlastní throttle 20 h; snímky do forecast_snapshots (po migraci 0029)
+node --experimental-strip-types scripts/refresh-forecasts.mjs || echo "!! refresh-forecasts selhal"
 python3 scripts/refresh_fx.py || echo "!! refresh_fx selhal"
 python3 scripts/mt_maintenance.py || echo "!! mt_maintenance selhal"
 if npm run build >/tmp/tradee-build.log 2>&1; then
