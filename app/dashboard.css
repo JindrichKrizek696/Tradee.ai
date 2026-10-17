@@ -50,7 +50,7 @@
 /* Přejíždějící pilulka aktivní položky navigace */
 .t-nav.has-pill{position:relative}
 .t-nav.has-pill button{position:relative;z-index:1}
-.t-nav.has-pill button.active{background:transparent;box-shadow:none}
-.t-pill{position:absolute;left:0;top:0;z-index:0;border-radius:999px;background:var(--t-surface);box-shadow:0 1px 2px #0b0c0e14,0 0 0 1px var(--t-border);pointer-events:none}
+.t-nav.has-pill button.active{background:transparent;box-shadow:none;color:#fff}
+.t-pill{position:absolute;left:0;top:0;z-index:0;border-radius:999px;background:var(--t-brand);box-shadow:0 4px 14px -6px var(--t-brand);pointer-events:none}
 .t-pill.on{transition:transform .5s cubic-bezier(.32,.72,0,1),width .5s cubic-bezier(.32,.72,0,1)}
 @media(prefers-reduced-motion:reduce){.t-pill.on{transition:none}}

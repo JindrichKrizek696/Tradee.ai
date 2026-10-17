@@ -6,12 +6,12 @@ import {OpenPositionsCard,useOpenPositions} from './open-positions';
 import {useMarkets,railSummary,inTradeText,useChecklistProgress,useNarrow,PositionLine} from './flag-rail';
 import {DisciplineTile} from './discipline-tile';
 import {RiskTile} from './risk-tile';
-import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart} from 'lucide-react';
+import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,TrendingUp,TrendingDown} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
 import {groups} from '@/lib/markets';
 import {TradeCalendar,useTrades,months,todayIso} from './trade-calendar';
-import {EventRow} from './calendar';
+import {EventRow,useCalendarTz} from './calendar';
 import {upcomingCalendar,flaggedMarkets,relative as until,type CalendarEvent} from '@/lib/calendar';
 import {monthStats,fmtMoney} from '@/lib/trades';
 import type {View} from './shell';
@@ -19,7 +19,7 @@ import {greeting,vocative,breadth,topSignals,sessions,dataHealth,recentChanges,s
 import {exchanges,CRYPTO} from '@/lib/market-hours';
 const fmt=(n:number|null,d=1)=>n===null?'—':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:d});
 const day=(s:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'short'});
-const time=(s:string)=>new Date(s).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',weekday:'short',hour:'2-digit',minute:'2-digit'});
+const time=(s:string,tz:string)=>new Date(s).toLocaleString('cs-CZ',{timeZone:tz,weekday:'short',hour:'2-digit',minute:'2-digit'});
 const tone=(n:number|null)=>n===null||n===0?'':n>0?'up':'down';
 const FLAGS=['green','orange','red'],FLAG_SHORT:Record<string,string>={green:'V tradu',orange:'Vyhlížím',red:'Čekám'};
 const SIGNAL_GROUPS=['fx','currency','index','commodities','crypto','stock'];
@@ -30,15 +30,16 @@ let sessPick:SessGroup|null=null;
 const readSess=():SessGroup=>{if(sessPick)return sessPick;try{const v=localStorage.getItem(SESS_KEY);return v==='stocks'||v==='crypto'?v:'fx'}catch{return 'fx'}};
 const subSess=(f:()=>void)=>{addEventListener('tradee:sess',f);return()=>removeEventListener('tradee:sess',f)};
 const pickSess=(v:SessGroup)=>{sessPick=v;try{localStorage.setItem(SESS_KEY,v)}catch{}dispatchEvent(new Event('tradee:sess'))};
-const SYM:Record<string,string>={EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',AUD:'A$',NZD:'N$',CAD:'C$'};
+// Symboly jen do ikon párů (NZD = NZ$, „N$“ je namibijský dolar)
+const SYM:Record<string,string>={EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',AUD:'A$',NZD:'NZ$',CAD:'C$'};
 const ASSET:Record<string,[string,string?]>={'BTC-USD':['₿','#f7931a'],'ETH-USD':['Ξ','#627eea'],'SOL-USD':['◎','#9945ff'],'^NDX':['N'],'^GSPC':['S'],'GC=F':['Au','#c9a227'],'SI=F':['Ag','#8a9099'],'CL=F':['W','#3b3f46'],'BZ=F':['B','#3b3f46']};
 type Tile=React.CSSProperties&{'--i'?:number};
 
 // Ikona trhu: u páru dvě překrývající se měny, jinak jedna.
 function Badge({r}:{r:Row}){
- if(r.group==='fx'){const [a,b]=r.id.split('/');return <span className="d-badge pair" aria-hidden="true"><i>{SYM[a]||a[0]}</i><i>{SYM[b]||b[0]}</i></span>}
+ if(r.group==='fx'){const [a,b]=r.id.split('/'),s=(c:string)=>SYM[c]||c[0];return <span className="d-badge pair" aria-hidden="true">{[s(a),s(b)].map((x,i)=><i key={i} className={x.length>2?'sm':undefined}>{x}</i>)}</span>}
  const [sym,bg]=r.group==='currency'?[SYM[r.id]||r.id[0]]:ASSET[r.id]||[r.id.replace(/^\^/,'').charAt(0)];
- return <span className="d-badge" aria-hidden="true"><i style={bg?{background:bg,color:'#fff'}:undefined}>{sym}</i></span>;
+ return <span className="d-badge" aria-hidden="true"><i className={sym.length>2?'sm':undefined} style={bg?{background:bg,color:'#fff'}:undefined}>{sym}</i></span>;
 }
 function Spark({values,color}:{values:number[];color:string}){
  const id=useId();
@@ -105,15 +106,16 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const tl=sg==='fx'?sess.list.map(x=>({...x,name:'',segs:[[x.start,x.length]] as [number,number][]})):sg==='stocks'?ex.list:[CRYPTO];
  const quotes=liveData?.quotes||{},moves=rows.filter(r=>r.group!=='currency'&&quotes[r.id]).map(r=>({r,q:quotes[r.id]})),rise=moves.filter(m=>m.q.changePct>0).sort((a,c)=>c.q.changePct-a.q.changePct).slice(0,5),fall=moves.filter(m=>m.q.changePct<0).sort((a,c)=>a.q.changePct-c.q.changePct).slice(0,5);
  const strength=rows.filter(r=>r.group==='currency').map(r=>({r,v:quotes[r.id]?.changePct})).filter((x):x is {r:Row;v:number}=>x.v!==undefined).sort((a,c)=>c.v-a.v),strScale=Math.max(0.05,...strength.map(x=>Math.abs(x.v)));
+ const {zone}=useCalendarTz();
  const dateLine=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',year:'numeric'});
  const pct=(n:number)=>b.scored?100*n/b.scored+'%':'0%',spark=(r:Row)=>scoreSeries(history,r.id,r.r.method,'1m',now).map(p=>p.score);
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
  return <div className="d-dash">
   <header className="d-pagehead">
-   <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{userName?', '+vocative(userName):''}</h1></div>
+   <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{userName&&<>, <span className="d-hello">{vocative(userName)}</span></>}</h1></div>
    <div className="d-status">
     <span className={'d-chip'+(sess.fxOpen?' live':'')}><i/>{sess.fxOpen?<>FX otevřeno{live.length?<span> · {live.map(x=>x.city).join(', ')}</span>:null}</>:'FX zavřeno · víkend'}</span>
-    {next&&<button type="button" className="d-chip" onClick={()=>setView('calendar')}><CalendarDays size={14}/><b>{next.title}</b><span>{time(next.at)} · {until(next.at,now)}</span></button>}
+    {next&&<button type="button" className="d-chip" onClick={()=>setView('calendar')}><CalendarDays size={14}/><b>{next.title}</b><span>{time(next.at,zone)} · {until(next.at,now)}</span></button>}
     <span className={'d-chip'+(okSources===health.length?'':' warn')} title={health.map(h=>h.label+': '+h.detail).join('\n')}><DatabaseZap size={14}/>Podklady <b>{okSources}/{health.length}</b></span>
    </div>
   </header>
@@ -134,7 +136,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
      </div>
      <ul className="d-brows">
       {([['bull','Bullish',b.bull,bullT],['bear','Bearish',b.bear,bearT]] as const).map(([k,label,n,t])=><li key={k}><button type="button" onClick={()=>{setSide(k);document.querySelector('.d-watch')?.scrollIntoView({behavior:'smooth',block:'center'})}}>
-       <span className="d-badge"><i className="d-mascot"><img src={`/brand/${k}.png`} alt=""/></i></span>
+       <span className="d-badge"><i className={'d-trend '+k}>{k==='bull'?<TrendingUp size={16}/>:<TrendingDown size={16}/>}</i></span>
        <span className="d-name"><b>{label}</b><small>{delta(t)?signed(delta(t))+' proti minulému snímku':'beze změny'}</small></span>
        <Spark values={[...t]} color={k==='bull'?'var(--bull)':'var(--bear)'}/>
        <em className={'d-score '+(k==='bull'?'up':'down')}>{n}</em>
@@ -146,9 +148,10 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
    </section>
 
    {liveData&&(moves.length>0||strength.length>0)&&<section className="d-card d-movers" style={tile(4)}>
-    <div className="d-head"><h2>Co se dnes hýbe</h2><LiveBadge live={liveData} quote={newest(liveData)}/></div>
+    {/* o víkendu (FX zavřené) jsou změny z posledního obchodního dne */}
+    <div className="d-head"><h2>{sess.fxOpen?'Co se dnes hýbe':'Poslední obchodní den'}</h2><LiveBadge live={liveData} quote={newest(liveData)}/></div>
     <div className="d-mv-cols">
-     {([['Rostou',rise],['Padají',fall]] as const).map(([label,list])=><div key={label} className="d-mv-col"><h3>{label}</h3>
+     {([['Rostou',rise,'up'],['Padají',fall,'down']] as const).map(([label,list,cls])=><div key={label} className="d-mv-col"><h3 className={cls}>{cls==='up'?<TrendingUp size={15}/>:<TrendingDown size={15}/>}{label}</h3>
       {list.length?<ul>{list.map(({r,q})=><li key={r.id}><button type="button" onClick={()=>open(r.id)}><span className="d-mv-name">{r.name}</span><LiveSpark points={q.points} changePct={q.changePct}/><LiveChange pct={q.changePct}/></button></li>)}</ul>:<p className="d-empty">Dnes žádný pohyb.</p>}
      </div>)}
     </div>
@@ -175,7 +178,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
     <div className="d-head"><h2>Síla měn</h2><span className="d-meta">každá proti 7 ostatním</span></div>
     {ccy.length?<div className="d-vbars">{ccy.map(r=>{const v=r.r.score as number,h=Math.min(50,Math.abs(v)/ccyScale*50);return <button key={r.id} type="button" className="d-vbar" onClick={()=>open(r.id)} title={r.name+' · '+fmt(v)}>
      <span className="d-vbar-plot"><i className={v>=0?'pos':'neg'} style={{height:h+'%'}}/><em className={tone(v)} style={v>=0?{bottom:`calc(50% + ${h}% + 4px)`}:{top:`calc(50% + ${h}% + 4px)`}}>{fmt(v)}</em></span>
-     <span className="d-vbar-lbl"><i>{SYM[r.id]}</i><b>{r.id}</b></span>
+     <span className="d-vbar-lbl"><b>{r.id}</b></span>
     </button>})}</div>:<p className="d-empty">Indexy měn zatím nemají skóre.</p>}
    </section>
 
