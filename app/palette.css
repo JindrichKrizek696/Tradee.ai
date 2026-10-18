@@ -22,7 +22,15 @@
 :root .t-cal-w.down{background:color-mix(in srgb,var(--bear) 10%,var(--t-surface))}
 /* výběr předvolby u avataru */
 .t-avatar-wrap{position:relative}
-.t-avatar{cursor:pointer;border:0}
+.t-avatar{cursor:pointer;border:0;padding:0;overflow:hidden}
+.t-avatar .av{font-size:13px}
+/* hlavička menu účtu: avatar, jméno, odkaz na profil */
+.p-me{display:flex;align-items:center;gap:10px;padding:6px 8px 10px;border-radius:10px;color:inherit;text-decoration:none}
+.p-me:hover{background:var(--t-surface-3)}
+.p-me-av{width:38px;height:38px;flex:none;font-size:14px}
+.p-me>span:last-child{display:grid;min-width:0}
+.p-menu .p-me b{margin:0;font-size:14px;font-weight:650;text-transform:none;letter-spacing:-.01em;color:var(--t-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-menu .p-me small{margin:0;font-size:12px;color:var(--t-brand-fg);font-weight:600}
 .p-picker{position:absolute;right:0;top:46px;z-index:30;width:250px;display:grid;gap:2px;padding:10px;background:var(--t-surface);border:1px solid var(--t-border);border-radius:14px;box-shadow:0 12px 32px -12px #1b2a5a40}
 .p-picker b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--t-muted-2);margin:2px 6px 6px}
 .p-picker button{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;border:1px solid transparent;background:none;font-size:13px;color:var(--t-fg);text-align:left;cursor:pointer}

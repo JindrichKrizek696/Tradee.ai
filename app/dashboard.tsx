@@ -87,7 +87,7 @@ function Notch({side,label,rail,children,wide,onOpenChange}:{side:'left'|'right'
  return <aside ref={ref} className={'d-notch '+side+(wide?' wide':'')} tabIndex={0} aria-label={label} onPointerEnter={()=>{measure();setHov(true)}} onPointerLeave={()=>setHov(false)} onFocus={()=>{measure();setFoc(true)}} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setFoc(false)}}><div className="d-notch-clip"><div className="d-notch-rail" aria-hidden="true">{rail}</div><div className="d-notch-panel"><div ref={inner} className="d-notch-inner">{children}</div></div></div></aside>;
 }
 
-export function Dashboard({rows,flags,history,data,market,now,userName,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
+export function Dashboard({rows,flags,history,data,market,now,userName,greet,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;greet?:string|null;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
  const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0),[account,setAccount]=useState('all'),[period,setPeriod]=useState<P>('month'),[range,setRange]=useState<Range>({from:'',to:''});
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
@@ -112,7 +112,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,open,setV
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
  return <div className="d-dash">
   <header className="d-pagehead">
-   <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{userName&&<>, <span className="d-hello">{vocative(userName)}</span></>}</h1></div>
+   <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{(greet||userName)&&<>, <span className="d-hello">{greet||vocative(userName)}</span></>}</h1></div>
    <div className="d-status">
     <span className={'d-chip'+(sess.fxOpen?' live':'')}><i/>{sess.fxOpen?<>FX otevřeno{live.length?<span> · {live.map(x=>x.city).join(', ')}</span>:null}</>:'FX zavřeno · víkend'}</span>
     {next&&<button type="button" className="d-chip" onClick={()=>setView('calendar')}><CalendarDays size={14}/><b>{next.title}</b><span>{time(next.at,zone)} · {until(next.at,now)}</span></button>}

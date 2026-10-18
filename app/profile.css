@@ -1,0 +1,117 @@
+/* Stránka Profil (/profil) – barvy jen z tokenů; pozadí stránky s modrou září jako v aplikaci */
+.pf-page{background:transparent}
+.pf-page :is(button,a,input,select,textarea):focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
+.pf-main{max-width:1040px}
+.pf-page .mt-card{margin-top:0}
+.pf-page .mt-btn{justify-content:center;font-size:14px}
+.pf-page .mt-btn.primary{background:var(--t-brand);border-color:var(--t-brand);color:#fff}
+.pf-page .mt-btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+.pf-page .mt-btn:disabled{opacity:.55;cursor:default}
+
+/* hlavička: živý náhled profilu */
+.pf-hero{display:flex;align-items:center;gap:24px;padding:26px 28px;margin:6px 0 16px;border:1px solid var(--t-border);border-radius:22px;background:radial-gradient(520px 240px at 0% 0%,color-mix(in srgb,var(--t-brand) 16%,transparent),transparent 70%),radial-gradient(420px 200px at 100% 100%,color-mix(in srgb,var(--t-brand) 8%,transparent),transparent 70%),var(--t-surface);box-shadow:var(--t-shadow)}
+.pf-hero-av{position:relative;flex:none;width:112px;height:112px;font-size:38px;border-radius:50%;box-shadow:0 0 0 4px var(--t-surface),0 0 0 5px var(--t-border),0 14px 30px -16px color-mix(in srgb,var(--t-brand) 70%,transparent)}
+.pf-cam{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:36px;height:36px;padding:0;border-radius:50%;border:3px solid var(--t-surface);background:var(--t-brand);color:#fff}
+.pf-cam:hover{filter:brightness(1.1)}
+.pf-hero-txt{min-width:0;display:grid;gap:6px}
+.pf-hero-txt h2{margin:0;font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.15;overflow-wrap:anywhere}
+.pf-meta{display:flex;flex-wrap:wrap;gap:4px 8px;margin:0;font-size:14px;color:var(--t-muted)}
+.pf-bio{margin:4px 0 0;max-width:620px;white-space:pre-line;line-height:1.55;color:var(--t-fg-2);overflow-wrap:anywhere}
+.pf-tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0;padding:0;list-style:none}
+.pf-tags li{padding:4px 11px;border-radius:999px;background:var(--t-accent-soft);color:var(--t-brand-fg);font-size:12.5px;font-weight:600}
+
+/* dvousloupcové rozložení: fotka + účet vlevo, údaje vpravo */
+.pf-grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;align-items:start}
+.pf-col{display:grid;gap:16px;min-width:0}
+.pf-card h2{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:650;letter-spacing:-.01em}
+.pf-card h2::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--t-brand)}
+.pf-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.pf-status{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--bull-text)}
+
+.pf-field{display:grid;gap:6px;margin-bottom:16px}
+.pf-field:last-child{margin-bottom:0}
+.pf-label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:650;color:var(--t-fg-2)}
+.pf-label label{display:inline;color:inherit;font:inherit}
+.pf-label small{font-weight:500;color:var(--t-muted-2);font-variant-numeric:tabular-nums}
+.pf-field :is(input,textarea,select){width:100%;min-width:0;border:1px solid var(--t-border);border-radius:12px;background:var(--t-surface-2);color:var(--t-fg);font:inherit;font-size:15px;transition:border-color .15s,background .15s,box-shadow .15s}
+.pf-field :is(input,select){height:44px;padding:0 14px}
+.pf-field textarea{padding:11px 14px;resize:vertical;min-height:96px;line-height:1.5}
+.pf-field :is(input,textarea,select):hover{border-color:var(--t-border-strong)}
+.pf-field :is(input,textarea,select):focus{outline:none;border-color:var(--t-brand);background:var(--t-surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--t-brand) 18%,transparent)}
+.pf-field ::placeholder{color:var(--t-muted-2)}
+.pf-hint{margin:0;font-size:13px;line-height:1.45;color:var(--t-muted)}
+.pf-hint b{color:var(--t-brand-fg)}
+.pf-err{margin:8px 0 0;font-size:13px;color:var(--bear-text,#dc2626)}
+
+.pf-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pf-chip{height:38px;padding:0 15px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg-2);font-size:14px;font-weight:550}
+.pf-chip:hover{border-color:var(--t-border-strong);color:var(--t-fg)}
+.pf-chip.on{background:var(--t-accent-soft);border-color:color-mix(in srgb,var(--t-brand) 45%,transparent);color:var(--t-brand-fg)}
+
+/* fotka */
+.pf-photo{display:flex;align-items:center;gap:18px;margin-bottom:12px}
+.pf-photo-av{flex:none;width:88px;height:88px;font-size:30px;border-radius:50%;box-shadow:0 0 0 1px var(--t-border)}
+.pf-actions{display:flex;flex-wrap:wrap;gap:8px}
+.pf-actions.col{flex-direction:column;align-items:stretch;flex:1;min-width:0}
+.pf-actions.col form{display:contents}
+.pf-sub{margin-top:16px;padding-top:16px;border-top:1px solid var(--t-border);display:grid;gap:10px}
+.pf-swatches{display:flex;flex-wrap:wrap;gap:7px}
+.pf-swatch{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;color:#fff;box-shadow:inset 0 0 0 1px #0000001a;transition:transform .15s}
+.pf-swatch:hover{transform:scale(1.08)}
+.pf-swatch.on{box-shadow:0 0 0 2px var(--t-surface),0 0 0 4px var(--t-fg)}
+
+.pf-crop{display:grid;justify-items:center;gap:12px}
+.pf-crop-stage{position:relative;overflow:hidden;border-radius:16px;background:var(--t-surface-3);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.pf-crop-stage:active{cursor:grabbing}
+.pf-crop-stage:focus-visible{outline:2px solid var(--t-brand);outline-offset:3px}
+.pf-crop-stage img{position:absolute;left:0;top:0;max-width:none;pointer-events:none}
+.pf-crop-stage.loading img{opacity:0}
+/* kruh výřezu: okolí ztmavené stínem */
+.pf-crop-ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px #0b0c0e8c;outline:2px solid #ffffffd9;outline-offset:-2px;pointer-events:none}
+.pf-zoom{display:flex;align-items:center;gap:10px;width:100%;max-width:280px}
+.pf-zoom input{flex:1;min-width:0;height:24px;margin:0;padding:0;border:0;background:none;-webkit-appearance:none;appearance:none;cursor:pointer}
+/* vlastní posuvník (nativní má v tmavém motivu světlou dráhu); --p = vyplněná část */
+.pf-zoom input::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(var(--t-brand),var(--t-brand)) 0/var(--p,0%) 100% no-repeat,var(--t-border-strong)}
+.pf-zoom input::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;background:#fff;border:2px solid var(--t-brand);box-shadow:0 1px 4px #0b0c0e4d}
+.pf-zoom input::-moz-range-track{height:4px;border-radius:999px;background:var(--t-border-strong)}
+.pf-zoom input::-moz-range-progress{height:4px;border-radius:999px;background:var(--t-brand)}
+.pf-zoom input::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--t-brand)}
+.pf-zoom input:focus-visible{outline-offset:3px;border-radius:999px}
+.pf-crop .pf-hint{text-align:center}
+.pf-crop .pf-actions{justify-content:center}
+
+/* účet */
+.pf-dl{margin:0 0 12px;display:grid}
+.pf-dl>div{display:grid;gap:2px;padding:10px 0;border-bottom:1px solid var(--t-border)}
+.pf-dl>div:first-child{padding-top:0}
+.pf-dl dt{font-size:12px;font-weight:600;color:var(--t-muted)}
+.pf-dl dd{margin:0;font-size:14.5px;color:var(--t-fg);overflow-wrap:anywhere}
+.pf-role{display:inline-flex;align-items:center;gap:6px;color:var(--t-brand-fg);font-weight:600}
+.pf-card .pf-hint+.pf-actions{margin-top:14px}
+.pf-out{color:var(--bear-text,#dc2626)}
+
+/* lišta s uložením: drží se dole, dokud jsou neuložené změny */
+.pf-bar{grid-column:1/-1;position:sticky;bottom:16px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 10px 10px 18px;border:1px solid var(--t-border-strong);border-radius:16px;background:color-mix(in srgb,var(--t-surface) 92%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 18px 40px -20px #0b0c0e66;font-weight:600;font-size:14px}
+.pf-bar>span{display:inline-flex;align-items:center;gap:6px}
+.pf-bar.err>span{color:var(--bear-text,#dc2626)}
+.pf-bar.done{border-color:color-mix(in srgb,var(--bull) 45%,var(--t-border));color:var(--bull-text);padding:14px 18px}
+
+.pf-load-err{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pf-skel{min-height:164px}
+.pf-skel i,.pf-skel b,.pf-skel span{display:block;border-radius:999px;background:var(--t-surface-3);animation:pf-pulse 1.4s ease-in-out infinite}
+.pf-skel i{width:112px;height:112px;flex:none}
+.pf-skel div{display:grid;gap:10px;flex:1}
+.pf-skel b{width:40%;height:26px}.pf-skel span{width:60%;height:14px}
+@keyframes pf-pulse{50%{opacity:.5}}
+@media(prefers-reduced-motion:reduce){.pf-skel *{animation:none}.pf-swatch{transition:none}}
+
+/* v jednom sloupci: fotka, údaje, obchodování a až pak účet */
+@media(max-width:860px){.pf-grid{grid-template-columns:minmax(0,1fr)}.pf-grid>.pf-col{display:contents}#fotka{order:-1}.pf-acc{order:5}.pf-bar{order:6}}
+@media(max-width:560px){
+ .pf-hero{flex-direction:column;align-items:flex-start;gap:16px;padding:20px}
+ .pf-hero-av{width:88px;height:88px;font-size:30px}
+ .pf-hero-txt h2{font-size:24px}
+ .pf-photo{align-items:flex-start}
+ .pf-bar{bottom:10px}
+ .pf-bar .pf-actions{width:100%}.pf-bar .pf-actions .mt-btn{flex:1}
+}
