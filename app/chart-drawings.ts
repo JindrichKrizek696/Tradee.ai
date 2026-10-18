@@ -48,11 +48,17 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  paneViews(){return this.views}
  priceAxisViews(){return this.axis}
  private rebuildAxis(){
-  const s=this.param?.series;
-  this.axis=this.all().filter(d=>d.type==='hline'||d.type==='hray'||d.type==='touch').map(d=>{const c=colorOf(this.palette,d.color);return {
-   coordinate:()=>s?.priceToCoordinate(d.a[0].p)??-1e6,text:()=>s?s.priceFormatter().format(d.a[0].p):this.env.price(d.a[0].p),textColor:()=>ink(c),backColor:()=>c,
-  }});
+  const s=this.param?.series,P=this.palette,out:ISeriesPrimitiveAxisView[]=[];
+  const view=(p:number,c:string):ISeriesPrimitiveAxisView=>({coordinate:()=>s?.priceToCoordinate(p)??-1e6,text:()=>s?s.priceFormatter().format(p):this.env.price(p),textColor:()=>ink(c),backColor:()=>c});
+  for(const d of this.all()){
+   if(d.type==='hline'||d.type==='hray'||d.type==='touch')out.push(view(d.a[0].p,colorOf(P,d.color)));
+   // pozice: cíl, vstup a stop na ose (jen když má popisky – viz tagsOn)
+   else if((d.type==='long'||d.type==='short')&&d.a.length===3&&this.tagsOn(d))out.push(view(d.a[2].p,P.bull),view(d.a[0].p,colorOf(P,d.color)),view(d.a[1].p,P.bear));
+  }
+  this.axis=out;
  }
+ // popisky pozice (cíl, stop, R:R a ceny na ose): u vybrané a právě kreslené, ostatní jen s volbou Popisky vždy
+ private tagsOn(d:Drawing){return d.id===this.selected||d.id===this.draft?.id||styleOf(d).tags}
  // kresby viditelné na aktuálním TF a neskryté (+ dočasné měření a rozkreslená kresba)
  all(){return [...this.drawings.filter(d=>!d.hide&&(!this.tf||visibleOn(d,this.tf))),...(this.temp?[this.temp]:[]),...(this.draft?[this.draft]:[])]}
  // zásah pro kurzor knihovny (ruka/posun); výběr a tažení řeší komponenta přes hit()
@@ -227,6 +233,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
      if(st.border){ctx.strokeStyle=bc;ctx.strokeRect(x0,y,bw,hh)}};
     zone(a.y,tp.y,P.bull);zone(a.y,sl.y,P.bear);
     ctx.setLineDash([]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.5,lw);line({x:x0,y:a.y},{x:x1,y:a.y});
+    if(!this.tagsOn(d))break;
     const L=positionLines(d.type,d.a,this.env.price,st.risk),cx=(x0+x1)/2,up=tp.y<a.y;
     tag([L.tp],cx,up?tp.y+4:tp.y-26,P.bull);tag([L.sl],cx,up?sl.y-26:sl.y+4,P.bear);shape.rrBox=tag([L.mid],cx,a.y-11,c);
     break;

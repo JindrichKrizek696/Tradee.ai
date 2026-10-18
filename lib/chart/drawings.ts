@@ -46,6 +46,8 @@ export type DrawStyle={
  ta?:TextAlign;ts?:TextSize;tc?:DrawColor;
  extL?:boolean;extR?:boolean;
  risk?:number;
+ // pozice: popisky (cíl, stop, R:R) a ceny vstupu, SL a TP na ose vždy (jinak jen u vybrané pozice)
+ tags?:boolean;
  lv?:FibLevel[];lb?:LabelMode;pct?:boolean;
  mid?:boolean;midp?:number;midc?:DrawColor;
  la?:TextAlign;lx?:LabelEnd;
@@ -93,7 +95,7 @@ export function capsOf(t:DrawType):Caps{
   vp:t==='vprofile',
  };
 }
-export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor;la:TextAlign;lx:LabelEnd;arrow:Arrow|'none';vr:number;va:number;vs:VpSide;vw:number;vpoc:boolean;vva:boolean};
+export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border:boolean;bc:DrawColor;ta:TextAlign;ts:TextSize;tc:DrawColor;extL:boolean;extR:boolean;risk:number|null;tags:boolean;lv:FibLevel[];lb:LabelMode;pct:boolean;mid:boolean;midp:number;midc:DrawColor;la:TextAlign;lx:LabelEnd;arrow:Arrow|'none';vr:number;va:number;vs:VpSide;vw:number;vpoc:boolean;vva:boolean};
 // výchozí hladiny podle nástroje (u ostatních nástrojů žádné)
 export const defaultLevels=(t:DrawType):FibLevel[]=>t==='fib'?FIB_DEFAULT:t==='fibext'?FIB_EXT_DEFAULT:[];
 // výchozí styl doplněný o uložené hodnoty (staré kresby: čáry 2 px, zóna s výplní i okrajem 1 px, text bez pozadí; pozice bez okraje)
@@ -104,7 +106,7 @@ export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
   fill:s.fill??d.type!=='text',border:s.border??d.type==='rect',bc:s.bc??d.color,
   ta:s.ta??(d.type==='text'?'middle':'top'),ts:s.ts??'M',tc:s.tc??d.color,
   extL:s.extL??false,extR:s.extR??(d.ray===true||d.type==='ray'||d.type==='pitchfork'),
-  risk:s.risk??null,
+  risk:s.risk??null,tags:s.tags??false,
   lv:s.lv??defaultLevels(d.type),lb:s.lb??'both',pct:s.pct??false,
   mid:s.mid??true,midp:s.midp??.5,midc:s.midc??d.color,
   la:s.la??'top',lx:s.lx??'right',
@@ -146,11 +148,11 @@ export function parseStyle(v:unknown):{ok:true;s?:DrawStyle}|{ok:false;error:str
  if(typeof v!=='object'||Array.isArray(v))return BAD_STYLE;
  const r=v as Record<string,unknown>,s:DrawStyle={};
  const color=isDrawColor;
- const bool=(k:'fill'|'border'|'extL'|'extR'|'pct'|'mid'|'vpoc'|'vva')=>{if(r[k]===undefined)return true;if(typeof r[k]!=='boolean')return false;s[k]=r[k] as boolean;return true};
+ const bool=(k:'fill'|'border'|'extL'|'extR'|'pct'|'mid'|'vpoc'|'vva'|'tags')=>{if(r[k]===undefined)return true;if(typeof r[k]!=='boolean')return false;s[k]=r[k] as boolean;return true};
  if(r.lw!==undefined){if(r.lw!==1&&r.lw!==2&&r.lw!==3&&r.lw!==4)return BAD_STYLE;s.lw=r.lw}
  if(r.ls!==undefined){if(!(LINE_STYLES as readonly unknown[]).includes(r.ls))return BAD_STYLE;s.ls=r.ls as LineStyleName}
  if(r.op!==undefined){if(!num(r.op)||r.op<.1||r.op>1)return BAD_STYLE;s.op=Math.round(r.op*100)/100}
- if(!bool('fill')||!bool('border')||!bool('extL')||!bool('extR')||!bool('pct')||!bool('mid')||!bool('vpoc')||!bool('vva'))return BAD_STYLE;
+ if(!bool('fill')||!bool('border')||!bool('extL')||!bool('extR')||!bool('pct')||!bool('mid')||!bool('vpoc')||!bool('vva')||!bool('tags'))return BAD_STYLE;
  if(r.bc!==undefined){if(!color(r.bc))return BAD_STYLE;s.bc=normColor(r.bc as DrawColor)}
  if(r.tc!==undefined){if(!color(r.tc))return BAD_STYLE;s.tc=normColor(r.tc as DrawColor)}
  if(r.ta!==undefined){if(!(TEXT_ALIGNS as readonly unknown[]).includes(r.ta))return BAD_STYLE;s.ta=r.ta as TextAlign}

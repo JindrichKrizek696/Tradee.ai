@@ -385,5 +385,7 @@ check('úložiště presetů: oblíbené se uloží a načtou',JSON.stringify((a
 {const id=newId(),t=createdOf(id);check('čas vzniku z ID',t!==null&&Math.abs(t-Date.now())<5000&&createdOf('vp1')===null&&createdOf('zzzzzzzzzzzzzzzzzz')===null,{id,t});}
 check('oblíbené TF: výchozí, validace a pořadí',JSON.stringify(emptyPrefs().tfFav)==='["M15","H1","H4","D1"]'&&normalizePrefs({tfFav:['D1','M5','D1']}).prefs.tfFav.join()==='M5,D1'&&!normalizePrefs({tfFav:'H1'}).ok&&normalizePrefs({tfFav:[]}).prefs.tfFav.length===0);
 check('oblíbené TF z DB tolerantně',parsePrefs({tfFav:['H4','x','H1']}).tfFav.join()==='H1,H4'&&parsePrefs({}).tfFav.join()==='M15,H1,H4,D1');
+{const pos=(s)=>parseDrawings([{id:'p1',type:'long',a:[{t:1e12,p:1},{t:1.0001e12,p:.99},{t:1.0001e12,p:1.02}],color:'brand',s}]);
+check('pozice: popisky jen u vybrané (výchozí), volba Popisky vždy se uloží, neplatnou hodnotu odmítne',styleOf({type:'long',color:'brand'}).tags===false&&pos({tags:true}).ok&&pos({tags:true}).drawings[0].s.tags===true&&styleOf(pos({tags:true}).drawings[0]).tags&&!pos({tags:'ano'}).ok);}
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

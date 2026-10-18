@@ -572,6 +572,10 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
    <span className="mc-seg-sm" role="group" aria-label="Rychlá volba R:R">{RR_CHIPS.map(v=><button key={v} type="button" className={Math.abs(rrNow-v)<.005?'on':''} aria-pressed={Math.abs(rrNow-v)<.005} onClick={()=>changeRR(String(v))}>{v.toLocaleString('cs-CZ')}</button>)}</span>
    <small id="mc-rr-hint" className="mc-hint">cíl se přepočítá ze vstupu a stopu ({RR_MIN.toLocaleString('cs-CZ')}–{RR_MAX})</small>
   </div>}
+  {pos&&<div className="mc-row"><span>Popisky</span>
+   <label className="mc-check"><input type="checkbox" checked={st.tags} aria-describedby="mc-tags-hint" onChange={e=>onStyle({tags:e.target.checked||undefined})}/>Vždy zobrazit</label>
+   <small id="mc-tags-hint" className="mc-hint">jinak cíl, stop, R:R a ceny na ose jen u vybrané pozice</small>
+  </div>}
   {caps.risk&&<label className="mc-row"><span>Riziko</span><input type="text" inputMode="decimal" value={risk} placeholder="částka (volitelné)" onChange={e=>changeRisk(e.target.value)}/></label>}
   <div className="mc-row" role="group" aria-label="Viditelnost na časových rámcích"><span>Vidět na</span>
    {TF_LIST.map(t=>{const on=visibleOn(d,t),only=on&&(d.tfs?.length===1||TF_LIST.length===1);return <label key={t} className={'mc-check'+(t===tf?' cur':'')}><input type="checkbox" checked={on} disabled={only} title={only?'Aspoň jeden časový rámec':undefined} onChange={()=>onPatch({tfs:toggleTf(d.tfs,t,TF_LIST)})}/>{t}</label>})}
