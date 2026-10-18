@@ -100,3 +100,5 @@
 .lb-genome{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
 .lb-genome div{border:1px solid var(--t-border);border-radius:12px;padding:6px 10px}
 .lb-genome dt{font-size:11px;color:var(--t-muted)}.lb-genome dd{margin:0;font-weight:600}
+.lb-fc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.lb-fc-grid>div>h3{margin:0 0 6px;font-size:15px}
