@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {useOpenRequest} from '../open-request';
 import {ArrowDown,ArrowLeft,ArrowUp,FileText,Folder as FolderIcon,FolderPlus,Pencil,Plus,Trash2} from 'lucide-react';
 import {LIMITS,SUGGESTED,cleanFolderName,suggestions,excerpt,noteLabel,sqlMs,sortNotes,folderCounts,type Folder,type Note,type NoteMeta,type NotePatch} from '@/lib/notebook/core';
 import {groups} from '@/lib/markets';
@@ -81,8 +82,11 @@ function Paper({id,initial,folders,markets,onMeta,onDeleted,onClose,onLost}:{id:
 export function Notebook(){
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[folderId,setFolderId]=useState<string|null>(null),[noteId,setNoteId]=useState<string|null>(null),[fresh,setFresh]=useState<Note|null>(null),[form,setForm]=useState<'add'|'rename'|null>(null),[busy,setBusy]=useState(false);
  const [tick,setTick]=useState(0),load=()=>setTick(t=>t+1);// load = načíst znovu
+ // poznámka vybraná ve vyhledávání: hned, nebo po (znovu)načtení seznamu
+ const wanted=useRef<string|null>(null);
+ useOpenRequest('note',id=>{const n=data?.notes.find(x=>x.id===id);if(n){setFolderId(n.folderId);setNoteId(n.id)}else{wanted.current=id;load()}});
  useEffect(()=>{let live=true;
-  call<Data>('/api/notebook','GET').then(j=>{if(!live)return;setData(j);setFolderId(f=>{const want=f??readLast();return want&&j.folders.some(x=>x.id===want)?want:j.folders[0]?.id??null});setError('')},e=>{if(live)setError((e as Error).message)});
+  call<Data>('/api/notebook','GET').then(j=>{if(!live)return;setData(j);const asked=wanted.current?j.notes.find(x=>x.id===wanted.current):null;wanted.current=null;setFolderId(f=>{const want=asked?.folderId??f??readLast();return want&&j.folders.some(x=>x.id===want)?want:j.folders[0]?.id??null});if(asked)setNoteId(asked.id);setError('')},e=>{if(live)setError((e as Error).message)});
   return()=>{live=false}},[tick]);
  useEffect(()=>{if(folderId)writeLast(folderId)},[folderId]);
  const folders=useMemo(()=>data?.folders||[],[data]),notes=useMemo(()=>data?.notes||[],[data]),markets=useMemo(()=>data?.markets||[],[data]);

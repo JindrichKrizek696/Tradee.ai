@@ -86,3 +86,7 @@
  .c-row.c-compact .c-tag.c-all{grid-area:v}
  .c-detail{grid-template-columns:1fr;padding:10px 12px 14px}
 }
+/* událost otevřená z vyhledávání: krátké zvýraznění řádku */
+.c-row.c-flash{animation:c-flash 2.2s ease-out}
+@keyframes c-flash{0%,35%{background:color-mix(in srgb,var(--t-brand) 18%,transparent)}100%{background:transparent}}
+@media(prefers-reduced-motion:reduce){.c-row.c-flash{animation:none;background:color-mix(in srgb,var(--t-brand) 12%,transparent)}}

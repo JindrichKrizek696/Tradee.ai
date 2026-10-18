@@ -52,6 +52,8 @@
 .t-nav.has-pill{position:relative}
 /* výřez visí z horní hrany okna i po odscrollování (až za .has-pill, jinak by ho přebilo position:relative) */
 @media(min-width:901px){.t-top>.t-nav{position:fixed;top:0;left:50%;transform:translateX(-50%)}.t-top>.t-actions{grid-column:3}}
+/* užší desktop: ostrůvek by zajel pod ikony vpravo → položky bez ikon (lupa zůstává) a užší */
+@media(min-width:901px) and (max-width:1099px){.t-top>.t-nav button:not(.t-search) svg{display:none}.t-top>.t-nav button{padding:0 11px}}
 .t-nav.has-pill button{position:relative;z-index:1}
 .t-nav.has-pill button.active{background:transparent;box-shadow:none;color:#fff}
 .t-pill{position:absolute;left:0;top:0;z-index:0;border-radius:999px;background:var(--t-brand);box-shadow:0 4px 14px -6px var(--t-brand);pointer-events:none}

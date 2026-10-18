@@ -5,6 +5,7 @@ import {ThemeToggle} from './theme';
 import {NavBar} from './nav-bar';
 import {useNav} from './nav-prefs';
 import {Avatar} from './avatar';
+import {SearchButton} from './search';
 import {RefreshCw} from 'lucide-react';
 import type {View} from '@/lib/nav';
 export type {View};
@@ -14,7 +15,7 @@ export function Shell({wide,view,setView,busy,onRefresh,userName,avatar,avatarCo
  return <div className="t-app">
   <header className="t-top">
    <a className="t-brand" href="#dashboard" onClick={e=>{e.preventDefault();setView('dashboard')}}><svg className="t-mark" viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg><span>Tradee</span></a>
-   <NavBar nav={nav} view={view} onPick={setView} pending={pending}/>
+   <NavBar nav={nav} view={view} onPick={setView} pending={pending} end={<SearchButton/>}/>
    <div className="t-actions">
     <ThemeToggle/>
     <button className={'t-icon-btn'+(busy?' spin':'')} onClick={onRefresh} disabled={busy} aria-label="Obnovit podklady" title="Obnovit podklady"><RefreshCw size={17}/></button>

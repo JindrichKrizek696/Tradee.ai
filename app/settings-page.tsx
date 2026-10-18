@@ -21,7 +21,7 @@ function Navigation(){
  const down=(e:React.PointerEvent,id:View)=>{if(e.button!==0)return;e.preventDefault();list.current?.setPointerCapture(e.pointerId);drag.current=id;setDragging(id)};
  const over=(e:React.PointerEvent)=>{const id=drag.current;if(!id)return;const row=document.elementFromPoint(e.clientX,e.clientY)?.closest<HTMLElement>('[data-nav-id]'),to=row?.dataset.navId as View|undefined;if(!to||to===id)return;const from=nav.order.indexOf(id),at=nav.order.indexOf(to);if(from<0||at<0)return;const o=[...nav.order];o.splice(from,1);o.splice(at,0,id);change({...nav,order:o})};
  const end=(e:React.PointerEvent)=>{if(!drag.current)return;drag.current=null;setDragging(null);try{list.current?.releasePointerCapture(e.pointerId)}catch{}};
- return <section className="mt-card">
+ return <section className="mt-card" id="navigace">
   <div className="nv-title"><h2>Navigace</h2><span className={'nv-status'+(status==='err'?' err':'')} role="status" aria-live="polite">{status==='saving'?'Ukládám…':status==='saved'?'Uloženo':status==='err'?'Uložení se nepovedlo. Změna platí jen v tomto prohlížeči.':''}</span></div>
   <p className="mt-lead">Přetažením změníš pořadí položek v horní liště, přepínačem je schováš. Dashboard zůstává vždy.</p>
   <div className="nv-stage"><NavBar nav={preview} view="dashboard" preview/></div>
@@ -40,20 +40,20 @@ function Navigation(){
 function Look(){
  const {theme,toggle}=useTheme(),{palette,choose,error}=usePalette();
  const pick=(t:'light'|'dark')=>{if(theme!==t)toggle()};
- return <section className="mt-card">
+ return <section className="mt-card" id="vzhled">
   <h2>Vzhled</h2>
   <div className="nv-line"><span>Motiv</span><div className="mt-chips" role="radiogroup" aria-label="Motiv"><button type="button" role="radio" aria-checked={theme==='light'} className={theme==='light'?'active':''} onClick={()=>pick('light')}><Sun size={14}/> Světlý</button><button type="button" role="radio" aria-checked={theme==='dark'} className={theme==='dark'?'active':''} onClick={()=>pick('dark')}><Moon size={14}/> Tmavý</button></div></div>
   <div className="nv-embed"><PalettePicker value={palette.id} onChoose={choose} error={error}/></div>
  </section>;
 }
 function Alerts(){
- return <section className="mt-card"><h2>Upozornění</h2><div className="p-picker nv-embed"><NotifySettings/></div></section>;
+ return <section className="mt-card" id="upozorneni"><h2>Upozornění</h2><div className="p-picker nv-embed"><NotifySettings/></div></section>;
 }
 function Summary(){
  const [cur,setCur]=useState(''),[st,setSt]=useState<'idle'|'saved'|'err'>('idle');
  useEffect(()=>{let live=true;fetch('/api/settings',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{currency?:string}>:null).then(j=>{if(live)setCur(j?.currency||'USD')}).catch(()=>{if(live)setSt('err')});return()=>{live=false}},[]);
  const choose=(c:string)=>{const prev=cur;setCur(c);setSt('idle');fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currency:c})}).then(r=>{if(!r.ok)throw Error();setSt('saved')}).catch(()=>{setCur(prev);setSt('err')})};
- return <section className="mt-card">
+ return <section className="mt-card" id="mena">
   <div className="nv-title"><h2>Měna souhrnu</h2><span className={'nv-status'+(st==='err'?' err':'')} role="status" aria-live="polite">{st==='saved'?'Uloženo':st==='err'?'Měnu se nepodařilo uložit.':''}</span></div>
   <p className="mt-lead">Kalendář obchodů a P&L sčítají všechny účty v této měně (přepočet denním kurzem ECB). Ručně zapsané obchody se nepřepočítávají.</p>
   <select aria-label="Měna souhrnu" value={cur} disabled={!cur} onChange={e=>choose(e.target.value)}>{!cur&&<option value="">…</option>}{CURRENCIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
