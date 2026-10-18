@@ -304,25 +304,68 @@ body.mc-fs-lock{overflow:hidden}
 .mc-tf-item span{color:var(--t-fg-2)}
 .mc-menu-item.mc-tf-item.on span{color:inherit}
 .mc p.mc-menu-hint{margin:4px 8px 2px;font-size:11px;line-height:1.4;color:var(--t-muted)}
-/* panel Indikátory a Vrstvy */
-.mc-ind{display:flex;flex-direction:column;gap:2px;width:300px;max-width:100%;padding:2px}
-.mc-ind-item{display:flex;flex-direction:row;align-items:flex-start;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--t-fg)}
-.mc-ind-item:hover{background:var(--t-surface-3)}
-.mc-ind-item input{margin:2px 0 0;accent-color:var(--t-brand)}
-.mc-ind-item>span{display:grid;gap:1px}
-.mc-ind-item b{font-weight:600}
-.mc .mc-ind-item small{display:block;font-size:11.5px;color:var(--t-muted);line-height:1.35}
-.mc-ind-item:has(input:disabled){cursor:default;opacity:.6}
-.mc-ind-cfg{display:grid;gap:6px;margin:2px 4px 6px 30px;padding:8px 10px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface-2)}
-.mc-ind-cfg label{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:12px;color:var(--t-fg-2)}
-.mc-ind-cfg label>span{flex:0 0 92px;color:var(--t-muted)}
-.mc-ind-cfg select,.mc-ind-cfg input[type=number]{height:28px;padding:0 8px;border:1px solid var(--t-border);border-radius:6px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:12px}
-.mc-ind-cfg input[type=number]{width:72px;font-variant-numeric:tabular-nums}
-.mc-ind-cfg input[type=range]{flex:1;min-width:80px;accent-color:var(--t-brand)}
-.mc-ind-cfg em{font-style:normal;min-width:38px;font-variant-numeric:tabular-nums}
-.mc-ind-checks{display:flex;flex-wrap:wrap;gap:6px 14px}
-.mc p.mc-ind-note{margin:2px 8px 4px;font-size:11.5px;line-height:1.4;color:var(--t-muted)}
-.mc .mc-ind-cfg p.mc-ind-note{margin:0}
+/* panel Indikátory a Vrstvy: řádky s ikonou a vypínačem, zapnutý indikátor s nastavením jako karta */
+.mc-drop-menu:has(.mc-ind){max-height:min(600px,calc(100vh - 140px));overflow-x:hidden}
+.mc-ind{--mc-poc:#f59e0b;display:flex;flex-direction:column;gap:2px;width:320px;max-width:100%;min-width:0}
+.mc-ind-row{border:1px solid transparent;border-radius:10px;transition:background .12s,border-color .12s}
+.mc-ind-row.open{border-color:var(--t-border);background:var(--t-surface-2)}
+.mc-ind-row.open+.mc-ind-row{margin-top:2px}
+.mc-ind-head{display:flex;align-items:center;gap:10px;width:100%;min-width:0;padding:8px 10px 8px 8px;border:0;border-radius:9px;background:none;color:var(--t-fg);font:inherit;text-align:left;cursor:pointer}
+.mc-ind-row:not(.open) .mc-ind-head:hover:not(:disabled){background:var(--t-surface-2)}
+.mc-ind-head:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
+.mc-ind-head:disabled{cursor:not-allowed}
+.mc-ind-head:disabled .mc-ind-ic,.mc-ind-head:disabled b,.mc-ind-head:disabled .mc-switch{opacity:.45}
+.mc-ind-ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--t-surface-3);color:var(--t-fg-2);transition:background .12s,color .12s}
+.mc-ind-row.on .mc-ind-ic{background:var(--t-accent-soft);color:var(--t-brand-fg)}
+.mc-ind-txt{flex:1;min-width:0;display:grid;gap:2px}
+.mc-ind-txt b{font-size:13px;font-weight:600;line-height:1.3}
+.mc .mc-ind-txt small{display:block;font-size:11.5px;line-height:1.35;color:var(--t-muted)}
+.mc-switch{position:relative;flex:none;width:32px;height:18px;border-radius:999px;background:var(--t-border-strong);transition:background .15s}
+.mc-switch i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0003;transition:transform .15s}
+.mc-ind-head[aria-checked=true] .mc-switch{background:var(--t-brand)}
+.mc-ind-head[aria-checked=true] .mc-switch i{transform:translateX(14px)}
+/* nastavení session profilu */
+.mc-ind-cfg{display:grid;gap:12px;min-width:0;padding:6px 12px 12px}
+.mc-cfg-field{display:grid;gap:6px;min-width:0}
+.mc-cfg-lbl{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--t-muted)}
+.mc-cfg-lbl em{font-style:normal;font-size:11.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--t-fg-2);font-variant-numeric:tabular-nums}
+.mc-seg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:2px;border-radius:8px;background:var(--t-surface-3)}
+.mc-seg button{min-width:0;height:26px;padding:0 2px;border:0;border-radius:6px;background:none;color:var(--t-fg-2);font:inherit;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .12s,color .12s}
+.mc-seg button:hover{color:var(--t-fg)}
+.mc-seg button[aria-pressed=true]{background:var(--t-surface);color:var(--t-brand-fg);box-shadow:0 1px 2px #0000001f,0 0 0 1px #245bff40}
+.mc-seg button:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
+.mc-cfg-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mc-step{display:flex;align-items:stretch;height:30px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface);overflow:hidden}
+.mc-step:focus-within{border-color:var(--t-brand)}
+.mc-step button{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;padding:0;border:0;background:none;color:var(--t-fg-2);cursor:pointer}
+.mc-step button:hover:not(:disabled){background:var(--t-surface-3);color:var(--t-fg)}
+.mc-step button:disabled{opacity:.3;cursor:default}
+.mc-step button:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
+.mc-step-val{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:2px;font-size:13px;font-weight:600;color:var(--t-fg);font-variant-numeric:tabular-nums}
+.mc-ind .mc-step-val input{width:3.4ch;min-width:0;height:100%;padding:0;border:0;border-radius:0;background:none;color:inherit;font:inherit;text-align:center;outline:none}
+.mc-step-val:has(i) input{text-align:right}
+.mc-step-val i{font-style:normal;font-weight:500;color:var(--t-muted)}
+/* posuvník: vyplněná část v barvě značky (--p z komponenty) */
+.mc-ind input.mc-range{-webkit-appearance:none;appearance:none;display:block;width:100%;height:18px;margin:0;padding:0;border:0;border-radius:0;background:transparent;cursor:pointer;outline:none}
+.mc-range::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:linear-gradient(to right,var(--t-brand) var(--p,50%),var(--t-surface-3) var(--p,50%))}
+.mc-range::-moz-range-track{height:4px;border-radius:99px;background:linear-gradient(to right,var(--t-brand) var(--p,50%),var(--t-surface-3) var(--p,50%))}
+.mc-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border:2px solid var(--t-brand);border-radius:50%;background:#fff;box-shadow:0 1px 3px #0000004d}
+.mc-range::-moz-range-thumb{width:12px;height:12px;border:2px solid var(--t-brand);border-radius:50%;background:#fff;box-shadow:0 1px 3px #0000004d}
+.mc-range:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--t-brand) 30%,transparent)}
+.mc-range:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--t-brand) 30%,transparent)}
+/* čáry POC a hranice value area: přepínací štítky s ukázkou čáry */
+.mc-cfg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mc-line-chip{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);color:var(--t-muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.mc-line-chip i{width:16px;border-top:2px solid var(--mc-poc);opacity:.35}
+.mc-line-chip i.dash{border-top-style:dashed}
+.mc-line-chip:hover{color:var(--t-fg-2)}
+.mc-line-chip[aria-pressed=true]{border-color:color-mix(in srgb,var(--mc-poc) 55%,var(--t-border));background:color-mix(in srgb,var(--mc-poc) 10%,var(--t-surface));color:var(--t-fg)}
+.mc-line-chip[aria-pressed=true] i{opacity:1}
+.mc-line-chip:focus-visible{outline:2px solid var(--t-brand);outline-offset:1px}
+.mc p.mc-ind-note{display:flex;align-items:flex-start;gap:7px;margin:0;padding:8px 10px;border-radius:8px;background:var(--t-surface-3);font-size:11.5px;line-height:1.4;color:var(--t-fg-2)}
+.mc-ind-note svg{flex:none;margin-top:1px;color:var(--t-muted)}
+.mc p.mc-ind-foot{display:flex;align-items:flex-start;gap:7px;margin:6px 0 0;padding:9px 8px 4px;border-top:1px solid var(--t-border);font-size:11.5px;line-height:1.4;color:var(--t-muted)}
+.mc-ind-foot svg{flex:none;margin-top:1px}
 
 /* legenda v grafu vlevo nahoře: neblokuje graf (myš projde), jen tlačítka indikátorů jsou klikací */
 .mc-lg{position:absolute;z-index:3;top:6px;left:8px;max-width:calc(100% - 90px);display:flex;flex-direction:column;align-items:flex-start;gap:2px;pointer-events:none;font-size:12px;line-height:1.5;color:var(--t-muted);font-variant-numeric:tabular-nums}
@@ -374,5 +417,5 @@ span.mc-tree-main{cursor:default}
  .mc-lg-main>span:nth-of-type(n+3){display:none}
  .mc-tree{position:absolute;z-index:8;right:0;top:auto;bottom:0;width:min(320px,100%);max-height:70%}
  .mc-body{position:relative}
- .mc-ind{width:min(300px,calc(100vw - 40px))}
+ .mc-ind{width:min(320px,calc(100vw - 40px))}
 }
