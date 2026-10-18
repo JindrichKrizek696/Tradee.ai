@@ -132,7 +132,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  // okno grafu: v samotném okně téhož trhu tlačítko nedává smysl (otevřelo by znovu sebe); zablokované okno = hláška v patičce
  const winName=useSyncExternalStore(noSub,()=>window.name,()=>''),[blocked,setBlocked]=useState(false);
  // přes celou obrazovku jako TradingView: karta grafu přes celé okno (pevné rozvržení bez posouvání stránky), kde to jde, i celoobrazovkový režim prohlížeče
- const [fs,setFs]=useState(false),card=useRef<HTMLElement>(null),keys=useRef({fs:false,drawing:false,fill:false,pop:false});
+ const [fs,setFs]=useState(false),card=useRef<HTMLElement>(null),keys=useRef({fs:false,drawing:false,fill:false,pop:false,view:150,pad:3});
  // zprávy z kalendáře: otevřený detail (klik na značku) a hodiny po minutě (proběhlá zpráva se přesune z pásu dole nad svíčky)
  const [pop,setPop]=useState<Pop|null>(null),[clock,setClock]=useState(()=>Date.now()),strip=useRef<NewsStripPrimitive|null>(null);
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
@@ -249,6 +249,34 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   c.priceScale('right').applyOptions({scaleMargins:{top:.12,bottom:isFp?.12:.08}});
   return()=>{try{keepRange.current=c.timeScale().getVisibleLogicalRange();markers.current?.detach();s.detachPrimitive(st);s.detachPrimitive(svpPrim);if(isFp)s.detachPrimitive(fpPrim);c.removeSeries(s)}catch{}price.current=null;markers.current=null;lines.current=[]};
  },[type,isFp,ready,fpPrim,svpPrim]);
+ // volná kamera jako v TradingView: tah grafem nahoru/dolů vypne automatické měřítko ceny a posune cenu (do stran posouvá knihovna);
+ // bez automatického měřítka posouvá graf do všech stran knihovna sama; zpět tlačítkem A, dvojklikem na cenovou osu nebo Alt+R
+ const [auto,setAuto]=useState(true);
+ useEffect(()=>{
+  const box=el.current;if(!box)return;
+  let g:{x:number;y:number;from:number;to:number;k:number;on:boolean}|null=null;
+  // měřítko mění i knihovna (tah cenovou osou ho vypne, dvojklik na ni zapne)
+  const sync=()=>{const ps=chart.current?.priceScale('right');if(ps)setAuto(ps.options().autoScale)};
+  // jen tah, který kreslení nepřevzalo (to zastaví událost už v zachytávací fázi) a jen v ploše cen, ne na osách
+  const down=(e:MouseEvent)=>{
+   g=null;const c=chart.current,s=price.current;if(e.button!==0||!c||!s)return;
+   const r=box.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+   if(x<0||x>c.timeScale().width()||y<0||y>(c.panes()[0]?.getHeight()??0))return;
+   const ps=c.priceScale('right'),vr=ps.getVisibleRange(),p0=s.coordinateToPrice(0),p1=s.coordinateToPrice(100);
+   if(ps.options().autoScale&&vr&&p0!==null&&p1!==null)g={x:e.clientX,y:e.clientY,from:vr.from,to:vr.to,k:(p0-p1)/100,on:false};
+  };
+  const move=(e:MouseEvent)=>{
+   if(!g)return;if(!(e.buttons&1)){g=null;return}
+   // svisle až u tahu, který jde znatelně nahoru/dolů – sklouznutí ruky při tahu do stran měřítko nevypne
+   const dy=e.clientY-g.y;if(!g.on&&(Math.abs(dy)<8||Math.abs(dy)<Math.abs(e.clientX-g.x)*.35))return;
+   if(!g.on){g.on=true;setAuto(false)}
+   chart.current?.priceScale('right').setVisibleRange({from:g.from+dy*g.k,to:g.to+dy*g.k});
+  };
+  const up=()=>{g=null;sync()};
+  box.addEventListener('mousedown',down);box.addEventListener('dblclick',sync);window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);
+  return()=>{box.removeEventListener('mousedown',down);box.removeEventListener('dblclick',sync);window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up)};
+ },[]);
+ const toggleAuto=()=>{const ps=chart.current?.priceScale('right');if(!ps)return;const on=!ps.options().autoScale;ps.setAutoScale(on);setAuto(on)};
 
  const bars=useMemo(()=>toBars(data.candles),[data.candles]);
  // objem: jen když ho má většina svíček (FX kříže a měnové indexy ho nemají); session profil ne na W1/MN a ve footprintu
@@ -269,7 +297,13 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
 
  // celá obrazovka: zapnutí/vypnutí (režim prohlížeče jen jako bonus – když ho prohlížeč odmítne, zůstane karta přes celé okno)
- useLayoutEffect(()=>{keys.current={fs,drawing:draw.drawing,fill:!!fill,pop:!!pop}});
+ useLayoutEffect(()=>{keys.current={fs,drawing:draw.drawing,fill:!!fill,pop:!!pop,view:isFp?10:VIEW_BARS[tf]??150,pad:isFp?1:3}});
+ // výchozí pohled (Alt+R jako v TradingView): automatické měřítko ceny a posledních ~150 svíček (footprint ~10)
+ const resetView=useCallback(()=>{
+  const c=chart.current,s=price.current;if(!c||!s)return;
+  c.priceScale('right').setAutoScale(true);setAuto(true);
+  const n=s.data().length,k=keys.current;if(n)c.timeScale().setVisibleLogicalRange({from:Math.max(0,n-k.view),to:n+k.pad});
+ },[]);
  const full=useCallback((on:boolean)=>{
   setFs(on);const box=card.current;
   if(on){if(box?.requestFullscreen&&!document.fullscreenElement)box.requestFullscreen().catch(()=>{})}
@@ -287,13 +321,14 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  useEffect(()=>{
   const key=(e:KeyboardEvent)=>{
    const box=card.current,k=keys.current;
+   if(box&&e.altKey&&!e.ctrlKey&&!e.metaKey&&e.code==='KeyR'&&!editable(e.target)&&(k.fs||k.fill||box.matches(':hover')||box.contains(document.activeElement))){e.preventDefault();resetView();return}
    if(!box||e.ctrlKey||e.metaKey||e.altKey||editable(e.target))return;
    // Esc spotřebované kreslením (defaultPrevented) celou obrazovku neukončí
    if(e.key==='Escape'){if(k.pop)setPop(null);else if(k.fs&&!e.defaultPrevented&&!k.drawing&&!box.querySelector('.mc-sel'))full(false)}
    else if(!e.defaultPrevented&&(e.key==='f'||e.key==='F')&&!e.repeat&&(k.fs||k.fill||box.matches(':hover')||box.contains(document.activeElement))){e.preventDefault();full(!k.fs)}
   };
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
- },[full]);
+ },[full,resetView]);
  const scores=useMemo(()=>scoreSeries(history,instrument,method,'all',Date.now()),[history,instrument,method]);
  // zprávy: proběhlé nad svíčkami (značky), nadcházející v pásu dole (primitivum)
  useEffect(()=>{const t=setInterval(()=>setClock(old=>{const now=Date.now();return events.some(e=>{const at=Date.parse(e.at);return at>old&&at<=now})?now:old}),60000);return()=>clearInterval(t)},[events]);
@@ -357,6 +392,8 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  useEffect(()=>{
   const c=chart.current,key=instrument+'|'+tf+'|'+isFp;if(!c||!bars.length||data.status!=='ok'||fitted.current===key)return;
   fitted.current=key;
+  // jiný trh / TF: ruční cenový výřez by ukazoval mimo svíčky
+  c.priceScale('right').setAutoScale(true);setAuto(true);
   c.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-(isFp?10:VIEW_BARS[tf]??150)),to:bars.length+(isFp?1:3)});
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[bars]);
@@ -472,6 +509,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
     {volOn&&!isFp&&<div className="mc-lg-row mc-lg-ind"><span>Objem</span><em>{volOk&&shown?.volume!==undefined?fmtVol(shown.volume):'–'}</em><button type="button" className="mc-lg-x" aria-label="Skrýt indikátor Objem" title="Skrýt objem" onClick={()=>setInd({vol:false})}><EyeOff size={12} aria-hidden/></button></div>}
     {ind.svp&&!isFp&&<div className="mc-lg-row mc-lg-ind"><span>Session VP</span><em>{svpPeriod?VP_PERIOD_LABELS[svpPeriod]+' · '+svpCfg.rows+' · VA '+svpCfg.va+' %'+(volOk?'':' · TPO'):'na '+tf+' nedostupné'}</em><button type="button" className="mc-lg-x" aria-label="Odebrat Session volume profile" title="Odebrat" onClick={()=>setInd({svp:false})}><X size={12} aria-hidden/></button></div>}
    </div>
+   <button type="button" className={'mc-auto'+(auto?' on':'')} aria-pressed={auto} aria-label="Automatické měřítko ceny" title={auto?'Automatické měřítko ceny – tah grafem nahoru nebo dolů ho vypne':'Zapnout automatické měřítko ceny (Alt+R vrátí celý pohled)'} onClick={toggleAuto}>A</button>
    {loading&&<div className="mc-skeleton" aria-label="Načítám svíčky"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>}
    {empty&&<div className="mc-empty" role="status"><p>{data.message||'Ceny teď nejsou k dispozici.'}</p><button type="button" className="mc-chip" onClick={()=>setReload(n=>n+1)}>Zkusit znovu</button></div>}
    {tip&&!draw.drawing&&!(pop&&tip.id==='n:'+pop.id)&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}

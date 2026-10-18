@@ -75,7 +75,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  useLayoutEffect(()=>{S.current={tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument,prefs,presetSel}});
  // vzhled nové kresby: zvolený preset nástroje, jinak uživatelův výchozí, jinak nic (vestavěné hodnoty)
  const lookFor=(t:DrawType):Look|null=>{const st=S.current,id=st.presetSel[t];return (id&&st.prefs.presets.find(p=>p.id===id&&p.tool===t))||st.prefs.defaults[t]||null};
- const draft=useRef<Draft|null>(null),drag=useRef<Drag|null>(null);
+ const draft=useRef<Draft|null>(null),drag=useRef<Drag|null>(null),panning=useRef(false);
  const dirty=useRef(false),loaded=useRef<string|null>(null),pending=useRef<{instrument:string;drawings:Drawing[]}|null>(null);
  const menuRef=useRef<HTMLDivElement>(null);
  // historie úprav kreseb aktuálního trhu (Zpět / Znovu); group slučuje rychlé změny jednoho pole (psaní, posuvník) do jednoho kroku
@@ -132,8 +132,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   const pal:DrawPalette={brand:norm(css('--t-brand','#245bff'),'#245bff'),bull:norm(css('--bull','#16a34a'),'#16a34a'),bear:norm(css('--bear','#dc2626'),'#dc2626'),amber:'#f59e0b',muted:norm(css('--t-muted','#6b7079'),'#6b7079'),fg:norm(fg,'#0b0c0e'),bg:norm(css('--t-surface','#ffffff'),'#ffffff'),text:norm(fg,'#0b0c0e')};
   prim.palette=pal;prim.update();
  },[tick]);
- // při kreslení graf neposouvat ani nezoomovat (tahy kreslí)
- useEffect(()=>{const c=chart.current;if(!c)return;const free=tool==='cursor';c.applyOptions({handleScroll:free,handleScale:free})},[tool,chart]);
+ // při kreslení tahy kreslí, takže tah grafem graf neposouvá (jen s Ctrl / Alt, viz down); kolečko, osy a štípnutí fungují vždy jako v TradingView
+ useEffect(()=>{const c=chart.current;if(!c)return;const free=tool==='cursor';c.applyOptions({handleScroll:{mouseWheel:true,pressedMouseMove:free,horzTouchDrag:free,vertTouchDrag:free},handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:true,axisDoubleClickReset:true}})},[tool,chart]);
  // poslední nástroj ve skupině (pamatuje si prohlížeč)
  useEffect(()=>{try{const v=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(v&&typeof v==='object')setLast(old=>({...old,...Object.fromEntries(TOOL_GROUPS.flatMap(g=>typeof v[g.id]==='string'&&g.tools.includes(v[g.id])?[[g.id,v[g.id] as DrawType]]:[]))}))}catch{}},[]);
 
@@ -198,6 +198,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(!('touches' in e)&&e.button!==0)return;
    const p=point(e),st=S.current;if(!p||!inPane(p)||!st.times.length)return;
    const touch='touches' in e;
+   // Ctrl / Alt (⌘ na Macu) + tah = posun grafu i s nástrojem nebo nad kresbou: událost projde ke grafu, kreslení ji nechá být
+   if(!touch&&(e.ctrlKey||e.altKey||e.metaKey)){panning.current=true;chart.current?.applyOptions({handleScroll:{pressedMouseMove:true}});return}
    const dr=draft.current;
    if(dr){
     stop(e);const now=Date.now();
@@ -226,7 +228,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(st.temp)setTemp(null);
   }
   function move(e:MouseEvent|TouchEvent){
-   const p=point(e);if(!p)return;
+   const p=point(e);if(!p||panning.current)return;
    const dr=draft.current;
    if(dr){
     if('touches' in e&&e.cancelable)e.preventDefault();
@@ -247,6 +249,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    pr.update();
   }
   function up(e:MouseEvent|TouchEvent){
+   if(panning.current){panning.current=false;chart.current?.applyOptions({handleScroll:{pressedMouseMove:S.current.tool==='cursor'}});return}
    const dr=draft.current;
    // štětec končí puštěním; u ostatních tah (stisk–táhnout–pustit) přidá bod, klik nechá čekat na další
    if(dr){if(dr.type==='brush')finishBrush();else if(dr.placed){const p=point(e);if(p)advance(dr,p,shiftOf(e))}return}
@@ -443,7 +446,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
   {area&&prefs.fav.tools.length>0&&<FavBar tools={prefs.fav.tools} x={prefs.fav.x} y={prefs.fav.y} area={area} tool={tool} disabled={disabled} presetName={presetName} onPick={t=>pickTool(t)} onMove={moveFav}/>}
-  {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}{presetName(tool)?' · preset „'+presetName(tool)+'“':''}: {drawHint(tool)} · Esc zruší</div>}
+  {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}{presetName(tool)?' · preset „'+presetName(tool)+'“':''}: {drawHint(tool)} · Ctrl/Alt + tah posune graf · Esc zruší</div>}
  </>;
  const tree=treeOpen?<ObjectTree drawings={drawings} tf={tf} selected={selected} extra={treeExtra} onFocus={focusDrawing} onFlag={flag} onRemove={remove} onClearAll={clearAll} onClose={()=>onTreeClose?.()}/>:null;
  const status=<>{save!=='idle'&&<span className={'mc-saved'+(save==='error'||save==='loaderror'?' err':'')} role="status">{SAVE_TEXT[save]}{save==='error'&&saveError?': '+saveError:''}</span>}
