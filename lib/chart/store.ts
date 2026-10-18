@@ -2,7 +2,7 @@
 import type {Db} from '../mysql.ts';
 import {instruments,fxCurrencies} from '../markets.ts';
 import {yahooSymbol} from '../live.ts';
-import {parseYahoo,mergeTail,buildTf,fixFxDailyOpen,stale,TF_SOURCE,TF_CAP,HISTORY_FROM,type Candle,type Tf} from './candles.ts';
+import {parseYahoo,mergeTail,buildTf,fixFxDailyOpen,stale,withVolume,volumeKey,VOLUME_PROXY,TF_SOURCE,TF_CAP,HISTORY_FROM,type Candle,type Tf} from './candles.ts';
 import {loadBars} from '../bars/query.ts';
 export type CandlesResult={candles:Candle[];stale:boolean;updated:number|null;unsupported?:true;error?:string};
 const DAY=86400000,H1_DAYS=729,UA='Mozilla/5.0',LOCK_MS=60000,NONE='Ceny teď nejsou k dispozici.';
@@ -22,7 +22,7 @@ async function archive(ctx:ArchiveCtx|undefined,base:'H1'|'D1',now:number):Promi
  if(!ctx)return [];
  try{
   const from=base==='H1'?now-H1_DAYS*DAY:HISTORY_FROM;
-  return (await loadBars(ctx.db as never,ctx.instrument,base,from,now+DAY)).map(b=>[b.t,b.o,b.h,b.l,b.c] as Candle);
+  return (await loadBars(ctx.db as never,ctx.instrument,base,from,now+DAY)).map(b=>(b.v&&b.v>0?[b.t,b.o,b.h,b.l,b.c,b.v]:[b.t,b.o,b.h,b.l,b.c]) as Candle);
  }catch(e){console.error('candles archive',ctx.instrument,base,e);return []}
 }
 export type ArchiveCtx={db:Db;instrument:string};
@@ -35,6 +35,9 @@ export async function fetchCandles(symbol:string,tf:Tf,ctx?:ArchiveCtx,now=Date.
  let series=mergeTail(arch,fresh);
  if(src.base==='D1'&&symbol.endsWith('=X'))series=fixFxDailyOpen(series);
  if(src.base==='D1')series=series.filter(c=>c[0]>=HISTORY_FROM);
+ // FX hlavní páry: objem z futures CME (stejný interval a rozsah jako čerstvá data); chyba = svíčky bez objemu
+ const proxy=ctx?VOLUME_PROXY[ctx.instrument]:undefined;
+ if(proxy){try{series=withVolume(series,await yahoo(proxy,src.interval,arch.length&&src.tail?src.tail:src.range),volumeKey(src.interval))}catch(e){console.error('candles volume',proxy,e)}}
  return buildTf(tf,series).slice(-TF_CAP[tf]);
 }
 const parse=(s:unknown):Candle[]=>{try{const v=JSON.parse(String(s));return Array.isArray(v)?v:[]}catch{return []}};

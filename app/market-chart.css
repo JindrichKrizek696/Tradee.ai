@@ -1,5 +1,5 @@
 /* Graf trhu v detailu trhu */
-.mc-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 18px;margin-bottom:12px}
+.mc-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 18px;margin-bottom:10px}
 .mc-title{min-width:0;flex:1 1 280px}
 .mc-title h2{margin:0}
 .score-v2 .mc-ohlc{display:flex;flex-wrap:wrap;gap:2px 12px;margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--t-muted);font-variant-numeric:tabular-nums}
@@ -61,7 +61,7 @@
 .mc-sel .mc-tool[data-tip]:hover::after,.mc-sel .mc-tool[data-tip]:focus-visible::after{left:50%;top:calc(100% + 6px);transform:translateX(-50%)}
 .mc-tool-sep{height:1px;margin:3px 4px;background:var(--t-border)}
 .mc-chart[data-drawing="1"]{touch-action:none;cursor:crosshair}
-.mc-sel{position:absolute;top:8px;left:8px;z-index:4;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100% - 80px);padding:4px 6px 4px 10px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);box-shadow:var(--t-shadow);font-size:12px;color:var(--t-fg-2)}
+.mc-sel{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:4;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100% - 80px);padding:4px 6px 4px 10px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);box-shadow:var(--t-shadow);font-size:12px;color:var(--t-fg-2)}
 .mc-sel-name{font-weight:600}
 .mc-sel .mc-chip{display:inline-flex;align-items:center;gap:4px}
 .mc-swatches{display:inline-flex;gap:4px}
@@ -135,7 +135,7 @@
 /* typ grafu (výběr v hlavičce) a štítek Heikin-Ashi v OHLC řádku */
 select.mc-type{appearance:none;-webkit-appearance:none;height:26px;padding:0 24px 0 10px;font:inherit;font-size:12px;font-weight:600}
 select.mc-type.mc-chip,select.mc-type.mc-chip:hover:not(:disabled){background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px;background-size:4px 4px;background-repeat:no-repeat}
-.mc-ohlc .mc-ha{font-size:11px;font-weight:600;color:var(--t-brand-fg);background:var(--t-accent-soft);border-radius:4px;padding:0 5px}
+.mc-lg .mc-ha{font-size:11px;font-weight:600;color:var(--t-brand-fg);background:var(--t-accent-soft);border-radius:4px;padding:0 5px}
 
 /* footprint (krypto): nápověda při oddálení a legenda buněk */
 .mc-fp-hint{position:absolute;z-index:3;top:10px;left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:var(--t-surface);border:1px solid var(--t-border-strong);box-shadow:var(--t-shadow);font-size:12px;font-weight:600;color:var(--t-fg-2);pointer-events:none;white-space:nowrap}
@@ -144,9 +144,6 @@ select.mc-type.mc-chip,select.mc-type.mc-chip:hover:not(:disabled){background-im
 .mc-fp-poc{border:1.5px solid #f59e0b}
 .mc-fp-imb{width:4px!important;margin-left:6px;background:var(--bull);box-shadow:-6px 0 0 var(--bear)}
 
-/* přepínač TF: segmenty na šířku, na úzkých obrazovkách select */
-select.mc-tfsel{display:none}
-@media (max-width:760px){select.mc-tfsel{display:inline-block}.mc-tfseg{display:none}}
 
 /* /graf: přepínač trhu v hlavičce karty grafu, kompaktní horní lišta se živou cenou */
 .mc-market{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
@@ -287,3 +284,95 @@ body.mc-fs-lock{overflow:hidden}
 .mc-pop-table td.mc-pop-na{text-align:left;color:var(--t-muted)}
 .score-v2 .mc-pop-note{margin:6px 0 0;font-size:11px;line-height:1.4;color:var(--t-muted)}
 .mc-pop-tf{margin-top:8px}
+
+/* lišta grafu jako v TradingView: TF (oblíbené + seznam), typ, Indikátory, Vrstvy … vpravo Objekty, současnost, okno, celá obrazovka */
+.mc-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.mc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%}
+.mc-bar-end{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin-left:auto}
+.mc-vsep{width:1px;height:20px;margin:0 2px;background:var(--t-border)}
+.mc-tfs{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.mc-tf{min-width:38px;text-align:center}
+.mc-count{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--t-surface-3);font-size:10px;font-weight:700;line-height:16px;color:var(--t-fg-2)}
+.mc-chip.on .mc-count{background:var(--t-brand);color:#fff}
+.mc-drop{position:relative;display:inline-flex}
+.mc-drop-btn{display:inline-flex;align-items:center;gap:5px;height:26px}
+.mc-drop-btn[aria-expanded=true]{background:var(--t-surface-3);color:var(--t-fg)}
+.mc-tf-drop{padding:0 8px}
+.mc-drop-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;min-width:220px;max-width:min(340px,calc(100vw - 24px));max-height:min(480px,70vh);overflow:auto;padding:4px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);box-shadow:var(--t-shadow),0 14px 34px -16px #0b0c0e66;display:flex;flex-direction:column;gap:1px}
+.mc-menu-item.mc-tf-item{grid-template-columns:40px 1fr}
+.mc-tf-item b{font-weight:700;font-variant-numeric:tabular-nums}
+.mc-tf-item span{color:var(--t-fg-2)}
+.mc-menu-item.mc-tf-item.on span{color:inherit}
+.mc p.mc-menu-hint{margin:4px 8px 2px;font-size:11px;line-height:1.4;color:var(--t-muted)}
+/* panel Indikátory a Vrstvy */
+.mc-ind{display:flex;flex-direction:column;gap:2px;width:300px;max-width:100%;padding:2px}
+.mc-ind-item{display:flex;flex-direction:row;align-items:flex-start;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--t-fg)}
+.mc-ind-item:hover{background:var(--t-surface-3)}
+.mc-ind-item input{margin:2px 0 0;accent-color:var(--t-brand)}
+.mc-ind-item>span{display:grid;gap:1px}
+.mc-ind-item b{font-weight:600}
+.mc .mc-ind-item small{display:block;font-size:11.5px;color:var(--t-muted);line-height:1.35}
+.mc-ind-item:has(input:disabled){cursor:default;opacity:.6}
+.mc-ind-cfg{display:grid;gap:6px;margin:2px 4px 6px 30px;padding:8px 10px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface-2)}
+.mc-ind-cfg label{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:12px;color:var(--t-fg-2)}
+.mc-ind-cfg label>span{flex:0 0 92px;color:var(--t-muted)}
+.mc-ind-cfg select,.mc-ind-cfg input[type=number]{height:28px;padding:0 8px;border:1px solid var(--t-border);border-radius:6px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:12px}
+.mc-ind-cfg input[type=number]{width:72px;font-variant-numeric:tabular-nums}
+.mc-ind-cfg input[type=range]{flex:1;min-width:80px;accent-color:var(--t-brand)}
+.mc-ind-cfg em{font-style:normal;min-width:38px;font-variant-numeric:tabular-nums}
+.mc-ind-checks{display:flex;flex-wrap:wrap;gap:6px 14px}
+.mc p.mc-ind-note{margin:2px 8px 4px;font-size:11.5px;line-height:1.4;color:var(--t-muted)}
+.mc .mc-ind-cfg p.mc-ind-note{margin:0}
+
+/* legenda v grafu vlevo nahoře: neblokuje graf (myš projde), jen tlačítka indikátorů jsou klikací */
+.mc-lg{position:absolute;z-index:3;top:6px;left:8px;max-width:calc(100% - 90px);display:flex;flex-direction:column;align-items:flex-start;gap:2px;pointer-events:none;font-size:12px;line-height:1.5;color:var(--t-muted);font-variant-numeric:tabular-nums}
+.mc-lg-row{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;max-width:100%;padding:0 6px;border-radius:5px;background:color-mix(in srgb,var(--t-surface) 72%,transparent)}
+.mc-lg-main b{color:var(--t-fg);font-weight:650}
+.mc-lg-tf{color:var(--t-fg-2);font-weight:600}
+.mc-lg-main>span{display:inline-flex;gap:3px}
+.mc-lg em{font-style:normal;color:var(--t-fg)}
+.mc-lg em.up{color:var(--bull-text,var(--bull))}
+.mc-lg em.down{color:var(--bear-text,var(--bear))}
+.mc-lg-news{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t-brand-fg)}
+.mc-lg-ind{gap:6px}
+.mc-lg-ind>span{color:var(--t-fg-2);font-weight:600}
+.mc-lg-x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--t-muted);cursor:pointer;pointer-events:auto;opacity:.55}
+.mc-lg-ind:hover .mc-lg-x,.mc-lg-x:focus-visible{opacity:1}
+.mc-lg-x:hover{background:var(--t-surface-3);color:var(--t-fg)}
+.mc-lg-x:focus-visible{outline:2px solid var(--t-brand);outline-offset:0}
+
+/* panel Objekty v grafu (vpravo vedle grafu; na mobilu přes graf) */
+.mc-tree{flex:0 0 272px;align-self:stretch;display:flex;flex-direction:column;min-height:0;max-height:var(--mc-h,460px);overflow:hidden;border:1px solid var(--t-border);border-radius:10px;background:var(--t-surface)}
+.mc.mc-fill .mc-tree,.mc.mc-fs .mc-tree{max-height:none}
+.mc-tree-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid var(--t-border);font-size:13px}
+.mc-tree-head b{font-weight:650;color:var(--t-fg)}
+.mc-tree-sec{display:flex;align-items:center;gap:6px;padding:8px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--t-muted)}
+.mc-tree-sec em{font-style:normal;font-weight:600;letter-spacing:0}
+.mc-tree-clear{margin-left:auto;padding:0;border:0;background:none;font:inherit;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--bear-text,var(--bear));cursor:pointer}
+.mc-tree-clear:hover{text-decoration:underline}
+.mc-tree-list{list-style:none;margin:0;padding:0 4px 6px;overflow-y:auto;min-height:0}
+.mc-tree>.mc-tree-list{flex:1}
+.mc-tree-row{display:flex;align-items:center;gap:1px;border-radius:8px}
+.mc-tree-row:hover{background:var(--t-surface-2)}
+.mc-tree-row.on{background:var(--t-accent-soft)}
+.mc-tree-row.dim .mc-tree-main{opacity:.55}
+.mc-tree-main{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:6px 6px 6px 8px;border:0;border-radius:8px;background:none;color:var(--t-fg);font:inherit;text-align:left;cursor:pointer}
+span.mc-tree-main{cursor:default}
+.mc-tree-main:focus-visible{outline:2px solid var(--t-brand);outline-offset:-2px}
+.mc-tree-main>span{display:grid;min-width:0}
+.mc-tree-main b{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc .mc-tree-main small{display:block;font-size:11px;line-height:1.4;color:var(--t-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc .mc-tree-main small.mc-tree-note{color:var(--t-fg-2)}
+.mc-tree-ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--t-surface-3);color:var(--t-fg-2)}
+.mc-tree-ic svg{color:inherit}
+.mc-tree .mc-tool[data-tip]:hover::after,.mc-tree .mc-tool[data-tip]:focus-visible::after{left:auto;right:calc(100% + 4px)}
+.mc p.mc-tree-empty{margin:2px 12px 10px;font-size:12px;line-height:1.45;color:var(--t-muted)}
+@media (max-width:760px){
+ .mc-bar-end{margin-left:0}
+ .mc-vsep{display:none}
+ .mc-lg{max-width:calc(100% - 70px);font-size:11px}
+ .mc-lg-main>span:nth-of-type(n+3){display:none}
+ .mc-tree{position:absolute;z-index:8;right:0;top:auto;bottom:0;width:min(320px,100%);max-height:70%}
+ .mc-body{position:relative}
+ .mc-ind{width:min(300px,calc(100vw - 40px))}
+}

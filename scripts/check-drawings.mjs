@@ -1,5 +1,5 @@
 // Kontrola kreslení v grafu: node --experimental-strip-types scripts/check-drawings.mjs
-import {parseDrawings,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt,arrowHead,arrowEnds,arrowOf,shiftMode,lockDir,lockAnchor,toggleFav,favFrac,favStep,emptyPrefs} from '../lib/chart/drawings.ts';
+import {parseDrawings,newId,createdOf,fibLevels,FIB_LEVELS,measure,measureLines,fmtDuration,snapPrice,distToSegment,rayEnd,hitShape,hitTest,logicalOf,timeOfLogical,fromChartTime,translate,MAX_DRAWINGS,MAX_POINTS,MAX_TOTAL_POINTS,styleOf,capsOf,visibleOn,filterTf,toggleTf,extendSeg,channelOffset,positionFrom,positionStats,positionLines,moveHandle,firstTouch,simplify,simplifyMax,pipSize,priceRangeLine,timeRangeLine,dashOf,fibExtLevels,FIB_EXT_LEVELS,fibExtSpan,pitchfork,gannGrid,withRR,rrOf,record,undoStep,redoStep,emptyHistory,normalizePrefs,parsePrefs,lookOf,applyLook,MAX_PRESETS,MAX_COLORS,colorOf,isDrawColor,moveEdge,edgeHandles,edgesOf,edgeCursor,fibText,fibLabel,levelsOn,sameLevels,nextLevel,levelInput,parseLevels,FIB_DEFAULT,FIB_EXT_DEFAULT,MAX_FIB_LEVELS,defaultLevels,fibSpan,channelLine,numInput,touchLabelAt,arrowHead,arrowEnds,arrowOf,shiftMode,lockDir,lockAnchor,toggleFav,favFrac,favStep,emptyPrefs} from '../lib/chart/drawings.ts';
 import {loadPrefs,savePrefs} from '../lib/chart/prefs-store.ts';
 import {chartTime} from '../lib/journal/chart-data.ts';
 import {loadDrawings,saveDrawings} from '../lib/chart/drawings-store.ts';
@@ -372,5 +372,18 @@ check('oblíbené: poloha z px na podíl volného místa (ořez na okraje)',JSON
 check('oblíbené: posun šipkou v mezích',JSON.stringify(favStep({x:.5,y:.98},.05,.05))==='{"x":0.55,"y":1}'&&JSON.stringify(favStep({x:.02,y:.5},-.05,0))==='{"x":0,"y":0.5}');
 await savePrefs(pdb,'u5',{...emptyPrefs(),fav:{tools:['fib'],x:.2,y:.3}},T);
 check('úložiště presetů: oblíbené se uloží a načtou',JSON.stringify((await loadPrefs(pdb,'u5')).fav)==='{"tools":["fib"],"x":0.2,"y":0.3}');
+// volume profile (rozsah), skrytí/zámek, čas vzniku, oblíbené TF
+{const vp={id:'vp1',type:'vprofile',a:[{t:1e12,p:1},{t:1.0001e12,p:1}],color:'brand',s:{vr:30,va:68,vs:'right',vw:40,vpoc:false,vva:true}};
+ const r=parseDrawings([vp]);check('vprofile: platná kresba se stylem',r.ok&&r.drawings[0].s.vr===30&&r.drawings[0].s.vs==='right',r);
+ check('vprofile: řádky 4–200, value area 10–100, šířka 5–100',!parseDrawings([{...vp,s:{vr:3}}]).ok&&!parseDrawings([{...vp,s:{vr:201}}]).ok&&!parseDrawings([{...vp,s:{va:5}}]).ok&&!parseDrawings([{...vp,s:{vw:101}}]).ok&&!parseDrawings([{...vp,s:{vs:'top'}}]).ok&&!parseDrawings([{...vp,s:{vr:24.5}}]).ok);
+ check('vprofile: výchozí styl',(()=>{const st=styleOf({type:'vprofile',color:'brand'});return st.vr===24&&st.va===70&&st.vs==='left'&&st.vw===30&&st.vpoc&&st.vva})());
+ check('vprofile: schopnosti (čára, pozadí, prodloužení POC, VP)',(()=>{const c=capsOf('vprofile');return c.vp&&c.line&&c.fill&&c.extend&&!c.levels})());
+ const box={type:'vprofile',pts:[{x:10,y:50},{x:110,y:50}],box:{x:10,y:20,w:100,h:60}};
+ check('vprofile: zásah v boxu profilu, mimo nic',hitShape(box,{x:50,y:30},500,300)?.part==='body'&&hitShape(box,{x:50,y:200},500,300)===null);
+ const hl=parseDrawings([{...vp,hide:true,lock:true}]);check('skrytí a zámek se uloží',hl.ok&&hl.drawings[0].hide===true&&hl.drawings[0].lock===true);
+ check('skrytí/zámek jen true',!parseDrawings([{...vp,hide:false}]).ok&&!parseDrawings([{...vp,lock:'ano'}]).ok&&!('hide' in parseDrawings([vp]).drawings[0]));}
+{const id=newId(),t=createdOf(id);check('čas vzniku z ID',t!==null&&Math.abs(t-Date.now())<5000&&createdOf('vp1')===null&&createdOf('zzzzzzzzzzzzzzzzzz')===null,{id,t});}
+check('oblíbené TF: výchozí, validace a pořadí',JSON.stringify(emptyPrefs().tfFav)==='["M15","H1","H4","D1"]'&&normalizePrefs({tfFav:['D1','M5','D1']}).prefs.tfFav.join()==='M5,D1'&&!normalizePrefs({tfFav:'H1'}).ok&&normalizePrefs({tfFav:[]}).prefs.tfFav.length===0);
+check('oblíbené TF z DB tolerantně',parsePrefs({tfFav:['H4','x','H1']}).tfFav.join()==='H1,H4'&&parsePrefs({}).tfFav.join()==='M15,H1,H4,D1');
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše ok');
 process.exit(fails.length?1:0);

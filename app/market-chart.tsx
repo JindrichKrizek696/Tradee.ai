@@ -1,9 +1,10 @@
 'use client';
-// Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí a s kreslením (market-chart-draw).
+// Graf trhu v detailu trhu: svíčky M1–MN (Yahoo / archiv přes /api/chart/candles), u krypta footprint M5/M15/H1 (Binance přes /api/chart/footprint), s vrstvami obchodů, otevřené pozice, zpráv, skóre a seancí,
+// s indikátory (objem, session volume profile) a s kreslením (market-chart-draw). Ovládání jako v TradingView: lišta s oblíbenými TF, legenda v grafu, panel Objekty.
 import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
-import {AppWindow,Maximize2,Minimize2,X} from 'lucide-react';
+import {AppWindow,Maximize2,Minimize2,X,ChevronDown,Star,ListTree,Layers,SquareFunction,EyeOff,ChartColumn,ChartBarDecreasing,Trash2} from 'lucide-react';
 import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSeries,HistogramSeries,LineStyle,createSeriesMarkers,type IChartApi,type ISeriesApi,type ISeriesMarkersPluginApi,type IPriceLine,type Logical,type MouseEventParams,type SeriesType,type Time,type UTCTimestamp} from 'lightweight-charts';
-import {candles as toBars,chartTime} from '@/lib/journal/chart-data';
+import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,upcomingNews,eventCountry,newsReaction,type Reaction,tradeMarkers,sortMarkers,scoreBand,sessionBands,tradeResult,SESSION_COLORS,snapTo,type Marker} from '@/lib/chart/layers';
 import type {PaperTrade,VariantId} from '@/lib/lab/paper';
 import {SESSIONS} from '@/lib/journal/analytics';
@@ -20,6 +21,8 @@ import {CHART_TYPES,CHART_TYPE_LABELS,isChartType,seriesData,type ChartType} fro
 import {FP_TFS,fmtVol,fpSymbol,isFpTf,type FpCandle,type FpTf} from '@/lib/chart/footprint';
 import {FootprintPrimitive,FP_DELTA_H,type FpPalette} from './chart-footprint';
 import {NewsStripPrimitive} from './chart-news';
+import {SessionProfilePrimitive} from './chart-volume-profile';
+import {sessionProfiles,autoPeriod,VP_PERIODS,VP_PERIOD_LABELS,type VpPeriod} from '@/lib/chart/volume-profile';
 import './market-chart.css';
 
 type Layers={trades:boolean;news:boolean;score:boolean;sessions:boolean;paper:boolean};
@@ -27,16 +30,34 @@ type Layers={trades:boolean;news:boolean;score:boolean;sessions:boolean;paper:bo
 type PaperChartTrade=Omit<PaperTrade,'partsAtEntry'>&{mark:{price:number;r:number;pnlCzk:number}|null};
 type Kind=ChartType|'footprint';
 type PaperPick='all'|VariantId;
-type Prefs={tf:Tf;layers:Layers;type:Kind;fpTf:FpTf;paperVariant:PaperPick};
+// indikátory: objem (sloupce dole) a session volume profile (profil každého období); svp = jeho nastavení
+type Ind={vol:boolean;svp:boolean};
+type Svp={period:'auto'|VpPeriod;rows:number;va:number;width:number;poc:boolean;vaLines:boolean};
+type Prefs={tf:Tf;layers:Layers;type:Kind;fpTf:FpTf;paperVariant:PaperPick;ind:Ind;svp:Svp};
 type Fp={tick:number;map:Map<number,FpCandle>;pending:number;error?:string;symbol:string};
 // at = kdy klient svíčky načetl (reakce trhu po zprávě nepočítá s tím, co ještě nemá)
 type Loaded={status:'loading'|'ok'|'error'|'unsupported';candles:Candle[];stale:boolean;updated:number|null;message?:string;at?:number};
-type Bar={time:number;open:number;high:number;low:number;close:number};
+type Bar={time:number;open:number;high:number;low:number;close:number;volume?:number};
 type Tip={x:number;y:number;flip:boolean;lines:string[];id?:string};
 type Pop={id:string;x:number;y:number};
 type Upcoming={event:CalendarEvent;t:number;logical:number};
 const KEY='tradee.chart';
-const DEFAULT:Prefs={tf:'H4',layers:{trades:true,news:true,score:true,sessions:true,paper:true},type:'candles',fpTf:'M15',paperVariant:'all'};
+const SVP_DEFAULT:Svp={period:'auto',rows:24,va:70,width:70,poc:true,vaLines:true};
+const DEFAULT:Prefs={tf:'H4',layers:{trades:true,news:true,score:true,sessions:true,paper:true},type:'candles',fpTf:'M15',paperVariant:'all',ind:{vol:true,svp:false},svp:SVP_DEFAULT};
+const int=(v:unknown,min:number,max:number,d:number)=>Number.isInteger(v)&&(v as number)>=min&&(v as number)<=max?v as number:d;
+function readSvp(v:unknown):Svp{
+ const o=(v&&typeof v==='object'?v:{}) as Record<string,unknown>;
+ return {period:o.period==='auto'||(VP_PERIODS as readonly unknown[]).includes(o.period)?o.period as Svp['period']:'auto',rows:int(o.rows,4,200,24),va:int(o.va,10,100,70),width:int(o.width,10,100,70),poc:o.poc!==false,vaLines:o.vaLines!==false};
+}
+// časové rámce: názvy v seznamu a skupiny (jako v TradingView)
+const TF_NAME:Record<Tf,string>={M1:'1 minuta',M5:'5 minut',M15:'15 minut',M30:'30 minut',H1:'1 hodina',H2:'2 hodiny',H4:'4 hodiny',D1:'1 den',W1:'1 týden',MN:'1 měsíc'};
+const TF_GROUPS:[string,Tf[]][]=[['Minuty',['M1','M5','M15','M30']],['Hodiny',['H1','H2','H4']],['Dny a delší',['D1','W1','MN']]];
+// svíčky → body grafu (čas Praha), duplicitní časy pryč; objem jen když ho zdroj má
+function toBars(list:Candle[]):Bar[]{
+ const seen=new Set<number>(),out:Bar[]=[];
+ for(const c of [...list].sort((a,b)=>a[0]-b[0])){const time=chartTime(c[0]);if(seen.has(time))continue;seen.add(time);out.push(c[5]!==undefined?{time,open:c[1],high:c[2],low:c[3],close:c[4],volume:c[5]}:{time,open:c[1],high:c[2],low:c[3],close:c[4]})}
+ return out;
+}
 // varianty simulace A/B/C/D: barva značek a čar (A = barva značky, jako dřív)
 const PAPER_PICKS:PaperPick[]=['all','A','B','C','D'];
 const PAPER_COLORS:Partial<Record<VariantId,[string,string]>>&{A:[string,string]}={A:['--t-brand','#7c3aed'],B:['--t-fg-2','#64748b'],C:['--mc-paper-c','#d97706'],D:['--mc-paper-d','#0891b2']};
@@ -61,7 +82,7 @@ function paperMarkers(list:PaperChartTrade[],times:number[],sec:number,colorOf:(
 }
 const css=(name:string,fallback:string)=>getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback;
 const dark=()=>document.documentElement.dataset.theme==='dark';
-function readPrefs():Prefs{try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(!v)return DEFAULT;return {tf:TFS.includes(v.tf)?v.tf:DEFAULT.tf,type:isChartType(v.type)||v.type==='footprint'?v.type:DEFAULT.type,fpTf:isFpTf(v.fpTf)?v.fpTf:DEFAULT.fpTf,layers:{...DEFAULT.layers,...Object.fromEntries(Object.entries(v.layers||{}).filter(([k,x])=>k in DEFAULT.layers&&typeof x==='boolean'))},paperVariant:PAPER_PICKS.includes(v.paperVariant)?v.paperVariant:'all'}}catch{return DEFAULT}}
+function readPrefs():Prefs{try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(!v)return DEFAULT;return {tf:TFS.includes(v.tf)?v.tf:DEFAULT.tf,type:isChartType(v.type)||v.type==='footprint'?v.type:DEFAULT.type,fpTf:isFpTf(v.fpTf)?v.fpTf:DEFAULT.fpTf,layers:{...DEFAULT.layers,...Object.fromEntries(Object.entries(v.layers||{}).filter(([k,x])=>k in DEFAULT.layers&&typeof x==='boolean'))},paperVariant:PAPER_PICKS.includes(v.paperVariant)?v.paperVariant:'all',ind:{vol:v.ind?.vol!==false,svp:v.ind?.svp===true},svp:readSvp(v.svp)}}catch{return DEFAULT}}
 // čas grafu je pražský čas zakódovaný jako UTC → formátovat v UTC
 const barLabel=(t:number,tf:ChartTf)=>new Date(t*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',year:dailyUp(tf)?'numeric':undefined,...(dailyUp(tf)?{}:{hour:'2-digit',minute:'2-digit'} as const)});
 const eventTime=(e:CalendarEvent)=>new Date(e.at).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',...(e.timeKnown?{hour:'2-digit',minute:'2-digit'} as const:{})})+(e.timeKnown?'':' · čas neupřesněn');
@@ -117,9 +138,9 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
  const [trades,setTrades]=useState<ChartTrade[]>([]),[tradesError,setTradesError]=useState(false),[paper,setPaper]=useState<PaperChartTrade[]>([]);
  const [hover,setHover]=useState<Bar|null>(null),[tip,setTip]=useState<Tip|null>(null),[tick,setTick]=useState(0),[ver,setVer]=useState(0);
- const [fp,setFp]=useState<Fp|null>(null),[fpMode,setFpMode]=useState(false);
+ const [fp,setFp]=useState<Fp|null>(null),[fpMode,setFpMode]=useState(false),[tree,setTree]=useState(false);
  const {data:open}=useOpenPositions();
- const el=useRef<HTMLDivElement>(null),chart=useRef<IChartApi|null>(null),price=useRef<ISeriesApi<SeriesType>|null>(null),sess=useRef<ISeriesApi<'Histogram'>|null>(null),score=useRef<ISeriesApi<'Histogram'>|null>(null),markers=useRef<ISeriesMarkersPluginApi<Time>|null>(null),lines=useRef<IPriceLine[]>([]),keepRange=useRef<{from:number;to:number}|null>(null);
+ const el=useRef<HTMLDivElement>(null),chart=useRef<IChartApi|null>(null),price=useRef<ISeriesApi<SeriesType>|null>(null),sess=useRef<ISeriesApi<'Histogram'>|null>(null),score=useRef<ISeriesApi<'Histogram'>|null>(null),markers=useRef<ISeriesMarkersPluginApi<Time>|null>(null),lines=useRef<IPriceLine[]>([]),vol=useRef<ISeriesApi<'Histogram'>|null>(null),keepRange=useRef<{from:number;to:number}|null>(null);
  // data pro handlery grafu (crosshair, klik) – mění se bez znovuvytvoření grafu
  const lookup=useRef<{bars:Map<number,Bar>;trades:Map<string,ChartTrade>;paper:Map<string,PaperChartTrade>;news:Map<string,CalendarEvent>;up:Upcoming[];last:number}>({bars:new Map(),trades:new Map(),paper:new Map(),news:new Map(),up:[],last:-1});
  const {layers}=prefs;
@@ -127,11 +148,13 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const fpOk=!!fpSymbol(instrument),isFp=prefs.type==='footprint'&&fpOk,type:ChartType=prefs.type==='footprint'?'candles':prefs.type;
  const tf:ChartTf=isFp?prefs.fpTf:prefs.tf,tfButtons:readonly ChartTf[]=isFp?FP_TFS:TFS,tfList:readonly ChartTf[]=TFS,sessOk=SESSION_TFS.includes(tf);
  const [fpPrim]=useState(()=>new FootprintPrimitive(on=>setFpMode(on)));
+ const [svpPrim]=useState(()=>new SessionProfilePrimitive());
  const polls=useRef(0),silent=useRef(false),fitted=useRef('');
 
  useEffect(()=>{setPrefs(withTf(readPrefs(),initialTf,!!fpSymbol(instrument)));setReady(true)},[initialTf,instrument]);
  const update=(p:Partial<Prefs>)=>setPrefs(old=>{const next={...old,...p};try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}return next});
  const toggle=(k:keyof Layers)=>{if(k==='news')setPop(null);update({layers:{...layers,[k]:!layers[k]}})};
+ const {ind,svp:svpCfg}=prefs,setInd=(p:Partial<Ind>)=>update({ind:{...ind,...p}}),setSvp=(p:Partial<Svp>)=>update({svp:{...svpCfg,...p}});
 
  // svíčky pro zvolený TF
  useEffect(()=>{
@@ -145,7 +168,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
     if(!r.ok||!Array.isArray(j.candles))throw new Error(j.error||'');
     const list=j.candles;
     setFp({tick:j.tick||0,map:new Map(list.map(c=>[chartTime(c.t),c])),pending:j.pending||0,error:j.error,symbol:j.symbol||''});
-    setData({status:list.length?'ok':'error',candles:list.map(c=>[c.t,c.o,c.h,c.l,c.c] as Candle),stale:!!j.stale,updated:j.updated??null,message:list.length?undefined:j.error||'Footprint zatím není k dispozici.',at:Date.now()});
+    setData({status:list.length?'ok':'error',candles:list.map(c=>[c.t,c.o,c.h,c.l,c.c,c.v] as Candle),stale:!!j.stale,updated:j.updated??null,message:list.length?undefined:j.error||'Footprint zatím není k dispozici.',at:Date.now()});
    }).catch(e=>{if(ac.signal.aborted)return;if(quiet)return;setData({status:'error',candles:[],stale:false,updated:null,message:e instanceof Error&&e.message?e.message:'Footprint se nepodařilo načíst.'})});
    return()=>ac.abort();
   }
@@ -183,6 +206,8 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   const c=createChart(el.current,{autoSize:true,localization:{locale:'cs-CZ'},crosshair:{mode:CrosshairMode.Normal},timeScale:{rightOffset:4,timeVisible:true,secondsVisible:false},rightPriceScale:{scaleMargins:{top:.12,bottom:.08}}});
   sess.current=c.addSeries(HistogramSeries,{priceScaleId:'sess',lastValueVisible:false,priceLineVisible:false,base:0});
   c.priceScale('sess').applyOptions({visible:false,scaleMargins:{top:0,bottom:0}});
+  vol.current=c.addSeries(HistogramSeries,{priceScaleId:'vol',lastValueVisible:false,priceLineVisible:false,priceFormat:{type:'volume'}});
+  c.priceScale('vol').applyOptions({visible:false,scaleMargins:{top:.8,bottom:0}});
   chart.current=c;
   const objectId=(p:MouseEventParams<Time>)=>{const id=p.hoveredInfo?.objectId??p.hoveredObjectId;return typeof id==='string'?id:null};
   c.subscribeCrosshairMove(p=>{
@@ -208,7 +233,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   });
   // světlý/tmavý režim a paleta (nastavuje se přes atributy a style na <html>)
   const obs=new MutationObserver(()=>setTick(n=>n+1));obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
-  return()=>{obs.disconnect();c.remove();chart.current=null;price.current=null;sess.current=null;score.current=null;markers.current=null;lines.current=[]};
+  return()=>{obs.disconnect();c.remove();chart.current=null;price.current=null;sess.current=null;vol.current=null;score.current=null;markers.current=null;lines.current=[]};
  },[]);
  // cenová série podle typu grafu: při změně typu se vymění (kresby, značky a čáry se znovu připojí přes ver)
  useEffect(()=>{
@@ -216,16 +241,29 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   const s=addPriceSeries(c,type);price.current=s;
   // footprint se připojí před značkami, aby značky zůstaly nad buňkami
   if(isFp)s.attachPrimitive(fpPrim);
+  s.attachPrimitive(svpPrim);
   markers.current=createSeriesMarkers(s,[]);lines.current=[];
   // pás nadcházejících zpráv dole
   const st=strip.current??new NewsStripPrimitive();strip.current=st;s.attachPrimitive(st);
   setVer(v=>v+1);
   c.priceScale('right').applyOptions({scaleMargins:{top:.12,bottom:isFp?.12:.08}});
-  return()=>{try{keepRange.current=c.timeScale().getVisibleLogicalRange();markers.current?.detach();s.detachPrimitive(st);if(isFp)s.detachPrimitive(fpPrim);c.removeSeries(s)}catch{}price.current=null;markers.current=null;lines.current=[]};
- },[type,isFp,ready,fpPrim]);
+  return()=>{try{keepRange.current=c.timeScale().getVisibleLogicalRange();markers.current?.detach();s.detachPrimitive(st);s.detachPrimitive(svpPrim);if(isFp)s.detachPrimitive(fpPrim);c.removeSeries(s)}catch{}price.current=null;markers.current=null;lines.current=[]};
+ },[type,isFp,ready,fpPrim,svpPrim]);
 
  const bars=useMemo(()=>toBars(data.candles),[data.candles]);
- const draw=useChartDrawings({chart,series:price,ver,el,bars,tf,tfList,instrument,tick});
+ // objem: jen když ho má většina svíček (FX kříže a měnové indexy ho nemají); session profil ne na W1/MN a ve footprintu
+ const volOk=useMemo(()=>bars.length>0&&bars.filter(b=>(b.volume??0)>0).length/bars.length>=.5,[bars]);
+ const svpPeriod:VpPeriod|null=tf==='W1'||tf==='MN'?null:svpCfg.period==='auto'?autoPeriod(tf):svpCfg.period;
+ const svpOn=ind.svp&&!isFp&&!!svpPeriod;
+ const svpSessions=useMemo(()=>svpOn&&svpPeriod?sessionProfiles(bars,svpPeriod,svpCfg.rows,svpCfg.va/100):[],[svpOn,svpPeriod,bars,svpCfg.rows,svpCfg.va]);
+ const indRows=<div className="mc-tree-ind">
+  <div className="mc-tree-sec"><span>Indikátory</span></div>
+  {isFp||(!ind.vol&&!ind.svp)?<p className="mc-tree-empty">{isFp?'Ve footprintu je objem přímo v buňkách svíček.':'Žádné. Přidáš je v nabídce Indikátory nahoře.'}</p>:<ul className="mc-tree-list">
+   {ind.vol&&<li className="mc-tree-row"><span className="mc-tree-main"><i className="mc-tree-ic"><ChartColumn size={15} strokeWidth={1.8} aria-hidden/></i><span><b>Objem</b><small>{volOk?'sloupce objemu dole v grafu':'tento trh objem nemá'}</small></span></span><button type="button" className="mc-tool sm danger" aria-label="Odebrat indikátor Objem" data-tip="Odebrat" onClick={()=>setInd({vol:false})}><Trash2 size={14} aria-hidden/></button></li>}
+   {ind.svp&&<li className="mc-tree-row"><span className="mc-tree-main"><i className="mc-tree-ic"><ChartBarDecreasing size={15} strokeWidth={1.8} aria-hidden/></i><span><b>Session volume profile</b><small>{svpPeriod?VP_PERIOD_LABELS[svpPeriod]+' · '+svpCfg.rows+' řádků · VA '+svpCfg.va+' %':'na '+tf+' se nezobrazuje'}</small></span></span><button type="button" className="mc-tool sm danger" aria-label="Odebrat Session volume profile" data-tip="Odebrat" onClick={()=>setInd({svp:false})}><Trash2 size={14} aria-hidden/></button></li>}
+  </ul>}
+ </div>;
+ const draw=useChartDrawings({chart,series:price,ver,el,bars,tf,tfList,instrument,tick,treeOpen:tree,onTreeClose:()=>setTree(false),treeExtra:indRows});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
 
  // celá obrazovka: zapnutí/vypnutí (režim prohlížeče jen jako bonus – když ho prohlížeč odmítne, zůstane karta přes celé okno)
@@ -289,6 +327,17 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   const pal:FpPalette={bull:norm(bull,'#16a34a'),bear:norm(bear,'#dc2626'),bg:norm(css('--t-surface','#ffffff'),'#ffffff'),fg:norm(css('--t-fg','#0b0c0e'),'#0b0c0e'),muted:norm(css('--t-muted','#6b7079'),'#6b7079'),poc:'#f59e0b'};
   fpPrim.palette=pal;fpPrim.update();
  },[tick,ver,type,fpPrim]);
+ // objem: sloupce v barvě svíčky; nad pásem nadcházejících zpráv, když je zapnutý
+ useEffect(()=>{
+  const v=vol.current;if(!v)return;
+  const on=ind.vol&&!isFp&&volOk,a=dark()?.42:.36,up=withAlpha(norm(css('--bull','#16a34a'),'#16a34a'),a),down=withAlpha(norm(css('--bear','#dc2626'),'#dc2626'),a);
+  v.setData(on?bars.flatMap(b=>b.volume===undefined?[]:[{time:b.time as UTCTimestamp,value:b.volume,color:b.close>=b.open?up:down}]):[]);
+  chart.current?.priceScale('vol').applyOptions({scaleMargins:{top:.8,bottom:layers.news?.04:0}});
+ },[bars,ind.vol,isFp,volOk,tick,layers.news]);
+ useEffect(()=>{
+  svpPrim.sessions=svpSessions;svpPrim.opts={width:svpCfg.width,poc:svpCfg.poc,va:svpCfg.vaLines};
+  svpPrim.palette={up:norm(css('--bull','#16a34a'),'#16a34a'),down:norm(css('--bear','#dc2626'),'#dc2626'),poc:'#f59e0b'};svpPrim.update();
+ },[svpSessions,svpCfg.width,svpCfg.poc,svpCfg.vaLines,svpPrim,tick,ver]);
  // data footprintu do primitiva
  useEffect(()=>{fpPrim.data=isFp&&fp?fp.map:new Map();fpPrim.tick=fp?.tick||0;fpPrim.update()},[fp,isFp,fpPrim,ver]);
 
@@ -358,24 +407,52 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  const newsText=hoverNews.map(e=>e.title+(forecastLine(e)?' ('+forecastLine(e)+')':'')).join(' · '),line2=[fpLine,newsText].filter(Boolean).join(' · ');
  const loading=data.status==='loading',empty=data.status==='error'&&!bars.length;
  const popEvent=pop&&layers.news?events.find(e=>e.id===pop.id):undefined;
+ const dir=shown&&shown.close>=shown.open?'up':'down';
  return <section ref={card} className={'s-card mc'+(fill?' mc-fill':'')+(fs?' mc-fs':'')} aria-busy={loading}>
   <div className="mc-head">
-   <div className="mc-title"><h2>Graf trhu</h2><p className="mc-ohlc" aria-live="off">{shown&&<><b>{barLabel(shown.time,tf)}</b>{type==='ha'&&<span className="mc-ha" title="Svíčky v grafu jsou Heikin-Ashi, hodnoty O H L C jsou skutečné ceny">HA</span>}<span>O <em>{fmtPrice(shown.open)}</em></span><span>H <em>{fmtPrice(shown.high)}</em></span><span>L <em>{fmtPrice(shown.low)}</em></span><span>C <em>{fmtPrice(shown.close)}</em></span>{prev&&<span className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</span>}{hoverScore!==null&&<span>Skóre <em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</>}</p><p className="mc-news-line" title={line2||undefined}>{line2}</p></div>
-   <div className="mc-controls">
+   <h2 className="mc-sr">Graf trhu {name}</h2>
+   <div className="mc-bar" role="toolbar" aria-label="Nastavení grafu">
+    <TfPicker tf={tf} list={tfButtons} fav={draw.tfFav} onPick={t=>update(isFp?(isFpTf(t)?{fpTf:t}:{}):{tf:t as Tf})} onFav={draw.toggleTfFav}/>
+    <span className="mc-vsep" aria-hidden/>
     <select className="mc-chip mc-type" aria-label="Typ grafu" value={isFp?'footprint':type} onChange={e=>{const v=e.target.value;if(isChartType(v)||(v==='footprint'&&fpOk))update({type:v})}}>{CHART_TYPES.map(t=><option key={t} value={t}>{CHART_TYPE_LABELS[t]}</option>)}{fpOk&&<option value="footprint">Footprint</option>}</select>
-    <select className="mc-chip mc-type mc-tfsel" aria-label="Časový rámec" value={tf} onChange={e=>{const v=e.target.value;update(isFp?(isFpTf(v)?{fpTf:v}:{}):{tf:v as Tf})}}>{tfButtons.map(t=><option key={t} value={t}>{t}</option>)}</select>
-    <div className="mc-seg mc-tfseg" role="group" aria-label="Časový rámec">{tfButtons.map(t=><button key={t} type="button" className={'mc-chip'+(tf===t?' on':'')} aria-pressed={tf===t} onClick={()=>update(isFp?{fpTf:t as FpTf}:{tf:t as Tf})}>{t}</button>)}</div>
-    <div className="mc-seg" role="group" aria-label="Vrstvy grafu">{LAYER_LABELS.filter(([k])=>k!=='paper'||owner).map(([k,label])=>{const off=k==='sessions'&&!sessOk;return <button key={k} type="button" className={'mc-chip'+(layers[k]&&!off?' on':'')} aria-pressed={layers[k]} disabled={off} title={off?'Seance se zobrazují jen na M1–H1':undefined} onClick={()=>toggle(k)}>{label}</button>})}</div>
+    <Drop title="Indikátory" role="dialog" className={ind.vol||ind.svp?'on':''} label={<><SquareFunction size={15} aria-hidden/><span>Indikátory</span></>}><div className="mc-ind">
+     <label className="mc-ind-item"><input type="checkbox" checked={ind.vol} disabled={isFp} onChange={e=>setInd({vol:e.target.checked})}/><span><b>Objem</b><small>{isFp?'ve footprintu je objem v buňkách svíček':volOk?'sloupce objemu dole v grafu':'tento trh objem nemá (FX kříže, měnové indexy)'}</small></span></label>
+     <label className="mc-ind-item"><input type="checkbox" checked={ind.svp} disabled={isFp} onChange={e=>setInd({svp:e.target.checked})}/><span><b>Session volume profile</b><small>profil objemu každé seance, dne, týdne nebo měsíce s POC a value area</small></span></label>
+     {ind.svp&&!isFp&&<div className="mc-ind-cfg" role="group" aria-label="Nastavení session volume profilu">
+      <label><span>Období</span><select value={svpCfg.period} onChange={e=>setSvp({period:e.target.value as Svp['period']})}><option value="auto">Automaticky{autoPeriod(tf)?' ('+VP_PERIOD_LABELS[autoPeriod(tf)!].toLowerCase()+')':''}</option>{VP_PERIODS.map(p=><option key={p} value={p}>{VP_PERIOD_LABELS[p]}</option>)}</select></label>
+      <label><span>Řádky</span><input type="number" min={4} max={200} step={1} defaultValue={svpCfg.rows} onChange={e=>{const n=Number(e.target.value);if(Number.isInteger(n)&&n>=4&&n<=200)setSvp({rows:n})}} onBlur={e=>{e.target.value=String(svpCfg.rows)}}/></label>
+      <label><span>Value area %</span><input type="number" min={10} max={100} step={1} defaultValue={svpCfg.va} onChange={e=>{const n=Number(e.target.value);if(Number.isInteger(n)&&n>=10&&n<=100)setSvp({va:n})}} onBlur={e=>{e.target.value=String(svpCfg.va)}}/></label>
+      <label><span>Šířka</span><input type="range" min={10} max={100} step={5} value={svpCfg.width} aria-valuetext={svpCfg.width+' % šířky období'} onChange={e=>setSvp({width:Number(e.target.value)})}/><em>{svpCfg.width} %</em></label>
+      <div className="mc-ind-checks"><label className="mc-check"><input type="checkbox" checked={svpCfg.poc} onChange={e=>setSvp({poc:e.target.checked})}/>POC</label><label className="mc-check"><input type="checkbox" checked={svpCfg.vaLines} onChange={e=>setSvp({vaLines:e.target.checked})}/>Hranice value area</label></div>
+      {!svpPeriod&&<p className="mc-ind-note">Na {tf} se session profil nezobrazuje – přepni na kratší časový rámec.</p>}
+      {!volOk&&<p className="mc-ind-note">Trh nemá objem: profil ukazuje čas na ceně (TPO).</p>}
+     </div>}
+     <p className="mc-ind-note">Volume profile pro vlastní rozsah najdeš v nástrojích vlevo (skupina Objem).</p>
+    </div></Drop>
+    <Drop title="Vrstvy grafu" role="dialog" label={<><Layers size={15} aria-hidden/><span>Vrstvy</span></>}><div className="mc-ind">
+     {LAYER_LABELS.filter(([k])=>k!=='paper'||owner).map(([k,label])=>{const off=k==='sessions'&&!sessOk;return <label key={k} className="mc-ind-item"><input type="checkbox" checked={layers[k]&&!off} disabled={off} onChange={()=>toggle(k)}/><span><b>{label}</b>{off&&<small>jen na M1–H1</small>}</span></label>})}
+    </div></Drop>
     {owner&&layers.paper&&<select className="mc-chip mc-type" aria-label="Varianta simulace" title="Obchody které varianty simulace ukázat" value={prefs.paperVariant} onChange={e=>{const v=e.target.value as PaperPick;if(PAPER_PICKS.includes(v))update({paperVariant:v})}}>{PAPER_PICKS.map(v=><option key={v} value={v}>{v==='all'?'Sim: vše':'Sim '+v}</option>)}</select>}
-    {headExtra}<button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
-    {winName!==WIN+slugOf(instrument)&&<button type="button" className="mc-chip mc-icon" aria-label="Otevřít graf v novém okně" title="Otevřít v novém okně (např. na druhý monitor)" onClick={()=>setBlocked(!openChartWindow(instrument,tf))}><AppWindow size={14} aria-hidden/></button>}
-    <button type="button" className={'mc-chip mc-icon'+(fs?' on':'')} aria-pressed={fs} aria-label={fs?'Zmenšit graf (Esc)':'Graf přes celou obrazovku (F)'} title={fs?'Zmenšit (Esc)':'Přes celou obrazovku (F)'} onClick={()=>full(!fs)}>{fs?<Minimize2 size={14} aria-hidden/>:<Maximize2 size={14} aria-hidden/>}</button>
+    {headExtra}
+    <span className="mc-bar-end">
+     <button type="button" className={'mc-chip mc-icon'+(tree?' on':'')} aria-pressed={tree} aria-label="Objekty v grafu" title="Objekty v grafu: kresby a indikátory" onClick={()=>setTree(t=>!t)}><ListTree size={14} aria-hidden/>{draw.count>0&&<span className="mc-count">{draw.count}</span>}</button>
+     <button type="button" className="mc-chip mc-now" onClick={()=>chart.current?.timeScale().scrollToRealTime()} disabled={!bars.length}>Na současnost</button>
+     {winName!==WIN+slugOf(instrument)&&<button type="button" className="mc-chip mc-icon" aria-label="Otevřít graf v novém okně" title="Otevřít v novém okně (např. na druhý monitor)" onClick={()=>setBlocked(!openChartWindow(instrument,tf))}><AppWindow size={14} aria-hidden/></button>}
+     <button type="button" className={'mc-chip mc-icon'+(fs?' on':'')} aria-pressed={fs} aria-label={fs?'Zmenšit graf (Esc)':'Graf přes celou obrazovku (F)'} title={fs?'Zmenšit (Esc)':'Přes celou obrazovku (F)'} onClick={()=>full(!fs)}>{fs?<Minimize2 size={14} aria-hidden/>:<Maximize2 size={14} aria-hidden/>}</button>
+    </span>
    </div>
   </div>
   <div className="mc-body">
   {draw.toolbar}
   <div className="mc-wrap">
-   <div ref={el} className="mc-chart" style={height?{'--mc-h':height} as React.CSSProperties:undefined} data-drawing={draw.drawing?'1':undefined} role="img" aria-label={`${isFp?'Footprint':CHART_TYPE_LABELS[type]} – graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}`}/>
+   <div ref={el} className="mc-chart" style={height?{'--mc-h':height} as React.CSSProperties:undefined} data-drawing={draw.drawing?'1':undefined} role="img" aria-label={`${isFp?'Footprint':CHART_TYPE_LABELS[type]} – graf ${name}, časový rámec ${tf}${layers.trades?', s tvými obchody':''}${layers.news?', se zprávami z kalendáře':''}${layers.score?', s pásem skóre Tradee':''}${ind.vol&&volOk&&!isFp?', s objemem':''}${svpOn?', se session volume profilem':''}`}/>
+   {/* legenda vlevo nahoře jako v TradingView: trh, TF, OHLC svíčky pod kurzorem, zprávy a indikátory */}
+   <div className="mc-lg" aria-live="off">
+    {shown&&<div className="mc-lg-row mc-lg-main"><b>{name}</b><span className="mc-lg-tf">{tf}</span>{type==='ha'&&<span className="mc-ha" title="Svíčky v grafu jsou Heikin-Ashi, hodnoty O H L C jsou skutečné ceny">HA</span>}<span>O<em className={dir}>{fmtPrice(shown.open)}</em></span><span>H<em className={dir}>{fmtPrice(shown.high)}</em></span><span>L<em className={dir}>{fmtPrice(shown.low)}</em></span><span>C<em className={dir}>{fmtPrice(shown.close)}</em></span>{prev&&<em className={shown.close>=prev.close?'up':'down'}>{pct(prev.close,shown.close)}</em>}{hoverScore!==null&&<span>Skóre<em className={hoverScore>=0?'up':'down'}>{scoreFmt(hoverScore)}</em></span>}</div>}
+    {line2&&<div className="mc-lg-row mc-lg-news" title={line2}>{line2}</div>}
+    {ind.vol&&!isFp&&<div className="mc-lg-row mc-lg-ind"><span>Objem</span><em>{!volOk?'trh nemá objem':shown?.volume!==undefined?fmtVol(shown.volume):'–'}</em><button type="button" className="mc-lg-x" aria-label="Skrýt indikátor Objem" title="Skrýt objem" onClick={()=>setInd({vol:false})}><EyeOff size={12} aria-hidden/></button></div>}
+    {ind.svp&&!isFp&&<div className="mc-lg-row mc-lg-ind"><span>Session VP</span><em>{svpPeriod?VP_PERIOD_LABELS[svpPeriod]+' · '+svpCfg.rows+' · VA '+svpCfg.va+' %'+(volOk?'':' · TPO'):'na '+tf+' nedostupné'}</em><button type="button" className="mc-lg-x" aria-label="Odebrat Session volume profile" title="Odebrat" onClick={()=>setInd({svp:false})}><X size={12} aria-hidden/></button></div>}
+   </div>
    {loading&&<div className="mc-skeleton" aria-label="Načítám svíčky"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>}
    {empty&&<div className="mc-empty" role="status"><p>{data.message||'Ceny teď nejsou k dispozici.'}</p><button type="button" className="mc-chip" onClick={()=>setReload(n=>n+1)}>Zkusit znovu</button></div>}
    {tip&&!draw.drawing&&!(pop&&tip.id==='n:'+pop.id)&&<div className={'mc-tip'+(tip.flip?' flip':'')} style={{left:tip.x,top:tip.y}} role="tooltip">{tip.lines.map((l,i)=>i?<span key={i}>{l}</span>:<b key={i}>{l}</b>)}</div>}
@@ -383,6 +460,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    {pop&&popEvent&&<NewsCard key={popEvent.id} e={popEvent} x={pop.x} y={pop.y} bars={bars} tf={tf} asOf={data.at??0} name={name} onClose={()=>setPop(null)} onFiner={tf==='M15'||tf==='M5'||tf==='M1'?undefined:()=>update(isFp?{fpTf:'M15'}:{tf:'M15'})}/>}
    {draw.overlay}
   </div>
+  {draw.tree}
   </div>
   <div className="mc-foot">
    {data.stale&&bars.length>0&&<span className="mc-stale" role="status">Ceny mohou být zpožděné{data.updated?' · stav '+new Date(data.updated).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>}
@@ -396,6 +474,48 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    <span className="mc-src">{isFp?'Binance '+(fp?.symbol||'')+' · ':'Yahoo Finance · '}čas Praha · <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">Grafy TradingView Lightweight Charts™</a></span>
   </div>
  </section>;
+}
+
+// rozbalovací nabídka / panel v liště grafu: zavře klik mimo, Esc (Esc nepustí dál – neukončí celou obrazovku ani kreslení) a klik na prvek s data-close; šipky mezi položkami nabídky
+function Drop({label,title,className='',role='menu',children}:{label:React.ReactNode;title:string;className?:string;role?:'menu'|'dialog';children:React.ReactNode}){
+ const [open,setOpen]=useState(false),box=useRef<HTMLDivElement>(null),btn=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{
+  if(!open)return;
+  const down=(e:PointerEvent)=>{if(!box.current?.contains(e.target as Node))setOpen(false)};
+  const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();setOpen(false);btn.current?.focus()}};
+  document.addEventListener('pointerdown',down);document.addEventListener('keydown',key,true);
+  box.current?.querySelector<HTMLElement>('.mc-drop-menu [aria-checked=true],.mc-drop-menu input,.mc-drop-menu button')?.focus();
+  return()=>{document.removeEventListener('pointerdown',down);document.removeEventListener('keydown',key,true)};
+ },[open]);
+ const close=()=>{setOpen(false);btn.current?.focus()};
+ const nav=(e:React.KeyboardEvent)=>{
+  if(role!=='menu')return;const a=document.activeElement as HTMLElement|null,star=!!a?.classList.contains('mc-fav-star');
+  const items=[...(box.current?.querySelectorAll<HTMLElement>('[role=menuitemradio]')||[])],i=items.indexOf((star?a?.previousElementSibling:a) as HTMLElement);
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();items[(i+(e.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus()}
+  else if(e.key==='ArrowRight'&&!star&&a?.nextElementSibling?.classList.contains('mc-fav-star')){e.preventDefault();(a.nextElementSibling as HTMLElement).focus()}
+  else if(e.key==='ArrowLeft'&&star){e.preventDefault();(a?.previousElementSibling as HTMLElement|null)?.focus()}
+ };
+ return <div ref={box} className="mc-drop">
+  <button ref={btn} type="button" className={'mc-chip mc-drop-btn '+className} aria-haspopup={role} aria-expanded={open} aria-label={title} title={title} onClick={()=>setOpen(o=>!o)}>{label}</button>
+  {open&&<div className={'mc-drop-menu'+(role==='menu'?' mc-drop-list':'')} role={role} aria-label={title} onKeyDown={nav} onClick={e=>{if((e.target as HTMLElement).closest('[data-close]'))close()}}>{children}</div>}
+ </div>;
+}
+// časový rámec: oblíbené (hvězdička) jako tlačítka, všechny v seznamu; aktuální mimo oblíbené je vidět na tlačítku seznamu
+function TfPicker({tf,list,fav,onPick,onFav}:{tf:ChartTf;list:readonly ChartTf[];fav:readonly string[];onPick:(t:ChartTf)=>void;onFav:(t:ChartTf)=>void}){
+ const favs=list.filter(t=>fav.includes(t)),other=!favs.includes(tf);
+ return <div className="mc-tfs" role="group" aria-label="Časový rámec">
+  {favs.map(t=><button key={t} type="button" className={'mc-chip mc-tf'+(tf===t?' on':'')} aria-pressed={tf===t} title={TF_NAME[t]} onClick={()=>onPick(t)}>{t}</button>)}
+  <Drop title={'Všechny časové rámce'+(other?' (teď '+TF_NAME[tf]+')':'')} className={'mc-tf-drop'+(other?' on':'')} label={<>{other&&<span>{tf}</span>}<ChevronDown size={14} aria-hidden/></>}><>
+   {TF_GROUPS.map(([g,ts])=>{const items=ts.filter(t=>list.includes(t));if(!items.length)return null;return <div key={g} role="group" aria-label={g}>
+    <div className="mc-menu-title">{g}</div>
+    {items.map(t=>{const on=fav.includes(t);return <div key={t} className="mc-menu-row" role="none">
+     <button type="button" role="menuitemradio" aria-checked={tf===t} className={'mc-menu-item mc-tf-item'+(tf===t?' on':'')} data-close onClick={()=>onPick(t)}><b>{t}</b><span>{TF_NAME[t]}</span></button>
+     <button type="button" role="menuitemcheckbox" aria-checked={on} tabIndex={-1} className={'mc-fav-star'+(on?' on':'')} aria-label={(on?'Odebrat z lišty: ':'Přidat do lišty: ')+TF_NAME[t]} title={on?'Odebrat z oblíbených (lišta)':'Přidat do oblíbených (tlačítko v liště)'} onClick={()=>onFav(t)}><Star size={14} strokeWidth={1.8} fill={on?'currentColor':'none'} aria-hidden/></button>
+    </div>})}
+   </div>})}
+   <p className="mc-menu-hint">Hvězdičkou přidáš časový rámec do lišty.</p>
+  </></Drop>
+ </div>;
 }
 
 // detail zprávy po kliku na značku: země, síla, čas, hodnoty (skutečnost / odhad / předchozí) a jak se trh po zprávě pohnul – z načtených svíček aktuálního TF (lib/chart/layers newsReaction)

@@ -3,6 +3,7 @@
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
 import {TEXT_PX,channelOffset,channelLine,touchLabelAt,arrowHead,arrowEnds,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
+import type {Profile} from '@/lib/chart/volume-profile';
 
 export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
 export type DrawEnv={
@@ -13,6 +14,8 @@ export type DrawEnv={
  touch:(d:Drawing)=>{x:number|null;label:string};
  // velikost plochy grafu (px) při změně – plovoucí panel oblíbených se drží uvnitř
  size?:(w:number,h:number)=>void;
+ // volume profile s pevným rozsahem: profil svíček mezi kotvami (null = žádné svíčky)
+ profile?:(d:Drawing)=>Profile|null;
 };
 type CanvasRenderingTarget2D=Parameters<IPrimitivePaneRenderer['draw']>[0];
 type Item={id:string;d:Drawing;shape:Shape;st:FullStyle};
@@ -50,8 +53,8 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
    coordinate:()=>s?.priceToCoordinate(d.a[0].p)??-1e6,text:()=>s?s.priceFormatter().format(d.a[0].p):this.env.price(d.a[0].p),textColor:()=>ink(c),backColor:()=>c,
   }});
  }
- // kresby viditelné na aktuálním TF (+ dočasné měření a rozkreslená kresba)
- all(){return [...this.drawings.filter(d=>!this.tf||visibleOn(d,this.tf)),...(this.temp?[this.temp]:[]),...(this.draft?[this.draft]:[])]}
+ // kresby viditelné na aktuálním TF a neskryté (+ dočasné měření a rozkreslená kresba)
+ all(){return [...this.drawings.filter(d=>!d.hide&&(!this.tf||visibleOn(d,this.tf))),...(this.temp?[this.temp]:[]),...(this.draft?[this.draft]:[])]}
  // zásah pro kurzor knihovny (ruka/posun); výběr a tažení řeší komponenta přes hit()
  hitTest(x:number,y:number):PrimitiveHoveredItem|null{
   const h=this.hit({x,y},6);if(!h)return null;
@@ -70,7 +73,15 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
   // jen zapnuté hladiny (výběr myší, úchyty hran i poznámka)
   if(d.type==='fib'||d.type==='fibext')s.levels=this.levels(d,st).map(l=>this.env.project({t:d.a[0].t,p:l.price})?.y??NaN);
   if(d.type==='touch'){const t=this.env.touch(d);s.touchX=t.x??w}
-  if(d.type==='text'){
+  // volume profile: box = časový rozsah × cenový rozsah profilu; úchyty na levé a pravé hraně uprostřed výšky (cena kotev se nepoužívá)
+  if(d.type==='vprofile'){
+   const pr=this.env.profile?.(d),b=P[1]??P[0],x0=Math.min(P[0].x,b.x),x1=Math.max(P[0].x,b.x);
+   const yt=pr?this.env.project({t:d.a[0].t,p:pr.hi})?.y:undefined,yb=pr?this.env.project({t:d.a[0].t,p:pr.lo})?.y:undefined;
+   const top=yt??Math.min(P[0].y,b.y)-24,bot=yb??Math.max(P[0].y,b.y)+24,ym=(top+bot)/2;
+   s.pts=[{x:P[0].x,y:ym},{x:b.x,y:ym}];s.box={x:x0,y:Math.min(top,bot),w:Math.max(1,x1-x0),h:Math.max(1,Math.abs(bot-top))};
+  }
+  if(d.type==='vprofile'){if(d.text)s.label=this.noteBox(d,st,s,ctx,w,h)}
+  else if(d.type==='text'){
    ctx.font=this.font(st);const px=TEXT_PX[st.ts],tw=ctx.measureText(d.text||'').width+8,bh=px+10;
    const y=st.ta==='top'?P[0].y-bh:st.ta==='bottom'?P[0].y:P[0].y-bh/2;
    s.box={x:P[0].x-4,y,w:tw,h:bh};
@@ -90,6 +101,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
    cx=(x0.x+x1.x)/2;const cy=(x0.y+x1.y)/2;top=cy;bottom=cy;
   }else{
    let xs=s.pts.map(p=>p.x),ys=s.pts.map(p=>p.y);
+   if(d.type==='vprofile'&&s.box){xs=[s.box.x,s.box.x+s.box.w];ys=[s.box.y,s.box.y+s.box.h]}
    if(d.type==='channel'){const off=channelOffset(a,b,s.pts[2]??b);xs=[a.x,b.x];ys=[a.y,b.y,a.y+off,b.y+off]}
    if((d.type==='fib'||d.type==='fibext')&&s.levels)ys=s.levels.filter(Number.isFinite);
    cx=(Math.min(...xs)+Math.max(...xs))/2;top=Math.min(...ys);bottom=Math.max(...ys);
@@ -217,6 +229,30 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     ctx.setLineDash([]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.5,lw);line({x:x0,y:a.y},{x:x1,y:a.y});
     const L=positionLines(d.type,d.a,this.env.price,st.risk),cx=(x0+x1)/2,up=tp.y<a.y;
     tag([L.tp],cx,up?tp.y+4:tp.y-26,P.bull);tag([L.sl],cx,up?sl.y-26:sl.y+4,P.bear);shape.rrBox=tag([L.mid],cx,a.y-11,c);
+    break;
+   }
+   case 'vprofile':{
+    // histogram: řádek = objem (up zeleně, down červeně), uvnitř value area sytěji; POC čarou v barvě kresby, hranice value area čárkovaně
+    const pr=this.env.profile?.(d),bx=shape.box!,x0=bx.x,x1=bx.x+bx.w;
+    if(st.fill){ctx.fillStyle=withAlpha(c,.05);ctx.fillRect(x0,bx.y,bx.w,bx.h)}
+    if(sel){ctx.save();ctx.setLineDash([4,4]);ctx.lineWidth=1;ctx.globalAlpha=st.op*.6;ctx.strokeRect(x0,bx.y,bx.w,bx.h);ctx.restore()}
+    if(!pr){ctx.font=FONT;ctx.fillStyle=P.muted;label('V rozsahu nejsou svíčky',x0+4,bx.y+bx.h/2,'left','middle');break}
+    const W=Math.max(8,bx.w*st.vw/100),right=st.vs==='right',yOf=(p:number)=>this.env.project({t:d.a[0].t,p})?.y;
+    ctx.setLineDash([]);
+    pr.rows.forEach((r,i)=>{
+     const yt=yOf(r.hi),yb=yOf(r.lo);if(yt==null||yb==null||!r.total)return;
+     const span=Math.abs(yb-yt),hh=Math.max(1,span>3?span-1:span),top=Math.min(yt,yb),len=W*r.total/pr.max,lu=len*r.up/r.total,ld=len-lu,al=i>=pr.vaFrom&&i<=pr.vaTo?.58:.26;
+     ctx.fillStyle=withAlpha(P.bull,al);ctx.fillRect(right?x1-lu:x0,top,lu,hh);
+     ctx.fillStyle=withAlpha(P.bear,al);ctx.fillRect(right?x1-lu-ld:x0+lu,top,ld,hh);
+    });
+    if(st.vva){const yh=yOf(pr.vah),yl=yOf(pr.val);ctx.save();ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.globalAlpha=st.op*.7;ctx.strokeStyle=c;if(yh!=null)line({x:x0,y:yh},{x:x1,y:yh});if(yl!=null)line({x:x0,y:yl},{x:x1,y:yl});ctx.restore()}
+    if(st.vpoc){const yp=yOf(pr.poc);if(yp!=null){
+     ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.setLineDash(dash);const xe=st.extR?w:x1;line({x:x0,y:yp},{x:xe,y:yp});
+     // popisek POC na podkladu (čitelný přes svíčky)
+     ctx.setLineDash([]);ctx.font=FONT;const pt='POC '+this.env.price(pr.poc),tw=ctx.measureText(pt).width,px=Math.min(xe,w)-6-tw;
+     ctx.fillStyle=P.bg;pill(ctx,px-4,yp-19,tw+8,16,4);ctx.fill();ctx.fillStyle=c;label(pt,px,yp-6,'left','bottom');
+    }}
+    if(pr.mode==='tpo'){ctx.font='10px '+FAMILY;ctx.fillStyle=P.muted;label('Čas na ceně (TPO) – trh nemá objem',x0+2,bx.y-3,'left','bottom')}
     break;
    }
    case 'prange':case 'trange':case 'measure':{

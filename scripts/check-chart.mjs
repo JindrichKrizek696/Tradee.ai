@@ -1,5 +1,5 @@
 // Kontrola dat grafu: node --experimental-strip-types scripts/check-chart.mjs
-import {parseYahoo,toH4,toH2,toW1,toMN,bucketAggregate,mergeTail,buildTf,stale,TF_SOURCE,TFS,TF_CAP,HISTORY_FROM,fixFxDailyOpen} from '../lib/chart/candles.ts';
+import {parseYahoo,toH4,toH2,toW1,toMN,bucketAggregate,mergeTail,buildTf,stale,TF_SOURCE,TFS,TF_CAP,HISTORY_FROM,fixFxDailyOpen,withVolume,volumeKey,VOLUME_PROXY} from '../lib/chart/candles.ts';
 import {getCandles} from '../lib/chart/store.ts';
 import {heikinAshi,seriesData,isChartType,CHART_TYPES} from '../lib/chart/chart-types.ts';
 const fails=[];
@@ -131,4 +131,18 @@ check('typy: seznam a validace',CHART_TYPES.length===6&&isChartType('hollow')&&!
 
 {const d=[[0,1.10,1.11,1.09,1.105],[1,1.106,1.12,1.10,1.115],[2,1.30,1.31,1.29,1.30]];const f=fixFxDailyOpen(d);
 check('FX D1: open = close předchozího dne, high/low rozšířené',f[0][1]===1.10&&f[1][1]===1.105&&f[2][1]===1.115&&f[2][3]===1.115&&f[2][2]===1.31,f);}
+// objem: Yahoo volume (0 = FX bez objemu), součet při agregaci, futures jako zdroj objemu FX
+{const yv={chart:{result:[{timestamp:[t0,t0+3600,t0+7200],indicators:{quote:[{open:[1,2,3],high:[1,2,3],low:[1,2,3],close:[1,2,3],volume:[100,0,null]}]}}]}};const pv=parseYahoo(yv);
+check('objem: kladný se uloží, 0 a null = bez objemu',pv[0].length===6&&pv[0][5]===100&&pv[1].length===5&&pv[2].length===5,pv);}
+check('objem: H4 sečte objem, bez objemu zůstane bez',toH4([[Date.UTC(2026,9,9,0),1,2,1,1.5,10],[Date.UTC(2026,9,9,1),1,2,1,1.5,15]])[0][5]===25&&toH4([h(0,1,2,1,1.5),h(1,1,2,1,1.5)])[0].length===5);
+check('objem: W1 z D1 sečte objem',toW1([[Date.UTC(2026,9,5),1,2,1,1,5],[Date.UTC(2026,9,6),1,2,1,1,7]])[0][5]===12);
+check('objem: FX D1 open zachová objem',fixFxDailyOpen([[0,1,1,1,1,3],[1,2,2,2,2,4]])[1][5]===4);
+{const spot=[[Date.UTC(2026,9,9,10),1,1,1,1],[Date.UTC(2026,9,9,11),1,1,1,1],[Date.UTC(2026,9,9,12),1,1,1,1,9]];
+ const fut=[[Date.UTC(2026,9,9,10),5,5,5,5,120],[Date.UTC(2026,9,9,12),5,5,5,5,300]];
+ const m=withVolume(spot,fut,volumeKey('60m'));
+ check('futures objem: párování podle hodiny, chybějící zůstane bez, vlastní se nepřepíše',m[0][5]===120&&m[1].length===5&&m[2][5]===9,m);
+ const dspot=[[Date.UTC(2026,9,8,22),1,1,1,1]],dfut=[[Date.UTC(2026,9,9,4),5,5,5,5,77]];
+ check('futures objem: denní svíčky podle dne (FX 22:00 UTC předchozího dne)',withVolume(dspot,dfut,volumeKey('1d'))[0][5]===77);
+ check('futures objem: bez dat beze změny',withVolume(spot,[],volumeKey('60m'))===spot);
+ check('proxy: hlavní páry mají futures, kříže ne',VOLUME_PROXY['EUR/USD']==='6E=F'&&VOLUME_PROXY['USD/JPY']==='6J=F'&&!VOLUME_PROXY['EUR/GBP']);}
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');
