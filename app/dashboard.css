@@ -43,7 +43,8 @@
  .t-top{--notch:color-mix(in srgb,var(--t-surface-3) 55%,var(--t-surface));--notch-line:#0b0c0e3d;--notch-shadow:#0b0c0e1f;--notch-r:14px;border-bottom:0}
  :root[data-theme=dark] .t-top{--notch-line:#ffffff30;--notch-shadow:#000}
  .t-nav{position:relative;align-self:start;overflow:visible;gap:4px;height:54px;padding:8px 10px 10px;border:0;border-radius:0 0 20px 20px;background:var(--notch);box-shadow:none;filter:drop-shadow(0 0 .6px var(--notch-line)) drop-shadow(0 10px 22px var(--notch-shadow))}
- .t-nav::before,.t-nav::after{content:'';position:absolute;top:0;width:var(--notch-r);height:var(--notch-r);pointer-events:none}
+ /* uši o 1 px přesahují do těla: výřez stojí na zlomku pixelu (translateX(-50%)) a na styku dvou vyhlazených hran by prosvítal šev, který drop-shadow obkreslí */
+ .t-nav::before,.t-nav::after{content:'';position:absolute;top:0;width:calc(var(--notch-r) + 1px);height:var(--notch-r);pointer-events:none}
  .t-nav::before{left:calc(-1*var(--notch-r));background:radial-gradient(circle at 0 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
  .t-nav::after{right:calc(-1*var(--notch-r));background:radial-gradient(circle at 100% 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
  .t-nav button.active{background:var(--t-surface);box-shadow:0 0 0 1px var(--t-border)}
