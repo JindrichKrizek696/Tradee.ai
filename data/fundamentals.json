@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-20T06:31:00Z",
+  "checkedAt": "2026-10-20T18:31:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,49 +11,49 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "ecb-report": {
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání 29. září",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-09-29.html",
       "publishedAt": "2026-10-13",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -131,13 +131,13 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
@@ -173,7 +173,7 @@
       "label": "RBA — rozhodnutí 29. září",
       "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
       "publishedAt": "2026-09-29",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "abs-mhsi-aug26": {
       "label": "ABS — srpnový MHSI",
@@ -317,13 +317,13 @@
       "label": "Bank of Canada — nadcházející události",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "publishedAt": null,
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "fomc-minutes-sep26": {
       "label": "Fed — zápis FOMC 15.–16. září",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcminutes20260916.htm",
       "publishedAt": "2026-10-07",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "eur-retail-aug26": {
       "label": "Eurostat — maloobchod za srpen",
@@ -341,7 +341,7 @@
       "label": "ECB — zápis (account) ze zasedání 9.–10. září",
       "url": "https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg261008~a10153d090.en.html",
       "publishedAt": "2026-10-08",
-      "checkedAt": "2026-10-20T06:31:00Z"
+      "checkedAt": "2026-10-20T18:31:00Z"
     },
     "boe-cal": {
       "label": "Bank of England — termíny MPC 2026",
@@ -402,6 +402,12 @@
       "url": "https://www.bankofcanada.ca/2026/10/business-outlook-survey-third-quarter-of-2026/",
       "publishedAt": "2026-10-19",
       "checkedAt": "2026-10-19T18:31:00Z"
+    },
+    "ons-lfs-oct26": {
+      "label": "ONS — trh práce, vydání říjen 2026",
+      "url": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/october2026",
+      "publishedAt": "2026-10-20",
+      "checkedAt": "2026-10-20T18:31:00Z"
     }
   },
   "currencies": {
@@ -1248,6 +1254,11 @@
   ],
   "changes": [
     {
+      "at": "2026-10-20T18:31:00Z",
+      "title": "Banky znovu ověřeny; doplněn britský trh práce",
+      "body": "Oficiální RSS Fedu (poslední položka 13. 10. zápis z jednání o diskontní sazbě, poslední rozhodnutí FOMC a SEP 16. 9.), ECB (20. 10. rozhovor Eldersona pro Die Presse; poslední zápis ze zasedání 8. 10., žádné rozhodnutí o sazbách po 10. 9.), BoE (16. 10. zápis poradní skupiny k bankovkám; poslední Bank Rate 3,75 % 17. 9.), BoJ (16. 10. statistika běžných účtů; poslední rozhodnutí 18. 9.), SNB (poslední 1. 10. dohoda o rozdělení zisku; poslední hodnocení 24. 9.) a RBNZ (19. 10. rámec přístupu k základním transakčním službám; poslední OCR 2. 9., 2,75 %), tiskové zprávy, zápis a stránka sazby RBA (poslední 14. 10. jmenování CRO; 4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney) a stránka klíčové sazby a nadcházející události BoC (2,25 % od 2. 9.; další oznámení 28. 10. a 9. 12. v 09:45 ET) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí, SEP, zápisů FOMC, ECB a RBA, kalendářů RBA a BoC a měnových observations rates obnoven. Doplněn trh práce ONS (vydání 20. 10.): nezaměstnanost za červen–srpen 4,7 % (předchozí 4,9 %), regulérní mzdy +3,7 % y/y, výplatní listiny −111 000 meziročně; doplňkový údaj, faktor práce GBP beze změny. Statistics Canada dnes CPI nezveřejnila. Retail pozice Myfxbook vrátily 403, uložené snímky zůstávají beze změny. Makro vstupy a váhy beze změny."
+    },
+    {
       "at": "2026-10-20T06:31:00Z",
       "title": "Banky znovu ověřeny; bez nových vstupů",
       "body": "Oficiální RSS Fedu (poslední položka 13. 10. zápis z jednání o diskontní sazbě, poslední rozhodnutí FOMC a SEP 16. 9.), ECB (19. 10. projev Eldersona; poslední zápis ze zasedání 8. 10., žádné rozhodnutí o sazbách po 10. 9.), BoE (16. 10. zápis poradní skupiny k bankovkám; poslední Bank Rate 3,75 % 17. 9.), BoJ (16. 10. statistika běžných účtů; poslední rozhodnutí 18. 9.), SNB (poslední 1. 10. dohoda o rozdělení zisku; poslední hodnocení 24. 9.) a RBNZ (19. 10. rámec přístupu k základním transakčním službám; poslední OCR 2. 9., 2,75 %), tiskové zprávy a stránka sazby RBA (poslední 14. 10. jmenování CRO; 4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney) a tiskové zprávy a nadcházející události BoC (poslední rozhodnutí 2. 9., 2,25 %; další oznámení 28. 10. a 9. 12. v 09:45 ET) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí, SEP, zápisů FOMC, ECB a RBA, kalendářů RBA a BoC a měnových observations rates obnoven. Úterní ranní běh; podle uložených kalendářů na noc od minulé kontroly nepřipadala žádná publikace sledovaných ukazatelů (CPI Stats NZ za 3. čtvrtletí až 22. 10.), indikátory proto nebyly znovu stahovány a jejich checkedAt zůstává. Makro vstupy a váhy beze změny."
@@ -1651,7 +1662,7 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1730,7 +1741,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1809,7 +1820,7 @@
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1888,7 +1899,7 @@
       "rates": {
         "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
         "period": "Rozhodnutí 2026-09-29",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
         "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
@@ -1967,7 +1978,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -2046,7 +2057,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -2069,7 +2080,7 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -2088,11 +2099,11 @@
         "note": "Revize z +0,4 %; Q1 +0,6 % beze změny. Doplňkový údaj. Měsíční odhad ONS (15. 10. 2026, https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/august2026): srpen +0,1 % m/m po nerevidovaných +0,4 % v červenci; tři měsíce do srpna +0,7 % proti předchozím třem měsícům. Čtvrtletní hodnota Q3 dosud nevyšla, proto value zůstává Q2."
       },
       "employment": {
-        "value": "4,9 % nezaměstnanost",
-        "period": "3 měsíce do července 2026",
-        "checkedAt": "2026-10-14T06:35:00Z",
-        "sourceUrl": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/september2026",
-        "note": "ONS Labour market overview, vydání 15. 9. 2026: nezaměstnanost 4,9 % (+0,2 p. b. meziročně), míra zaměstnanosti 75,1 %, regulérní mzdy +3,5 % y/y, zaměstnanci na výplatních listinách −101 000 meziročně. Odkaz „latest“ ONS k 14. 10. 06:35 UTC vede na zářijové vydání; další vydání podle ONS 20. 10. 2026."
+        "value": "Nezaměstnanost 4,7 % (předchozí 4,9 %)",
+        "period": "3 měsíce do srpna 2026 (červen–srpen)",
+        "checkedAt": "2026-10-20T18:31:00Z",
+        "sourceUrl": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/october2026",
+        "note": "ONS Labour market overview, vydání 20. 10. 2026: nezaměstnanost 16+ 4,7 % (−0,1 p. b. meziročně i mezikvartálně podle ONS; předchozí vydání 15. 9. uvádělo 4,9 % za květen–červenec), míra zaměstnanosti 16–64 75,3 %, regulérní mzdy +3,7 % y/y, celkové mzdy +3,7 % y/y (předchozí 3,9 %), zaměstnanci na výplatních listinách +1 000 m/m (srpen) a −111 000 meziročně, volná místa 691 000 za červenec–září (−21 000 mezikvartálně). ONS hodnotí trh práce v roce 2026 jako v zásadě plochý. Faktor práce GBP zůstává podle hodnocení BoE ze 17. 9."
       },
       "cot": {
         "value": "Leveraged funds: long 57,368 / short 44,936 · netto 12,432 kontraktů (předchozí týden netto 4,606); OI 265,890",
@@ -2148,7 +2159,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-10-20T06:31:00Z",
+        "checkedAt": "2026-10-20T18:31:00Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
@@ -3355,8 +3366,9 @@
     ]
   },
   "reviewStatus": {
-    "at": "2026-10-19T18:31:00Z",
+    "at": "2026-10-20T18:31:00Z",
     "notes": [
+      "20. 10. 18:31 UTC: znovu ověřeny zdroje rozhodnutí všech osmi bank (RSS Fed, ECB, BoE, BoJ, SNB, RBNZ; tiskové zprávy, zápis a stránka sazby RBA; stránka klíčové sazby a nadcházející události BoC), žádné nové rozhodnutí; obnoveny i checkedAt zdrojů SEP, zápisů FOMC, ECB a RBA, kalendářů RBA a BoC a měnových observations rates. Doplněn trh práce ONS za červen–srpen (vydání 20. 10.). Statistics Canada 20. 10. CPI nezveřejnila; Myfxbook vrátil 403, retail pozice zachovávají předchozí snímky. Ostatní ukazatele a kalendářové zdroje zachovávají předchozí časy kontroly. Skripty refresh-*.py nebyly spuštěny (k dispozici jen fundamentals.json), proto COT, ceny, trend a sezonalita zachovávají předchozí časy kontroly.",
       "19. 10. 18:31 UTC: znovu ověřeny zdroje rozhodnutí všech osmi bank (RSS Fed, ECB, BoE, BoJ, SNB, RBNZ; stránka sazby a zápis RBA; stránka klíčové sazby a nadcházející události BoC), žádné nové rozhodnutí; obnoveny i checkedAt zdrojů SEP, zápisů FOMC, ECB a RBA, kalendářů RBA a BoC a měnových observations rates. Doplněn Business Outlook Survey BoC Q3 (19. 10.) jako institucionální kontext. Mezi 11 ukazateli nová primární publikace od ranní kontroly nevyšla; ostatní ukazatele a kalendářové zdroje zachovávají předchozí časy kontroly. Skripty refresh-*.py nebyly spuštěny (k dispozici jen fundamentals.json), proto COT, ceny, trend a sezonalita zachovávají předchozí časy kontroly.",
       "19. 10. 06:31 UTC: znovu ověřeny zdroje rozhodnutí všech osmi bank (RSS Fed, ECB, BoE, BoJ, SNB, RBNZ; tiskové zprávy a stránka sazby RBA; stránka klíčové sazby a nadcházející události BoC), žádné nové rozhodnutí; obnoveny i checkedAt zdrojů SEP, zápisů FOMC, ECB a RBA, kalendářů RBA a BoC a měnových observations rates. Od večerní kontroly 18. 10. nová primární publikace mezi 11 ukazateli nevyšla; ostatní ukazatele a kalendářové zdroje zachovávají předchozí časy kontroly. Skripty refresh-*.py nebyly spuštěny (k dispozici jen fundamentals.json), proto COT, ceny, trend a sezonalita zachovávají předchozí časy kontroly.",
       "18. 10. 18:31 UTC: znovu ověřeny zdroje rozhodnutí všech osmi bank (RSS Fed, ECB, BoE, BoJ, SNB, RBNZ; tiskové zprávy a stránka sazby RBA; stránka klíčové sazby a nadcházející události BoC), žádné nové rozhodnutí; obnoveny i checkedAt zdrojů SEP, zápisů FOMC, ECB a RBA, kalendářů RBA a BoC a měnových observations rates. Víkend: nová primární publikace mezi 11 ukazateli nevyšla; ostatní ukazatele a kalendářové zdroje zachovávají předchozí časy kontroly. Skripty refresh-*.py nebyly spuštěny (k dispozici jen fundamentals.json), proto COT, ceny, trend a sezonalita zachovávají předchozí časy kontroly.",
