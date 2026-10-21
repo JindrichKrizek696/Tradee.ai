@@ -2,6 +2,7 @@
 // Kotvy jsou {t: ms UTC, p: cena}; graf pracuje v „čase grafu“ (sekundy posunuté na pražský čas) a v logických indexech svíček.
 import {pragueOffsetMs} from '../journal/format.ts';
 import {TFS} from './candles.ts';
+import {APPEARANCE_DEFAULT,readAppearance,type Appearance} from './appearance.ts';
 export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann','vprofile'] as const;
 export type DrawType=typeof DRAW_TYPES[number];
 export const DRAW_COLORS=['brand','bull','bear','amber','muted','fg'] as const;
@@ -215,13 +216,13 @@ export type Preset=Look&{id:string;name:string;tool:DrawType};
 export type Fav={tools:DrawType[];x:number;y:number};
 // výchozí poloha vpravo nahoře: vlevo nahoře je lišta vybrané kresby, uprostřed nápověda kreslení, dole pás nadcházejících zpráv
 export const favDefault=():Fav=>({tools:[],x:1,y:0});
-// tfFav = oblíbené časové rámce (hvězdička v seznamu TF) – tlačítka vedle seznamu
-export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>;colors:string[];fav:Fav;tfFav:string[]};
+// tfFav = oblíbené časové rámce (hvězdička v seznamu TF) – tlačítka vedle seznamu; appearance = vzhled grafu (lib/chart/appearance)
+export type DrawPrefs={presets:Preset[];defaults:Partial<Record<DrawType,Look>>;colors:string[];fav:Fav;tfFav:string[];appearance:Appearance};
 export const TF_FAV_DEFAULT=['M15','H1','H4','D1'];
 // oblíbené TF: jen známé, bez duplicit, v pořadí TFS (tlačítka od nejkratšího)
 const tfList=(v:unknown):string[]|null=>Array.isArray(v)&&v.every(x=>typeof x==='string')?TFS.filter(t=>(v as string[]).includes(t)):null;
 export const MAX_PRESETS=50,MAX_PRESET_NAME=40;
-export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{},colors:[],fav:favDefault(),tfFav:[...TF_FAV_DEFAULT]});
+export const emptyPrefs=():DrawPrefs=>({presets:[],defaults:{},colors:[],fav:favDefault(),tfFav:[...TF_FAV_DEFAULT],appearance:APPEARANCE_DEFAULT});
 const isPos=(t:DrawType)=>t==='long'||t==='short';
 const isTool=(v:unknown):v is DrawType=>typeof v==='string'&&(DRAW_TYPES as readonly string[]).includes(v);
 const isColor=isDrawColor;
@@ -304,6 +305,7 @@ export function normalizePrefs(input:unknown):{ok:true;prefs:Partial<DrawPrefs>}
  }
  if(r.fav!==undefined){const f=parseFav(r.fav);if(!f.ok)return f;out.fav=f.v}
  if(r.tfFav!==undefined){const l=tfList(r.tfFav);if(!l||(r.tfFav as unknown[]).length>TFS.length*2)return {ok:false,error:'Neplatné oblíbené časové rámce.'};out.tfFav=l}
+ if(r.appearance!==undefined){if(!r.appearance||typeof r.appearance!=='object'||Array.isArray(r.appearance))return {ok:false,error:'Neplatný vzhled grafu.'};out.appearance=readAppearance(r.appearance)}
  if(!Object.keys(out).length)return {ok:false,error:'Není co uložit.'};
  return {ok:true,prefs:out};
 }
@@ -316,6 +318,7 @@ export function parsePrefs(raw:unknown):DrawPrefs{
  if(Array.isArray(r.colors))out.colors=[...new Set(r.colors.filter(isHex).map(c=>c.toLowerCase()))].slice(0,MAX_COLORS);
  out.fav=favOf(r.fav);
  const tl=tfList(r.tfFav);if(tl)out.tfFav=tl;
+ out.appearance=readAppearance(r.appearance);
  return out;
 }
 // vzhled z existující kresby (Uložit jako preset / Nastavit jako výchozí)
