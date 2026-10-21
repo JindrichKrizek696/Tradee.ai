@@ -9,7 +9,6 @@ import retailOfficial from '@/data/retail-official.json';
 import calendarAuto from '@/data/calendar.json';
 import core from '@/data/score-market.json';
 import expanded from '@/data/expanded-market.json';
-import savedHistory from '@/data/score-history.json';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
 import {mergeCalendar,type AutoEvent} from '@/lib/calendar';
@@ -28,7 +27,7 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  usePalette();
  let key=slug;try{key=decodeURIComponent(slug)}catch{}
  const item=list.find(i=>slugOf(i.id)===key);
- const [data,setData]=useState({...initialReport,ffMacro,tePmi,retailOfficial} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState(savedHistory as unknown as HistoryLike);
+ const [data,setData]=useState({...initialReport,ffMacro,tePmi,retailOfficial} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState<HistoryLike>({snapshots:[]});
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
  // vlastník vidí v grafu i vrstvu Simulace z Laboratoře (ostatním se data simulace nikdy nežádají)
  const [owner,setOwner]=useState(false);
