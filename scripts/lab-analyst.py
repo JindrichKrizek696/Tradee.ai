@@ -24,8 +24,7 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
 NODE = ['node', '--experimental-strip-types']
-PROMPT = ('Jsi analytik papírového obchodování v Tradee Laboratoři. Přečti jediný soubor report.md v této složce '
-          '(nic jiného nečti a nic neměň) a napiš česky markdown analýzu týdne pro vlastníka. Struktura: '
+PROMPT = ('Jsi analytik papírového obchodování v Tradee Laboratoři. Report týdne máš níže v této zprávě (mezi značkami REPORT; nic dalšího nečti a nic neměň) a napiš česky markdown analýzu týdne pro vlastníka. Struktura: '
           'první řádek „**Verdikt:** …“ (1–2 věty, co tento týden platí); pak sekce ## Co funguje, ## Co nefunguje, '
           '## Proč (s odkazem na konkrétní obchody a jejich „proč“), ## Statistická opatrnost (velikost vzorků, < 30 obchodů je slabé, '
           '< 8 = agent se učí; srovnání s hranicí náhody a s variantou A; korelace mezi agenty se stejnými trhy), '
@@ -36,13 +35,11 @@ DENIED = ['Bash', 'Write', 'Edit', 'NotebookEdit', 'WebSearch', 'WebFetch', 'Rea
 KEEP_LOGS = 20
 
 
-def allowed_tools(work):
-    return [f'Read(/{work}/report.md)']
-
-
-def claude_cmd(work):
-    return [os.environ.get('TRADEE_CLAUDE_CMD', 'claude'), '-p', PROMPT, '--allowedTools', *allowed_tools(work),
-            '--disallowedTools', *DENIED, '--permission-mode', 'dontAsk', '--add-dir', str(work), '--output-format', 'json']
+def claude_cmd(work, report_text=''):
+    # Report jde přímo do promptu – analytik nepotřebuje žádný nástroj (dřív Read narážel na zákaz Read(//home/**))
+    prompt = PROMPT + '\n\n<<<REPORT\n' + report_text + '\nREPORT>>>'
+    return [os.environ.get('TRADEE_CLAUDE_CMD', 'claude'), '-p', prompt,
+            '--disallowedTools', *DENIED, 'Read', 'Glob', 'Grep', '--permission-mode', 'dontAsk', '--output-format', 'json']
 
 
 def is_run_time(now=None):
@@ -83,7 +80,7 @@ def run(dry):
     if r.returncode != 0 or not report.exists():
         return 'report selhal', (r.stderr or r.stdout).strip()[-200:]
     try:
-        c = sh(claude_cmd(work), work, timeout=int(os.environ.get('TRADEE_ANALYST_TIMEOUT', '900')))
+        c = sh(claude_cmd(work, report.read_text(encoding='utf-8')), work, timeout=int(os.environ.get('TRADEE_ANALYST_TIMEOUT', '900')))
     except subprocess.TimeoutExpired:
         return 'timeout', '-'
     except OSError as e:
