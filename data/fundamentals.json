@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-22T18:32:00Z",
+  "checkedAt": "2026-10-23T06:31:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,49 +11,49 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "ecb-report": {
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání 29. září",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-09-29.html",
       "publishedAt": "2026-10-13",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -131,13 +131,13 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
@@ -173,7 +173,7 @@
       "label": "RBA — rozhodnutí 29. září",
       "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
       "publishedAt": "2026-09-29",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "abs-mhsi-aug26": {
       "label": "ABS — srpnový MHSI",
@@ -317,13 +317,13 @@
       "label": "Bank of Canada — nadcházející události",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "publishedAt": null,
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "fomc-minutes-sep26": {
       "label": "Fed — zápis FOMC 15.–16. září",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcminutes20260916.htm",
       "publishedAt": "2026-10-07",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "eur-retail-aug26": {
       "label": "Eurostat — maloobchod za srpen",
@@ -341,7 +341,7 @@
       "label": "ECB — zápis (account) ze zasedání 9.–10. září",
       "url": "https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg261008~a10153d090.en.html",
       "publishedAt": "2026-10-08",
-      "checkedAt": "2026-10-22T18:32:00Z"
+      "checkedAt": "2026-10-23T06:31:00Z"
     },
     "boe-cal": {
       "label": "Bank of England — termíny MPC 2026",
@@ -420,6 +420,12 @@
       "url": "https://www150.statcan.gc.ca/n1/daily-quotidien/261019/dq261019a-eng.htm",
       "publishedAt": "2026-10-19",
       "checkedAt": "2026-10-22T18:34:00Z"
+    },
+    "ons-retail-sep26": {
+      "label": "ONS — maloobchod za září",
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/september2026",
+      "publishedAt": "2026-10-23",
+      "checkedAt": "2026-10-23T06:31:00Z"
     }
   },
   "currencies": {
@@ -1038,6 +1044,25 @@
       "previous": "CPI 3,0 % y/y",
       "actual": "CPI 3,1 % y/y; +0,1 % m/m (SA +0,4 %)",
       "verifiedAt": "2026-10-22T18:34:00Z"
+    },
+    {
+      "id": "gb-retail-2026-10-23",
+      "currency": "GBP",
+      "at": "2026-10-23T06:00:00Z",
+      "timeKnown": false,
+      "title": "Spojené království • maloobchodní tržby za září",
+      "category": "macro",
+      "markets": ["GBP"],
+      "kind": "retail",
+      "signal": 2,
+      "global": false,
+      "source": "ons-retail-sep26",
+      "watch": "Zveřejněno 23. 10.; přesný čas vydání v textu bulletinu neověřen, proto timeKnown=false. Fakta ONS: objem −0,4 % m/m, srpen revidován z +0,5 % na +0,7 %, tři měsíce do září +0,7 %. Interpretace: zářijový pokles po silném srpnu; faktory GBP se mění jen rozhodnutím BoE 5. 11. Předem ověřený konsensus chybí.",
+      "importance": "střední",
+      "consensus": null,
+      "previous": "+0,7 % m/m (revidováno z +0,5 %)",
+      "actual": "−0,4 % m/m; +0,7 % za tři měsíce",
+      "verifiedAt": "2026-10-23T06:31:00Z"
     }
   ],
   "institutions": [
@@ -1303,6 +1328,11 @@
     }
   ],
   "changes": [
+    {
+      "at": "2026-10-23T06:31:00Z",
+      "title": "Banky znovu ověřeny; britský maloobchod v září −0,4 %",
+      "body": "Oficiální RSS Fedu (poslední položka 13. 10. zápis z jednání o diskontní sazbě; poslední rozhodnutí FOMC a SEP 16. 9., zápis FOMC 7. 10.), ECB (21. 10. projevy Lanea a Cipolloneho; zápis ze zasedání 8. 10., žádné rozhodnutí o sazbách po 10. 9.), BoE (22. 10. zjednodušení režimu SM&CR; poslední Bank Rate 3,75 % 17. 9.), BoJ (23. 10. Financial System Report; poslední rozhodnutí 18. 9.), SNB (poslední 1. 10. dohoda o rozdělení zisku; poslední hodnocení 24. 9.) a RBNZ (19. 10. rámec přístupu k základním transakčním službám; poslední OCR 2. 9., 2,75 %), stránka sazby RBA (4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney) a nadcházející události BoC (další oznámení 28. 10. a 9. 12. v 09:45 ET) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí, SEP, zápisů FOMC a ECB, kalendářů RBA a BoC a měnových observations rates obnoven. ONS 23. 10.: britské maloobchodní tržby za září −0,4 % m/m (srpen revidován z +0,5 % na +0,7 %), tři měsíce +0,7 %; doplňkový údaj, faktory GBP beze změny do rozhodnutí BoE 5. 11. Stats NZ u vydání CPI za září 2026 stále vrací jen titulek bez obsahu; japonská zářijová CPI se z primární stránky nenačetla jednoznačně; obě zůstávají neověřené. Makro vstupy a váhy beze změny."
+    },
     {
       "at": "2026-10-22T18:32:00Z",
       "title": "Banky znovu ověřeny; doplněna kanadská CPI za září",
@@ -1732,7 +1762,7 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1811,7 +1841,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1890,7 +1920,7 @@
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1969,7 +1999,7 @@
       "rates": {
         "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
         "period": "Rozhodnutí 2026-09-29",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
         "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
@@ -2048,7 +2078,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -2127,7 +2157,7 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -2150,7 +2180,7 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -2183,11 +2213,11 @@
         "note": "CFTC TFF futures only, kontrakt 096742. Legacy je samostatný report. Skóre používá leveraged funds a jejich podíl na open interest."
       },
       "retailSales": {
-        "value": "Reálný objem +0,5 % meziměsíčně; +0,9 % za tři měsíce",
-        "period": "2026-08 · první odhad",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/august2026",
-        "note": "ONS, vydání 18. 9. 2026. Sezónně očištěno; tříměsíční změna proti třem měsícům do května. Kontext mimo samostatné bodování."
+        "value": "Reálný objem −0,4 % meziměsíčně (předchozí +0,7 %, revidováno z +0,5 %); +0,7 % za tři měsíce",
+        "period": "2026-09 · první odhad",
+        "checkedAt": "2026-10-23T06:31:00Z",
+        "sourceUrl": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/september2026",
+        "note": "ONS Retail sales, vydání 23. 10. 2026. Sezónně očištěný objem; tříměsíční změna do září proti předchozím třem měsícům. Pokles podle ONS táhly zásilkový prodej a supermarkety, online prodejci oblečení uváděli slabší podzimní zboží kvůli neobvykle teplému počasí. Konsensus neověřen. Doplňkový údaj; samostatně nemění čtyřpilířové skóre."
       },
       "mpmi": {
         "value": "Výrobní aktivita dále expanduje, tempo mírně zpomalilo",
@@ -2229,7 +2259,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-10-22T18:32:00Z",
+        "checkedAt": "2026-10-23T06:31:00Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
