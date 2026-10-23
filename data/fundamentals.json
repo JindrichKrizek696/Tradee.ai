@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-10-23T06:31:00Z",
+  "checkedAt": "2026-10-23T18:38:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -11,49 +11,49 @@
       "label": "Fed — rozhodnutí FOMC",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "sep": {
       "label": "Fed — ekonomické projekce",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
       "publishedAt": "2026-09-16",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "ecb": {
       "label": "ECB — měnové rozhodnutí",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "ecb-report": {
       "label": "ECB — tisková konference",
       "url": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
       "publishedAt": "2026-09-10",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "rbnz": {
       "label": "RBNZ — rozhodnutí OCR",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání 29. září",
       "url": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-09-29.html",
       "publishedAt": "2026-10-13",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "boc": {
       "label": "Bank of Canada — měnové rozhodnutí",
       "url": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
       "publishedAt": "2026-09-02",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "boj": {
       "label": "BoJ — měnové rozhodnutí",
       "url": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
       "publishedAt": "2026-09-18",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "mufg": {
       "label": "MUFG — FX Weekly",
@@ -65,7 +65,7 @@
       "label": "RBA — sazba a příští rozhodnutí",
       "url": "https://www.rba.gov.au/cash-rate-target-overview.html",
       "publishedAt": null,
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "abs-cal": {
       "label": "ABS — kalendář statistik",
@@ -131,13 +131,13 @@
       "label": "Bank of England · září 2026",
       "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
       "publishedAt": "2026-09-17",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "chf-policy-sep26": {
       "label": "Swiss National Bank · září 2026",
       "url": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
       "publishedAt": "2026-09-24",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "mufg-sep25": {
       "label": "MUFG — FX Weekly 25. září",
@@ -173,7 +173,7 @@
       "label": "RBA — rozhodnutí 29. září",
       "url": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
       "publishedAt": "2026-09-29",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "abs-mhsi-aug26": {
       "label": "ABS — srpnový MHSI",
@@ -317,13 +317,13 @@
       "label": "Bank of Canada — nadcházející události",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "publishedAt": null,
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "fomc-minutes-sep26": {
       "label": "Fed — zápis FOMC 15.–16. září",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomcminutes20260916.htm",
       "publishedAt": "2026-10-07",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "eur-retail-aug26": {
       "label": "Eurostat — maloobchod za srpen",
@@ -341,7 +341,7 @@
       "label": "ECB — zápis (account) ze zasedání 9.–10. září",
       "url": "https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg261008~a10153d090.en.html",
       "publishedAt": "2026-10-08",
-      "checkedAt": "2026-10-23T06:31:00Z"
+      "checkedAt": "2026-10-23T18:32:00Z"
     },
     "boe-cal": {
       "label": "Bank of England — termíny MPC 2026",
@@ -426,6 +426,24 @@
       "url": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/september2026",
       "publishedAt": "2026-10-23",
       "checkedAt": "2026-10-23T06:31:00Z"
+    },
+    "ca-retail-aug26": {
+      "label": "Statistics Canada — maloobchod za srpen",
+      "url": "https://www150.statcan.gc.ca/n1/daily-quotidien/261023/dq261023a-eng.htm",
+      "publishedAt": "2026-10-23",
+      "checkedAt": "2026-10-23T18:36:00Z"
+    },
+    "jp-cpi-sep26": {
+      "label": "Statistics Bureau Japan — CPI za září",
+      "url": "https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html",
+      "publishedAt": "2026-10-23",
+      "checkedAt": "2026-10-23T18:37:00Z"
+    },
+    "nz-cpi-q3-26": {
+      "label": "Stats NZ — CPI za září 2026 (čtvrtletí)",
+      "url": "https://www.stats.govt.nz/news/annual-inflation-at-3-7-percent-in-september-2026/",
+      "publishedAt": "2026-10-22",
+      "checkedAt": "2026-10-23T18:38:00Z"
     }
   },
   "currencies": {
@@ -1063,6 +1081,63 @@
       "previous": "+0,7 % m/m (revidováno z +0,5 %)",
       "actual": "−0,4 % m/m; +0,7 % za tři měsíce",
       "verifiedAt": "2026-10-23T06:31:00Z"
+    },
+    {
+      "id": "nz-cpi-2026-10-22",
+      "currency": "NZD",
+      "at": "2026-10-21T21:45:00Z",
+      "timeKnown": false,
+      "title": "Nový Zéland • CPI za 3. čtvrtletí",
+      "category": "macro",
+      "markets": ["NZD"],
+      "kind": "cpi",
+      "signal": 3,
+      "global": false,
+      "source": "nz-cpi-q3-26",
+      "watch": "Zveřejněno 22. 10. (NZDT); přesný čas vydání primární stránkou neověřen, proto timeKnown=false. Fakta Stats NZ: CPI +3,7 % y/y (Q2 4,1 %), +0,7 % q/q; největší příspěvek benzin. Interpretace: zpomalení roční inflace; faktory NZD se mění až rozhodnutím RBNZ. Předem ověřený konsensus chybí; výsledek ověřen se zpožděním 23. 10.",
+      "importance": "vysoká",
+      "consensus": null,
+      "previous": "CPI 4,1 % y/y",
+      "actual": "CPI +3,7 % y/y; +0,7 % q/q",
+      "verifiedAt": "2026-10-23T18:38:00Z"
+    },
+    {
+      "id": "jp-cpi-2026-10-23",
+      "currency": "JPY",
+      "at": "2026-10-22T23:30:00Z",
+      "timeKnown": false,
+      "title": "Japonsko • CPI za září",
+      "category": "macro",
+      "markets": ["JPY"],
+      "kind": "cpi",
+      "signal": 3,
+      "global": false,
+      "source": "jp-cpi-sep26",
+      "watch": "Zveřejněno 23. 10. (JST); přesný čas vydání na stránce neověřen, proto timeKnown=false. Fakta Statistics Bureau: celková CPI +2,1 % y/y (srpen 1,9 %), bez čerstvých potravin +2,1 % (1,7 %), bez čerstvých potravin a energií +2,4 % (1,9 %). Interpretace: zrychlení před zasedáním BoJ 29.–30. 10.; faktory JPY beze změny do rozhodnutí. Předem ověřený konsensus chybí.",
+      "importance": "vysoká",
+      "consensus": null,
+      "previous": "CPI 1,9 % y/y; bez čerstvých potravin 1,7 %",
+      "actual": "CPI +2,1 % y/y; bez čerstvých potravin +2,1 %; bez čerstvých potravin a energií +2,4 %",
+      "verifiedAt": "2026-10-23T18:37:00Z"
+    },
+    {
+      "id": "ca-retail-2026-10-23",
+      "currency": "CAD",
+      "at": "2026-10-23T12:30:00Z",
+      "timeKnown": false,
+      "title": "Kanada • maloobchodní tržby za srpen",
+      "category": "macro",
+      "markets": ["CAD"],
+      "kind": "retail",
+      "signal": 2,
+      "global": false,
+      "source": "ca-retail-aug26",
+      "watch": "Zveřejněno 23. 10. v The Daily; přesný čas vydání v textu neuveden, proto timeKnown=false. Fakta StatCan: +1,2 % m/m na 74,6 mld. CAD, růst ve všech devíti podsektorech; objem +1,2 %; core +1,1 %. Předběžný odhad za září +0,7 %. Interpretace: silný srpen před rozhodnutím BoC 28. 10.; faktory CAD beze změny. Předem ověřený konsensus chybí.",
+      "importance": "střední",
+      "consensus": null,
+      "previous": "−0,7 % m/m (červenec, předběžně)",
+      "actual": "+1,2 % m/m; 74,6 mld. CAD",
+      "verifiedAt": "2026-10-23T18:36:00Z"
     }
   ],
   "institutions": [
@@ -1328,6 +1403,11 @@
     }
   ],
   "changes": [
+    {
+      "at": "2026-10-23T18:38:00Z",
+      "title": "Banky znovu ověřeny; doplněna CPI Japonska a Nového Zélandu a kanadský maloobchod",
+      "body": "Oficiální RSS Fedu (poslední položka 13. 10. zápis z jednání o diskontní sazbě; poslední rozhodnutí FOMC a SEP 16. 9., zápis FOMC 7. 10.), ECB (23. 10. Consumer Expectations Survey za září; zápis ze zasedání 8. 10., žádné rozhodnutí o sazbách po 10. 9.), BoE (22. 10. zjednodušení režimu SM&CR; poslední Bank Rate 3,75 % 17. 9.), BoJ (23. 10. Financial System Report; poslední rozhodnutí 18. 9.), SNB (poslední 1. 10. dohoda o rozdělení zisku; poslední hodnocení 24. 9.) a RBNZ (19. 10. rámec přístupu k základním transakčním službám; poslední OCR 2. 9., 2,75 %), stránka sazby RBA (4,60 % od 30. 9., další rozhodnutí 3. 11. 14:30 Sydney) a nadcházející události BoC (další oznámení 28. 10. a 9. 12. v 09:45 ET) neobsahují od posledních známých rozhodnutí žádné nové rozhodnutí o sazbách; checkedAt všech zdrojů rozhodnutí, SEP, zápisů FOMC a ECB, kalendářů RBA a BoC a měnových observations rates obnoven. Nově doplněno: japonská CPI za září (23. 10.) +2,1 % y/y, bez čerstvých potravin +2,1 %, bez čerstvých potravin a energií +2,4 % (srpen 1,9 / 1,7 / 1,9 %); novozélandská CPI za 3. čtvrtletí (22. 10.) +3,7 % y/y (Q2 4,1 %), +0,7 % q/q – roční údaj z titulku primární stránky, čtvrtletní z indexovaného obsahu Stats NZ; kanadský maloobchod za srpen (23. 10.) +1,2 % m/m na 74,6 mld. CAD, předběžně září +0,7 %. Doplňkové údaje; faktory JPY, NZD a CAD beze změny do rozhodnutí BoJ, RBNZ a BoC. Makro vstupy a váhy beze změny."
+    },
     {
       "at": "2026-10-23T06:31:00Z",
       "title": "Banky znovu ověřeny; britský maloobchod v září −0,4 %",
@@ -1762,7 +1842,7 @@
       "rates": {
         "value": "3,75–4,00 %",
         "period": "2026-09-16",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1841,7 +1921,7 @@
       "rates": {
         "value": "2,50 % • depozitní",
         "period": "2026-09-10",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -1920,16 +2000,16 @@
       "rates": {
         "value": "2,75 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.rbnz.govt.nz/news-and-events/news/2026/09/ocr-increased-by-25-basis-points-to-2-75",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
-        "value": "4,1 % meziročně",
-        "period": "2026 Q2",
-        "checkedAt": "2026-09-25T10:35:02.713170+00:00",
-        "sourceUrl": "https://www.stats.govt.nz/news/economic-snapshot-households-and-businesses-experience-higher-fuel-prices-in-the-june-2026-quarter/",
-        "note": "Stats NZ: růst cen pohonných hmot významně přispěl k inflaci. Údaj ověřen v indexovaném oficiálním souhrnu 24. 9. 2026."
+        "value": "CPI +3,7 % meziročně (předchozí 4,1 %); +0,7 % mezikvartálně",
+        "period": "2026 Q3",
+        "checkedAt": "2026-10-23T18:38:00Z",
+        "sourceUrl": "https://www.stats.govt.nz/news/annual-inflation-at-3-7-percent-in-september-2026/",
+        "note": "Stats NZ, vydání 22. 10. 2026. Roční 3,7 % potvrzeno titulkem primární stránky; čtvrtletní +0,7 % a příspěvky ověřeny v indexovaném obsahu oficiálních stránek Stats NZ (plný text stránka automatickým nástrojům nevrátila). Největší příspěvek benzin (+19,1 % y/y), dále výstavba nového bydlení (+3,2 %), elektřina (+9,3 %) a mezinárodní letenky (+12,5 %). Interpretace: zpomalení roční inflace před rozhodnutím RBNZ; faktory NZD se mění až rozhodnutím RBNZ. Konsensus neověřen."
       },
       "employment": {
         "value": "Nezaměstnanost 5,6 %; podvyužití pracovní síly 13,8 %",
@@ -1999,7 +2079,7 @@
       "rates": {
         "value": "4,60 % od 30. 9. 2026; do té doby 4,35 %",
         "period": "Rozhodnutí 2026-09-29",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
         "note": "Zvýšení o 25 bb; model hodnotí oznámený krok, účinnost je následující den."
       },
@@ -2048,11 +2128,11 @@
         "note": "Denní reference ECB, nikoli obchodovatelné závěrečné ceny. Tři směrové hlasy s geometrickými průměry. Vlastní měnový index je geometrický koš sedmi ostatních měn."
       },
       "retailSales": {
-        "value": "−0,7 % meziměsíčně; +5,1 % meziročně; 73,697 mld. CAD",
-        "period": "2026-07 · předběžná data",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
-        "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/260924/dq260924a-eng.pdf",
-        "note": "Celkový maloobchod v běžných cenách, sezónně očištěno. Ověřeno z indexované tabulky oficiálního PDF; přímé otevření PDF nebylo dostupné. Nezaměňovat s reálným objemem."
+        "value": "+1,2 % meziměsíčně; 74,6 mld. CAD (předchozí červenec −0,7 %, předběžně)",
+        "period": "2026-08",
+        "checkedAt": "2026-10-23T18:36:00Z",
+        "sourceUrl": "https://www150.statcan.gc.ca/n1/daily-quotidien/261023/dq261023a-eng.htm",
+        "note": "Statistics Canada, The Daily 23. 10. 2026: „Retail sales increased 1.2% to $74.6 billion in August“; růst ve všech devíti podsektorech, nejvíce prodejci aut a dílů. Běžné ceny, sezónně očištěno; objem +1,2 %, core retail +1,1 % (červenec −0,7 %). Revize celkového červencového údaje v textu neověřena, předchozí hodnota je původní předběžný údaj. Předběžný odhad za září +0,7 %. Doplňkový údaj; faktory CAD se mění až rozhodnutím BoC 28. 10."
       },
       "retailPositions": {
         "value": null,
@@ -2078,7 +2158,7 @@
       "rates": {
         "value": "2,25 %",
         "period": "2026-09-02",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
@@ -2157,16 +2237,16 @@
       "rates": {
         "value": "1,25 %",
         "period": "2026-09-18",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/k260918a.pdf",
         "note": "Zahrnuto v jádrovém modelu přes poslední rozhodnutí a výhled sazeb."
       },
       "inflation": {
-        "value": "Celková CPI +1,9 % meziročně; bez čerstvých potravin +1,7 %; bez čerstvých potravin a energií +1,9 %",
-        "period": "2026-08",
-        "checkedAt": "2026-09-26T19:39:32.996457+00:00",
+        "value": "Celková CPI +2,1 % meziročně (předchozí +1,9 %); bez čerstvých potravin +2,1 % (předchozí +1,7 %); bez čerstvých potravin a energií +2,4 % (předchozí +1,9 %)",
+        "period": "2026-09",
+        "checkedAt": "2026-10-23T18:37:00Z",
         "sourceUrl": "https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html",
-        "note": "Statistics Bureau of Japan, publikováno 18. 9. 2026, základ 2025 = 100. Skutečná spotřebitelská inflace; nezaměňovat s cenovými tlaky průzkumu PMI."
+        "note": "Statistics Bureau of Japan, celostátní CPI za září 2026, publikováno 23. 10. 2026; index celkem 102,2. Fakt: zrychlení všech tří měr. Interpretace: podporuje normalizační kurz BoJ, faktory JPY se ale mění až rozhodnutím BoJ 30. 10. Skutečná spotřebitelská inflace; nezaměňovat s cenovými tlaky průzkumu PMI. Konsensus neověřen."
       },
       "employment": {
         "value": "Nezaměstnanost 2,5 %; zaměstnaných 68,49 mil.",
@@ -2180,7 +2260,7 @@
       "rates": {
         "value": "3,75 %",
         "period": "2026-09-17",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
         "note": ""
       },
@@ -2259,7 +2339,7 @@
       "rates": {
         "value": "0 %",
         "period": "2026-09-24",
-        "checkedAt": "2026-10-23T06:31:00Z",
+        "checkedAt": "2026-10-23T18:32:00Z",
         "sourceUrl": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
         "note": ""
       },
