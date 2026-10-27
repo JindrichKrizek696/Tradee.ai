@@ -1,6 +1,6 @@
 // Laboratoř · Populace agentů – statistiky žebříčku a markdown report pro týdenního AI analytika (čisté funkce, testy scripts/check-lab-agents.mjs).
 // Report čte jen Claude v scripts/lab-analyst.py (smí číst jedině tento soubor) a jde i do „Shrnutí pro AI“ (zkrácený).
-import {paperStats,maxDrawdownPct,signed,fmtCzk,type PaperTrade,type PaperEquityPoint,type PaperStats,type VariantId} from './paper.ts';
+import {paperStats,maxDrawdownPct,validTrades,signed,fmtCzk,type PaperTrade,type PaperEquityPoint,type PaperStats,type VariantId} from './paper.ts';
 import {fitnessOf,genomeText,canKill,MIN_TRADES_TO_KILL,type Genome} from './agents.ts';
 import {knownKey,type KnownCombo} from './known-grid.ts';
 
@@ -13,7 +13,7 @@ export type AgentRow={id:string;active:boolean;genome:Genome;meta:AgentMetaIn;st
 // jeden agent: uzavřené obchody, týdenní R (obchody uzavřené za posledních 7 dní), týdenní P&L z křivky, fitness
 export function agentRow(x:{id:string;active:boolean;genome:Genome;meta:AgentMetaIn;started:number;rulesVersion:string;startEquity:number;trades:PaperTrade[];equity:PaperEquityPoint[];openPnl:number},now:number):AgentRow{
  const stats=paperStats(x.trades,x.startEquity,x.openPnl,x.equity);
- const week=x.trades.filter(t=>t.closed!==null&&t.closed>now-WEEK&&t.closed<=now);
+ const week=validTrades(x.trades).filter(t=>t.closed!==null&&t.closed>now-WEEK&&t.closed<=now);
  const weekR=Math.round(week.reduce((s,t)=>s+(t.r??0),0)*1000)/1000;
  const before=x.equity.filter(p=>p.t<=now-WEEK).sort((a,b)=>a.t-b.t),weekStart=before.length?before[before.length-1].equity:x.startEquity;
  const ws={trades:stats.trades,weekR,avgR:stats.avgR,maxDdPct:stats.maxDrawdownPct};
@@ -40,7 +40,7 @@ export function buildAgentReport(x:ReportInput):string{
  out.push('',`Fitness = týden R + 0,5 × průměr R × √obchodů − 0,2 × (DD % nad 5 %). Agent s < ${MIN_TRADES_TO_KILL} obchody se nevyřazuje.`,'');
  if(arch.length){out.push(`## Archivovaní agenti (${arch.length})`,'');for(const a of arch)out.push(`- ${a.id} (gen ${a.meta.gen}, rodič ${a.meta.parent??'–'}): ${a.stats.trades} obch., průměr ${r2(a.stats.avgR)}, celkem ${r2(a.stats.totalR)} – ${genomeText(a.genome)}`);out.push('')}
  out.push('## Nejlepší a nejhorší obchody agentů (posledních 30 dní)','');
- const recent=Object.entries(x.trades).flatMap(([v,ts])=>ts.filter(t=>t.closed!==null&&t.closed>x.now-30*86400000).map(t=>({...t,v})));
+ const recent=Object.entries(x.trades).flatMap(([v,ts])=>validTrades(ts).filter(t=>t.closed!==null&&t.closed>x.now-30*86400000).map(t=>({...t,v})));
  const byR=[...recent].sort((a,b)=>(b.r??0)-(a.r??0)||a.id.localeCompare(b.id));
  const show=(t:typeof recent[number])=>out.push(`### ${t.v} · ${t.instrument} ${t.direction} · ${r2(t.r)} · ${t.exitReason??'?'} · ${iso(t.opened)} → ${iso(t.closed)}`,`Proč: ${clip(t.why)}`,`Výsledek: ${clip(t.resultNote??'')}`,'');
  if(!byR.length)out.push('_Zatím žádné uzavřené obchody._','');
@@ -58,9 +58,10 @@ export function buildAgentReport(x:ReportInput):string{
  else{out.push(`Spočítáno ${x.sweep.created}: robustních ${x.sweep.robust}, hranice náhody ${x.sweep.chance??'–'} R.`);for(const t of x.sweep.top)out.push(`- ${t.key}: OOS ${t.oosN} obch., ${r2(t.oosAvg)}`);out.push('')}
  out.push('## Varianty simulace A–D a S… (srovnání)','','| varianta | od | obch. | win % | průměr R | celkem R | výnos % | DD % |','|---|---|---|---|---|---|---|---|');
  for(const v of x.variants)out.push(`| ${v.id} – ${v.name} | ${v.started===null?'neběží':iso(v.started).slice(0,10)} | ${v.stats.trades} | ${v.stats.winRate??'–'} | ${v.stats.avgR??'–'} | ${v.stats.totalR} | ${v.stats.returnPct} | ${v.stats.maxDrawdownPct} |`);
- out.push('',`## Otevřené pozice (${x.open.length})`,'');
- if(!x.open.length)out.push('_Žádné._');
- for(const t of x.open)out.push(`- ${t.variant??'A'} · ${t.instrument} ${t.direction} od ${iso(t.opened)}${t.mark?` → ${r2(t.mark.r)} / ${fmtCzk(t.mark.pnlCzk)}`:''}: ${clip(t.why,200)}`);
+ const open=validTrades(x.open);
+ out.push('',`## Otevřené pozice (${open.length})`,'');
+ if(!open.length)out.push('_Žádné._');
+ for(const t of open)out.push(`- ${t.variant??'A'} · ${t.instrument} ${t.direction} od ${iso(t.opened)}${t.mark?` → ${r2(t.mark.r)} / ${fmtCzk(t.mark.pnlCzk)}`:''}: ${clip(t.why,200)}`);
  return out.join('\n').trim()+'\n';
 }
 // krátký blok do „Shrnutí pro AI“

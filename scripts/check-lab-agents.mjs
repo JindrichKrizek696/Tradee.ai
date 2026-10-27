@@ -213,6 +213,12 @@ const ratesSrc={USD:{times:[D0-30*DAY,D0+300*DAY,D0+2000*DAY],vals:[5,5,1]},JPY:
  check('trailing: ve svíčce maxima se stop z nového maxima nepoužije (konzervativně)',checkExit(tt,{now:NOW+2*3600000,h1:[{t:NOW+3600000,h:1.05,l:1.031,c:1.04}],rules:R})===null);
  check('trailing vypnutý = původní SL',checkExit(tt,{now:NOW+3*3600000,h1,rules:{...R,trailAtr:0}})===null);
  check('neměnnost: rules_version agenta pevná, stejný genom = stejná pravidla',agentVariant('G01',g).rulesVersion==='agent-G01-v1'&&JSON.stringify(agentVariant('G01',g).rules)===JSON.stringify(V.rules));
+ // obchodní hodiny: agent v sobotu (Yahoo kotuje FX orientačně) neotevře ani nezavře
+ const SAT=Date.UTC(2026,9,17,12),dSat=d1.map(b=>({...b,t:b.t+3*DAY})),qSat={'EUR/USD':{price:1.05,marketTime:SAT-60000}};
+ const wk=paperStep({now:SAT,startEquity:100000,trades:[],signals:{},quotes:qSat,d1:{'EUR/USD':dSat},news:[],variant:V});
+ check('agent v sobotu: žádný vstup (zavřený trh), ve středu ano',wk.opens.length===0&&wk.skipped[0]?.reason==='trh je zavřený (obchodní hodiny)'&&step.opens.length===1,wk.skipped);
+ const wkx=paperStep({now:SAT,startEquity:100000,trades:[{...t}],signals:{},quotes:{'EUR/USD':{price:.9,marketTime:SAT-60000}},d1:{'EUR/USD':d2},news:[],variant:V,noEntries:true});
+ check('agent v sobotu: ani SL podle orientační ceny, ani výstupní signál',wkx.closes.length===0,wkx.closes);
 }
 
 // ---- 8) úložiště: neměnnost, archiv místo mazání, user_id; migrace 0030
@@ -269,6 +275,11 @@ const ratesSrc={USD:{times:[D0-30*DAY,D0+300*DAY,D0+2000*DAY],vals:[5,5,1]},JPY:
   sweep:null,variants:[{id:'A',name:'Základní',stats:a.stats,started:NOW-90*DAY}],open:[]});
  check('report: žebříček, archiv, nejlepší/nejhorší s „proč“, evoluce, známé strategie, varianty',['## Žebříček aktivních agentů (1)','G01 (učí se)','## Archivovaní agenti (1)','Proč: průraz Keltnera','Proč: nejhorší obchod','clone G02','Donchian','## Varianty simulace','Sweep ještě neproběhl'].every(x=>md.includes(x)),md.slice(0,600));
  check('report: obchody starší 30 dní se do „nejlepších“ nepočítají',!md.includes('+0,5 R · signal'));
+ const bad=tr({id:'void1',instrument:'GBP/CAD',r:5,pnlCzk:5000,why:'Proč: víkendový obchod',voidReason:'zavřený trh při vstupu'});
+ const av=agentRow({id:'G01',active:true,genome:g,meta:{gen:0,parent:null,origin:'test'},started:NOW-30*DAY,rulesVersion:'agent-G01-v1',startEquity:100000,trades:[...ts,bad],equity:[{t:NOW-8*DAY,equity:100400}],openPnl:0},NOW);
+ check('void: fitness, týden i statistiky agenta bez neplatných obchodů',av.weekR===a.weekR&&av.weekTrades===a.weekTrades&&av.fitness===a.fitness&&JSON.stringify(av.stats)===JSON.stringify(a.stats),[av.weekR,av.stats]);
+ const mdv=buildAgentReport({now:NOW,agents:[av],trades:{G01:[...ts,bad]},evolution:[],known:null,sweep:null,variants:[],open:[{...bad,closed:null}]});
+ check('void: report analytika bez neplatných (nejlepší obchody, otevřené pozice)',!mdv.includes('víkendový obchod')&&mdv.includes('## Otevřené pozice (0)'),mdv.slice(0,400));
  check('shrnutí pro AI: krátký blok agentů',agentsSummaryMd([a,b],[]).includes('## Populace agentů')&&agentsSummaryMd([],[])==='');
  check('verdikt: řádek „**Verdikt:** …“, jinak první odstavec, max 600 znaků',analysisVerdict('# Nadpis\n**Verdikt:** Trend vede, reverze ztrácí.\n\n## Co funguje')==='Trend vede, reverze ztrácí.'&&analysisVerdict('## Verdikt\nNic moc.')==='Nic moc.'&&analysisVerdict('Prostý text.\nDalší')==='Prostý text.'&&analysisVerdict('x'.repeat(900)).length===598);
  check('název poznámky analýzy s datem (Praha)',analysisTitle(NOW)==='Týdenní analýza agentů 2026-10-18');

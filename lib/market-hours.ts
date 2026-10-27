@@ -51,3 +51,48 @@ export function exchanges(now:number){
  const list=EXCHANGES.map(v=>venueState(v,now)),open=list.filter(x=>x.open).length;
  return {list,open,label:open?`Burzy otevřené ${open}/${list.length}`:'Burzy zavřené'};
 }
+
+// ---- Obchodní hodiny pro simulaci Laboratoře (lib/lab/paper.ts): smí se v daném okamžiku otevírat / zavírat obchod?
+// Yahoo o víkendu publikuje orientační FX kotace, takže test „cena starší než 2 h“ zavřený trh nepozná → pevný kalendář.
+// FX páry, měnové indexy, komodity a neznámé trhy: ne 22:00 UTC → pá 21:00 UTC celoročně (bezpečně: o letním / zimním čase
+// se tím ztratí nejvýš hodina na začátku nebo konci týdne). Komodity (CME futures GC/SI/CL/BZ) navíc denní pauza po–čt 21:00–22:00 UTC.
+// Akcie a akciové indexy USA: NYSE 9:30–16:00 America/New_York po–pá mimo svátky (zkrácené seance se neřeší). Krypto 24/7.
+const CURRENCIES=['USD','EUR','GBP','CHF','JPY','CAD','AUD','NZD']; // = lib/markets.ts fxCurrencies (bez importu – modul zůstává čistý)
+export type MarketKind='fx'|'currency'|'commodities'|'index'|'stock'|'crypto';
+const HOUR=3600000;
+// skupina podle id (stejné dělení jako lib/markets.ts instruments a lib/lab/paper.ts marketGroup)
+export function marketKind(id:string):MarketKind{
+ if(/^[A-Z]{3}\/[A-Z]{3}$/.test(id))return 'fx';
+ if(CURRENCIES.includes(id))return 'currency'; // ne /^[A-Z]{3}$/ – JPM je akcie
+ if(id.startsWith('^'))return 'index';
+ if(id.endsWith('=F'))return 'commodities';
+ if(id.endsWith('-USD'))return 'crypto';
+ return 'stock';
+}
+// svátky NYSE (celodenně zavřeno), místní datum New Yorku; přesunuté na pátek / pondělí, když svátek padne na víkend
+export const US_HOLIDAYS=new Set([
+ '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25',
+ '2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31','2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24',
+]);
+const iso=(y:number,mo:number,d:number)=>`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+/** NYSE pravidelná seance 9:30–16:00 New York, po–pá, mimo svátky. */
+export function nyseOpen(t:number){const l=local('America/New_York',t);return l.wd>=1&&l.wd<=5&&l.min>=570&&l.min<960&&!US_HOLIDAYS.has(iso(l.y,l.mo,l.d))}
+/** FX týden: ne 22:00 UTC → pá 21:00 UTC. */
+export function fxOpen(t:number){const d=new Date(t),wd=d.getUTCDay(),h=d.getUTCHours();
+ if(wd===6)return false;if(wd===0)return h>=22;if(wd===5)return h<21;return true}
+/** Smí se na trhu v okamžiku t (ms, UTC) obchodovat? group = skupina z lib/markets.ts (bez ní podle id). */
+export function isMarketOpen(id:string,group:string|null|undefined,t:number):boolean{
+ const g=(group||marketKind(id)) as string;
+ if(!Number.isFinite(t))return false;
+ if(g==='crypto')return true;
+ if(g==='stock'||g==='index')return nyseOpen(t);
+ if(!fxOpen(t))return false;
+ if(g==='commodities'){const d=new Date(t),wd=d.getUTCDay();if(wd>=1&&wd<=4&&d.getUTCHours()===21)return false}
+ return true;
+}
+/** Byl trh mezi a (vyloučeno) a b (vyloučeno) někdy zavřený? Krok 15 min (zavřené úseky jsou celé hodiny / půlhodiny). */
+export function closedBetween(id:string,group:string|null|undefined,a:number,b:number):boolean{
+ if(!(b>a))return false;const STEP=HOUR/4;
+ for(let x=Math.floor(a/STEP)*STEP+STEP;x<b;x+=STEP)if(!isMarketOpen(id,group,x))return true;
+ return false;
+}

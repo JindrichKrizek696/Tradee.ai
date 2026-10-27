@@ -2,7 +2,7 @@
 // změny populace v lab_evolution (migrace 0030). Volá se z /api/laborator/agents za labGate a ze scripts/lab-evolve.mjs, lab-agents-report.mjs.
 // Všechny dotazy filtrují user_id vlastníka. Nic se tu nemaže: vyřazení = active 0 (archiv s plnou historií).
 import type {Db} from '../mysql.ts';
-import {agentVariant,isAgentVariant,type PaperTrade,type VariantId} from './paper.ts';
+import {agentVariant,isAgentVariant,isVoid,type PaperTrade,type VariantId} from './paper.ts';
 import {listAccounts,listTrades,equitySeries,withMarks,addLog,rulesJson,toSql,fromSql,type Quotes,type PaperAccount,type AgentMeta} from './paper-store.ts';
 import {validateGenome,genomeText,type Genome} from './agents.ts';
 import {agentRow,type AgentRow,type EvolutionRow} from './agents-report.ts';
@@ -50,12 +50,12 @@ export async function agentsData(d:Db,uid:string,quotes:Quotes,now:number){
  const agents=agentAccounts(accs),tradesOf:Record<string,PaperTrade[]>={};
  const rows:AgentRow[]=agents.map(a=>{
   const mine=trades.filter(t=>t.variant===a.variant),marked=withMarks(mine,quotes);tradesOf[a.variant]=mine;
-  const openPnl=marked.filter(t=>t.closed===null).reduce((s,t)=>s+(t.mark?.pnlCzk??0),0);
+  const openPnl=marked.filter(t=>t.closed===null&&!isVoid(t)).reduce((s,t)=>s+(t.mark?.pnlCzk??0),0);
   return agentRow({id:a.variant,active:a.active,genome:a.agent!.genome,meta:{gen:a.agent!.meta.gen,parent:a.agent!.meta.parent,origin:a.agent!.meta.origin},started:a.started,rulesVersion:a.rulesVersion,startEquity:a.startEquity,
    trades:mine,equity:equity.filter(p=>p.variant===a.variant).map(({t,equity})=>({t,equity})),openPnl},now);
  });
  const bench=equity.filter(p=>p.variant==='A').map(({t,equity})=>({t,equity})),benchAcc=accs.find(a=>a.variant==='A')??null;
- const open=withMarks(trades.filter(t=>t.closed===null&&isAgentVariant(t.variant)),quotes);
+ const open=withMarks(trades.filter(t=>t.closed===null&&!isVoid(t)&&isAgentVariant(t.variant)),quotes);
  return {rows,tradesOf,bench,benchStart:benchAcc?.started??null,open,accounts:accs,allTrades:trades};
 }
 // poslední poznámka analytika (lab_notes „Týdenní analýza agentů …“)

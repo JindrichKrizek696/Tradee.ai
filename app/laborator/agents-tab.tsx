@@ -55,7 +55,7 @@ export function AgentsTab({initial}:{initial?:Data}={}){
    <p className="lb-meta">Původ: {a.meta.origin||'–'}{a.meta.parent?` · rodič ${a.meta.parent}`:''}. Pravidla agenta se po založení nemění – změna = nový agent.</p>
    <ul className="lb-notes">{detail.agent.text.map(t=><li key={t}>{t}</li>)}</ul>
    {detail.trades.length>0&&<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>Směr</th><th>Otevřeno</th><th>Zavřeno</th><th>Důvod</th><th>R</th><th>Kč</th></tr></thead>
-    <tbody>{detail.trades.slice(0,40).map(t=><tr key={t.id} title={t.why}><td>{name(t.instrument)}</td><td>{t.direction}</td><td>{when(t.opened)}</td><td>{t.closed===null?'otevřeno':when(t.closed)}</td><td>{t.exitReason??'–'}</td>
+    <tbody>{detail.trades.slice(0,40).map(t=><tr key={t.id} title={t.why} className={t.voidReason?'lb-dim':undefined}><td>{name(t.instrument)}</td><td>{t.direction}</td><td>{when(t.opened)}</td><td>{t.closed===null?'otevřeno':when(t.closed)}</td><td>{t.voidReason?<span className="lb-badge">neplatný – zavřený trh</span>:t.exitReason??'–'}</td>
      <td className={sgn(t.r??t.mark?.r??null)}>{r2(t.r??t.mark?.r??null)}</td><td className={sgn(t.pnlCzk??t.mark?.pnlCzk??null)}>{kc(t.pnlCzk??t.mark?.pnlCzk??null)}</td></tr>)}</tbody></table></div>}
    {detail.log.length>0&&<details className="lb-details"><summary>Deník agenta ({detail.log.length})</summary><ul className="lb-log">{detail.log.map((l,i)=><li key={i}><time>{when(l.at)}</time> {l.text}</li>)}</ul></details>}
   </div>}</td></tr>}

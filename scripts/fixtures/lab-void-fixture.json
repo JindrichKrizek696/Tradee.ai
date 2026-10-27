@@ -1,0 +1,14 @@
+{"note":"Syntetická data pro scripts/lab-void-closed-market.mjs --fixture (časy UTC). Očekávané zneplatnění: f1, f2, f3, f4, f5, f10.",
+"trades":[
+ {"id":"f1","variant":"B","instrument":"GBP/USD","opened":"2026-10-17T12:00:00Z","closed":"2026-10-20T09:00:00Z","exitReason":"tp","pnlCzk":2000},
+ {"id":"f2","variant":"A","instrument":"NZD/USD","opened":"2026-10-24T14:45:00Z","closed":null},
+ {"id":"f3","variant":"G19","instrument":"GBP/CAD","opened":"2026-10-24T12:45:00Z","closed":null},
+ {"id":"f4","variant":"G19","instrument":"USD/CAD","opened":"2026-10-22T10:00:00Z","closed":"2026-10-24T10:00:00Z","exitReason":"time","pnlCzk":-350.5},
+ {"id":"f5","variant":"A","instrument":"EUR/USD","opened":"2026-10-21T08:00:00Z","closed":"2026-10-25T18:30:00Z","exitReason":"signal","pnlCzk":120},
+ {"id":"f6","variant":"A","instrument":"EUR/USD","opened":"2026-10-19T08:00:00Z","closed":"2026-10-21T12:15:00Z","exitReason":"signal","pnlCzk":500},
+ {"id":"f7","variant":"A","instrument":"GBP/JPY","opened":"2026-10-22T09:00:00Z","closed":"2026-10-23T21:00:00Z","exitReason":"sl","pnlCzk":-1000},
+ {"id":"f8","variant":"A","instrument":"AAPL","opened":"2026-10-20T14:00:00Z","closed":"2026-10-21T20:30:00Z","exitReason":"sl","pnlCzk":-1000},
+ {"id":"f9","variant":"D","instrument":"BTC-USD","opened":"2026-10-24T12:00:00Z","closed":"2026-10-25T03:00:00Z","exitReason":"tp","pnlCzk":2000},
+ {"id":"f10","variant":"A","instrument":"AAPL","opened":"2026-10-24T15:00:00Z","closed":"2026-10-26T14:00:00Z","exitReason":"signal","pnlCzk":50},
+ {"id":"f11","variant":"A","instrument":"USD/JPY","opened":"2026-10-17T12:00:00Z","closed":null,"voidReason":"zavřený trh při vstupu"}
+]}

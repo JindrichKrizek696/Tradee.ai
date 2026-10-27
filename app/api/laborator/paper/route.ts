@@ -15,7 +15,7 @@ export async function GET(req:Request){try{const u=await labUser(req);if(u insta
  const sp=new URL(req.url).searchParams,inst=sp.get('instrument'),vq=sp.get('variant');
  if(inst!==null){if(!known.has(inst))return labNotFound();
   const [trades,quotes]=await Promise.all([listTrades(d,u.id,{instrument:inst}),quotesOf(d)]);
-  return Response.json({trades:withMarks(trades,quotes).map(t=>({...t,variant:t.variant??'A',partsAtEntry:undefined}))},{headers:LAB_HEADERS})}
+  return Response.json({trades:withMarks(trades.filter(t=>!t.voidReason),quotes).map(t=>({...t,variant:t.variant??'A',partsAtEntry:undefined}))},{headers:LAB_HEADERS})}
  if(vq!==null&&!isVariantId(vq))return labNotFound();
  const view=await paperView(d,u.id,await quotesOf(d),vq??'A');
  if(!view)return labNotFound(); // S… bez účtu

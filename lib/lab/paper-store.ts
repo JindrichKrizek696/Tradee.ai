@@ -1,7 +1,7 @@
 // Laboratoř · Simulace – databáze (lab_paper_*). Volá se z /api/laborator/paper za labGate a ze scripts/lab-paper.mjs (jen pro vlastníka).
 // Všechny dotazy filtrují user_id vlastníka (a variantu A/B/C/D, migrace 0027); nikdy se nepoužívá ?as= (lib/admin/http.ts viewAs).
 import type {Db} from '../mysql.ts';
-import {PAPER_RULES,PAPER_VARIANTS,VARIANT_IDS,SWEEP_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,isAgentVariant,sweepVariant,agentVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
+import {PAPER_RULES,PAPER_VARIANTS,isVoid,VARIANT_IDS,SWEEP_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,isAgentVariant,sweepVariant,agentVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
 import {normalizeCombo,comboIndex,type SweepCombo} from './sweep.ts';
 import {validateGenome,type Genome} from './agents.ts';
 
@@ -68,11 +68,11 @@ export async function removeSweepVariant(d:Db,uid:string,variant:VariantId){
  for(const t of ['lab_paper_trades','lab_paper_equity','lab_paper_log','lab_paper_accounts'])await d.prepare(`DELETE FROM ${t} WHERE user_id=? AND variant=?`).bind(uid,variant).run();
 }
 
-type TradeRow={id:string;variant:string;instrument:string;direction:string;opened:string;entry:number;sl:number;tp:number;risk_czk:number;confidence:number;score_at_entry:number;parts_at_entry:string;why:string;closed:string|null;exit_price:number|null;exit_reason:string|null;r:number|null;pnl_czk:number|null;pct:number|null;score_at_exit:number|null;result_note:string|null;rules_version:string};
-const COLS='id,variant,instrument,direction,opened,entry,sl,tp,risk_czk,confidence,score_at_entry,parts_at_entry,why,closed,exit_price,exit_reason,r,pnl_czk,pct,score_at_exit,result_note,rules_version';
+type TradeRow={id:string;variant:string;instrument:string;direction:string;opened:string;entry:number;sl:number;tp:number;risk_czk:number;confidence:number;score_at_entry:number;parts_at_entry:string;why:string;closed:string|null;exit_price:number|null;exit_reason:string|null;r:number|null;pnl_czk:number|null;pct:number|null;score_at_exit:number|null;result_note:string|null;rules_version:string;void_reason?:string|null};
+const COLS='id,variant,instrument,direction,opened,entry,sl,tp,risk_czk,confidence,score_at_entry,parts_at_entry,why,closed,exit_price,exit_reason,r,pnl_czk,pct,score_at_exit,result_note,rules_version,void_reason';
 const toTrade=(r:TradeRow):PaperTrade=>({id:r.id,variant:isVariantId(r.variant)?r.variant:'A',instrument:r.instrument,direction:r.direction as Direction,opened:fromSql(r.opened)!,entry:Number(r.entry),sl:Number(r.sl),tp:Number(r.tp),riskCzk:Number(r.risk_czk),confidence:Number(r.confidence),
  scoreAtEntry:Number(r.score_at_entry),partsAtEntry:json<PaperSnapshot>(r.parts_at_entry,{method:'',coverage:0,alignment:0,freshness:0,atr:0,parts:[]}),why:r.why,
- closed:fromSql(r.closed),exit:num(r.exit_price),exitReason:(r.exit_reason as ExitReason|null)??null,r:num(r.r),pnlCzk:num(r.pnl_czk),pct:num(r.pct),scoreAtExit:num(r.score_at_exit),resultNote:r.result_note,rulesVersion:r.rules_version});
+ closed:fromSql(r.closed),exit:num(r.exit_price),exitReason:(r.exit_reason as ExitReason|null)??null,r:num(r.r),pnlCzk:num(r.pnl_czk),pct:num(r.pct),scoreAtExit:num(r.score_at_exit),resultNote:r.result_note,rulesVersion:r.rules_version,voidReason:r.void_reason??null});
 // variant = jen jedna varianta; bez ní všechny (vrstva grafu, týdenní souhrn)
 export async function listTrades(d:Db,uid:string,o:{instrument?:string;variant?:VariantId}={}):Promise<PaperTrade[]>{
  const where=['user_id=?'],args:unknown[]=[uid];
@@ -93,7 +93,7 @@ export async function equitySeries(d:Db,uid:string,variant?:VariantId):Promise<(
 
 // zápis jednoho kroku (idempotentní: vstup má id podle slotu 15 min, varianty a trhu, výstup jen u ještě otevřeného obchodu, snímek equity podle slotu)
 export async function applyStep(d:Db,uid:string,now:number,slot:number,s:PaperStepResult,variant:VariantId='A'){
- for(const c of s.closes)await d.prepare('UPDATE lab_paper_trades SET closed=?,exit_price=?,exit_reason=?,r=?,pnl_czk=?,pct=?,score_at_exit=?,result_note=? WHERE id=? AND user_id=? AND variant=? AND closed IS NULL')
+ for(const c of s.closes)await d.prepare('UPDATE lab_paper_trades SET closed=?,exit_price=?,exit_reason=?,r=?,pnl_czk=?,pct=?,score_at_exit=?,result_note=? WHERE id=? AND user_id=? AND variant=? AND closed IS NULL AND void_reason IS NULL')
   .bind(toSql(c.closed,true),c.exit,c.exitReason,c.r,c.pnlCzk,c.pct,c.scoreAtExit,c.resultNote,c.id,uid,variant).run();
  for(const t of s.opens)await d.prepare(`INSERT IGNORE INTO lab_paper_trades(id,user_id,variant,instrument,direction,opened,entry,sl,tp,risk_czk,confidence,score_at_entry,parts_at_entry,why,rules_version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
   .bind(t.id,uid,variant,t.instrument,t.direction,toSql(t.opened,true),t.entry,t.sl,t.tp,t.riskCzk,t.confidence,t.scoreAtEntry,JSON.stringify(t.partsAtEntry),t.why,t.rulesVersion).run();
@@ -114,14 +114,15 @@ export async function resetPaper(d:Db,uid:string,now:number,variant:VariantId='A
 // pohled pro API, graf i shrnutí: otevřené pozice přeceněné živou cenou (mid ∓ ½ spread)
 export type Quotes=Record<string,{price:number;marketTime:number}|undefined>;
 export function withMarks(trades:PaperTrade[],quotes:Quotes){
- return trades.map(t=>{const q=t.closed===null?quotes[t.instrument]:undefined;return {...t,mark:q&&q.price>0?{...markToMarket(t,q.price),at:q.marketTime}:null}});
+ return trades.map(t=>{const q=t.closed===null&&!isVoid(t)?quotes[t.instrument]:undefined;return {...t,mark:q&&q.price>0?{...markToMarket(t,q.price),at:q.marketTime}:null}});
 }
 // stav všech variant z jednoho načtení (porovnání, týdenní souhrn, shrnutí pro AI)
 export async function paperAll(d:Db,uid:string,quotes:Quotes){
  const [accounts,trades,equity]=await Promise.all([listAccounts(d,uid),listTrades(d,uid),equitySeries(d,uid)]);
  return variantsOf(accounts).map(V=>{
   const v=V.id,account=accounts.find(a=>a.variant===v)??null,mine=trades.filter(t=>(t.variant??'A')===v),eq=equity.filter(p=>p.variant===v).map(({t,equity})=>({t,equity}));
-  const marked=withMarks(mine,quotes),open=marked.filter(t=>t.closed===null),closed=marked.filter(t=>t.closed!==null).sort((a,b)=>(b.closed??0)-(a.closed??0));
+  // neplatné obchody (zavřený trh) zůstávají v seznamu uzavřených s odznakem, do statistik ani otevřeného P&L se nepočítají
+  const marked=withMarks(mine,quotes),open=marked.filter(t=>t.closed===null&&!isVoid(t)),closed=marked.filter(t=>t.closed!==null||isVoid(t)).sort((a,b)=>(b.closed??b.opened)-(a.closed??a.opened));
   const openPnl=open.reduce((s,t)=>s+(t.mark?.pnlCzk??0),0),start=account?.startEquity??PAPER_RULES.startEquity;
   return {variant:v,V,account,trades:mine,stats:paperStats(mine,start,openPnl,eq),equity:eq,open,closed};
  });

@@ -139,7 +139,9 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  const a=paperStep({...base,signals,quotes,d1:D,variant:V.A}),b=paperStep({...base,signals,quotes,d1:D,variant:V.B}),dd=paperStep({...base,signals,quotes,d1:D,variant:V.D});
  const noVar=paperStep({...base,signals,quotes,d1:D});
  check('A beze změny: stejný výsledek s i bez varianty, id i rules_version paper-v1',JSON.stringify(a)===JSON.stringify(noVar)&&a.opens.every(t=>t.rulesVersion==='paper-v1'&&t.variant===undefined&&t.id===tradeId(NOW,t.instrument)),a.opens.map(t=>t.id));
- check('A: všechny trhy (FX, komodity, krypto, indexy, akcie), max 5',a.opens.length===5&&a.opens.map(t=>t.instrument).join()==='BTC-USD,ETH-USD,GC=F,EUR/USD,^NDX',a.opens.map(t=>t.instrument));
+ check('A v 10:00 UTC: NYSE zavřená → ^NDX a AAPL se přeskočí (obchodní hodiny)',a.opens.map(t=>t.instrument).join()==='BTC-USD,ETH-USD,GC=F,EUR/USD'&&['^NDX','AAPL'].every(id=>a.skipped.find(x=>x.instrument===id)?.reason==='trh je zavřený (obchodní hodiny)'),[a.opens.map(t=>t.instrument),a.skipped]);
+ {const NY=NOW+5*H,qNY=Object.fromEntries(ids.map(id=>[id,{price:px(id),marketTime:NY-5*60000}])),aNY=paperStep({...base,now:NY,signals,quotes:qNY,d1:D,variant:V.A});
+  check('A: všechny trhy (FX, komodity, krypto, indexy, akcie), max 5 – v 15:00 UTC (NYSE otevřená)',aNY.opens.length===5&&aNY.opens.map(t=>t.instrument).join()==='BTC-USD,ETH-USD,GC=F,EUR/USD,^NDX',aNY.opens.map(t=>t.instrument))}
  check('B: jen FX páry',b.opens.map(t=>t.instrument).join()==='EUR/USD'&&b.opens[0].rulesVersion==='paper-B-v1'&&b.opens[0].variant==='B'&&b.opens[0].id.startsWith('pB')&&b.skipped.length===0,b.opens);
  check('B: měnové indexy ani s FX skupinou ne',marketGroup('EUR')==='currency'&&marketGroup('EUR/USD')==='fx'&&marketGroup('GC=F')==='commodities'&&marketGroup('^NDX')==='index'&&marketGroup('BTC-USD')==='crypto'&&marketGroup('AAPL')==='stock'&&paperStep({...base,signals:{'USD':sig(80)},quotes:{'USD':quote(100)},d1:{'USD':d1(100)},variant:V.B}).opens.length===0);
  check('D: |skóre| ≥ 65 a nejvýš 1 krypto',dd.opens.map(t=>t.instrument).join()==='BTC-USD,GC=F'&&dd.skipped.some(x=>x.instrument==='ETH-USD'&&x.reason.startsWith('krypto'))&&!dd.skipped.some(x=>x.instrument==='EUR/USD')&&dd.opens.every(t=>t.rulesVersion==='paper-D-v1'),[dd.opens.map(t=>t.instrument),dd.skipped]);
@@ -176,7 +178,9 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  check('C: bez trendu ±2 žádný vstup',run(1.2,0.9,{bars:flat()}).opens.length===0);
  check('C: skóre Tradee se pro vstup nepoužívá (silné skóre bez setupu nic)',run(at(1),undefined,{signals:{'EUR/USD':sig(90)}}).opens.length===0);
  const cr=paperStep({...base,signals:{},quotes:{'BTC-USD':quote(at(3)),'AAPL':quote(at(3)),'GC=F':quote(at(3)),'^NDX':quote(at(3))},d1:{'BTC-USD':U,'AAPL':U,'GC=F':U,'^NDX':U},variant:V});
- check('C: jen FX, komodity a indexy (krypto ani akcie ne)',cr.opens.map(x=>x.instrument).sort().join()==='GC=F,^NDX',cr.opens.map(x=>x.instrument));
+ check('C v 10:00 UTC: jen komodity (index ^NDX čeká na NYSE), krypto ani akcie ne',cr.opens.map(x=>x.instrument).sort().join()==='GC=F'&&cr.skipped.find(x=>x.instrument==='^NDX')?.reason==='trh je zavřený (obchodní hodiny)',[cr.opens.map(x=>x.instrument),cr.skipped]);
+ {const NY=NOW+5*H,q=k=>({price:at(3),marketTime:NY-60000}),crNY=paperStep({...base,now:NY,signals:{},quotes:{'BTC-USD':q(),'AAPL':q(),'GC=F':q(),'^NDX':q()},d1:{'BTC-USD':U,'AAPL':U,'GC=F':U,'^NDX':U},variant:V});
+  check('C: jen FX, komodity a indexy (krypto ani akcie ne) – NYSE otevřená',crNY.opens.map(x=>x.instrument).sort().join()==='GC=F,^NDX',crNY.opens.map(x=>x.instrument))}
  // výstupy
  const open={...t,opened:NOW-10*H};
  const ex=(price,o={})=>paperStep({...base,signals:o.signals??{},quotes:{'EUR/USD':quote(price)},d1:{'EUR/USD':U},variant:V,trades:[open]});
@@ -278,6 +282,46 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  const chart=readFileSync(new URL('../app/market-chart.tsx',import.meta.url),'utf8');
  const fetches=[...chart.matchAll(/fetch\('\/api\/laborator\/paper/g)].length,guard=/if\(!owner\)return;[\s\S]{0,200}\/api\/laborator\/paper/.test(chart);
  check('graf: data simulace jen pro vlastníka',fetches===1&&guard);
+}
+
+// ---- obchodní hodiny (lib/market-hours.ts) a neplatné obchody (void)
+{
+ const SAT=Date.UTC(2026,9,24,12,45),SUN=Date.UTC(2026,9,25,18,30),MON=Date.UTC(2026,9,26,1,0);
+ const q=(price,t)=>({price,marketTime:t-60000}),dd=t=>Array.from({length:30},(_,i)=>({t:t-(30-i)*DAY,o:1.1,h:1.105,l:1.095,c:1.1}));
+ // Yahoo o víkendu kotuje FX orientačně → cena je čerstvá, a přesto se nesmí obchodovat
+ const wk=paperStep({now:SAT,startEquity:100000,trades:[],news:[],signals:{'GBP/CAD':sig(80),'BTC-USD':sig(80)},quotes:{'GBP/CAD':q(1.8,SAT),'BTC-USD':q(50000,SAT)},d1:{'GBP/CAD':dd(SAT),'BTC-USD':dd(SAT).map(b=>({...b,h:50500,l:49500,c:50000,o:50000}))}});
+ check('víkend: FX se čerstvou cenou se neotevře, krypto ano',wk.opens.map(t=>t.instrument).join()==='BTC-USD'&&wk.skipped.find(x=>x.instrument==='GBP/CAD')?.reason==='trh je zavřený (obchodní hodiny)',[wk.opens.map(t=>t.instrument),wk.skipped]);
+ const ft={id:'w1',instrument:'EUR/USD',direction:'long',opened:Date.UTC(2026,9,22,10),entry:1.1,sl:1.09,tp:1.13,riskCzk:1000,confidence:60,scoreAtEntry:60,partsAtEntry:{method:'',coverage:90,alignment:80,freshness:1,atr:.01,parts:[]},why:'',closed:null,exit:null,exitReason:null,r:null,pnlCzk:null,pct:null,scoreAtExit:null,resultNote:null,rulesVersion:'paper-v1'};
+ check('neděle 18:30 UTC (před otevřením FX): žádný výstup signálem, časem ani SL podle orientační ceny',checkExit(ft,{now:SUN,quote:q(1.08,SUN),signal:sig(-60)})===null&&checkExit({...ft,opened:Date.UTC(2026,9,8,10)},{now:SUN,quote:q(1.1,SUN),signal:sig(60)})===null);
+ const stepSun=paperStep({now:SUN,startEquity:100000,trades:[ft],news:[],signals:{'EUR/USD':sig(-60)},quotes:{'EUR/USD':q(1.08,SUN)},d1:{'EUR/USD':dd(SUN)}});
+ check('neděle: krok simulace nic nezavře ani neotevře',stepSun.closes.length===0&&stepSun.opens.length===0,stepSun);
+ const weekendBar={t:Date.UTC(2026,9,24,12),o:1.1,h:1.1,l:1.085,c:1.1}; // sobotní orientační svíčka pod SL
+ const mon=checkExit(ft,{now:MON,h1:[weekendBar,{t:Date.UTC(2026,9,25,22),o:1.1,h:1.101,l:1.099,c:1.1},{t:Date.UTC(2026,9,26,0),o:1.1,h:1.101,l:1.099,c:1.1}],quote:q(1.1,MON),signal:sig(60)});
+ check('po otevření: víkendová H1 svíčka pod SL se ignoruje',mon===null,mon);
+ const gap=checkExit(ft,{now:MON,h1:[{t:Date.UTC(2026,9,23,20),o:1.1,h:1.101,l:1.099,c:1.1},{t:Date.UTC(2026,9,25,22),o:1.085,h:1.087,l:1.08,c:1.086}],quote:q(1.086,MON)});
+ check('gap po víkendu: otevření pod SL → výstup za otevírací cenu (ne za SL)',gap?.exitReason==='sl'&&gap.exit===1.085&&gap.closed===Date.UTC(2026,9,25,22)&&gap.r<-1,gap);
+ const noGap=checkExit(ft,{now:Date.UTC(2026,9,22,14),h1:[{t:Date.UTC(2026,9,22,11),o:1.095,h:1.096,l:1.085,c:1.09}],quote:q(1.09,Date.UTC(2026,9,22,14))});
+ check('bez zavřeného trhu mezi tím: SL za úroveň SL (beze změny)',noGap?.exitReason==='sl'&&noGap.exit===1.09,noGap);
+ check('pátek 20:45 UTC výstup ještě jde, 21:15 už ne',checkExit(ft,{now:Date.UTC(2026,9,23,20,45),quote:q(1.1,Date.UTC(2026,9,23,20,45)),signal:sig(5)})?.exitReason==='signal'&&checkExit(ft,{now:Date.UTC(2026,9,23,21,15),quote:q(1.1,Date.UTC(2026,9,23,21,15)),signal:sig(5)})===null);
+ const gc=paperStep({now:Date.UTC(2026,9,13,21,30),startEquity:100000,trades:[],news:[],signals:{'GC=F':sig(80)},quotes:{'GC=F':q(2000,Date.UTC(2026,9,13,21,30))},d1:{'GC=F':dd(Date.UTC(2026,9,13,21,30)).map(b=>({...b,o:2000,h:2020,l:1980,c:2000}))}});
+ check('komodity: denní pauza CME 21:00–22:00 UTC → bez vstupu',gc.opens.length===0&&gc.skipped[0]?.reason==='trh je zavřený (obchodní hodiny)',gc.skipped);
+ // neplatné obchody: mimo zůstatek, statistiky, limity i ochlazení; v souhrnech se nevypisují
+ const T0=Date.UTC(2026,9,21,10),done=(o)=>({...ft,id:'v'+Math.random(),closed:T0,exit:1.12,exitReason:'tp',r:2,pnlCzk:2000,pct:1.8,...o});
+ const good=done({}),bad=done({instrument:'GBP/USD',voidReason:'zavřený trh při vstupu',r:-1,pnlCzk:-1000}),badOpen={...ft,id:'vo',instrument:'USD/JPY',voidReason:'zavřený trh při vstupu'};
+ const st=paperStats([good,bad,badOpen],100000,0,[]);
+ check('void: statistiky jen z platných (1 obchod, +2 000 Kč, 0 otevřených)',st.trades===1&&st.balance===102000&&st.open===0&&st.winRate===100&&st.totalR===2,st);
+ const stp=paperStep({now:Date.UTC(2026,9,21,12),startEquity:100000,trades:[good,bad,badOpen],news:[],signals:{'GBP/USD':sig(80),'USD/JPY':sig(80)},quotes:{'GBP/USD':q(1.3,Date.UTC(2026,9,21,12)),'USD/JPY':q(150,Date.UTC(2026,9,21,12))},d1:{'GBP/USD':dd(Date.UTC(2026,9,21,12)).map(b=>({...b,o:1.3,h:1.305,l:1.295,c:1.3})),'USD/JPY':dd(Date.UTC(2026,9,21,12)).map(b=>({...b,o:150,h:151,l:149,c:150}))}});
+ check('void: krok – zůstatek bez neplatných, neplatný otevřený ani zavřený neblokuje trh (24 h) ani místo',stp.balance===102000&&stp.openCount===2&&stp.opens.map(t=>t.instrument).sort().join()==='GBP/USD,USD/JPY'&&stp.closes.length===0,[stp.balance,stp.opens.map(t=>t.instrument),stp.skipped]);
+ const md=paperSummaryMd({started:T0-DAY,stats:st,open:[badOpen],closed:[good,bad]});
+ check('void: shrnutí pro AI bez neplatných',md.includes('otevřené pozice (0)')&&md.includes('posledních 1 uzavřených')&&!md.includes('GBP/USD'),md);
+ const wsum=weeklySummary([{id:'A',started:T0-DAY,startEquity:100000,stats:st,equity:[],trades:[good,bad,badOpen],open:[badOpen]}],T0+DAY);
+ check('void: týdenní souhrn bez neplatných',wsum.variants[0].closed.length===1&&wsum.variants[0].opened.length===1&&wsum.variants[0].open.length===0&&!wsum.text.includes('GBP/USD'),wsum.variants[0]);
+ const {voidPlan,voidReasonOf}=await import('../lib/lab/void.ts');
+ const fx=JSON.parse(readFileSync(new URL('./fixtures/lab-void-fixture.json',import.meta.url),'utf8')).trades.map(t=>({...t,opened:Date.parse(t.opened),closed:t.closed?Date.parse(t.closed):null}));
+ const plan=voidPlan(fx);
+ check('void plán (fixture): víkendové vstupy/výstupy i AAPL v sobotu, krypto ne, hranice svíčky a stock 16:30 ne, už neplatné ne',plan.map(a=>a.id).sort().join()==='f1,f10,f2,f3,f4,f5'&&plan.filter(a=>a.wasOpen).map(a=>a.id).sort().join()==='f2,f3'&&plan.find(a=>a.id==='f4').reason==='zavřený trh při výstupu'&&voidReasonOf({id:'x',instrument:'EUR/USD',opened:SAT,closed:SUN})==='zavřený trh při vstupu i výstupu',plan);
+ const mig=readFileSync(new URL('../drizzle/mariadb/0032_lab_void.sql',import.meta.url),'utf8'),store=readFileSync(new URL('../lib/lab/paper-store.ts',import.meta.url),'utf8');
+ check('migrace 0032: void_reason + index, oddělovač; store čte void_reason a výstup nepřepíše neplatný',/ADD COLUMN IF NOT EXISTS void_reason VARCHAR\(80\) NULL/.test(mig)&&/--> statement-breakpoint/.test(mig)&&/CREATE INDEX IF NOT EXISTS lab_paper_trades_void/.test(mig)&&/void_reason'/.test(store)&&/closed IS NULL AND void_reason IS NULL/.test(store));
 }
 
 if(fails.length){console.log(`\n${fails.length} kontrol selhalo`);process.exit(1)}
