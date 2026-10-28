@@ -36,7 +36,7 @@
 .t-page-head h1{font-size:30px;font-weight:800;letter-spacing:-1px;margin:0}
 .t-page-head p{color:var(--t-muted);margin:4px 0 0;font-size:14px}
 @media(max-width:900px){.t-top{display:flex;justify-content:space-between}.t-nav button{padding:0 11px}}
-@media(max-width:760px){.t-top{padding:0 12px;gap:8px}.t-brand span{display:none}.t-main{padding:14px}.t-nav button svg{display:none}.t-nav button{padding:0 10px;font-size:13px}.t-actions{gap:2px}}
+@media(max-width:760px){.t-top{padding:0 12px;gap:8px}.t-brand span{display:none}.t-main{padding:14px}.t-nav button:not(.t-search) svg{display:none}.t-nav button{padding:0 10px;font-size:13px}.t-actions{gap:2px}}
 /* Navigace jako výřez MacBooku (stejně jako lišty v okrajích Dashboardu): visí z horní hrany okna, rohy plynule
    vykrojené do hrany, jemná linka přes drop-shadow (obkreslí i vykrojení); lišta kolem je průhledná (od 901 px) */
 @media(min-width:901px){

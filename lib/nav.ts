@@ -16,3 +16,10 @@ export function normalizeNav(raw:unknown):Nav{
  return {order,hidden,merge:o.merge===true};
 }
 export function parseNav(s:string|null|undefined):Nav{if(!s)return defaultNav();try{return normalizeNav(JSON.parse(s))}catch{return defaultNav()}}
+// Položky, které lišta ukáže: pořadí z nastavení, bez skrytých (otevřená skrytá zůstane, ať je vidět, kde jsem), při sloučení bez Journalingu.
+export const visibleViews=(nav:Nav,view?:View):View[]=>nav.order.filter(id=>!(nav.merge&&id==='journaling')&&(!nav.hidden.includes(id)||id===view));
+// Mobilní lišta dole: nejvýš `max` míst. Když se položky nevejdou, prvních max−1 zůstane v liště a zbytek jde do „Další“.
+export function mobileNav(nav:Nav,view?:View,max=5):{main:View[];more:View[]}{
+ const list=visibleViews(nav,view),m=Math.max(2,max);
+ return list.length<=m?{main:list,more:[]}:{main:list.slice(0,m-1),more:list.slice(m-1)};
+}

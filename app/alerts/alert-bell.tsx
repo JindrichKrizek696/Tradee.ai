@@ -19,6 +19,7 @@ export function AlertBell(){
  const all=async()=>{try{await readEvents();setEvents(l=>l?.map(e=>({...e,read:true}))??l);setUnread(0)}catch{}};
  return <div className="al-bell-wrap" ref={wrap}>
   <button type="button" className="t-icon-btn al-bell" aria-expanded={open} aria-label={unread?`Alerty, ${unread} nepřečtených`:'Alerty'} title="Alerty" onClick={()=>setOpen(o=>!o)}><Bell size={17}/>{unread>0&&<span className="al-dot" aria-hidden>{unread>99?'99+':unread}</span>}</button>
+  {open&&<div className="al-inbox-back" aria-hidden="true" onClick={()=>setOpen(false)}/>}
   {open&&<div className="al-inbox" role="dialog" aria-label="Spuštěné alerty">
    <div className="al-inbox-head"><b>Spuštěné alerty</b>{unread>0&&<button type="button" className="al-link" onClick={all}>Označit vše jako přečtené</button>}</div>
    {events===null?<p className="al-empty">Načítám…</p>:events.length===0?<p className="al-empty">Zatím se žádný alert nespustil. Alert nastavíš v detailu trhu nebo v grafu (zvonek, pravé tlačítko myši).</p>

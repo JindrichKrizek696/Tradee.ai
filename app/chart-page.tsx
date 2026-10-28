@@ -18,6 +18,8 @@ import {usePalette} from './palette';
 import {matchesText} from '@/lib/market-view';
 import {MarketChart} from './market-chart';
 import {useLive,LiveChange,LiveBadge,fmtPrice} from './live';
+import {MobileNav} from './nav-bar';
+import {useNav} from './nav-prefs';
 import './mt.css';
 import './markets.css';
 const initialMarket={...core,prices:{...core.prices,...expanded.prices},legacy:expanded.legacy,refresh:{attemptedAt:expanded.refresh.attemptedAt,issues:[...core.refresh.issues,...expanded.refresh.issues]}} as MarketData;
@@ -25,6 +27,7 @@ const slugOf=(id:string)=>id.replace(/\//g,'-');
 const list=instruments.filter(i=>i.group!=='currency');
 export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  usePalette();
+ const {nav}=useNav();
  let key=slug;try{key=decodeURIComponent(slug)}catch{}
  const item=list.find(i=>slugOf(i.id)===key);
  const [data,setData]=useState({...initialReport,ffMacro,tePmi,retailOfficial} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState<HistoryLike>({snapshots:[]});
@@ -46,6 +49,8 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
    {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker} owner={owner}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
+  {/* na telefonu stejná lišta dole jako v aplikaci (graf patří k Analýze trhů); výška grafu s ní počítá (--bnav v CSS) */}
+  <MobileNav nav={nav} view="analyzer"/>
  </div>;
 }
 

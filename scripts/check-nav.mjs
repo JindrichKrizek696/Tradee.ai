@@ -1,5 +1,5 @@
 // Kontrola navigace: node --experimental-strip-types scripts/check-nav.mjs
-import {VIEWS,normalizeNav,parseNav,defaultNav,isView} from '../lib/nav.ts';
+import {VIEWS,normalizeNav,parseNav,defaultNav,isView,visibleViews,mobileNav} from '../lib/nav.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const j=x=>JSON.stringify(x);
@@ -15,4 +15,11 @@ check('parseNav',j(parseNav('{"order":["reports"],"hidden":["journal"]}').hidden
 check('merge: výchozí vypnuto, jen pravé true zapíná',defaultNav().merge===false&&normalizeNav({merge:true}).merge===true&&normalizeNav({merge:'true'}).merge===false&&normalizeNav({merge:1}).merge===false&&normalizeNav({}).merge===false);
 check('merge přežije parseNav a nemění pořadí',parseNav('{"merge":true,"hidden":["calendar"]}').merge===true&&j(parseNav('{"merge":true}').order)===j(VIEWS));
 check('isView',isView('journal')&&!isView('admin')&&!isView(undefined));
+const mn=(n,v)=>j(mobileNav(normalizeNav(n),v));
+check('mobil: 6 položek → 4 + Další',mn({})==='{"main":["dashboard","analyzer","reports","calendar"],"more":["journal","journaling"]}',mobileNav(defaultNav()));
+check('mobil: 5 položek se vejde bez Další',mn({hidden:['reports']})==='{"main":["dashboard","analyzer","calendar","journal","journaling"],"more":[]}'&&mn({merge:true})==='{"main":["dashboard","analyzer","reports","calendar","journal"],"more":[]}',mobileNav(normalizeNav({hidden:['reports']})));
+check('mobil: drží vlastní pořadí',mn({order:['journal','calendar','dashboard','reports','analyzer','journaling']})==='{"main":["journal","calendar","dashboard","reports"],"more":["analyzer","journaling"]}');
+check('mobil: otevřená skrytá položka zůstane vidět',mn({hidden:['reports','calendar','journaling']},'calendar')==='{"main":["dashboard","analyzer","calendar","journal"],"more":[]}'&&mn({hidden:['reports','calendar','journaling']},'dashboard')==='{"main":["dashboard","analyzer","journal"],"more":[]}');
+check('mobil: nikdy víc než 5 míst',[{},{merge:true},{hidden:['journal']}].every(n=>{const r=mobileNav(normalizeNav(n));return r.main.length+(r.more.length?1:0)<=5&&r.more.length!==1}));
+check('visibleViews = top lišta',j(visibleViews(normalizeNav({merge:true,hidden:['calendar']})))==='["dashboard","analyzer","reports","journal"]');
 if(fails.length){console.log(`\n${fails.length} selhalo`);process.exit(1)}console.log('\nvše ok');

@@ -43,7 +43,7 @@
 .al-bell-wrap{position:relative}
 .al-bell{position:relative}
 .al-bell .al-dot{position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
-.al-inbox{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(340px,calc(100vw - 24px));background:var(--t-surface);border:1px solid var(--t-border);border-radius:14px;box-shadow:var(--t-shadow,0 12px 40px rgba(0,0,0,.18));padding:8px;display:grid;gap:4px}
+.al-inbox{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(360px,calc(100vw - 24px));max-width:calc(100vw - 24px);background:var(--t-surface);border:1px solid var(--t-border);border-radius:14px;box-shadow:var(--t-shadow,0 12px 40px rgba(0,0,0,.18));padding:8px;display:grid;gap:4px}
 .al-inbox-head{display:flex;align-items:center;gap:8px;padding:4px 6px}
 .al-inbox-head b{flex:1;font-size:14px}
 .al-link{border:0;background:none;color:var(--t-brand);font:inherit;font-size:12px;cursor:pointer;padding:0;text-decoration:none}
@@ -51,8 +51,8 @@
 .al-ev{display:grid;gap:2px;padding:8px 10px;border-radius:10px;text-decoration:none;color:inherit;cursor:pointer;border:0;background:transparent;text-align:left;font:inherit;width:100%}
 .al-ev:hover{background:var(--t-surface-3)}
 .al-ev.unread{background:var(--t-accent-soft,var(--t-surface-2))}
-.al-ev b{font-size:13px}
-.al-ev small{color:var(--t-muted);font-size:12px}
+.al-ev b{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.al-ev small{color:var(--t-muted);font-size:12px;overflow-wrap:anywhere}
 .al-empty{color:var(--t-muted);font-size:13px;padding:10px}
 .al-inbox-foot{display:flex;justify-content:space-between;padding:4px 6px}
 
@@ -86,3 +86,21 @@
 .mc-al-menu button:hover{background:var(--t-surface-3)}
 .mc-al-drag{position:absolute;right:64px;z-index:25;transform:translateY(-50%);pointer-events:none;background:var(--t-brand);color:#fff;font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
 .mc-chart[data-alert-hover="1"],.mc-chart[data-alert-hover="1"] *{cursor:ns-resize!important}
+.al-inbox-back{display:none}
+.al-inbox-head b{min-width:0;overflow-wrap:anywhere}
+/* mobil: schránka jako panel zespodu přes celou šířku, čitelné písmo, text se zalamuje, posun uvnitř */
+@media(max-width:760px){
+ /* hlavička má vlastní vrstvu (z-index 20) – při otevřené schránce ji zvednout nad lištu dole */
+ :root:has(.al-inbox) .t-top{z-index:63}
+ .al-inbox-back{display:block;position:fixed;inset:0;z-index:61;background:#0b0c0e59}
+ :root .al-inbox{position:fixed;left:0;right:0;top:auto;bottom:0;z-index:62;width:auto;max-width:none;max-height:min(80dvh,620px);grid-template-rows:auto minmax(0,1fr) auto;
+  padding:10px max(12px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));border-radius:22px 22px 0 0;border-bottom:0;box-shadow:0 -18px 48px -20px #0b0c0e66}
+ .al-inbox-head{padding:6px 6px 8px;flex-wrap:wrap}
+ .al-inbox-head b{font-size:17px}
+ .al-inbox ul{max-height:none;min-height:0;overscroll-behavior:contain}
+ .al-ev{padding:12px;min-height:52px}
+ .al-ev b{font-size:15px}
+ .al-ev small{font-size:13px}
+ .al-empty{font-size:15px;line-height:1.5}
+ .al-inbox .al-link{min-height:44px;display:inline-flex;align-items:center;font-size:14px}
+}

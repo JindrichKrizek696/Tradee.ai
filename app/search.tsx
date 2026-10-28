@@ -42,9 +42,10 @@ async function loadRemote():Promise<Remote>{
 }
 
 /** Lupa na pravém konci ostrůvku navigace: otevře vyhledávání (stejně jako Ctrl+K nebo „/“). */
-export function SearchButton(){
+// mobile: varianta pro horní lištu na telefonu (ostrůvek navigace je tam schovaný, navigace je dole)
+export function SearchButton({mobile}:{mobile?:boolean}){
  const k=useShortcutLabel();
- return <button type="button" className="t-search" onClick={()=>dispatchEvent(new Event('tradee:search'))} aria-label="Hledat v Tradee" aria-keyshortcuts="Control+K Meta+K" title={`Hledat (${k})`}><Search size={17}/></button>;
+ return <button type="button" className={mobile?'t-icon-btn t-search-m':'t-search'} onClick={()=>dispatchEvent(new Event('tradee:search'))} aria-label="Hledat v Tradee" aria-keyshortcuts="Control+K Meta+K" title={`Hledat (${k})`}><Search size={17}/></button>;
 }
 
 type Props={rows:Row[];calendar:CalendarEvent[];now:number;admin:boolean;owner:boolean;merge:boolean;setView:(v:View)=>void;openMarket:(id:string)=>void;onRefresh:()=>void};
