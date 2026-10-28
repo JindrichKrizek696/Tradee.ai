@@ -1,0 +1,49 @@
+/* PWA: nabídka aktualizace, instalace (menu, banner), návod pro iPhone a okraje bezpečné zóny v nainstalované aplikaci */
+.pwa-toast{position:fixed;z-index:90;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:8px 8px 8px 16px;border-radius:999px;background:var(--t-surface);color:var(--t-fg);border:1px solid var(--t-border-strong);box-shadow:0 18px 48px -18px #0b0c0e59;font-size:14px;font-weight:500;animation:pwa-in .25s ease-out}
+.pwa-toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pwa-toast-btn,.pwa-primary{height:34px;padding:0 16px;border:0;border-radius:999px;background:var(--t-inverse);color:var(--t-on-inverse);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.pwa-toast-btn:hover,.pwa-primary:hover{filter:brightness(1.08)}
+.pwa-x{display:grid;place-items:center;width:32px;height:32px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--t-muted);cursor:pointer}
+.pwa-x:hover{background:var(--t-surface-3);color:var(--t-fg)}
+@keyframes pwa-in{from{opacity:0;transform:translate(-50%,8px)}}
+@media(prefers-reduced-motion:reduce){.pwa-toast{animation:none}}
+
+.p-link.pwa-menu{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border-left:0;border-right:0;border-bottom:0;text-align:left;cursor:pointer;color:var(--t-brand-fg)}
+
+.pwa-banner{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:12px 12px 12px 16px;border-radius:18px;background:var(--t-surface);border:1px solid var(--t-border);box-shadow:var(--t-shadow)}
+.pwa-banner-mark{width:34px;height:auto;flex:none;color:var(--t-fg)}
+.pwa-banner-text{display:grid;flex:1;min-width:0;font-size:14px}
+.pwa-banner-text b{font-weight:650}
+.pwa-banner-text span{color:var(--t-muted)}
+@media(max-width:560px){.pwa-banner{flex-wrap:wrap}.pwa-banner-text{flex-basis:calc(100% - 100px)}.pwa-banner .pwa-primary{order:3;margin-left:48px}}
+
+.pwa-back{position:fixed;inset:0;z-index:95;display:grid;place-items:end center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));background:#0b0c0e73;overscroll-behavior:contain}
+@media(min-width:640px){.pwa-back{place-items:center}}
+.pwa-box{position:relative;width:min(440px,100%);max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;display:grid;gap:14px;padding:22px;background:var(--t-surface);color:var(--t-fg);border:1px solid var(--t-border-strong);border-radius:22px;box-shadow:0 24px 64px -20px #0b0c0e66;outline:none}
+.pwa-box h2{margin:0;padding-right:32px;font-size:20px;line-height:1.3}
+.pwa-box-x{position:absolute;top:12px;right:12px}
+.pwa-steps{margin:0;padding:0;list-style:none;display:grid;gap:10px;font-size:15px}
+.pwa-steps li{display:flex;align-items:center;gap:12px}
+.pwa-ico{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:10px;background:var(--t-accent-soft);color:var(--t-brand-fg)}
+.pwa-note{margin:0;padding:10px 12px;border-radius:12px;background:var(--t-notice-bg);border:1px solid var(--t-notice-border);font-size:13.5px;color:var(--t-fg-2)}
+.pwa-box .pwa-primary{height:40px;justify-self:stretch}
+
+.pwa-ios-note{margin:8px 0 0;font-size:12.5px;color:var(--t-muted);line-height:1.45}
+.pwa-ios-note button{padding:0;border:0;background:none;color:var(--t-brand-fg);font-weight:600;cursor:pointer;text-decoration:underline}
+
+/* Bezpečná zóna (výřez, zaoblené rohy, domovská lišta) – viewport-fit=cover v layoutu. Boční výřez má jen telefon na šířku,
+   proto boční okraje jen do 1099 px (nad tím platí vlastní odsazení .t-main.wide). :root zvedá specifičnost nad dashboard.css. */
+:root .t-top{padding-top:env(safe-area-inset-top);height:calc(64px + env(safe-area-inset-top))}
+:root .t-footer{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+@media(min-width:901px){:root .t-top>.t-nav{top:env(safe-area-inset-top)}}
+@media(max-width:1099px){
+ :root .t-top{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
+ :root .t-main{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
+}
+@media(max-width:760px){
+ :root .t-top{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+ :root .t-main{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+}
+/* Pull-to-refresh / gumové přetažení jen tam, kde ruší: celostránkový graf (svislé tažení cenové osy) a otevřené dialogy */
+html:has(.mc-page),html:has(.pwa-back),html:has(.rp-back),html:has(.mc-chart[data-drawing="1"]){overscroll-behavior-y:none}
+@media(display-mode:standalone){body{-webkit-tap-highlight-color:transparent}}

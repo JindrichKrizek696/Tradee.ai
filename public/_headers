@@ -1,0 +1,14 @@
+# PWA: service worker a manifest se nesmí zaseknout v HTTP cache (aktualizace aplikace); offline stránka také ne
+/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json
+/offline
+  Cache-Control: no-cache
+/offline.html
+  Cache-Control: no-cache
+# Hashované soubory (dřív generoval vinext sám; s vlastním _headers to nedělá, proto ručně)
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

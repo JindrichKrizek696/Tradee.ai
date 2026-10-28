@@ -1,10 +1,13 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {registerSW} from './pwa/register';
+import {IosPushNote} from './pwa/pwa-ui';
+import {isIos,isStandalone} from './pwa/install';
 type N={popup:boolean;mail:boolean;push:boolean;vapidPublic:string|null};
 const key=(s:string)=>{const p='='.repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))};
 const json={'Content-Type':'application/json'};
-const ios=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||(navigator as unknown as {standalone?:boolean}).standalone===true;
+const ios=()=>isIos(navigator.userAgent,navigator.platform,navigator.maxTouchPoints||0);
+const standalone=isStandalone;
 const supported=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 // Přepínače upozornění v menu avatara: okno v aplikaci, mail, push (push se zapíná na každém zařízení zvlášť).
 export function NotifySettings(){
@@ -17,11 +20,11 @@ export function NotifySettings(){
  const save=async(p:Partial<N>)=>{const r=await fetch('/api/notify',{method:'PUT',headers:json,body:JSON.stringify(p)});if(!r.ok)throw Error();const j=await r.json() as N;setN(o=>({...(o as N),...j,vapidPublic:o?.vapidPublic??null}))};
  const flip=async(k:'popup'|'mail')=>{if(busy)return;setBusy(true);setMsg('');try{await save({[k]:!n[k]})}catch{setMsg('Nastavení se nepodařilo uložit.')}setBusy(false)};
  const pushOn=async()=>{
-  if(ios()&&!standalone()){setMsg('Na iPhonu nejdřív přidej Tradee na plochu (Sdílet → Přidat na plochu).');return}
+  if(ios()&&!standalone()){setMsg('Na iPhonu nejdřív přidej Tradee na plochu (Sdílet → Přidat na plochu) a push zapni v nainstalované aplikaci (iOS 16.4+).');return}
   if(!supported()){setMsg('Tento prohlížeč push nepodporuje.');return}
   const perm=await Notification.requestPermission();
   if(perm!=='granted'){setMsg('Prohlížeč upozornění blokuje – povol je v nastavení prohlížeče.');return}
-  const reg=await navigator.serviceWorker.register('/sw.js');await navigator.serviceWorker.ready;
+  const reg=await registerSW();if(!reg)throw Error('sw');await navigator.serviceWorker.ready;
   const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key(n.vapidPublic as string)}),j=sub.toJSON();
   const r=await fetch('/api/push',{method:'POST',headers:json,body:JSON.stringify({endpoint:j.endpoint,keys:j.keys})});
   if(!r.ok){await sub.unsubscribe().catch(()=>{});throw Error()}
@@ -41,6 +44,7 @@ export function NotifySettings(){
   {sw('Okno v aplikaci',n.popup,()=>flip('popup'))}
   {sw('Mail',n.mail,()=>flip('mail'))}
   {n.vapidPublic&&sw('Push',pushChecked,flipPush)}
+  {n.vapidPublic&&<IosPushNote/>}
   {state&&<small>{state}</small>}
   {msg&&<p className="p-error" role="alert">{msg}</p>}
  </div>;

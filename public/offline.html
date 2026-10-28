@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ebf0f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<title>Offline · Tradee</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('tradee.theme')==='dark'?'dark':'light'}catch(e){document.documentElement.dataset.theme='light'}</script>
+<style>
+:root{--bg:#ebf0f9;--glow:#245bff47;--card:#fff;--border:#e2e6ee;--fg:#0b0c0e;--muted:#687080;--brand:#245bff;color-scheme:light}
+:root[data-theme=dark]{--bg:#000;--glow:#2f5dff4d;--card:#060709;--border:#171a25;--fg:#f2f4f8;--muted:#8a91a3;--brand:#4a78ff;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+ background:radial-gradient(60% 45% at 50% 0,var(--glow),transparent 70%),var(--bg);color:var(--fg);font:16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{width:100%;max-width:440px;padding:32px 28px;border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:0 1px 2px #1b2a5a0d,0 8px 24px -16px #1b2a5a33;text-align:center}
+svg{width:56px;height:auto;color:var(--fg)}
+h1{margin:18px 0 6px;font-size:22px;letter-spacing:-.02em}
+p{margin:0 0 22px;color:var(--muted);font-size:15px}
+button{height:42px;padding:0 20px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+small{display:block;margin-top:16px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<main>
+ <svg viewBox="0 0 340 232" aria-hidden="true"><path fill="currentColor" d="M70 1H217V152L138 231V91L159 70H1Z"/><path fill="#2a5cf5" d="M243 1H339L243 97Z"/></svg>
+ <h1>Jsi offline</h1>
+ <p>Tradee potřebuje připojení k internetu, aby načetl aktuální data. Jakmile se připojení vrátí, stránka se obnoví sama.</p>
+ <button type="button" onclick="location.reload()">Zkusit znovu</button>
+ <small>Z bezpečnostních důvodů se tvoje data v zařízení neukládají.</small>
+</main>
+<script>addEventListener('online',function(){location.reload()})</script>
+</body>
+</html>

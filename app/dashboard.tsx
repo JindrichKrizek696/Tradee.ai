@@ -1,5 +1,6 @@
 'use client';
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
+import {InstallBanner} from './pwa/pwa-ui';
 import {useEffect,useId,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {MyTrading,type P,type Range} from './my-trading';
 import {OpenPositionsCard,useOpenPositions} from './open-positions';
@@ -110,7 +111,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,greet,ope
  const dateLine=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',year:'numeric'});
  const pct=(n:number)=>b.scored?100*n/b.scored+'%':'0%',spark=(r:Row)=>scoreSeries(history,r.id,r.r.method,'1m',now).map(p=>p.score);
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
- return <div className="d-dash">
+ return <div className="d-dash"><InstallBanner/>
   <header className="d-pagehead">
    <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{(greet||userName)&&<>, <span className="d-hello">{greet||vocative(userName)}</span></>}</h1></div>
    <div className="d-status">

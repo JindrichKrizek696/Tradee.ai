@@ -1,6 +1,8 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {dropPush} from './notify-settings';
+import {InstallMenuItem} from './pwa/pwa-ui';
+import {clearPwaCaches} from './pwa/register';
 import {ThemeToggle} from './theme';
 import {NavBar} from './nav-bar';
 import {useNav} from './nav-prefs';
@@ -21,7 +23,7 @@ export function Shell({wide,view,setView,busy,onRefresh,userName,avatar,avatarCo
     <AlertBell/>
     <ThemeToggle/>
     <button className={'t-icon-btn'+(busy?' spin':'')} onClick={onRefresh} disabled={busy} aria-label="Obnovit podklady" title="Obnovit podklady"><RefreshCw size={17}/></button>
-    <div className="t-avatar-wrap" ref={wrap}><button type="button" className="t-avatar" title={userName} aria-label={'Přihlášen: '+userName+'. Menu účtu'} aria-expanded={menu} onClick={()=>setMenu(!menu)}><Avatar name={userName} src={avatar} color={avatarColor}/></button>{menu&&<div className="p-picker p-menu"><a className="p-me" href="/profil"><span className="p-me-av"><Avatar name={userName} src={avatar} color={avatarColor}/></span><span><b>{userName}</b><small>Můj profil</small></span></a><a className="p-link" href="/nastaveni">Nastavení</a><a className="p-link" href="/alerty">Alerty</a>{admin&&<a className="p-link" href="/admin">Administrace</a>}<a className="p-link" href="/mt">Propojení s MetaTraderem</a><a className="p-link" href="/pravidla">Pravidla a strategie</a>{owner&&<a className="p-link" href="/laborator">Laboratoř</a>}<form method="post" action="/auth/logout" className="p-logout" onSubmit={e=>{e.preventDefault();const f=e.currentTarget;dropPush().finally(()=>f.submit())}}><button type="submit">Odhlásit</button></form></div>}</div>
+    <div className="t-avatar-wrap" ref={wrap}><button type="button" className="t-avatar" title={userName} aria-label={'Přihlášen: '+userName+'. Menu účtu'} aria-expanded={menu} onClick={()=>setMenu(!menu)}><Avatar name={userName} src={avatar} color={avatarColor}/></button>{menu&&<div className="p-picker p-menu"><a className="p-me" href="/profil"><span className="p-me-av"><Avatar name={userName} src={avatar} color={avatarColor}/></span><span><b>{userName}</b><small>Můj profil</small></span></a><a className="p-link" href="/nastaveni">Nastavení</a><a className="p-link" href="/alerty">Alerty</a>{admin&&<a className="p-link" href="/admin">Administrace</a>}<a className="p-link" href="/mt">Propojení s MetaTraderem</a><a className="p-link" href="/pravidla">Pravidla a strategie</a>{owner&&<a className="p-link" href="/laborator">Laboratoř</a>}<InstallMenuItem onDone={()=>setMenu(false)}/><form method="post" action="/auth/logout" className="p-logout" onSubmit={e=>{e.preventDefault();const f=e.currentTarget;Promise.all([dropPush(),clearPwaCaches()]).finally(()=>f.submit())}}><button type="submit">Odhlásit</button></form></div>}</div>
    </div>
   </header>
   <main className={'t-main'+(wide?' wide':'')}>{children}</main>
