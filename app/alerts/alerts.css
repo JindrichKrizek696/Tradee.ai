@@ -78,6 +78,7 @@
 .al-hist em{font-style:normal;color:var(--t-muted)}
 .al-ok{color:#16a34a}.al-fail{color:#dc2626}
 .al-new{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.al-new input[type=search]{height:36px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);color:var(--t-fg);font:inherit;padding:0 14px;min-width:0;flex:1 1 180px;max-width:260px}
 .al-new select{height:36px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);color:var(--t-fg);font:inherit;padding:0 12px}
 
 /* graf: kontextové menu a štítek tažení */

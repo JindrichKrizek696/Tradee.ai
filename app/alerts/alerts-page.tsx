@@ -3,6 +3,8 @@
 import {useEffect,useMemo,useState} from 'react';
 import {ArrowLeft,Bell,ChartCandlestick,History,Pause,Pencil,Play,Plus,Trash2} from 'lucide-react';
 import {instruments} from '@/lib/markets';
+import {matchesText} from '@/lib/market-view';
+import {resolveAlias,suggestAliases} from '@/lib/instrument-info';
 import {conditionLabel,statusOf,STATUS_LABEL,slugOf,MAX_ACTIVE,type Status} from '@/lib/alerts/logic';
 import {useLive} from '../live';
 import {usePalette} from '../palette';
@@ -24,12 +26,15 @@ type Filter='active'|'done'|'all';
 const FILTERS:[Filter,string][]=[['active','Aktivní'],['done','Vypršelé'],['all','Vše']];
 const inFilter=(st:Status,f:Filter)=>f==='all'||(f==='active'?st==='active':st==='triggered'||st==='expired');
 const chartable=(id:string)=>GROUP.get(id)!=='currency';
+// výběr trhu pro nový alert: hledání i přes aliasy (nq, us100, gold, xauusd…), cíl aliasu první
+const pickList=(q:string)=>{const h=instruments.filter(i=>matchesText(i.id+' '+i.name,q)),a=q.trim()?resolveAlias(q):null,t=a?h.find(i=>i.id===a.id):undefined;return t?[t,...h.filter(i=>i!==t)]:h};
 export default function AlertsPage(){
  usePalette();
  const {data,error}=useAlerts(),live=useLive(),[now,setNow]=useState(()=>Date.now());
  const [filter,setFilter]=useState<Filter>('active'),[q,setQ]=useState(''),[edit,setEdit]=useState<{alert?:ClientAlert;instrument:string}|null>(null);
  const [pick,setPick]=useState(instruments.find(i=>i.group==='fx')?.id||instruments[0].id),[open,setOpen]=useState<string|null>(null),[msg,setMsg]=useState('');
- const [events,setEvents]=useState<AlertEvent[]|null>(null),[unread,setUnread]=useState(0);
+ const [events,setEvents]=useState<AlertEvent[]|null>(null),[unread,setUnread]=useState(0),[pq,setPq]=useState('');
+ const opts=useMemo(()=>pickList(pq),[pq]),pal=pq.trim()?resolveAlias(pq):null,psug=opts.length?[]:suggestAliases(pq);
  useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),60000);return()=>clearInterval(t)},[]);
  useEffect(()=>{const load=()=>loadEvents({limit:100}).then(j=>{setEvents(j.events);setUnread(j.unread)}).catch(()=>setEvents([]));load();return onAlertsChanged(load)},[]);
  const list=useMemo(()=>{const f=q.trim().toLowerCase();return (data?.alerts||[]).filter(a=>inFilter(statusOf(a,now),filter)&&(!f||(nameOf(a.instrument)+' '+a.instrument+' '+conditionLabel(a,nameOf(a.instrument))+' '+(a.note||'')).toLowerCase().includes(f)))},[data,filter,q,now]);
@@ -46,8 +51,10 @@ export default function AlertsPage(){
    <AlertNotifyCard/>
    <section className="mt-card">
     <h2>Nový alert</h2>
-    <div className="al-new"><select aria-label="Trh" value={pick} onChange={e=>setPick(e.target.value)}>{instruments.map(i=><option key={i.id} value={i.id}>{i.name}{i.group==='currency'?' (jen skóre)':''}</option>)}</select>
+    <div className="al-new"><input type="search" aria-label="Najít trh" placeholder="Najít trh: nq, gold, us500…" value={pq} onChange={e=>{setPq(e.target.value);const f=pickList(e.target.value)[0];if(f)setPick(f.id)}}/><select aria-label="Trh" value={pick} onChange={e=>setPick(e.target.value)}>{(opts.length?opts:instruments).map(i=><option key={i.id} value={i.id}>{i.name}{i.group==='currency'?' (jen skóre)':''}</option>)}</select>
      <button type="button" className="al-btn primary" onClick={()=>setEdit({instrument:pick})}><Plus size={15} aria-hidden/>Nový alert</button></div>
+    {pal?.hint&&<p className="mt-lead" role="status" style={{marginTop:8}}>{pal.hint}</p>}
+    {pq.trim()&&!opts.length&&<p className="mt-lead" role="status" style={{marginTop:8}}>Nic nenalezeno{psug.length?<> – možná {psug.map((s,n)=><span key={s.key}>{n?', ':''}<button type="button" className="al-link" onClick={()=>{setPq(s.key);setPick(s.id)}}>{s.key} → {s.label}</button></span>)}</>:'.'}</p>}
     {data&&!data.pushAvailable&&<p className="mt-lead" style={{marginTop:10}}>Push nemáš zapnutý na žádném zařízení – alerty dorazí e-mailem. Zapneš ho výše v kartě „Kam posílat alerty“.</p>}
    </section>
    <section className="mt-card">

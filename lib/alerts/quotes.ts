@@ -1,6 +1,7 @@
 // Čerstvé ceny pro alerty: Yahoo v8 chart (interval 1m, range 1d, bez pre/post) a Binance klines pro krypto.
 // Čisté parsery + stahování s vloženým fetch (testy bez sítě: scripts/check-alerts.mjs).
 import type {Quote,Bar} from './logic.ts';
+import {YAHOO_OVERRIDE} from '../instrument-info.ts';
 export const UA='Mozilla/5.0'; // dlouhý Chrome UA Yahoo odmítá (429), krátký projde – stejně jako scripts/refresh-live.mjs
 export const BINANCE:Record<string,string>={'BTC-USD':'BTCUSDT','ETH-USD':'ETHUSDT','SOL-USD':'SOLUSDT'};
 const CURRENCIES=['USD','EUR','GBP','CHF','JPY','CAD','AUD','NZD'];
@@ -8,6 +9,7 @@ const CURRENCIES=['USD','EUR','GBP','CHF','JPY','CAD','AUD','NZD'];
 export function quoteSource(id:string):{src:'binance';symbol:string}|{src:'yahoo';symbol:string}|null{
  if(CURRENCIES.includes(id))return null;
  if(BINANCE[id])return {src:'binance',symbol:BINANCE[id]};
+ if(YAHOO_OVERRIDE[id])return {src:'yahoo',symbol:YAHOO_OVERRIDE[id]};
  const m=id.match(/^([A-Z]{3})\/([A-Z]{3})$/);return {src:'yahoo',symbol:m?m[1]+m[2]+'=X':id};
 }
 type Y={chart?:{result?:{meta?:{regularMarketPrice?:number;chartPreviousClose?:number;previousClose?:number;regularMarketTime?:number};timestamp?:number[];indicators?:{quote?:{high?:(number|null)[];low?:(number|null)[];close?:(number|null)[]}[]}}[]|null}};

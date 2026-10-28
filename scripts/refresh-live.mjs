@@ -1,7 +1,7 @@
 // Živé ceny z Yahoo (15 min) → market_live, market_intraday. Cron přes scripts/refresh-live.sh.
 // node --experimental-strip-types scripts/refresh-live.mjs [--dry]   (--dry = jen stáhne a vypíše, nic neukládá)
 import {readFileSync} from 'node:fs';
-import {instruments,fxCurrencies} from '../lib/markets.ts';
+import {instruments,fxCurrencies,isModelPair} from '../lib/markets.ts';
 import {yahooSymbol,parseChart,changePct,currencyChange,currencySeries} from '../lib/live.ts';
 const dry=process.argv.includes('--dry');
 const UA='Mozilla/5.0'; // dlouhý Chrome UA Yahoo odmítá s HTTP 429 (neodpovídá TLS otisku Node/curl), krátký projde
@@ -13,8 +13,8 @@ async function chart(symbol){
 const list=instruments.map(i=>({id:i.id,symbol:yahooSymbol(i.id,fxCurrencies)})).filter(x=>x.symbol);
 const got={},fails=[];
 for(let i=0;i<list.length;i+=6)await Promise.all(list.slice(i,i+6).map(async x=>{try{const c=await chart(x.symbol);if(!c)throw Error('prázdná odpověď');got[x.id]={...c,symbol:x.symbol}}catch(e){fails.push(x.id+': '+(e.name==='AbortError'?'timeout':e.message))}}));
-// měnové indexy z párů
-const fx=Object.fromEntries(Object.entries(got).filter(([id])=>id.includes('/')).map(([id,q])=>[id,{...q,changePct:changePct(q.price,q.prevClose)}]));
+// měnové indexy jen z 28 párů 8měnového modelu (USD/CZK do indexu USD nepatří)
+const fx=Object.fromEntries(Object.entries(got).filter(([id])=>isModelPair(id)).map(([id,q])=>[id,{...q,changePct:changePct(q.price,q.prevClose)}]));
 for(const c of fxCurrencies){
  const ch=currencyChange(c,fx);if(ch===null)continue;
  const mine=Object.entries(fx).filter(([id])=>id.split('/').includes(c)).map(([,q])=>q),mt=Math.max(...mine.map(q=>q.marketTime));

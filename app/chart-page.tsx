@@ -16,6 +16,8 @@ import {marketScore,instruments,groups} from '@/lib/markets';
 import type {HistoryLike} from '@/lib/dashboard';
 import {usePalette} from './palette';
 import {matchesText} from '@/lib/market-view';
+import {resolveAlias,suggestAliases} from '@/lib/instrument-info';
+import {DataSourceBadge} from './data-source';
 import {MarketChart} from './market-chart';
 import {useLive,LiveChange,LiveBadge,fmtPrice} from './live';
 import {MobileNav} from './nav-bar';
@@ -43,7 +45,7 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  // stránka na celou výšku okna: horní lišta + karta grafu, která vyplní zbytek (bez posouvání stránky; i v samostatném okně na druhém monitoru)
  return <div className="mt-page score-v2 tradee mc-page">
   <header className="mt-top mc-page-top"><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
-   {item&&<div className="mc-page-live"><h1>{item.name}</h1>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
+   {item&&<div className="mc-page-live"><h1>{item.name}</h1><DataSourceBadge id={item.id} compact/>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
   </header>
   <main className="mt-main mc-page-main">
    {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker} owner={owner}/></div>
@@ -57,7 +59,10 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
 function MarketPicker({current,onPick}:{current?:string;onPick:(id:string)=>void}){
  const [q,setQ]=useState(''),[open,setOpen]=useState(false),[act,setAct]=useState(0),box=useRef<HTMLDivElement>(null);
  const cur=list.find(i=>i.id===current);
- const hits=useMemo(()=>list.filter(i=>i.id!==current&&matchesText(i.id+' '+i.name,q)).slice(0,12),[q,current]);
+ // alias (nq, us100, xauusd…) → cílový trh první; NQ/ES: nápověda, že jde o index; nic nenalezeno → nejbližší aliasy
+ const al=q.trim()?resolveAlias(q):null;
+ const hits=useMemo(()=>{const h=list.filter(i=>i.id!==current&&matchesText(i.id+' '+i.name,q)),t=al?h.find(i=>i.id===al.id):undefined;return (t?[t,...h.filter(i=>i!==t)]:h).slice(0,12)},[q,current,al]);
+ const sug=useMemo(()=>hits.length||!q.trim()?[]:suggestAliases(q).filter(s=>list.some(i=>i.id===s.id&&i.id!==current)),[hits.length,q,current]);
  useEffect(()=>{if(!open)return;const close=(e:MouseEvent)=>{if(box.current&&!box.current.contains(e.target as Node))setOpen(false)};document.addEventListener('mousedown',close);return()=>document.removeEventListener('mousedown',close)},[open]);
  useEffect(()=>setAct(0),[q]);
  const pick=(id:string)=>{setOpen(false);setQ('');onPick(id)};
@@ -67,7 +72,9 @@ function MarketPicker({current,onPick}:{current?:string;onPick:(id:string)=>void
    onFocus={()=>setOpen(true)} onChange={e=>{setQ(e.target.value);setOpen(true)}}
    onKeyDown={e=>{if(e.key==='ArrowDown'){e.preventDefault();setOpen(true);setAct(a=>Math.min(a+1,hits.length-1))}else if(e.key==='ArrowUp'){e.preventDefault();setAct(a=>Math.max(a-1,0))}else if(e.key==='Enter'){e.preventDefault();if(hits[act])pick(hits[act].id)}else if(e.key==='Escape'){setOpen(false);(e.target as HTMLInputElement).blur()}}}/>
   {open&&<ul className="mc-combo-list" id="mc-combo-list" role="listbox" aria-label="Nalezené trhy">
+   {al?.hint&&<li className="none" role="presentation">{al.hint}</li>}
    {hits.length?hits.map((i,n)=><li key={i.id} id={'mc-opt-'+n} role="option" aria-selected={n===act} className={n===act?'on':''} onMouseEnter={()=>setAct(n)} onMouseDown={e=>{e.preventDefault();pick(i.id)}}><b>{i.name}</b><small>{groups[i.group]||''}</small></li>)
+   :sug.length?sug.map(s=><li key={s.key} role="option" aria-selected={false} onMouseDown={e=>{e.preventDefault();pick(s.id)}}><b>{s.key}?</b><small>→ {s.label}</small></li>)
    :<li className="none" role="option" aria-selected={false} aria-disabled="true">Nic nenalezeno</li>}
   </ul>}
  </div>;

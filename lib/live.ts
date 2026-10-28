@@ -1,12 +1,14 @@
 // Živé ceny trhů (Yahoo, 15 min): symboly, parsování, síla měn, „dnešní" body, stav. Čisté funkce – testy scripts/check-live.mjs.
+import {YAHOO_OVERRIDE} from './instrument-info.ts';
 export type LivePoint=[number,number]; // [čas ms UTC, cena]
 export type LiveQuote={price:number;prevClose:number;changePct:number;high:number|null;low:number|null;marketTime:number;updated:number;points:LivePoint[]};
 export type ParsedChart={price:number;prevClose:number;marketTime:number;sessionStart:number|null;points:LivePoint[]};
 export type LiveState='live'|'delayed'|'closed';
 const r4=(n:number)=>Math.round(n*1e4)/1e4;
-// FX pár → Yahoo (EURUSD=X); měnové indexy Yahoo nemá (null); ostatní beze změny
+// FX pár → Yahoo (EURUSD=X, výjimky v YAHOO_OVERRIDE: USD/CZK → CZK=X); měnové indexy Yahoo nemá (null); ostatní beze změny
 export function yahooSymbol(id:string,currencies:readonly string[]):string|null{
  if(currencies.includes(id))return null;
+ if(YAHOO_OVERRIDE[id])return YAHOO_OVERRIDE[id];
  const m=id.match(/^([A-Z]{3})\/([A-Z]{3})$/);return m?m[1]+m[2]+'=X':id;
 }
 export const changePct=(price:number,prev:number)=>prev>0&&Number.isFinite(price)?r4((price/prev-1)*100):0;

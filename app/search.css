@@ -47,3 +47,8 @@
  .sr-input input{font-size:16px}
  .sr-badge{max-width:40%;overflow:hidden;text-overflow:ellipsis}
 }
+.sr-hint{margin:0;padding:8px 18px;border-bottom:1px solid var(--t-border);background:var(--t-notice-bg);color:var(--t-fg-2);font-size:13px;line-height:1.45}
+.sr-suggest{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px}
+.sr-suggest button{padding:3px 10px;border-radius:999px;border:1px solid var(--t-border-strong);background:var(--t-surface-2);color:var(--t-fg);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.sr-suggest button small{font-weight:400;color:var(--t-muted)}
+.sr-suggest button:hover,.sr-suggest button:focus-visible{border-color:var(--t-brand)}

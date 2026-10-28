@@ -1,3 +1,4 @@
+import {resolveAlias} from './instrument-info.ts';
 // Seznam trhů: čisté výpočty pro top signály, heatmapu a tabulku.
 export type Trend=1|-1|0|null;
 export type MarketItem={id:string;name:string;group:string;score:number|null;trend:Trend;coverage:number;bias:string};
@@ -37,9 +38,12 @@ export function sortItems(items:MarketItem[],key:SortKey,dir:1|-1){
 }
 
 // hledání trhů: bez ohledu na velikost písmen, mezery, lomítka, pomlčky, tečky a čárky (eurusd = EUR/USD, btcusd = BTC-USD)
+// + aliasy brokerů a futures (nq/us100 → ^NDX, xauusd/gold → GC=F, dxy → USD…; lib/instrument-info.ts)
 export const normalize=(s:string)=>s.toUpperCase().replace(/[\s/\-._·,^]+/g,'');
-export const matchesText=(text:string,q:string)=>!q.trim()||normalize(text).includes(normalize(q));
-export const matchesQuery=(i:MarketItem,q:string)=>!q.trim()||normalize(i.id+' '+i.name).includes(normalize(q));
+const aliasHit=(id:string,q:string)=>resolveAlias(q)?.id===id;
+/** text = „id název“ (id je první slovo – podle něj se pozná cíl aliasu) */
+export const matchesText=(text:string,q:string)=>!q.trim()||normalize(text).includes(normalize(q))||aliasHit(text.trim().split(/\s+/)[0],q);
+export const matchesQuery=(i:MarketItem,q:string)=>!q.trim()||normalize(i.id+' '+i.name).includes(normalize(q))||aliasHit(i.id,q);
 
 export function filterItems(items:MarketItem[],f:{query:string;score:ScoreFilter;flag:string},flags:Record<string,string>){
  return items.filter(i=>matchesQuery(i,f.query)&&(f.flag==='all'||(flags[i.id]||'none')===f.flag)&&(

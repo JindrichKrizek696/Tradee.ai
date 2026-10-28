@@ -32,7 +32,7 @@ const readSess=():SessGroup=>{if(sessPick)return sessPick;try{const v=localStora
 const subSess=(f:()=>void)=>{addEventListener('tradee:sess',f);return()=>removeEventListener('tradee:sess',f)};
 const pickSess=(v:SessGroup)=>{sessPick=v;try{localStorage.setItem(SESS_KEY,v)}catch{}dispatchEvent(new Event('tradee:sess'))};
 // Symboly jen do ikon párů (NZD = NZ$, „N$“ je namibijský dolar)
-const SYM:Record<string,string>={EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',AUD:'A$',NZD:'NZ$',CAD:'C$'};
+const SYM:Record<string,string>={EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',AUD:'A$',NZD:'NZ$',CAD:'C$',CZK:'Kč'};
 const ASSET:Record<string,[string,string?]>={'BTC-USD':['₿','#f7931a'],'ETH-USD':['Ξ','#627eea'],'SOL-USD':['◎','#9945ff'],'^NDX':['N'],'^GSPC':['S'],'GC=F':['Au','#c9a227'],'SI=F':['Ag','#8a9099'],'CL=F':['W','#3b3f46'],'BZ=F':['B','#3b3f46']};
 type Tile=React.CSSProperties&{'--i'?:number};
 

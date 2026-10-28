@@ -3,7 +3,9 @@ import json,datetime as dt,urllib.request,urllib.parse,math,statistics as st,cal
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 CODES={'CAD':'090741','JPY':'097741','EUR':'099741','AUD':'232741','USD':'098662','NZD':'112741','GBP':'096742','CHF':'092741'}
-ASSETS={'BTC-USD':'Bitcoin','ETH-USD':'Ethereum','SOL-USD':'Solana','^NDX':'Nasdaq 100','^GSPC':'S&P 500','AAPL':'Apple','MSFT':'Microsoft','NVDA':'NVIDIA','AMZN':'Amazon','GOOGL':'Alphabet','META':'Meta','TSLA':'Tesla','BRK-B':'Berkshire Hathaway','JPM':'JPMorgan Chase','AVGO':'Broadcom','GC=F':'Zlato','SI=F':'Stříbro','CL=F':'Ropa WTI','BZ=F':'Ropa Brent'}
+ASSETS={'BTC-USD':'Bitcoin','ETH-USD':'Ethereum','SOL-USD':'Solana','^NDX':'Nasdaq 100','^GSPC':'S&P 500','AAPL':'Apple','MSFT':'Microsoft','NVDA':'NVIDIA','AMZN':'Amazon','GOOGL':'Alphabet','META':'Meta','TSLA':'Tesla','BRK-B':'Berkshire Hathaway','JPM':'JPMorgan Chase','AVGO':'Broadcom','GC=F':'Zlato','SI=F':'Stříbro','CL=F':'Ropa WTI','BZ=F':'Ropa Brent','USD/CZK':'USD/CZK'}
+# FX mimo 8měnový model (lib/instrument-info.ts TECH_FX): cena pro technický model; klíč = id trhu, stahuje se Yahoo symbol
+YAHOO={'USD/CZK':'CZK=X'}
 # Komodity: COT z CFTC Disaggregated (futures only), skupina managed money jde do skóre (lib/markets.ts).
 # Brent chybí záměrně: hlavní ICE Brent CFTC nevykazuje a NYMEX Brent Last Day má zanedbatelné pozice fondů.
 DISAGG={'GC=F':'088691','SI=F':'084691','CL=F':'067651'}
@@ -46,7 +48,8 @@ def run():
   print('Disaggregated:',len(DISAGG),flush=True)
  except Exception as e:issues.append('Disaggregated COT: '+str(e))
  def price(symbol):
-  url='https://query1.finance.yahoo.com/v8/finance/chart/'+urllib.parse.quote(symbol)+'?range=15y&interval=1d'
+  ysym=YAHOO.get(symbol,symbol)
+  url='https://query1.finance.yahoo.com/v8/finance/chart/'+urllib.parse.quote(ysym)+'?range=15y&interval=1d'
   raw=get(url)['chart']['result'][0];adj=raw['indicators'].get('adjclose',[{}])[0].get('adjclose',raw['indicators']['quote'][0]['close']);tz=dt.timezone(dt.timedelta(seconds=raw['meta']['gmtoffset']))
   series=[(dt.datetime.fromtimestamp(t,tz).date(),math.log(v)) for t,v in zip(raw['timestamp'],adj) if v and v>0 and dt.datetime.fromtimestamp(t,tz).date()<today];assert len(series)>=200
   assert 0<=(today-series[-1][0]).days<=7,'stale close'
@@ -62,7 +65,7 @@ def run():
    months[str(m)]={'years':years}
   prior=[v for day,v in series if day<today.replace(day=1)][-1];values={day.day:v for day,v in series if day.year==today.year and day.month==today.month};v=prior;current=[]
   for day in range(1,series[-1][0].day+1):v=values.get(day,v);current.append(round((v-prior)*100,5))
-  return symbol,{'asOf':str(series[-1][0]),'checkedAt':stamp,'sourceUrl':'https://finance.yahoo.com/quote/'+urllib.parse.quote(symbol)+'/history/','reference':round(math.exp(last),6),'gma50':round(math.exp(g50),6),'gma200':round(math.exp(g200),6),'trend':sum(1 if a>b else -1 if a<b else 0 for a,b in [(last,g50),(last,g200),(g50,g200)])/3,'months':months,'currentMonth':today.month,'currentYear':today.year,'currentPath':current,'trendPath':[{'date':str(series[i][0]),'value':sum(1 if a>b else -1 if a<b else 0 for a,b in [(series[i][1],st.mean(v for _,v in series[i-49:i+1])),(series[i][1],st.mean(v for _,v in series[i-199:i+1])),(st.mean(v for _,v in series[i-49:i+1]),st.mean(v for _,v in series[i-199:i+1]))])/3} for i in range(max(199,len(series)-60),len(series))],'pricePath':[{'date':str(day),'value':round(math.exp(v),6)} for day,v in series[-200:]]}
+  return symbol,{'asOf':str(series[-1][0]),'checkedAt':stamp,'sourceUrl':'https://finance.yahoo.com/quote/'+urllib.parse.quote(ysym)+'/history/','reference':round(math.exp(last),6),'gma50':round(math.exp(g50),6),'gma200':round(math.exp(g200),6),'trend':sum(1 if a>b else -1 if a<b else 0 for a,b in [(last,g50),(last,g200),(g50,g200)])/3,'months':months,'currentMonth':today.month,'currentYear':today.year,'currentPath':current,'trendPath':[{'date':str(series[i][0]),'value':sum(1 if a>b else -1 if a<b else 0 for a,b in [(series[i][1],st.mean(v for _,v in series[i-49:i+1])),(series[i][1],st.mean(v for _,v in series[i-199:i+1])),(st.mean(v for _,v in series[i-49:i+1]),st.mean(v for _,v in series[i-199:i+1]))])/3} for i in range(max(199,len(series)-60),len(series))],'pricePath':[{'date':str(day),'value':round(math.exp(v),6)} for day,v in series[-200:]]}
  with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
   jobs={pool.submit(price,s):s for s in ASSETS}
   for job in concurrent.futures.as_completed(jobs):

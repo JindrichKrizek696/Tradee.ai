@@ -33,6 +33,6 @@ export function MarketsView({items,checkedAt,palette,flags,flagsReady,onFlag,ope
   {view==='heatmap'?<Heatmap live={live} groups={heat} query={query} palette={palette} flags={flags} flagsReady={flagsReady} onFlag={onFlag} open={open}/>:<>
    <MarketTable live={live} items={rows} sort={sort} onSort={onSort} groupLabels={groups} flags={flags} flagsReady={flagsReady} onFlag={onFlag} open={open}/>
   </>}
-  <p className="m-legend"><i className="bull"/>bullish <i className="bear"/>bearish · sytost = síla signálu · <i className="none"/>bez platného skóre · tečka = tvoje vlaječka. FX kompozit kombinuje fundament, COT, trend a sezónu; akcie, indexy a krypto mají technický model.</p>
+  <p className="m-legend"><i className="bull"/>bullish <i className="bear"/>bearish · sytost = síla signálu · <i className="none"/>bez platného skóre · tečka = tvoje vlaječka. FX páry a měnové indexy mají skóre v3 z 11 složek s pevnými vahami (sazby, COT, trend, inflace, zaměstnanost, HDP, mPMI, sPMI, retail sales, sezonalita, retail pozice); chybějící data se vynechají (nepočítají se jako nula) a pod 60 % dostupných vah je skóre pozastaveno. Akcie, indexy, krypto, komodity a USD/CZK (bez fundamentu) mají technický model.</p>
  </div>;
 }

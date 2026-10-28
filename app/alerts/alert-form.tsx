@@ -1,6 +1,7 @@
 'use client';
 // Formulář alertu (nový i úprava) jako malé okno: z detailu trhu, z grafu (zvonek, pravé tlačítko / dlouhý stisk, klik na čáru) i ze stránky /alerty.
 import {useEffect,useId,useMemo,useRef,useState} from 'react';
+import {DataSourceBadge} from '../data-source';
 import {Bell,Trash2,X} from 'lucide-react';
 import {validateAlert,COOLDOWN_MIN,type Kind,type Channel} from '@/lib/alerts/logic';
 import {marketKind} from '@/lib/market-hours';
@@ -51,6 +52,7 @@ export function AlertForm({instrument,name,price=null,changePct=null,score=null,
  return <div className="al-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
   <form ref={box} className="al-form" role="dialog" aria-modal="true" aria-labelledby={id+'t'} onSubmit={submit}>
    <div className="al-head"><Bell size={16} aria-hidden/><h2 id={id+'t'}>{alert?'Upravit alert':'Nový alert'} · {name||instrument}</h2><button type="button" className="al-x" aria-label="Zavřít" onClick={onClose}><X size={16}/></button></div>
+   <div className="ds-row" style={{margin:'0 0 8px'}}><DataSourceBadge id={instrument}/></div>
    {price!==null&&!currency&&<p className="al-now">Aktuální cena <b>{levelStr(price)}</b>{changePct!==null&&<> · dnes {changePct>0?'+':''}{changePct.toLocaleString('cs-CZ',{maximumFractionDigits:2})} %</>}{score!==null&&<> · skóre {score>0?'+':''}{score.toLocaleString('cs-CZ',{maximumFractionDigits:1})}</>}</p>}
    <div className="al-seg" role="radiogroup" aria-label="Typ alertu">{kinds.map(k=><button key={k} type="button" role="radio" aria-checked={kind===k} title={KIND_HINT[k]} onClick={()=>{setKind(k);if(k==='pct'&&op!=='lte')setOp('gte');if(k==='score'&&op!=='below')setOp('above')}}>{KIND_LABEL[k]}</button>)}</div>
    <p className="al-hint">{KIND_HINT[kind]}</p>

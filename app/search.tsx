@@ -1,7 +1,8 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon,Bell} from 'lucide-react';
-import {rank,score,highlight,currencyWords,type Searchable} from '@/lib/search';
+import {rank,score,highlight,currencyWords,resolveAlias,aliasWords,suggestAliases,type Searchable} from '@/lib/search';
+import {dataSource} from '@/lib/instrument-info';
 import {categories,marketLabels,signalLabels,relative,type CalendarEvent} from '@/lib/calendar';
 import {groups} from '@/lib/markets';
 import {RULES} from '@/lib/discipline/rules';
@@ -104,7 +105,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'a:refresh',group:'action',icon:RefreshCw,title:'Obnovit podklady',keywords:'aktualizovat data skóre refresh',run:onRefresh},
    {id:'a:logout',group:'action',icon:LogOut,title:'Odhlásit se',keywords:'logout odejít',run:logout},
   ];
-  for(const r of rows)items.push({id:'m:'+r.id,group:'market',icon:CandlestickChart,title:r.name,subtitle:(groups[r.group]||r.group)+(r.name!==r.id?' · '+r.id.replace(/^\^/,''):''),keywords:r.id+' '+currencyWords(r.id),boost:2,badge:r.r.score===null?'—':fmtScore(r.r.score),tone:tone(r.r.score),run:()=>openMarket(r.id)});
+  for(const r of rows)items.push({id:'m:'+r.id,group:'market',icon:CandlestickChart,title:r.name,subtitle:(groups[r.group]||r.group)+(r.name!==r.id&&!r.name.includes(r.id)?' · '+r.id.replace(/^\^/,''):'')+(dataSource(r.id)?' · data: '+dataSource(r.id)!.short:''),keywords:r.id+' '+currencyWords(r.id)+' '+aliasWords(r.id),boost:2,badge:r.r.score===null?'—':fmtScore(r.r.score),tone:tone(r.r.score),run:()=>openMarket(r.id)});
   // nadcházející události první (nejbližší nahoře), proběhlé za nimi od nejnovější
   const soon=(e:CalendarEvent)=>Date.parse(e.at)>=now-3600000;
   const evs=[...calendar].sort((a,b)=>soon(a)!==soon(b)?(soon(a)?-1:1):soon(a)?a.at.localeCompare(b.at):b.at.localeCompare(a.at));
@@ -128,11 +129,13 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    const quick=all.filter(i=>i.group==='page'&&!recent.includes(i)).slice(0,6);
    return [{label:'Naposledy',items:recent},{label:'Rychlé skoky',items:quick}].filter(g=>g.items.length);
   }
-  const out:{label:string;items:Item[];top:number}[]=[];
-  for(const g of Object.keys(GROUP_LABEL) as Group[]){const r=rank(all.filter(i=>i.group===g),q,LIMIT[g]??4,BY_DATE.has(g));if(r.length)out.push({label:GROUP_LABEL[g],items:r,top:score(r[0],q)})}
+  const out:{label:string;items:Item[];top:number}[]=[],al=resolveAlias(q),target=al?all.find(i=>i.id==='m:'+al.id):undefined;
+  for(const g of Object.keys(GROUP_LABEL) as Group[]){let r=rank(all.filter(i=>i.group===g),q,LIMIT[g]??4,BY_DATE.has(g));if(g==='market'&&target)r=[target,...r.filter(i=>i!==target)].slice(0,LIMIT.market);if(r.length)out.push({label:GROUP_LABEL[g],items:r,top:g==='market'&&target?1000:score(r[0],q)})}
   return out.sort((a,b)=>b.top-a.top);
  },[q,all]);
  const flat=useMemo(()=>results.flatMap(g=>g.items),[results]),act=Math.min(active,Math.max(0,flat.length-1));
+ // NQ/ES/DXY: Tradee má jen index – řekneme to; prázdný výsledek: nabídnout nejbližší aliasy
+ const hint=q.trim()?resolveAlias(q)?.hint:undefined,suggest=useMemo(()=>flat.length||!q.trim()?[]:suggestAliases(q),[flat.length,q]);
  useEffect(()=>{list.current?.querySelector('[aria-selected=true]')?.scrollIntoView({block:'nearest'})},[act,q]);
  const run=(it:Item)=>{pushRecent(it.id);close(false);it.run()};
  const key=(e:React.KeyboardEvent)=>{
@@ -151,6 +154,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
     {q&&<button type="button" className="sr-clear" aria-label="Vymazat hledání" onClick={()=>{setQ('');setActive(0);input.current?.focus()}}><X size={15}/></button>}
     <kbd className="sr-esc">Esc</kbd>
    </div>
+   {hint&&<p className="sr-hint" role="status">{hint}</p>}
    <div className="sr-list" id="sr-list" role="listbox" aria-label="Výsledky hledání" ref={list}>
     {results.map(g=><div key={g.label} role="group" aria-label={g.label}>
      <div className="sr-group" aria-hidden="true">{g.label}</div>
@@ -161,7 +165,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
       <CornerDownLeft className="sr-enter" size={15} aria-hidden="true"/>
      </div>})}
     </div>)}
-    {!flat.length&&<div className="sr-empty"><b>Nic jsme nenašli pro „{q.trim()}“</b><span>Zkus název trhu (eurusd, zlato), stránku, událost (CPI, ECB) nebo datum obchodu (17. 10.).</span></div>}
+    {!flat.length&&<div className="sr-empty"><b>Nic jsme nenašli pro „{q.trim()}“</b>{suggest.length>0&&<span className="sr-suggest">Možná jsi myslel: {suggest.map(s=><button key={s.key} type="button" onClick={()=>{setQ(s.key);setActive(0);input.current?.focus()}}>{s.key}<small> → {s.label}</small></button>)}</span>}<span>Zkus název trhu (eurusd, zlato, nas100, us500, xauusd), stránku, událost (CPI, ECB) nebo datum obchodu (17. 10.).</span></div>}
    </div>
    <div className="sr-foot">
     <span><kbd>↑</kbd><kbd>↓</kbd> vybrat</span><span><kbd>Enter</kbd> otevřít</span><span><kbd>Esc</kbd> zavřít</span>

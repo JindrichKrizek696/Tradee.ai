@@ -23,7 +23,7 @@ let variants=VARIANT_IDS.map(v=>PAPER_VARIANTS[v]);
 const f=read('fundamentals.json');
 const data={...f,ffMacro:read('ff-macro.json'),tePmi:read('te-pmi.json'),retailOfficial:read('retail-official.json')},core=read('score-market.json'),extra=read('expanded-market.json');
 const market={...core,prices:{...core.prices,...extra.prices},legacy:extra.legacy};
-const tradable=instruments.filter(i=>i.group!=='currency'); // měnové indexy nejdou obchodovat
+const tradable=instruments.filter(i=>i.group!=='currency'&&i.model); // měnové indexy nejdou obchodovat; FX mimo 8měnový model (USD/CZK) do vesmíru Laboratoře nepatří
 const names=Object.fromEntries(tradable.map(i=>[i.id,i.name]));
 const signals={};
 for(const i of tradable){try{signals[i.id]=toPaperSignal(marketScore(data,market,i.id,now))}catch(e){console.warn('skóre',i.id,e.message)}}

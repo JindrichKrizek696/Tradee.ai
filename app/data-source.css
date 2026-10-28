@@ -1,0 +1,6 @@
+.ds-badge{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:3px 9px;border-radius:999px;border:1px solid var(--t-border-strong);background:var(--t-surface-2);color:var(--t-fg-2);font-size:12px;font-weight:500;line-height:1.4;cursor:help;vertical-align:middle}
+.ds-badge>span{min-width:0;overflow-wrap:anywhere}
+.ds-badge svg{flex:none;color:var(--t-muted)}
+.ds-badge.ds-warn{border-color:var(--t-notice-border);background:var(--t-notice-bg)}
+.ds-badge:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
+.ds-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}

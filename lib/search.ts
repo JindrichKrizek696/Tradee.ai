@@ -40,3 +40,5 @@ export function highlight(text:string,q:string):{t:string;hit:boolean}[]{
 // česká jména měn, ať najde „libra“, „jen“ nebo „euro“
 export const CURRENCY_WORDS:Record<string,string>={USD:'americký dolar usa',EUR:'euro eurozóna',GBP:'britská libra británie',JPY:'japonský jen japonsko',CHF:'švýcarský frank švýcarsko',AUD:'australský dolar austrálie',NZD:'novozélandský dolar nový zéland',CAD:'kanadský dolar kanada'};
 export const currencyWords=(id:string)=>(id.match(/[A-Z]{3}/g)||[]).map(c=>CURRENCY_WORDS[c]||'').join(' ');
+// aliasy trhů (NQ, US100, XAUUSD, WTI, DXY…) – zdroj lib/instrument-info.ts
+export {resolveAlias,aliasWords,suggestAliases,ALIASES,type Alias} from './instrument-info.ts';

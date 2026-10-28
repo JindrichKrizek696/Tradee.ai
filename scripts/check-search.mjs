@@ -1,5 +1,5 @@
 // Kontrola vyhledávání: node --experimental-strip-types scripts/check-search.mjs
-import {fold,words,score,rank,highlight,currencyWords} from '../lib/search.ts';
+import {fold,words,score,rank,highlight,currencyWords,resolveAlias,aliasWords,suggestAliases} from '../lib/search.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const titles=r=>r.map(x=>x.title);
@@ -24,4 +24,20 @@ const h=highlight('Řízení rizika','rizik');
 check('zvýraznění s diakritikou',JSON.stringify(h)==='[{"t":"Řízení ","hit":false},{"t":"rizik","hit":true},{"t":"a","hit":false}]',h);
 const h2=highlight('EUR/USD','usd');
 check('zvýraznění od začátku slova',h2.some(x=>x.hit&&x.t==='USD'),h2);
+// --- aliasy trhů (brokeři, futures kořeny, tickery)
+const to=q=>resolveAlias(q)?.id??null;
+check('alias Nasdaq 100: NQ NAS100 US100 USTEC TECH100',['NQ','nas100','US100','ustec','Tech 100','tech100'].every(q=>to(q)==='^NDX'),['NQ','nas100','US100','ustec','tech100'].map(to));
+check('alias S&P 500: ES SPX US500 SP500',['ES','spx','US500','sp500','S&P 500'].every(q=>to(q)==='^GSPC'),['ES','spx','US500','sp500','S&P 500'].map(to));
+check('alias zlato/stříbro: GOLD XAUUSD GC / SILVER XAGUSD SI',['gold','XAUUSD','xau/usd','GC'].every(q=>to(q)==='GC=F')&&['silver','XAGUSD','SI'].every(q=>to(q)==='SI=F'),null);
+check('alias ropa: WTI USOIL CL / BRENT UKOIL BZ',['wti','USOIL','CL'].every(q=>to(q)==='CL=F')&&['brent','UKOIL','bz'].every(q=>to(q)==='BZ=F'),null);
+check('alias krypto a DXY: BTC XBT ETH DXY',to('btc')==='BTC-USD'&&to('XBT')==='BTC-USD'&&to('eth')==='ETH-USD'&&to('DXY')==='USD',[to('btc'),to('XBT'),to('eth'),to('DXY')]);
+check('alias USDCZK → USD/CZK',to('usdczk')==='USD/CZK'&&to('usd/czk')==='USD/CZK',to('usdczk'));
+check('futures kořen NQ/ES → nápověda, že Tradee má index',/NQ \(futures\) Tradee nemá – zobrazujeme index Nasdaq 100 \(\^NDX\)/.test(resolveAlias('nq').hint)&&/ES \(futures\)/.test(resolveAlias('ES').hint)&&!resolveAlias('nas100').hint&&!resolveAlias('gold').hint,resolveAlias('nq'));
+check('žádný alias pro běžná slova a prázdný dotaz',to('')===null&&to('kalendář')===null&&to('eurusd')===null,null);
+check('aliasová slova do klíčových slov trhu',/\bnq\b/.test(aliasWords('^NDX'))&&/\bus100\b/.test(aliasWords('^NDX'))&&/\bxauusd\b/.test(aliasWords('GC=F'))&&aliasWords('AAPL')==='',aliasWords('^NDX'));
+check('hledání přes klíčová slova najde zlato na „xauusd“ a Nasdaq na „us100“',score({title:'Zlato (futures GC=F)',keywords:'GC=F '+aliasWords('GC=F')},'xauusd')>0&&score({title:'Nasdaq 100 (index)',keywords:'^NDX '+aliasWords('^NDX')},'us100')>0,null);
+const sg=suggestAliases('nas10'),sg2=suggestAliases('xauusdd'),sg3=suggestAliases('us50');
+check('prázdný výsledek: nejbližší aliasy (začátek i překlep)',sg[0]?.id==='^NDX'&&sg2[0]?.id==='GC=F'&&sg3[0]?.id==='^GSPC'&&suggestAliases('x').length===0&&suggestAliases('qqqqqqqq').length===0,[sg,sg2,sg3]);
+check('návrhy: každý trh nejvýš jednou, max. 3',new Set(suggestAliases('us').map(s=>s.id)).size===suggestAliases('us').length&&suggestAliases('us').length<=3,suggestAliases('us'));
+
 if(fails.length){console.log(`\n${fails.length} FAIL`);process.exit(1)}console.log('\nCHECK OK');

@@ -1,7 +1,12 @@
 // Kontrola seznamu trhů a předvoleb barev: node --experimental-strip-types scripts/check-market-view.mjs
 import {toItem,topSignals,heatmapGroups,sortItems,filterItems,matchesQuery,matchesText,intensity,textOn,hexContrastOnWhite} from '../lib/market-view.ts';
 import {palettes,getPalette,isPalette,DEFAULT_PALETTE} from '../lib/palettes.ts';
-import {instruments,groups,assetNames,marketScore,isCommodity,technicalMethodText} from '../lib/markets.ts';
+import {instruments,groups,assetNames,marketScore,isCommodity,technicalMethodText,isModelPair,TECH_FX} from '../lib/markets.ts';
+import {pairs} from '../lib/score-engine.ts';
+import {dataSource,sourceBadgeText,sourceTooltip,YAHOO_OVERRIDE} from '../lib/instrument-info.ts';
+import {yahooSymbol} from '../lib/live.ts';
+import {quoteSource} from '../lib/alerts/quotes.ts';
+import {mapSymbol} from '../lib/checklists/core.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const it=(id,group,score,coverage=80,name=id)=>({id,name,group,score,trend:null,coverage,bias:''});
@@ -61,6 +66,30 @@ check('barvy předvoleb jsou hex a v tmavém motivu se liší bull/bear',palette
 check('černá se v tmavém motivu otočí na bílou',palettes.filter(p=>p.bear==='#17191e').every(p=>p.dark?.bear==='#f4f4f5'),null);
 const low=palettes.flatMap(p=>[[p.id+' bullText',hexContrastOnWhite(p.bullText)],[p.id+' bearText',hexContrastOnWhite(p.bearText)]]).filter(([,c])=>c<4.5);
 check('textové odstíny mají kontrast ≥ 4,5 na bílé',low.length===0,low);
+
+// --- identita instrumentů: poctivé názvy a zdroj dat (symboly se nemění)
+check('názvy: zlato/stříbro/ropa = futures se symbolem, indexy = index',assetNames['GC=F']==='Zlato (futures GC=F)'&&assetNames['SI=F']==='Stříbro (futures SI=F)'&&assetNames['CL=F']==='Ropa WTI (futures CL=F)'&&assetNames['BZ=F']==='Ropa Brent (futures BZ=F)'&&assetNames['^NDX']==='Nasdaq 100 (index)'&&assetNames['^GSPC']==='S&P 500 (index)'&&!Object.values(assetNames).some(n=>/XAU\/USD|XAG\/USD/.test(n)),null);
+check('zdroj dat zlata: COMEX futures GC=F (Yahoo), liší se od spotu/CFD',sourceBadgeText('GC=F')==='Data: COMEX futures GC=F (Yahoo), cena se liší od spotu/CFD u brokera'&&dataSource('GC=F').type==='futures'&&dataSource('SI=F').short==='COMEX futures SI=F (Yahoo)'&&dataSource('CL=F').short.startsWith('NYMEX futures CL=F')&&dataSource('BZ=F').type==='futures',sourceBadgeText('GC=F'));
+check('zdroj dat indexů: ^NDX = index Nasdaq 100, ne NQ/US100',dataSource('^NDX').type==='index'&&/ne futures NQ ani CFD US100/.test(dataSource('^NDX').note)&&/ne futures ES/.test(dataSource('^GSPC').note)&&/^Data: index Nasdaq 100 \^NDX/.test(sourceBadgeText('^NDX')),dataSource('^NDX'));
+check('zdroj dat: tooltip má poskytovatele, symbol, typ a zpoždění',['Poskytovatel: Yahoo Finance','Symbol: GC=F','Typ: futures','Zpoždění:'].every(x=>sourceTooltip('GC=F').includes(x))&&sourceTooltip('USD/CZK').includes('Symbol: CZK=X'),sourceTooltip('GC=F'));
+check('zdroj dat pro každý trh v seznamu',instruments.every(i=>dataSource(i.id)),instruments.filter(i=>!dataSource(i.id)).map(i=>i.id));
+check('aliasy v hledání trhů: nq/us100 → Nasdaq, xauusd/gold → zlato, dxy → USD index',matchesQuery(it('^NDX','index',0,0,'Nasdaq 100 (index)'),'nq')&&matchesQuery(it('^NDX','index',0,0,'Nasdaq 100 (index)'),'US100')&&matchesQuery(it('GC=F','commodities',0,0,'Zlato (futures GC=F)'),'xauusd')&&matchesQuery(it('GC=F','commodities',0,0,'Zlato (futures GC=F)'),'gold')&&matchesQuery(it('USD','currency',0,0,'USD · měnový index'),'dxy')&&!matchesQuery(it('EUR/USD','fx',0),'dxy')&&!matchesQuery(it('^GSPC','index',0,0,'S&P 500 (index)'),'nq'),null);
+check('aliasy v MarketPickeru (matchesText „id název“)',matchesText('^NDX Nasdaq 100 (index)','tech100')&&matchesText('BZ=F Ropa Brent (futures BZ=F)','ukoil')&&matchesText('USD/CZK USD/CZK','usdczk')&&!matchesText('CL=F Ropa WTI (futures CL=F)','ukoil'),null);
+
+// --- USD/CZK: FX trh jen s technickým modelem, mimo 8měnový model
+const czk=instruments.find(i=>i.id==='USD/CZK');
+check('USD/CZK je ve skupině FX páry, model:false',czk&&czk.group==='fx'&&czk.model===false&&TECH_FX.includes('USD/CZK'),czk);
+check('28 párů modelu beze změny, USD/CZK mezi nimi není',pairs.length===28&&!pairs.includes('USD/CZK')&&!isModelPair('USD/CZK')&&isModelPair('EUR/USD')&&instruments.filter(i=>i.group==='fx'&&i.model).length===28,pairs.length);
+check('měnové indexy jen z 8 měn (CZK není)',instruments.filter(i=>i.group==='currency').map(i=>i.id).join()==='USD,EUR,GBP,CHF,JPY,CAD,AUD,NZD',null);
+check('vesmír Laboratoře (model:true, bez měnových indexů) beze změny a bez CZK',instruments.filter(i=>i.group!=='currency'&&i.model).length===instruments.length-8-1&&!instruments.filter(i=>i.model).some(i=>i.id.includes('CZK')),null);
+check('USD/CZK: Yahoo CZK=X všude (živé ceny, svíčky, alerty)',YAHOO_OVERRIDE['USD/CZK']==='CZK=X'&&yahooSymbol('USD/CZK',['USD','EUR'])==='CZK=X'&&quoteSource('USD/CZK').symbol==='CZK=X'&&yahooSymbol('EUR/USD',['USD'])==='EURUSD=X'&&quoteSource('EUR/USD').symbol==='EURUSD=X',[yahooSymbol('USD/CZK',[]),quoteSource('USD/CZK')]);
+check('USD/CZK: deník/MT symbol USDCZK i CZKUSD se namapuje',mapSymbol('USDCZK',instruments.map(i=>i.id),{})==='USD/CZK'&&mapSymbol('USDCZK.m',instruments.map(i=>i.id),{})==='USD/CZK'&&mapSymbol('USD/CZK',instruments.map(i=>i.id),{})==='USD/CZK',mapSymbol('USDCZK',instruments.map(i=>i.id),{}));
+{const NOW=Date.parse('2026-10-12T12:00:00Z'),day=d=>new Date(NOW-d*86400000).toISOString().slice(0,10);
+ const price={asOf:day(1),checkedAt:new Date(NOW-3600000).toISOString(),sourceUrl:'',reference:22,gma50:22,gma200:22,trend:-1,months:{},currentMonth:10,currentYear:2026,currentPath:[],pricePath:[]};
+ const r=marketScore({currencies:{USD:{},EUR:{}}},{prices:{'USD/CZK':price},cot:{},legacy:{},refresh:{attemptedAt:'',issues:[]}},'USD/CZK',NOW);
+ check('USD/CZK: technický model (trend 70 + sezonalita 30), bez fundamentu',r.method==='technical-v1.1'&&r.parts.map(p=>p.id+p.weight).join()==='trend70,seasonality30'&&r.score===-70&&/bez fundamentu/.test(r.model)&&/CZK není v 8měnovém modelu/.test(technicalMethodText('USD/CZK')),[r.method,r.model,r.score]);
+ const none=marketScore({currencies:{}},{prices:{},cot:{},legacy:{},refresh:{attemptedAt:'',issues:[]}},'USD/CZK',NOW);
+ check('USD/CZK bez ceny → skóre null, žádná výjimka ze skóre v3',none.score===null&&none.method==='technical-v1.1',none.score);}
 
 console.log(fails.length?'CHECK FAILED':'CHECK OK');
 if(fails.length)process.exitCode=1;

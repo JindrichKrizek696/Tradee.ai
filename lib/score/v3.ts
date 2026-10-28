@@ -6,7 +6,7 @@
 //  Chybějící nebo zastaralá složka se vynechá a váhy ostatních se renormalizují.
 //  Dostupná váha < 60 % → skóre null („pozastaveno – chybí podklady“) se seznamem toho, co chybí.
 //
-// Stáří (od data, které složka popisuje): COT 11 dní od data reportu, retail pozice 48 h od snímku,
+// Stáří (od data, které složka popisuje): COT 8 dní od zveřejnění (pátek; = 11 dní od úterního data pozic, stejné okno jako dřív), retail pozice 48 h od snímku,
 // měsíční makro 75 dní a čtvrtletní řady (HDP vždy) 140 dní od konce období, trend 7 dní od poslední denní
 // reference, sazby a zaměstnanost podle ověření zdroje banky (staleAfterHours, dnes 36 h).
 // Měnový index (USD, EUR …) = průměr párových složek vůči 7 ostatním měnám; trend a sezonalita z ceny indexu.
@@ -14,6 +14,7 @@ import type {FundamentalData} from '../fundamentals.ts';
 import {seasonalStats,fresh,type MarketData,type PriceData} from '../score-engine.ts';
 import {pairBreakdown,macroSide,MACRO_READ,cotPairSignal,seasonRow,trendRow,monthName,ROWS,type BreakdownRow} from '../fundamentals/breakdown.ts';
 import {eventMarkets} from '../calendar.ts';
+import {cotPublishedAt,cotDatesLabel} from '../cot-dates.ts';
 
 export const METHOD_V3='score-v3';
 export const MIN_COVERAGE=60;
@@ -22,7 +23,8 @@ export const WEIGHTS={rates:15,cot:15,trend:15,inflation:10,employment:10,gdp:8,
 export type ComponentId=keyof typeof WEIGHTS;
 export const COMPONENTS=Object.keys(WEIGHTS) as ComponentId[];
 const DAY=86400000,HOUR=3600000;
-export const LIMITS={cot:11*DAY,retailPositions:48*HOUR,monthly:75*DAY,quarterly:140*DAY,trend:7*DAY};
+// COT se počítá od zveřejnění (pátek = datum pozic + 3 dny): 8 dní od zveřejnění = dřívějších 11 dní od data pozic → hodnoty skóre beze změny
+export const LIMITS={cot:8*DAY,retailPositions:48*HOUR,monthly:75*DAY,quarterly:140*DAY,trend:7*DAY};
 const MACRO:ComponentId[]=['rates','inflation','employment','gdp','mpmi','spmi','retailSales'];
 
 export type PartStatus='ok'|'missing'|'stale';
@@ -68,7 +70,7 @@ const missing=(detail:string,window:string,why='chybí data'):Comp=>({value:null
 const url=(label:string,u?:string|null)=>u?[{label,url:u}]:[];
 
 const WINDOW={
- cot:'poslední týdenní report CFTC (TFF, leveraged funds), max. 11 dní',
+ cot:'poslední týdenní report CFTC (TFF, leveraged funds), max. 8 dní od zveřejnění v pátek (= 11 dní od data pozic)',
  trend:'denní data · GMA50/GMA200 za posledních 200 dní, max. 7 dní',
  seasonality:(month:number,n:number)=>`průměr měsíce ${monthName[month-1]} za ${n} let (min. 10)`,
  macro:(id:string)=>id==='gdp'?'poslední vydání (čtvrtletí), max. 140 dní od konce období':'poslední vydání (měsíc), max. 75 dní od konce období; čtvrtletní řada 140 dní',
@@ -99,8 +101,8 @@ function pairComps(pair:string,data:FundamentalData,market:MarketData,now:number
  // COT
  const cr=row('cot'),cot=cotPairSignal(market,base,quote);
  if(cr.score===null||!cot)out.cot=missing(cr.detail,WINDOW.cot);
- else{const age=now-Date.parse(cot.date+'T00:00:00Z'),ok=age>=0&&age<=LIMITS.cot;
-  out.cot={value:cr.score,detail:cr.detail,asOf:cot.date,asOfLabel:'k '+dm(cot.date),ageMs:age,window:WINDOW.cot,sources:url('CFTC TFF',cot.url),status:ok?'ok':'stale',missingReason:ok?null:'zastaralé'}}
+ else{const age=now-cotPublishedAt(cot.date),ok=age>=0&&age<=LIMITS.cot;
+  out.cot={value:cr.score,detail:cr.detail,asOf:cot.date,asOfLabel:cotDatesLabel(cot.date),ageMs:age,window:WINDOW.cot,sources:url('CFTC TFF',cot.url),status:ok?'ok':'stale',missingReason:ok?null:'zastaralé'}}
  // trend + sezonalita
  const price=market.prices[pair],pc=priceComps(price,now,{score:row('trend').score,detail:row('trend').detail},{score:row('seasonality').score,detail:row('seasonality').detail,asOf:row('seasonality').asOf});
  out.trend=pc.trend;out.seasonality=pc.seasonality;

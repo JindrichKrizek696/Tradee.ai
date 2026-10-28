@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import {scoreV3,WEIGHTS,COMPONENTS,MIN_COVERAGE,periodEnd,ageText} from '../lib/score/v3.ts';
 import {ROWS} from '../lib/fundamentals/breakdown.ts';
 import {marketScore} from '../lib/markets.ts';
+import {cotPublished,cotDatesLabel,cotPositionsLabel,cotPublishedLabel} from '../lib/cot-dates.ts';
+import {LIMITS} from '../lib/score/v3.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const part=(r,id)=>r.parts.find(p=>p.id===id);
@@ -51,7 +53,7 @@ check('skóre = Σ w·s/2 / Σw · 100',near(r.score,expect(full)),[r.score,expe
 check('součet příspěvků = skóre',near(r.parts.reduce((s,p)=>s+(p.contribution??0),0),r.score),[r.parts.map(p=>p.contribution),r.score]);
 check('příspěvek = w·s/2 / Σw · 100',near(part(r,'rates').contribution,15)&&near(part(r,'cot').contribution,7.5),[part(r,'rates').contribution,part(r,'cot').contribution]);
 check('metoda score-v3, model FX kompozit',r.method==='score-v3'&&r.model==='FX kompozit',[r.method,r.model]);
-check('složka nese detail, stáří, okno a zdroj',r.parts.every(p=>p.detail&&p.window&&p.label&&p.weight>0)&&part(r,'cot').asOfLabel==='k 6. 10.'&&part(r,'cot').age==='6 dní'&&part(r,'cot').source==='https://cftc.test'&&/11 dní/.test(part(r,'cot').window)&&/200 dní/.test(part(r,'trend').window)&&/10/.test(part(r,'seasonality').window),[part(r,'cot').asOfLabel,part(r,'cot').age,part(r,'cot').source]);
+check('složka nese detail, stáří, okno a zdroj',r.parts.every(p=>p.detail&&p.window&&p.label&&p.weight>0)&&part(r,'cot').asOfLabel==='pozice k úterý 6. 10. · zveřejněno pátek 9. 10.'&&part(r,'cot').age==='3 dny'&&part(r,'cot').source==='https://cftc.test'&&/11 dní/.test(part(r,'cot').window)&&/200 dní/.test(part(r,'trend').window)&&/10/.test(part(r,'seasonality').window),[part(r,'cot').asOfLabel,part(r,'cot').age,part(r,'cot').source]);
 check('shoda: všechny příspěvky kladné → 100 %',r.alignment===100&&r.bias==='Bullish',[r.alignment,r.bias]);
 
 // renormalizace: bez COT CAD → COT chybí, váhy ostatních se přepočítají
@@ -84,7 +86,7 @@ const staleM={...mkMarket(),cot:{...mkMarket().cot,CAD:cot(-0.2,-0.2,false,'2026
 staleM.prices['USD/CAD']=price(1,up,'2026-10-01'); // 11 dní > 7
 const rs=scoreV3('USD/CAD',staleD,staleM,NOW);
 const st=id=>part(rs,id);
-check('COT starší 11 dní → zastaralé, nezapočteno',st('cot').status==='stale'&&st('cot').stale&&st('cot').missingReason==='zastaralé'&&st('cot').value===null&&st('cot').contribution===null&&st('cot').age==='13 dní',st('cot'));
+check('COT starší 11 dní → zastaralé, nezapočteno',st('cot').status==='stale'&&st('cot').stale&&st('cot').missingReason==='zastaralé'&&st('cot').value===null&&st('cot').contribution===null&&st('cot').age==='10 dní',st('cot')); // 13 dní od pozic = 10 dní od zveřejnění
 check('retail pozice starší 48 h → zastaralé',st('retailPositions').status==='stale',st('retailPositions'));
 check('měsíční makro > 75 dní → zastaralé, 73 dní ještě platí',st('retailSales').status==='stale'&&st('inflation').status==='ok',[st('retailSales').status,st('inflation').status]);
 check('čtvrtletní HDP > 140 dní → zastaralé',st('gdp').status==='stale',st('gdp'));
@@ -95,6 +97,14 @@ const ro=scoreV3('USD/CAD',oldSrc,market,NOW);
 check('sazby a zaměstnanost: ověření banky > 36 h → zastaralé',part(ro,'rates').status==='stale'&&part(ro,'employment').status==='stale'&&ro.coverage===75,[part(ro,'rates').status,ro.coverage]);
 const fut=mkMarket();fut.cot.CAD=cot(-0.2,-0.2,false,'2026-10-13');
 check('report z budoucnosti se nepoužije',part(scoreV3('USD/CAD',data,fut,NOW),'cot').status!=='ok',null);
+// --- COT: datum pozic (úterý) a zveřejnění (pátek = +3 dny); stáří od zveřejnění, okno stejné jako dřív (11 dní od pozic)
+check('COT: zveřejnění = úterý + 3 dny (pátek), i přes konec měsíce',cotPublished('2026-10-06')==='2026-10-09'&&cotPublished('2026-09-29')==='2026-10-02'&&cotPublished('2026-12-29')==='2027-01-01',[cotPublished('2026-10-06'),cotPublished('2026-12-29')]);
+check('COT: popisky „pozice k úterý D. M.“ a „zveřejněno pátek D. M.“',cotPositionsLabel('2026-10-06')==='pozice k úterý 6. 10.'&&cotPublishedLabel('2026-10-06')==='zveřejněno pátek 9. 10.'&&cotDatesLabel('2026-10-20T00:00:00')==='pozice k úterý 20. 10. · zveřejněno pátek 23. 10.',cotDatesLabel('2026-10-06'));
+check('COT: limit 8 dní od zveřejnění = 11 dní od data pozic',LIMITS.cot===8*86400000,LIMITS.cot);
+{const DAYMS=86400000,base=Date.parse('2026-10-06T00:00:00Z'),at=t=>part(scoreV3('USD/CAD',data,mkMarket(),t),'cot').status;
+ const mk=last=>{const m=mkMarket();m.cot.CAD=cot(-0.2,-0.2,false,last);return m},st2=t=>part(scoreV3('USD/CAD',data,mk('2026-10-06'),t),'cot');
+ check('COT: hranice stáří beze změny (11 dní od pozic ok, o minutu víc zastaralé)',st2(base+11*DAYMS).status==='ok'&&st2(base+11*DAYMS+60000).status==='stale'&&at(NOW)==='ok',[st2(base+11*DAYMS).status,st2(base+11*DAYMS+60000).status]);
+ check('COT: hodnota skóre se změnou počítání stáří nemění',near(part(scoreV3('USD/CAD',data,mkMarket(),NOW),'cot').contribution,7.5),part(scoreV3('USD/CAD',data,mkMarket(),NOW),'cot').contribution);}
 
 // symetrie
 const inv=scoreV3('CAD/USD',data,market,NOW);
