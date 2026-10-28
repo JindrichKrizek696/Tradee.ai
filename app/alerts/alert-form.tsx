@@ -61,6 +61,7 @@ export function AlertForm({instrument,name,price=null,changePct=null,score=null,
     <label><input type="checkbox" checked={ch.includes('mail')} onChange={()=>flip('mail')}/> E-mail</label>
     {alert&&<label className="al-active"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/> Aktivní</label>}
    </fieldset>
+    {ch.includes('push')&&pushAvailable===false&&<p className="al-warn" role="status">Push nemáš zapnutý na žádném zařízení – tenhle alert by nedorazil. Zaškrtni i e-mail, nebo push zapni v <a href="/nastaveni#upozorneni">Nastavení → Upozornění</a>.</p>}
    {live.warn.length>0&&<ul className="al-warn" role="status">{live.warn.map(w=><li key={w}>{w}</li>)}</ul>}
    {err&&<p className="p-error al-err" role="alert">{err}</p>}
    <div className="al-actions">
