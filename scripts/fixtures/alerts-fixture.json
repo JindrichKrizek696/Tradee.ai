@@ -1,0 +1,21 @@
+{
+ "now":"2026-10-28T10:00:30Z",
+ "alerts":[
+  {"id":"al_eur_above","userId":"u1","name":"Daniel Slabý","instrument":"EUR/USD","kind":"above","level":1.125,"note":"Průraz týdenního maxima","lastPrice":1.124,"lastChecked":"2026-10-28T09:59:30Z"},
+  {"id":"al_eur_below","userId":"u1","instrument":"EUR/USD","kind":"below","level":1.12,"lastPrice":1.124,"lastChecked":"2026-10-28T09:59:30Z"},
+  {"id":"al_eur_cooldown","userId":"u1","instrument":"EUR/USD","kind":"above","level":1.125,"cooldownMin":60,"lastPrice":1.1245,"lastChecked":"2026-10-28T09:59:30Z","lastTriggered":"2026-10-28T09:30:00Z"},
+  {"id":"al_btc_touch","userId":"u1","instrument":"BTC-USD","kind":"touch","level":70000,"lastPrice":69500,"lastChecked":"2026-10-28T09:59:30Z"},
+  {"id":"al_aapl_closed","userId":"u1","instrument":"AAPL","kind":"above","level":250,"lastPrice":245,"lastChecked":"2026-10-27T19:59:00Z"},
+  {"id":"al_gbp_pct","userId":"u2","instrument":"GBP/USD","kind":"pct","pct":0.5,"op":"gte","lastPrice":0.3,"lastChecked":"2026-10-28T09:59:30Z","channels":["mail"]},
+  {"id":"al_eur_score","userId":"u2","instrument":"EUR","kind":"score","level":20,"op":"above","lastPrice":15,"lastChecked":"2026-10-28T09:59:30Z"},
+  {"id":"al_jpy_expired","userId":"u2","instrument":"USD/JPY","kind":"above","level":155,"expiresAt":"2026-10-28T08:00:00Z"},
+  {"id":"al_new","userId":"u2","instrument":"EUR/USD","kind":"above","level":1.13}
+ ],
+ "quotes":{
+  "EUR/USD":{"price":1.1252,"prevClose":1.122,"marketTime":1792231200000,"bars":[{"t":"2026-10-28T09:59:00Z","h":1.1243,"l":1.1236},{"t":"2026-10-28T10:00:00Z","h":1.1253,"l":1.1241}]},
+  "BTC-USD":{"price":69600,"prevClose":68800,"marketTime":1792231200000,"bars":[{"t":"2026-10-28T09:59:00Z","h":69720,"l":69480},{"t":"2026-10-28T10:00:00Z","h":70010,"l":69550}]},
+  "GBP/USD":{"price":1.308,"prevClose":1.3,"marketTime":1792231200000,"bars":[]},
+  "USD/JPY":{"price":156,"prevClose":155,"marketTime":1792231200000,"bars":[]}
+ },
+ "scores":{"EUR":22.4}
+}

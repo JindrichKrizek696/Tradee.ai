@@ -17,6 +17,7 @@ import {fmtMoney} from '@/lib/trades';
 import {useOpenPositions} from './open-positions';
 import {fmtPrice} from './live';
 import {useChartDrawings} from './market-chart-draw';
+import {useChartAlerts} from './chart-alerts';
 import {CHART_TYPES,CHART_TYPE_LABELS,isChartType,seriesData,type ChartType} from '@/lib/chart/chart-types';
 import {FP_TFS,fmtVol,fpSymbol,isFpTf,type FpCandle,type FpTf} from '@/lib/chart/footprint';
 import {FootprintPrimitive,FP_DELTA_H,type FpPalette} from './chart-footprint';
@@ -308,6 +309,8 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  </div>;
  const draw=useChartDrawings({chart,series:price,ver,el,bars,tf,tfList,instrument,tick,treeOpen:tree,onTreeClose:()=>setTree(false),treeExtra:indRows});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
+ // cenové alerty: čáry, tah, klik, pravé tlačítko / dlouhý stisk (při kreslení se nepletou do cesty)
+ const alerts=useChartAlerts({chart,series:price,ver,el,instrument,name,busy:()=>keys.current.drawing,lastPrice:bars.length?bars[bars.length-1].close:null});
 
  // celá obrazovka: zapnutí/vypnutí (režim prohlížeče jen jako bonus – když ho prohlížeč odmítne, zůstane karta přes celé okno)
  useLayoutEffect(()=>{keys.current={fs,drawing:draw.drawing,fill:!!fill,pop:!!pop,view:isFp?10:VIEW_BARS[tf]??150,pad:isFp?1:3}});
@@ -518,6 +521,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
      {LAYER_INFO.filter(([k])=>k!=='paper'||owner).map(([k,label,Icon,note])=>{const off=k==='sessions'&&!sessOk;return <IndRow key={k} icon={<Icon size={16} strokeWidth={1.8}/>} title={label} note={off?'Jen na časových rámcích M1–H1':note} on={layers[k]&&!off} disabled={off} onToggle={()=>toggle(k)}/>})}
     </div></Drop>
     {owner&&layers.paper&&<select className="mc-chip mc-type" aria-label="Varianta simulace" title="Obchody které varianty simulace ukázat" value={prefs.paperVariant} onChange={e=>{const v=e.target.value as PaperPick;if(PAPER_PICKS.includes(v))update({paperVariant:v})}}>{PAPER_PICKS.map(v=><option key={v} value={v}>{v==='all'?'Sim: vše':'Sim '+v}</option>)}</select>}
+    {alerts.button}
     {headExtra}
     <span className="mc-bar-end">
      <Drop title="Nastavení grafu" role="dialog" className="mc-icon" label={<Settings size={14} aria-hidden/>}><ChartSettings {...appearance} type={isFp?'footprint':type}/></Drop>
@@ -546,6 +550,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    {isFp&&!fpMode&&bars.length>0&&!loading&&<div className="mc-fp-hint" role="status">Přibliž pro footprint</div>}
    {pop&&popEvent&&<NewsCard key={popEvent.id} e={popEvent} x={pop.x} y={pop.y} bars={bars} tf={tf} asOf={data.at??0} name={name} onClose={()=>setPop(null)} onFiner={tf==='M15'||tf==='M5'||tf==='M1'?undefined:()=>update(isFp?{fpTf:'M15'}:{tf:'M15'})}/>}
    {draw.overlay}
+   {alerts.overlay}{alerts.modal}
   </div>
   {draw.tree}
   </div>

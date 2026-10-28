@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
-import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon} from 'lucide-react';
+import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon,Bell} from 'lucide-react';
 import {rank,score,highlight,currencyWords,type Searchable} from '@/lib/search';
 import {categories,marketLabels,signalLabels,relative,type CalendarEvent} from '@/lib/calendar';
 import {groups} from '@/lib/markets';
@@ -86,6 +86,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'v:backtest',group:'page',icon:FlaskConical,title:'Backtest',subtitle:sub,keywords:'testování strategie historie',boost:3,run:merge?view('journal','journal/backtest'):view('journaling','journaling/backtest')},
    {id:'v:notes',group:'page',icon:StickyNote,title:'Poznámky',subtitle:sub,keywords:'sešit notebook zápisky papíry',boost:3,run:merge?view('journal','journal/poznamky'):view('journaling','journaling/poznamky')},
    {id:'p:pravidla',group:'page',icon:ShieldCheck,title:'Pravidla a strategie',keywords:'disciplína risk riziko',boost:3,run:href('/pravidla')},
+   {id:'p:alerty',group:'page',icon:Bell,title:'Alerty',subtitle:'Cenové alerty',keywords:'alert upozornění notifikace hlídání ceny cena skóre zvonek',boost:3,run:href('/alerty')},
    {id:'p:checklisty',group:'page',icon:ListChecks,title:'Checklisty',keywords:'kontrolní seznam před vstupem',boost:3,run:href('/checklisty')},
    {id:'p:mt',group:'page',icon:Link2,title:'Propojení s MetaTraderem',keywords:'mt4 mt5 ea expert advisor účet broker',boost:3,run:href('/mt')},
    ...(owner?[{id:'p:lab',group:'page' as const,icon:FlaskConical,title:'Laboratoř',keywords:'agenti strategie evoluce',boost:3,run:href('/laborator')}]:[]),

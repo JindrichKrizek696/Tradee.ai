@@ -1,0 +1,88 @@
+/* Cenové alerty: okno formuláře, zvonek v horní liště, stránka /alerty, menu a čáry v grafu */
+.al-backdrop{position:fixed;inset:0;z-index:1000;background:color-mix(in srgb,#000 38%,transparent);display:grid;place-items:center;padding:16px}
+.al-form{width:min(440px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--t-surface);color:var(--t-fg);border:1px solid var(--t-border);border-radius:18px;box-shadow:var(--t-shadow,0 18px 50px rgba(0,0,0,.25));padding:16px 18px;display:grid;gap:10px;font-size:14px}
+.al-head{display:flex;align-items:center;gap:8px}
+.al-head h2{font-size:16px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-x{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:var(--t-fg-2);cursor:pointer}
+.al-x:hover{background:var(--t-surface-3)}
+.al-now{margin:0;color:var(--t-muted);font-size:13px}
+.al-now b{color:var(--t-fg)}
+.al-seg{display:flex;flex-wrap:wrap;gap:2px;background:var(--t-surface-2);border:1px solid var(--t-border);border-radius:999px;padding:3px}
+.al-seg button{flex:1 1 auto;border:0;background:transparent;color:var(--t-fg-2);padding:6px 10px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+.al-seg button[aria-checked=true]{background:var(--t-inverse);color:var(--t-on-inverse)}
+.al-hint{margin:-4px 0 0;color:var(--t-muted);font-size:12px}
+.al-row{display:flex;gap:8px;align-items:center}
+.al-row input,.al-row select,.al-field select,.al-field input,.al-field textarea{height:38px;padding:0 12px;border:1px solid var(--t-border);border-radius:10px;background:var(--t-surface);color:var(--t-fg);font:inherit;min-width:0}
+.al-row input{flex:1;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600}
+.al-field textarea{height:auto;padding:8px 12px;resize:vertical}
+.al-lbl{color:var(--t-muted);font-size:13px}
+.al-unit{color:var(--t-muted)}
+.al-field{display:grid;gap:4px}
+.al-field>span{font-size:12px;color:var(--t-muted);font-weight:600}
+.al-field small{color:var(--t-muted-2);font-size:11px}
+.al-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.al-ch{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.al-ch legend{font-size:12px;color:var(--t-muted);font-weight:600;padding:0;margin-bottom:4px;width:100%}
+.al-ch label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.al-active{margin-left:auto}
+.al-warn{margin:0;padding:8px 12px 8px 26px;border-radius:10px;background:var(--t-warn-soft);border:1px solid var(--t-notice-border);font-size:13px;display:grid;gap:4px}
+.al-err{margin:0}
+.al-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.al-sp{flex:1}
+.al-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg);font:inherit;font-weight:600;cursor:pointer}
+.al-btn:hover{background:var(--t-surface-3)}
+.al-btn.primary{background:var(--t-brand);border-color:var(--t-brand);color:var(--t-brand-fg,#fff)}
+.al-btn.primary:hover{opacity:.92}
+.al-btn.danger{color:#dc2626}
+.al-btn.danger.on{background:#dc2626;border-color:#dc2626;color:#fff}
+.al-btn:disabled{opacity:.6;cursor:default}
+.al-btn.sm{height:30px;padding:0 10px;font-size:13px}
+@media(max-width:480px){.al-grid{grid-template-columns:1fr}}
+
+/* zvonek v horní liště */
+.al-bell-wrap{position:relative}
+.al-bell{position:relative}
+.al-bell .al-dot{position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.al-inbox{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(340px,calc(100vw - 24px));background:var(--t-surface);border:1px solid var(--t-border);border-radius:14px;box-shadow:var(--t-shadow,0 12px 40px rgba(0,0,0,.18));padding:8px;display:grid;gap:4px}
+.al-inbox-head{display:flex;align-items:center;gap:8px;padding:4px 6px}
+.al-inbox-head b{flex:1;font-size:14px}
+.al-link{border:0;background:none;color:var(--t-brand);font:inherit;font-size:12px;cursor:pointer;padding:0;text-decoration:none}
+.al-inbox ul{list-style:none;margin:0;padding:0;max-height:min(60vh,420px);overflow:auto;display:grid;gap:2px}
+.al-ev{display:grid;gap:2px;padding:8px 10px;border-radius:10px;text-decoration:none;color:inherit;cursor:pointer;border:0;background:transparent;text-align:left;font:inherit;width:100%}
+.al-ev:hover{background:var(--t-surface-3)}
+.al-ev.unread{background:var(--t-accent-soft,var(--t-surface-2))}
+.al-ev b{font-size:13px}
+.al-ev small{color:var(--t-muted);font-size:12px}
+.al-empty{color:var(--t-muted);font-size:13px;padding:10px}
+.al-inbox-foot{display:flex;justify-content:space-between;padding:4px 6px}
+
+/* stránka /alerty */
+.al-page-head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.al-page-head h1{flex:1}
+.al-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 4px}
+.al-filters input{height:36px;padding:0 12px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);color:var(--t-fg);font:inherit;min-width:0;flex:1 1 180px}
+.al-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.al-item{border:1px solid var(--t-border);border-radius:14px;padding:12px 14px;display:grid;gap:6px;background:var(--t-surface)}
+.al-item.off{opacity:.78}
+.al-item-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.al-item-top b{font-size:15px}
+.al-tag{font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--t-surface-3);color:var(--t-fg-2)}
+.al-tag.active{background:color-mix(in srgb,#16a34a 14%,var(--t-surface));color:#16a34a}
+.al-tag.triggered{background:color-mix(in srgb,#2563eb 14%,var(--t-surface));color:#2563eb}
+.al-tag.expired{background:var(--t-bad-soft);color:#b91c1c}
+.al-meta{display:flex;gap:4px 14px;flex-wrap:wrap;color:var(--t-muted);font-size:12px}
+.al-note{margin:0;font-size:13px;color:var(--t-fg-2)}
+.al-item-actions{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.al-hist{margin:4px 0 0;padding:0;list-style:none;display:grid;gap:2px;font-size:12px;color:var(--t-fg-2)}
+.al-hist li{display:flex;gap:10px;flex-wrap:wrap}
+.al-hist em{font-style:normal;color:var(--t-muted)}
+.al-ok{color:#16a34a}.al-fail{color:#dc2626}
+.al-new{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.al-new select{height:36px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);color:var(--t-fg);font:inherit;padding:0 12px}
+
+/* graf: kontextové menu a štítek tažení */
+.mc-al-menu{position:absolute;z-index:30;background:var(--t-surface);border:1px solid var(--t-border);border-radius:10px;box-shadow:var(--t-shadow,0 8px 24px rgba(0,0,0,.18));padding:4px;display:grid;min-width:190px}
+.mc-al-menu button{display:flex;gap:8px;align-items:center;border:0;background:transparent;color:var(--t-fg);font:inherit;font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left}
+.mc-al-menu button:hover{background:var(--t-surface-3)}
+.mc-al-drag{position:absolute;right:64px;z-index:25;transform:translateY(-50%);pointer-events:none;background:var(--t-brand);color:#fff;font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
+.mc-chart[data-alert-hover="1"],.mc-chart[data-alert-hover="1"] *{cursor:ns-resize!important}
