@@ -17,18 +17,21 @@ const day=(ms:number)=>new Date(ms).toLocaleDateString('cs-CZ',{timeZone:'Europe
 const repeatText=(m:number|null)=>m===null?'jednorázový':m<60?`opakuje se, odstup ${m} min`:`opakuje se, odstup ${m/60} h`;
 const chText=(c:string[])=>c.length===2?'push + e-mail':c[0]==='push'?'push':'e-mail';
 const mark=(v:boolean|null)=>v===null?<em>–</em>:v?<span className="al-ok">✓</span>:<span className="al-fail">✗</span>;
-const FILTERS:[Status|'all',string][]=[['active','Aktivní'],['triggered','Spuštěné'],['expired','Vypršelé'],['paused','Pozastavené'],['all','Vše']];
+// Jen tři filtry (na mobilu se víc nevejde): aktivní, vypršelé (= spuštěné nebo prošlé) a vše
+type Filter='active'|'done'|'all';
+const FILTERS:[Filter,string][]=[['active','Aktivní'],['done','Vypršelé'],['all','Vše']];
+const inFilter=(st:Status,f:Filter)=>f==='all'||(f==='active'?st==='active':st==='triggered'||st==='expired');
 const chartable=(id:string)=>GROUP.get(id)!=='currency';
 export default function AlertsPage(){
  usePalette();
  const {data,error}=useAlerts(),live=useLive(),[now,setNow]=useState(()=>Date.now());
- const [filter,setFilter]=useState<Status|'all'>('active'),[q,setQ]=useState(''),[edit,setEdit]=useState<{alert?:ClientAlert;instrument:string}|null>(null);
+ const [filter,setFilter]=useState<Filter>('active'),[q,setQ]=useState(''),[edit,setEdit]=useState<{alert?:ClientAlert;instrument:string}|null>(null);
  const [pick,setPick]=useState(instruments.find(i=>i.group==='fx')?.id||instruments[0].id),[open,setOpen]=useState<string|null>(null),[msg,setMsg]=useState('');
  const [events,setEvents]=useState<AlertEvent[]|null>(null),[unread,setUnread]=useState(0);
  useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),60000);return()=>clearInterval(t)},[]);
  useEffect(()=>{const load=()=>loadEvents({limit:100}).then(j=>{setEvents(j.events);setUnread(j.unread)}).catch(()=>setEvents([]));load();return onAlertsChanged(load)},[]);
- const list=useMemo(()=>{const f=q.trim().toLowerCase();return (data?.alerts||[]).filter(a=>(filter==='all'||statusOf(a,now)===filter)&&(!f||(nameOf(a.instrument)+' '+a.instrument+' '+conditionLabel(a,nameOf(a.instrument))+' '+(a.note||'')).toLowerCase().includes(f)))},[data,filter,q,now]);
- const counts=useMemo(()=>{const c:Record<string,number>={all:0,active:0,triggered:0,expired:0,paused:0};for(const a of data?.alerts||[]){c.all++;c[statusOf(a,now)]++}return c},[data,now]);
+ const list=useMemo(()=>{const f=q.trim().toLowerCase();return (data?.alerts||[]).filter(a=>inFilter(statusOf(a,now),filter)&&(!f||(nameOf(a.instrument)+' '+a.instrument+' '+conditionLabel(a,nameOf(a.instrument))+' '+(a.note||'')).toLowerCase().includes(f)))},[data,filter,q,now]);
+ const counts=useMemo(()=>{const c:Record<string,number>={all:0,active:0,triggered:0,expired:0,paused:0};for(const a of data?.alerts||[]){c.all++;const st=statusOf(a,now);c[st]++;if(st==='triggered'||st==='expired')c.done=(c.done||0)+1}return c},[data,now]);
  const byAlert=useMemo(()=>{const m=new Map<string,AlertEvent[]>();for(const e of events||[]){const l=m.get(e.alertId)||[];l.push(e);m.set(e.alertId,l)}return m},[events]);
  const toggle=async(a:ClientAlert)=>{setMsg('');try{const r=await saveAlert({active:!a.active},a.id);if(r.warnings.length)setMsg(r.warnings.join(' '))}catch(e){setMsg((e as Error).message)}};
  const del=async(a:ClientAlert)=>{if(!confirm('Smazat alert „'+conditionLabel(a,nameOf(a.instrument))+'“?'))return;try{await removeAlert(a.id)}catch(e){setMsg((e as Error).message)}};

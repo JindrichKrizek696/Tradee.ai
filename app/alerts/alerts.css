@@ -104,3 +104,6 @@
  .al-empty{font-size:15px;line-height:1.5}
  .al-inbox .al-link{min-height:44px;display:inline-flex;align-items:center;font-size:14px}
 }
+/* filtry stavu se nesmí roztáhnout mimo obrazovku */
+.al-filters{min-width:0;max-width:100%}
+.al-filters .mt-chips{flex-wrap:wrap}
