@@ -4,7 +4,7 @@
 // Schránka u zvonku dostane událost vždy – volba „V aplikaci“ (Nastavení → Upozornění) řídí jen okénko.
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Bell,X} from 'lucide-react';
-import {loadEvents,readEvents,alertsChanged,type AlertEvent} from './alert-api';
+import {loadEvents,readEvents,alertsChanged,eventHref,type AlertEvent} from './alert-api';
 import {slugOf} from '@/lib/alerts/logic';
 import {marketKind} from '@/lib/market-hours';
 import {toastsToShow} from '@/lib/notify/prefs';
@@ -23,10 +23,10 @@ export function AlertToasts(){
  useEffect(()=>{if(!toasts.length)return;const t=setTimeout(()=>setToasts(l=>l.slice(1)),SHOW_MS);return()=>clearTimeout(t)},[toasts]);
  if(!toasts.length)return null;
  const close=(id:number)=>setToasts(l=>l.filter(x=>x.id!==id));
- const open=async(e:React.MouseEvent,ev:AlertEvent)=>{e.preventDefault();try{await readEvents([ev.id])}catch{}location.href=linkOf(ev.instrument)};
+ const open=async(e:React.MouseEvent,ev:AlertEvent)=>{e.preventDefault();try{await readEvents([ev.id])}catch{}location.href=eventHref(ev,linkOf)};
  return <div className="al-toasts" role="region" aria-label="Spuštěné alerty" aria-live="polite">{toasts.map(ev=><div key={ev.id} className="al-toast">
   <Bell size={16} aria-hidden/>
-  <a href={linkOf(ev.instrument)} onClick={e=>open(e,ev)}><b>Alert spuštěn</b><span>{ev.label}</span><small>{ev.price.toLocaleString('cs-CZ',{maximumFractionDigits:5})} · {new Date(ev.at).toLocaleTimeString('cs-CZ',{timeZone:'Europe/Prague',hour:'2-digit',minute:'2-digit'})}</small></a>
+  <a href={eventHref(ev,linkOf)} onClick={e=>open(e,ev)}><b>Alert spuštěn</b><span>{ev.label}</span><small>{ev.price.toLocaleString('cs-CZ',{maximumFractionDigits:5})} · {new Date(ev.at).toLocaleTimeString('cs-CZ',{timeZone:'Europe/Prague',hour:'2-digit',minute:'2-digit'})}</small></a>
   <button type="button" className="al-x" aria-label="Zavřít" onClick={()=>close(ev.id)}><X size={15}/></button>
  </div>)}</div>;
 }

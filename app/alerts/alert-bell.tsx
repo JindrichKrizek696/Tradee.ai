@@ -2,7 +2,7 @@
 // Zvonek v horní liště: počet nepřečtených spuštěných alertů a schránka posledních spuštění (klik = graf trhu, označit přečtené).
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Bell} from 'lucide-react';
-import {loadEvents,readEvents,onAlertsChanged,type AlertEvent} from './alert-api';
+import {loadEvents,readEvents,onAlertsChanged,eventHref,type AlertEvent} from './alert-api';
 import {slugOf} from '@/lib/alerts/logic';
 import {marketKind} from '@/lib/market-hours';
 import './alerts.css';
@@ -15,7 +15,7 @@ export function AlertBell(){
  useEffect(()=>{if(!open)return;let live=true;loadEvents({limit:12}).then(j=>{if(live){setEvents(j.events);setUnread(j.unread)}}).catch(()=>{if(live)setEvents([])});
   const close=(e:MouseEvent)=>{if(!wrap.current?.contains(e.target as Node))setOpen(false)},esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false)};
   document.addEventListener('mousedown',close);document.addEventListener('keydown',esc);return()=>{live=false;document.removeEventListener('mousedown',close);document.removeEventListener('keydown',esc)}},[open]);
- const go=async(e:AlertEvent)=>{if(!e.read){try{await readEvents([e.id])}catch{}}location.href=linkOf(e.instrument)};
+ const go=async(e:AlertEvent)=>{if(!e.read){try{await readEvents([e.id])}catch{}}location.href=eventHref(e,linkOf)};
  const all=async()=>{try{await readEvents();setEvents(l=>l?.map(e=>({...e,read:true}))??l);setUnread(0)}catch{}};
  return <div className="al-bell-wrap" ref={wrap}>
   <button type="button" className="t-icon-btn al-bell" aria-expanded={open} aria-label={unread?`Alerty, ${unread} nepřečtených`:'Alerty'} title="Alerty" onClick={()=>setOpen(o=>!o)}><Bell size={17}/>{unread>0&&<span className="al-dot" aria-hidden>{unread>99?'99+':unread}</span>}</button>

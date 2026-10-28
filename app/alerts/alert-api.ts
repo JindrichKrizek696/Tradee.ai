@@ -3,7 +3,9 @@
 import {useCallback,useEffect,useState} from 'react';
 import type {Alert} from '@/lib/alerts/logic';
 export type ClientAlert=Omit<Alert,'userId'>;
-export type AlertEvent={id:number;alertId:string;at:number;price:number;instrument:string;label:string;push:boolean|null;mail:boolean|null;read:boolean};
+export type AlertEvent={id:number;alertId:string;at:number;price:number;instrument:string;label:string;push:boolean|null;mail:boolean|null;read:boolean;scenarioId?:string};
+// spuštěný alert propojený se scénářem otevře scénář, jinak graf / trh
+export const eventHref=(e:AlertEvent,linkOf:(instrument:string)=>string)=>e.scenarioId?'/scenare#'+encodeURIComponent(e.scenarioId):linkOf(e.instrument);
 export type AlertList={alerts:ClientAlert[];active:number;limit:number;pushAvailable:boolean};
 const json={'Content-Type':'application/json'};
 const EVT='tradee-alerts';

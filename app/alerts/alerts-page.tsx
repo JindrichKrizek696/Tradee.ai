@@ -1,7 +1,7 @@
 'use client';
 // Stránka /alerty: seznam alertů (aktivní / spuštěné / vypršelé / pozastavené), filtr, úprava, pauza, smazání a historie spuštění.
 import {useEffect,useMemo,useState} from 'react';
-import {ArrowLeft,Bell,ChartCandlestick,History,Pause,Pencil,Play,Plus,Trash2} from 'lucide-react';
+import {ArrowLeft,Bell,ChartCandlestick,History,Pause,Pencil,Play,Plus,Target,Trash2} from 'lucide-react';
 import {instruments} from '@/lib/markets';
 import {matchesText} from '@/lib/market-view';
 import {resolveAlias,suggestAliases} from '@/lib/instrument-info';
@@ -67,6 +67,7 @@ export default function AlertsPage(){
      <div className="al-item-top"><Bell size={15} aria-hidden/><b>{conditionLabel(a,nameOf(a.instrument))}</b><span className={'al-tag '+st}>{STATUS_LABEL[st]}</span>
       <span className="al-item-actions">
        {chartable(a.instrument)&&<a className="al-btn sm" href={'/graf/'+encodeURIComponent(slugOf(a.instrument))}><ChartCandlestick size={14} aria-hidden/>Graf</a>}
+       <a className="al-btn sm" href={'/scenare?'+new URLSearchParams({novy:a.instrument,alert:a.id,...(a.level!==null&&a.kind!=='score'?{ez:String(a.level)}:{})})} title="Nový scénář propojený s alertem – upozornění pak otevře scénář"><Target size={14} aria-hidden/>Scénář</a>
        <button type="button" className="al-btn sm" onClick={()=>setEdit({alert:a,instrument:a.instrument})}><Pencil size={14} aria-hidden/>Upravit</button>
        <button type="button" className="al-btn sm" onClick={()=>toggle(a)}>{a.active?<><Pause size={14} aria-hidden/>Pozastavit</>:<><Play size={14} aria-hidden/>{st==='triggered'?'Znovu zapnout':'Obnovit'}</>}</button>
        <button type="button" className="al-btn sm danger" aria-label="Smazat alert" onClick={()=>del(a)}><Trash2 size={14} aria-hidden/></button>

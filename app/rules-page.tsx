@@ -76,12 +76,13 @@ function Strategies(){
   {editId===x.id?<><input type="text" value={editName} maxLength={LIMITS.strategyName} autoFocus aria-label="Název strategie" onChange={e=>setEditName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')rename(x.id);if(e.key==='Escape')setEditId(null)}}/>
    <button type="button" className="mt-btn dark" disabled={busy} onClick={()=>rename(x.id)}>Uložit</button><button type="button" className="mt-btn" onClick={()=>setEditId(null)}>Zrušit</button></>
   :<><span className="rl-sname">{x.name}</span>
+   <a className="mt-btn" href={'/strategie#'+x.id}>Playbook</a>
    <button type="button" className="mt-btn" disabled={busy} onClick={()=>{setEditId(x.id);setEditName(x.name)}}>Přejmenovat</button>
    <button type="button" className="mt-btn" disabled={busy} onClick={()=>arch(x.id,!x.archived)}>{x.archived?'Obnovit':'Archivovat'}</button></>}
  </div>;
  return <section className="mt-card">
   <h2>Strategie</h2>
-  <p className="mt-lead">Pojmenuj strategie, které obchoduješ, a u obchodů pak uvidíš, která ti vychází. Archivovaná strategie zůstane u starých obchodů.</p>
+  <p className="mt-lead">Pojmenuj strategie, které obchoduješ, a u obchodů pak uvidíš, která ti vychází. Archivovaná strategie zůstane u starých obchodů. Podmínky, vstupní modely a verze nastavíš v <a href="/strategie">playbooku strategií</a>.</p>
   {err&&<p className="mt-alert" role="alert">{err}</p>}
   {!ready&&!err&&<p className="mt-empty">Načítám…</p>}
   {ready&&<>

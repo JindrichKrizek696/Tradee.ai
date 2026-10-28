@@ -158,14 +158,15 @@ export function decide(a:Alert,q:Quote|null,score:number|null,now:number,open:bo
 
 // ---------- zprávy
 const esc=(s:unknown)=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-export type Fired={id:string;instrument:string;name:string;group?:string;kind:Kind;level:number|null;pct:number|null;op:string|null;note:string|null;price:number;oneShot:boolean};
+// link: alert propojený se scénářem (Etapa 1A) otevře scénář místo grafu
+export type Fired={id:string;instrument:string;name:string;group?:string;kind:Kind;level:number|null;pct:number|null;op:string|null;note:string|null;price:number;oneShot:boolean;link?:string};
 const what=(f:Fired)=>f.kind==='pct'?'Změna dnes':f.kind==='score'?'Skóre Tradee':'Cena';
 export function pushPayload(f:Fired){
  const label=conditionLabel(f,f.name);
- return {title:'Tradee alert: '+label,body:`${what(f)} ${valueText(f,f.price)}${f.note?' · '+f.note:''}`,url:alertLink(f.instrument,f.group),tag:'alert-'+f.id,requireInteraction:true};
+ return {title:'Tradee alert: '+label,body:`${what(f)} ${valueText(f,f.price)}${f.note?' · '+f.note:''}`,url:f.link||alertLink(f.instrument,f.group),tag:'alert-'+f.id,requireInteraction:true};
 }
 export function mailContent(userName:string,f:Fired){
- const label=conditionLabel(f,f.name),subject='Tradee alert: '+label,hi=userName.trim()?`Ahoj ${userName.trim().split(/\s+/)[0]},`:'Ahoj,',link=alertLink(f.instrument,f.group);
+ const label=conditionLabel(f,f.name),subject='Tradee alert: '+label,hi=userName.trim()?`Ahoj ${userName.trim().split(/\s+/)[0]},`:'Ahoj,',link=f.link||alertLink(f.instrument,f.group);
  const line=`${what(f)}: ${valueText(f,f.price)}`,after=f.oneShot?'Alert byl jednorázový, teď je vypnutý.':'Alert se opakuje, další upozornění nejdřív po uplynutí odstupu.';
  const foot='Alerty spravuješ na tradee.eu/alerty.';
  const text=[hi,'',`Spustil se tvůj alert: ${label}.`,line,...(f.note?['Poznámka: '+f.note]:[]),'',link,'',after,foot].join('\n');

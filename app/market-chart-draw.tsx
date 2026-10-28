@@ -379,6 +379,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
 
  // úpravy vybrané kresby
  const current=selected?(temp?.id===selected?temp:drawings.find(d=>d.id===selected))??null:null;
+ // vybraná kresba pro „Nový scénář“ na stránce grafu (úrovně z obdélníku / pozice / čáry) – jako událost okna, graf o scénářích neví
+ useEffect(()=>{try{window.dispatchEvent(new CustomEvent('tradee:drawing-selected',{detail:{instrument,drawing:current?{type:current.type,a:current.a}:null}}))}catch{}},[current,instrument]);
  const patch=(p:Partial<Drawing>,group?:string)=>{if(!current)return;const next={...current,...p};for(const k of Object.keys(next))if((next as Record<string,unknown>)[k]===undefined)delete (next as Record<string,unknown>)[k];if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d),group&&group+':'+current.id)};
  const patchStyle=(p:Partial<DrawStyle>,group?:string)=>{if(!current)return;const s:DrawStyle={...current.s,...p};for(const k of Object.keys(s))if((s as Record<string,unknown>)[k]===undefined)delete (s as Record<string,unknown>)[k];patch({s:Object.keys(s).length?s:undefined},group)};
  const applyPreset=(p:Preset)=>{if(!current)return;const next=applyLook(current,p);if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d));setUndoVer(n=>n+1)};

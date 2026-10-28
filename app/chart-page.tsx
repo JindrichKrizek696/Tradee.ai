@@ -22,6 +22,7 @@ import {MarketChart} from './market-chart';
 import {useLive,LiveChange,LiveBadge,fmtPrice} from './live';
 import {MobileNav} from './nav-bar';
 import {useNav} from './nav-prefs';
+import {levelsFromDrawing} from '@/lib/strategy/scenario';
 import './mt.css';
 import './markets.css';
 const initialMarket={...core,prices:{...core.prices,...expanded.prices},legacy:expanded.legacy,refresh:{attemptedAt:expanded.refresh.attemptedAt,issues:[...core.refresh.issues,...expanded.refresh.issues]}} as MarketData;
@@ -45,7 +46,7 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  // stránka na celou výšku okna: horní lišta + karta grafu, která vyplní zbytek (bez posouvání stránky; i v samostatném okně na druhém monitoru)
  return <div className="mt-page score-v2 tradee mc-page">
   <header className="mt-top mc-page-top"><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
-   {item&&<div className="mc-page-live"><h1>{item.name}</h1><DataSourceBadge id={item.id} compact/>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}</div>}
+   {item&&<div className="mc-page-live"><h1>{item.name}</h1><DataSourceBadge id={item.id} compact/>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}<ScenarioFromChart instrument={item.id}/></div>}
   </header>
   <main className="mt-main mc-page-main">
    {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker} owner={owner}/></div>
@@ -78,4 +79,13 @@ function MarketPicker({current,onPick}:{current?:string;onPick:(id:string)=>void
    :<li className="none" role="option" aria-selected={false} aria-disabled="true">Nic nenalezeno</li>}
   </ul>}
  </div>;
+}
+
+// „Nový scénář“ z grafu: když je v grafu vybraná kresba (obdélník = zóna vstupu, pozice long/short = vstup, stop, cíl a směr, vodorovná čára = cena), úrovně se předvyplní
+function ScenarioFromChart({instrument}:{instrument:string}){
+ const [sel,setSel]=useState<{type:string;a:{p:number}[]}|null>(null);
+ useEffect(()=>{const f=(e:Event)=>{const d=(e as CustomEvent<{instrument:string;drawing:{type:string;a:{p:number}[]}|null}>).detail;if(d?.instrument===instrument)setSel(d.drawing)};addEventListener('tradee:drawing-selected',f);return()=>removeEventListener('tradee:drawing-selected',f)},[instrument]);
+ const lv=levelsFromDrawing(sel),q=new URLSearchParams({novy:instrument});
+ if(lv){const L=lv.levels;if(lv.bias)q.set('bias',lv.bias);if(L.entryFrom!==null)q.set('ez',String(L.entryFrom));if(L.entryTo!==null&&L.entryTo!==L.entryFrom)q.set('ez2',String(L.entryTo));if(L.invalidation!==null)q.set('inv',String(L.invalidation));if(L.targets.length)q.set('tp',L.targets.join(';'))}
+ return <a className="mc-chip mc-scn" href={'/scenare?'+q} title={lv?'Nový scénář s úrovněmi z vybrané kresby':'Nový scénář (vyber v grafu obdélník, pozici nebo čáru a úrovně se předvyplní)'}>{lv?'Nový scénář z kresby':'Nový scénář'}</a>;
 }

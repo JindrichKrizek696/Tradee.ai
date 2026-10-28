@@ -90,6 +90,8 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'p:pravidla',group:'page',icon:ShieldCheck,title:'Pravidla a strategie',keywords:'disciplína risk riziko',boost:3,run:href('/pravidla')},
    {id:'p:ucty',group:'page',icon:Wallet,title:'Účty a riziko',subtitle:'Profily účtů',keywords:'účet challenge funded prop drawdown denní ztráta limit konzistence poplatek',boost:3,run:href('/ucty')},
    {id:'p:kalkulacka',group:'page',icon:Calculator,title:'Kalkulačka pozice',keywords:'loty lot kontrakty velikost pozice riziko position size',boost:3,run:href('/kalkulacka')},
+   {id:'p:scenare',group:'page',icon:ShieldCheck,title:'Scénáře',subtitle:'Plán obchodu, vynechané obchody',keywords:'scénář plán hypotéza vynechaný obchod no trade pauza',boost:3,run:href('/scenare')},
+   {id:'p:strategie',group:'page',icon:ShieldCheck,title:'Strategie (playbook)',subtitle:'Podmínky, verze, vstupní modely',keywords:'strategie playbook podmínky verze setup trigger invalidace',boost:3,run:href('/strategie')},
    {id:'p:alerty',group:'page',icon:Bell,title:'Alerty',subtitle:'Cenové alerty',keywords:'alert upozornění notifikace hlídání ceny cena skóre zvonek',boost:3,run:href('/alerty')},
    {id:'p:checklisty',group:'page',icon:ListChecks,title:'Checklisty',keywords:'kontrolní seznam před vstupem',boost:3,run:href('/checklisty')},
    {id:'p:mt',group:'page',icon:Link2,title:'Propojení s MetaTraderem',keywords:'mt4 mt5 ea expert advisor účet broker',boost:3,run:href('/mt')},
@@ -117,7 +119,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    for(const t of [...remote.trades].sort((a,b)=>b.closeTs-a.closeTs)){const side=t.side==='buy'?'Buy':t.side==='sell'?'Sell':'';
     items.push({id:'t:'+t.id,group:'trade',icon:NotebookPen,title:(t.symbol+' '+side).trim(),subtitle:csDate(t.date)+(t.account?' · '+t.account:''),keywords:[t.date,csDate(t.date),t.instrument||'',t.side==='buy'?'long nákup':t.side==='sell'?'short prodej':'',t.tags.join(' '),t.note||'',currencyWords(t.symbol)].join(' '),badge:money(t.pnl,remote.currency),tone:tone(t.pnl),run:()=>{setView('journal');goHash('journal/'+encodeURIComponent(t.id))}})}
    for(const n of remote.notes)items.push({id:'n:'+n.id,group:'note',icon:StickyNote,title:n.title||'Bez názvu',subtitle:n.excerpt?.slice(0,90)||undefined,keywords:n.instrument||'',run:()=>{requestOpen('note',n.id);if(merge)view('journal','journal/poznamky')();else view('journaling','journaling/poznamky')()}});
-   for(const s of remote.strategies)items.push({id:'st:'+s.id,group:'rule',icon:ShieldCheck,title:s.name,subtitle:s.archived?'Strategie · archivovaná':'Strategie',run:href('/pravidla')});
+   for(const s of remote.strategies)items.push({id:'st:'+s.id,group:'rule',icon:ShieldCheck,title:s.name,subtitle:s.archived?'Strategie · archivovaná':'Strategie',run:href('/strategie#'+s.id)});
    remote.custom.forEach((c,i)=>items.push({id:'cr:'+i,group:'rule',icon:ShieldCheck,title:c.text.length>80?c.text.slice(0,79)+'…':c.text,subtitle:'Vlastní pravidlo',keywords:c.text,run:href('/pravidla')}));
    for(const c of remote.checklists)items.push({id:'cl:'+c.id,group:'checklist',icon:ListChecks,title:c.name,subtitle:'Checklist',run:href('/checklisty')});
   }

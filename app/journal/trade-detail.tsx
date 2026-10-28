@@ -8,6 +8,7 @@ import {checkUpload} from '@/lib/journal/rows';
 import {TradeChart} from './trade-chart';
 import {CheckSet} from '../checklist-card';
 import type {SnapshotList} from '@/lib/checklists/core';
+import {TradePlan} from '../strategy/trade-plan';
 export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void;readOnly?:boolean;query?:string};
 const KIND:Record<string,string>={open:'Otevření',add:'Přidání',partial_close:'Částečné uzavření',close:'Uzavření',sl:'Stop loss',tp:'Take profit'};
 const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus',manual:'ručně',market:'tržní příkaz',pending:'čekající příkaz'};
@@ -50,6 +51,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    {error&&<p role="alert" className="s-notice">{error}</p>}
    <section className="j-card"><dl className="j-dl"><div><dt>Výsledek</dt><dd className={trade.pnl>0?'pos':trade.pnl<0?'neg':''}>{fmtMoney(trade.pnl,currency)}</dd></div></dl><p className="j-muted">Ruční zápis nemá vstup, výstup ani stop loss – graf a podrobná čísla jsou jen u obchodů z MetaTraderu.</p></section>
    <section className="j-card"><h2>Poznámka</h2>{noteBox(500)}</section>
+   <section className="j-card"><h2>Plán obchodu</h2><TradePlan id={id} exec={{side:null,openPrice:null,sl:null,tp:null,closePrice:null}} readOnly={readOnly} query={query}/></section>
   {checklistBox&&<section className="j-card"><h2>Checklist při vstupu</h2>{checklistBox}</section>}
   </div>;
  }
@@ -84,6 +86,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <small className="j-muted">Tagy napsané v komentáři obchodu v MetaTraderu (#breakout) se přidají samy.</small></>}
   </section>
   <section className="j-card"><h2>Poznámka</h2>{noteBox(5000)}</section>
+  <section className="j-card"><h2>Plán obchodu</h2><TradePlan id={id} exec={{side:p.side==='sell'?'sell':'buy',openPrice:p.open_price??null,sl:p.sl_initial??null,tp:p.tp_initial??null,closePrice:p.close_price_avg??null}} readOnly={readOnly} query={query}/></section>
   {checklistBox&&<section className="j-card"><h2>Checklist při vstupu</h2>{checklistBox}</section>}
   <section className="j-card"><h2>Screenshoty</h2>
    {d.files.length>0&&<div className="j-shots">{d.files.map(f=><figure key={f.id}><button type="button" className="j-shot" onClick={()=>setZoom('/api/journal/files/'+f.id+query)} aria-label={'Zvětšit '+f.name}><img src={'/api/journal/files/'+f.id+query} alt={f.name} loading="lazy"/></button>{!readOnly&&<button type="button" className="j-del" aria-label={'Smazat '+f.name} onClick={()=>removeFile(f.id)}><Trash2 size={14}/></button>}</figure>)}</div>}

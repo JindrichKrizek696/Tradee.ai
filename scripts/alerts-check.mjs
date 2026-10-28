@@ -7,7 +7,8 @@
 // Výstup jen souhrn a spuštěné alerty; klíče ani adresy se nevypisují.
 import {readFileSync,openSync,writeSync,closeSync,unlinkSync,statSync} from 'node:fs';
 import {runCheck} from '../lib/alerts/engine.ts';
-import {pushPayload,mailContent} from '../lib/alerts/logic.ts';
+import {pushPayload,mailContent,SITE} from '../lib/alerts/logic.ts';
+import {scenarioLink} from '../lib/strategy/scenario.ts';
 import {fetchQuotes} from '../lib/alerts/quotes.ts';
 import {isMarketOpen} from '../lib/market-hours.ts';
 import {instruments} from '../lib/markets.ts';
@@ -63,8 +64,10 @@ if(fx){
  const pushOn=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT),mailOn=!!env.RESEND_API_KEY;
  let webpush=null;if(pushOn&&!dry){webpush=(await import('web-push')).default;webpush.setVapidDetails(env.VAPID_SUBJECT,env.VAPID_PUBLIC_KEY,env.VAPID_PRIVATE_KEY)}
  const needScore=async()=>{if(!scoreCtx)scoreCtx=await makeScore();return scoreCtx};
- const rows=(await d.prepare("SELECT a.*,m.email,m.name AS member_name FROM price_alerts a LEFT JOIN members m ON m.id=a.user_id WHERE a.active=1 LIMIT 5000").all()).results;
- const loaded=rows.map(r=>({...rowToAlert(r),email:r.email??null,name:r.member_name??null,_updated:r.updated}));
+ // scenario_id: alert propojený se scénářem → upozornění otevře scénář (bez migrace 0036 dotaz bez scénářů)
+ const rows=await d.prepare("SELECT a.*,m.email,m.name AS member_name,(SELECT s.id FROM scenarios s WHERE s.alert_id=a.id AND s.user_id=a.user_id ORDER BY s.updated DESC LIMIT 1) AS scenario_id FROM price_alerts a LEFT JOIN members m ON m.id=a.user_id WHERE a.active=1 LIMIT 5000").all().then(r=>r.results)
+  .catch(async()=>(await d.prepare("SELECT a.*,m.email,m.name AS member_name FROM price_alerts a LEFT JOIN members m ON m.id=a.user_id WHERE a.active=1 LIMIT 5000").all()).results);
+ const loaded=rows.map(r=>({...rowToAlert(r),email:r.email??null,name:r.member_name??null,_updated:r.updated,scenarioId:r.scenario_id??null}));
  const scoreFn=loaded.some(a=>a.kind==='score')?await needScore():()=>null;
  // Nastavení → Upozornění → Cenové alerty: push / e-mail jde ven jen když ho má alert vybraný A uživatel ho nevypnul (bez řádku vše zapnuto)
  const aPrefs=await prefRowsFor(d,'alerts',loaded.map(a=>a.userId)),gate=a=>gateAlert(a.channels,aPrefs.get(a.userId)??defaultPrefs().alerts);
@@ -96,8 +99,8 @@ if(fx){
   touch:async(a,v)=>{if(!dry)await d.prepare('UPDATE price_alerts SET last_price=?,last_checked=? WHERE id=? AND active=1 AND updated=?').bind(v,sqlT(now),a.id,a._updated).run()},
   claim:async(a,s)=>dry?true:(await d.prepare(`UPDATE price_alerts SET last_price=?,last_checked=?,last_triggered=?${s.oneShot?",active=0,ended='triggered'":''} WHERE id=? AND active=1 AND updated=? AND ${a.lastTriggered===null?'last_triggered IS NULL':'last_triggered=?'}`).bind(s.value,sqlT(now),sqlT(now),a.id,a._updated,...(a.lastTriggered===null?[]:[sqlT(a.lastTriggered)])).run()).meta.changes>0,
   record:async(a,s,label)=>dry?0:Number((await d.prepare('INSERT INTO alert_events(alert_id,user_id,at,price,instrument,label) VALUES(?,?,?,?,?,?)').bind(a.id,a.userId,sqlT(now),s.price,a.instrument,label.slice(0,200)).run()).meta.last_row_id),
-  deliver:async(a,f)=>{
-   const res={push:null,mail:null};
+  deliver:async(a,f0)=>{
+   const res={push:null,mail:null},f=a.scenarioId?{...f0,link:scenarioLink(SITE,a.scenarioId)}:f0;
    if(dry){console.log('  (dry) push+mail by odešel: '+pushPayload(f).title);return res}
    const g=gate(a);
    if(g.push&&pushOn){const r=await sendPush(a.userId,JSON.stringify(pushPayload(f)),3600);res.push=r.subs?r.ok>0:false}
