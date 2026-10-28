@@ -10,6 +10,8 @@ import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
 import {volumeProfile,barsBetween,type Profile} from '@/lib/chart/volume-profile';
 import {TFS} from '@/lib/chart/candles';
 import {fmtPrice} from './live';
+import {useRisk,useProfilePref} from './risk/risk-context';
+import {chartSizing,SizingRow} from './risk/chart-sizing';
 
 export type Tool='cursor'|DrawType;
 type Bar={time:number;open:number;high:number;low:number;close:number;volume?:number};
@@ -73,6 +75,9 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const S=useRef({tool,drawings,temp,selected,magnet,color,bars,times:[] as number[],tf,instrument,prefs,presetSel});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
  useLayoutEffect(()=>{S.current={tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument,prefs,presetSel}});
+ // profil účtu pro loty v nástroji long/short (Účty a riziko)
+ const risk=useRisk(),riskPref=useProfilePref(),RK=useRef({data:risk.data,pref:riskPref});
+ useLayoutEffect(()=>{RK.current={data:risk.data,pref:riskPref}});
  // vzhled nové kresby: zvolený preset nástroje, jinak uživatelův výchozí, jinak nic (vestavěné hodnoty)
  const lookFor=(t:DrawType):Look|null=>{const st=S.current,id=st.presetSel[t];return (id&&st.prefs.presets.find(p=>p.id===id&&p.tool===t))||st.prefs.defaults[t]||null};
  const draft=useRef<Draft|null>(null),drag=useRef<Drag|null>(null),panning=useRef(false);
@@ -106,6 +111,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
     return {x:ax.x0+ax.dx*i,label:'dotyk '+touchLabel(st.bars[i].time,st.tf)};
    },
    size:(w,h)=>setArea({w,h}),
+   sizing:d=>chartSizing(d,RK.current.data,RK.current.pref,S.current.instrument),
    // volume profile rozsahu ze svíček mezi kotvami (cache: stejné svíčky, rozsah a nastavení = stejný profil)
    profile:d=>{
     const bs=S.current.bars;let m=VP_CACHE.get(bs);if(!m){m=new Map();VP_CACHE.set(bs,m)}
@@ -121,6 +127,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  // volný bod (štětec): bez zaokrouhlení na svíčku
  const freeAt=(p:Pt):Anchor|null=>{const r=raw(p);return r?{t:Math.round(conv.fromL(r.l)),p:r.p}:null};
 
+ useEffect(()=>{prim.update()},[risk.data,riskPref,prim]);
  // připojení primitiva k sérii svíček
  useEffect(()=>{const s=series.current,pr=prim;s?.attachPrimitive(pr);pr.update();return()=>{try{s?.detachPrimitive(pr)}catch{}}},[series,ver]);
  useEffect(()=>{const pr=prim;pr.drawings=drawings;pr.temp=temp;pr.selected=selected;pr.tf=tf;pr.update()},[drawings,temp,selected,times,tf]);
@@ -442,7 +449,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    <button type="button" className={'mc-tool sm mc-fav-toggle'+(isFav(current.type)?' on':'')} aria-pressed={isFav(current.type)} aria-label={(isFav(current.type)?'Odebrat z oblíbených: ':'Přidat do oblíbených: ')+DRAW_LABELS[current.type]} data-tip={isFav(current.type)?'Odebrat nástroj z oblíbených':'Nástroj do oblíbených'} onClick={()=>toggleFavorite(current.type)}><Star size={15} fill={isFav(current.type)?'currentColor':'none'} aria-hidden/></button>
    {isTemp&&<button type="button" className="mc-chip" onClick={pin}><Pin size={13} aria-hidden/> Připnout</button>}
    <button type="button" className="mc-tool sm danger" aria-label="Smazat kresbu" data-tip="Smazat (Delete)" onClick={()=>remove(current.id)}><Trash2 size={15} aria-hidden/></button>
-   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)} colors={prefs.colors} presets={presetsOf(current.type)} hasDefault={!!prefs.defaults[current.type]} canSave={prefs.presets.length<MAX_PRESETS||presetsOf(current.type).length>0} prefsOk={prefsState==='ok'||prefsState==='error'} onSavePreset={n=>savePreset(current,n)} onDeletePreset={deletePreset} onApplyPreset={applyPreset} onSetDefault={()=>setDefault(current)} onResetDefault={()=>resetDefault(current.type)}/>}
+   {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} market={instrument} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)} colors={prefs.colors} presets={presetsOf(current.type)} hasDefault={!!prefs.defaults[current.type]} canSave={prefs.presets.length<MAX_PRESETS||presetsOf(current.type).length>0} prefsOk={prefsState==='ok'||prefsState==='error'} onSavePreset={n=>savePreset(current,n)} onDeletePreset={deletePreset} onApplyPreset={applyPreset} onSetDefault={()=>setDefault(current)} onResetDefault={()=>resetDefault(current.type)}/>}
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
   {area&&prefs.fav.tools.length>0&&<FavBar tools={prefs.fav.tools} x={prefs.fav.x} y={prefs.fav.y} area={area} tool={tool} disabled={disabled} presetName={presetName} onPick={t=>pickTool(t)} onMove={moveFav}/>}
@@ -512,7 +519,7 @@ function Seg<T extends string|number>({value,options,onPick,label}:{value:T;opti
 }
 // panel stylu vybrané kresby: text/poznámka, čára, průhlednost, výplň, okraj, prodloužení, riziko, viditelnost na TF
 type PresetProps={colors:string[];presets:Preset[];hasDefault:boolean;canSave:boolean;prefsOk:boolean;onSavePreset:(name:string)=>void;onDeletePreset:(id:string)=>void;onApplyPreset:(p:Preset)=>void;onSetDefault:()=>void;onResetDefault:()=>void};
-function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...pp}:{d:Drawing;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}&PresetProps){
+function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,market,...pp}:{d:Drawing;market:string;tf:ChartTf;tfList:readonly ChartTf[];onPatch:(p:Partial<Drawing>,group?:string)=>void;onStyle:(p:Partial<DrawStyle>,group?:string)=>void;focusRR:number;onFocusedRR:()=>void}&PresetProps){
  const st=styleOf(d),caps=capsOf(d.type),isText=d.type==='text',pos=d.type==='long'||d.type==='short'?d.type:null,ar=arrowEnds(st.arrow);
  const [text,setText]=useState(d.text||''),[risk,setRisk]=useState(st.risk===null?'':String(st.risk));
  const changeText=(v:string)=>{setText(v);if(isText){if(v.trim())onPatch({text:v.slice(0,MAX_TEXT)},'text')}else onPatch({text:v.trim()?v.slice(0,MAX_TEXT):undefined},'text')};
@@ -580,6 +587,7 @@ function StylePanel({d,tf,tfList:TF_LIST,onPatch,onStyle,focusRR,onFocusedRR,...
    <small id="mc-tags-hint" className="mc-hint">jinak cíl, stop, R:R a ceny na ose jen u vybrané pozice</small>
   </div>}
   {caps.risk&&<label className="mc-row"><span>Riziko</span><input type="text" inputMode="decimal" value={risk} placeholder="částka (volitelné)" onChange={e=>changeRisk(e.target.value)}/></label>}
+  {pos&&<SizingRow d={d} market={market}/>}
   <div className="mc-row" role="group" aria-label="Viditelnost na časových rámcích"><span>Vidět na</span>
    {TF_LIST.map(t=>{const on=visibleOn(d,t),only=on&&(d.tfs?.length===1||TF_LIST.length===1);return <label key={t} className={'mc-check'+(t===tf?' cur':'')}><input type="checkbox" checked={on} disabled={only} title={only?'Aspoň jeden časový rámec':undefined} onChange={()=>onPatch({tfs:toggleTf(d.tfs,t,TF_LIST)})}/>{t}</label>})}
   </div>

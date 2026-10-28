@@ -10,6 +10,7 @@ import {Journaling} from '../journaling/journaling';
 import {StatsView} from './stats-view';
 import {T212Import} from './t212-import';
 import {useOpenPositions,byAccount,OpenPositionsTab} from '../open-positions';
+import {JournalRisk} from '../risk/journal-risk';
 import './journal.css';
 type Tab='trades'|'stats'|'open';
 type Sec='review'|'backtest'|'notes';
@@ -48,6 +49,7 @@ export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?
   return <div className="j-page">{banner}<TradeDetail key={detail} id={detail} trade={trades.find(t=>t.id===detail)} currency={data.currency} allTags={allTags} prev={idx>0?list[idx-1].id:null} next={idx>=0&&idx<list.length-1?list[idx+1].id:null} onOpen={open} onClose={close} onChanged={reload} readOnly={!!viewAs} query={q}/></div>}
  return <div className="j-page">
   {banner}<div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div>
+  {!viewAs&&<JournalRisk account={filter.account}/>}
   {error&&<p role="alert" className="s-notice">{error}</p>}
   {tab==='open'?<>{(data.accounts.length>1||filter.account!=='all')&&<div className="j-filters"><label className="j-field"><span>Účet</span><select value={filter.account} onChange={e=>setFilter(f=>({...f,account:e.target.value}))}><option value="all">Všechny</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}{trades.some(t=>t.source==='manual')&&<option value="manual">Ručně</option>}</select></label></div>}<OpenPositionsTab data={openData} now={openNow} account={filter.account} onOpen={id=>open('mt:'+id)}/></>:!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p><p>Obchoduješ CFD u Trading 212? Nahraj export historie (CSV).</p>{!viewAs&&<T212Import onDone={reload} compact/>}</div>:<>
    {!viewAs&&tab==='trades'&&<T212Import onDone={reload}/>}

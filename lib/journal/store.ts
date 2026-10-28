@@ -7,13 +7,17 @@ import {toJournalTrades} from './rows.ts';
 import {mapSymbol} from '../checklists/core.ts';
 import {symbolMap} from '../checklists/store.ts';
 import {instruments} from '../markets.ts';
+import {fillRiskPct} from '../risk/discipline.ts';
 import type {JournalAccount,JournalChange,JournalDetail,JournalFile,JournalList,JournalPosition,ManualJournalRow,MtJournalRow} from './types.ts';
 export async function listJournal(d:Db,userId:string):Promise<JournalList>{
  const currency=await userCurrency(d,userId);
  const accounts:JournalAccount[]=(await d.prepare('SELECT id,name,login,platform,currency FROM mt_accounts WHERE user_id=? ORDER BY created').bind(userId).all<{id:string;name:string;login:string;platform:string;currency:string}>()).results.map(a=>({id:a.id,name:a.name||'••••'+String(a.login).slice(-4),platform:a.platform,currency:a.currency}));
- const mt=(await d.prepare(`SELECT p.id,p.account_id,p.symbol,p.side,p.open_ts,p.close_ts,p.volume_max,p.net,p.r_result,p.rr_planned,p.risk_pct,p.risk_money,p.mfe_money,p.mae_money,p.tags,p.tags_manual,
+ const mtRaw=(await d.prepare(`SELECT p.id,p.account_id,p.symbol,p.side,p.open_ts,p.close_ts,p.volume_max,p.net,p.r_result,p.rr_planned,p.risk_pct,p.risk_money,p.mfe_money,p.mae_money,p.tags,p.tags_manual,
   (p.note IS NOT NULL AND p.note<>'') AS has_note,(SELECT COUNT(*) FROM mt_position_files f WHERE f.position_id=p.id) AS files,a.currency AS acc_currency,a.name AS acc_name,a.login AS acc_login,a.platform AS acc_platform
   FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE a.user_id=? AND p.status='closed'`).bind(userId).all<MtJournalRow>()).results;
+ // riziko v % pro účty bez zůstatku z EA (T212) z profilu účtu (Účty a riziko); bez tabulky profilů beze změny
+ const profs=(await d.prepare('SELECT link_id,start_balance,start_date FROM account_profiles WHERE user_id=? AND archived=0 AND link_id IS NOT NULL').bind(userId).all<{link_id:string;start_balance:number;start_date:string}>().catch(()=>({results:[]}))).results;
+ const mt=fillRiskPct(mtRaw,profs.map(p=>({linkId:p.link_id,start:Number(p.start_balance),startTs:Date.parse(String(p.start_date).slice(0,10)+'T00:00:00Z')-2*3600000})));
  const manual=(await d.prepare('SELECT id,date,instrument,pnl,note,created FROM trades WHERE user_id=?').bind(userId).all<ManualJournalRow>()).results;
  const rates=await loadRates(d,currency,mt.map(r=>r.acc_currency));
  const cl:Record<string,number|null>={};

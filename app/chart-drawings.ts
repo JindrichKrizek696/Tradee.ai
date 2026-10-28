@@ -16,6 +16,8 @@ export type DrawEnv={
  size?:(w:number,h:number)=>void;
  // volume profile s pevným rozsahem: profil svíček mezi kotvami (null = žádné svíčky)
  profile?:(d:Drawing)=>Profile|null;
+ // long/short: velikost pozice pro vybraný profil účtu („XAUUSD 0,5 lotu · riziko 200 USD“), null = nezobrazovat
+ sizing?:(d:Drawing)=>string|null;
 };
 type CanvasRenderingTarget2D=Parameters<IPrimitivePaneRenderer['draw']>[0];
 type Item={id:string;d:Drawing;shape:Shape;st:FullStyle};
@@ -235,7 +237,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     ctx.setLineDash([]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.5,lw);line({x:x0,y:a.y},{x:x1,y:a.y});
     if(!this.tagsOn(d))break;
     const L=positionLines(d.type,d.a,this.env.price,st.risk),cx=(x0+x1)/2,up=tp.y<a.y;
-    tag([L.tp],cx,up?tp.y+4:tp.y-26,P.bull);tag([L.sl],cx,up?sl.y-26:sl.y+4,P.bear);shape.rrBox=tag([L.mid],cx,a.y-11,c);
+    tag([L.tp],cx,up?tp.y+4:tp.y-26,P.bull);tag([L.sl],cx,up?sl.y-26:sl.y+4,P.bear);const sz=this.env.sizing?.(d)??null;shape.rrBox=tag(sz?[L.mid,sz]:[L.mid],cx,a.y-(sz?19:11),c);
     break;
    }
    case 'vprofile':{

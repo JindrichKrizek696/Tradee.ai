@@ -7,6 +7,7 @@ import {OpenPositionsCard,useOpenPositions} from './open-positions';
 import {useMarkets,railSummary,inTradeText,useChecklistProgress,useNarrow,PositionLine} from './flag-rail';
 import {DisciplineTile} from './discipline-tile';
 import {RiskTile} from './risk-tile';
+import {AccountRiskCard} from './risk/account-risk';
 import {CalendarDays,Check,Clock,AlertTriangle,ChevronRight,Activity,Flag,Globe2,DatabaseZap,LineChart,TrendingUp,TrendingDown} from 'lucide-react';
 import type {FundamentalData} from '@/lib/fundamentals';
 import type {MarketData} from '@/lib/score-engine';
@@ -126,6 +127,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,greet,ope
    <OpenPositionsCard account={account} style={tile(1)} shared={op}/>
    <DisciplineTile now={now} account={account} period={period} from={range.from} to={range.to} rev={rev} style={tile(2)}/>
    <RiskTile account={account} style={tile(3)} shared={op}/>
+   <AccountRiskCard style={tile(3)}/>
 
    <section className="d-card d-pulse" style={tile(3)}>
     <div className="d-head"><h2>Šíře trhu</h2><span className="d-meta">{b.scored?b.scored+' trhů se skóre':'Podklady jsou starší než limit'}{trail.length?' · snímek '+day(trail[trail.length-1].at):''}</span></div>

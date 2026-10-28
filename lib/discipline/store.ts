@@ -5,6 +5,9 @@ import {pragueDate} from '../mt/trades.ts';
 import {LIMITS,RULES,EMOTIONS,REASONS,REVIEW_LIMITS,normalizeSettings,evaluate,effectiveLevel,currenciesOf,type RuleSettings,type RuleId,type EvalTrade} from './rules.ts';
 import type {NewsEvent} from './news.ts';
 import type {ReviewLite,ViolationLite} from './overview.ts';
+import {profileForAccount,profileBalanceAt} from '../risk/store.ts';
+import {riskPctOf,withProfile} from '../risk/discipline.ts';
+import {rulesAt} from '../risk/account.ts';
 export {LIMITS};
 const uid=(p:string)=>p+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,24);
 export async function getRuleSettings(d:Db,userId:string):Promise<RuleSettings>{
@@ -78,8 +81,8 @@ export function pragueDayStart(date:string):number{
  return t0-3600000;
 }
 const nextDate=(date:string)=>{const [y,m,d]=date.split('-').map(Number);return new Date(Date.UTC(y,m-1,d+1)).toISOString().slice(0,10)};
-type PosRow={id:string;side:string;status:string;open_ts:number;close_ts:number|null;open_price:number;symbol:string;sl_initial:number|null;tp_initial:number|null;risk_pct:number|null;net:number;close_reason:string|null};
-const COLS='id,side,status,open_ts,close_ts,open_price,symbol,sl_initial,tp_initial,risk_pct,net,close_reason';
+type PosRow={id:string;side:string;status:string;open_ts:number;close_ts:number|null;open_price:number;symbol:string;sl_initial:number|null;tp_initial:number|null;risk_pct:number|null;risk_money:number|null;net:number;close_reason:string|null};
+const COLS='id,side,status,open_ts,close_ts,open_price,symbol,sl_initial,tp_initial,risk_pct,risk_money,net,close_reason';
 const num=(v:unknown)=>v===null||v===undefined?null:Number(v);
 const chunks=<T>(a:T[],n=400)=>{const o:T[][]=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
 // Zůstatek na začátku dne: nejbližší mt_snapshots.balance před začátkem dne; bez snímku zůstatek z prvního dealu dne v mt_events (payload.balance, tj. jako při výpočtu risk_pct); jinak null (max_daily_loss se nevyhodnotí).
@@ -114,10 +117,17 @@ export async function evaluateAccount(d:Db,userId:string,accountId:string,ticket
  }
  const byDay=new Map<string,PosRow[]>();
  for(const r of all){const k=pragueDate(Number(r.open_ts));(byDay.get(k)||byDay.set(k,[]).get(k)!).push(r)}
- const balances=new Map<string,number|null>();
- if(settings.max_daily_loss.on)for(const k of new Set(targets.map(r=>pragueDate(Number(r.open_ts)))))balances.set(k,await balanceAt(d,accountId,pragueDayStart(k),pragueDayStart(nextDate(k))));
+ // profil účtu (Účty a riziko): přísnější limity a zůstatek pro riziko v % u účtů bez zůstatku z EA (T212); bez profilu jako dřív
+ const profile=await profileForAccount(d,userId,accountId);
+ const balances=new Map<string,number|null>(),needBal=settings.max_daily_loss.on||(!!profile&&(settings.max_risk.on||settings.max_total_risk.on));
+ if(needBal)for(const k of new Set(targets.map(r=>pragueDate(Number(r.open_ts))))){
+  let b=settings.max_daily_loss.on||!profile?await balanceAt(d,accountId,pragueDayStart(k),pragueDayStart(nextDate(k))):null;
+  if(b===null&&profile)b=await profileBalanceAt(d,accountId,profile,pragueDayStart(k));
+  balances.set(k,b);
+ }
+ const daySettings=(k:string)=>profile?withProfile(settings,rulesAt(profile.versions,k),profile.start,balances.get(k)??null):settings;
  const useNews=settings.no_news.on?news():[];
- const toTrade=(r:PosRow,k:string):EvalTrade=>({id:r.id,accountId,side:r.side==='sell'?'sell':'buy',status:r.status==='closed'?'closed':'open',openTs:Number(r.open_ts),closeTs:num(r.close_ts),openPrice:Number(r.open_price),slInitial:effectiveLevel(num(r.sl_initial),changes.get(r.id)||[],Number(r.open_ts)),tpInitial:effectiveLevel(num(r.tp_initial),tpChanges.get(r.id)||[],Number(r.open_ts)),riskPct:num(r.risk_pct),net:Number(r.net)||0,closeReason:r.close_reason,balanceStart:balances.get(k)??null,slChanges:changes.get(r.id)||[],currencies:currenciesOf(r.symbol)});
+ const toTrade=(r:PosRow,k:string):EvalTrade=>({id:r.id,accountId,side:r.side==='sell'?'sell':'buy',status:r.status==='closed'?'closed':'open',openTs:Number(r.open_ts),closeTs:num(r.close_ts),openPrice:Number(r.open_price),slInitial:effectiveLevel(num(r.sl_initial),changes.get(r.id)||[],Number(r.open_ts)),tpInitial:effectiveLevel(num(r.tp_initial),tpChanges.get(r.id)||[],Number(r.open_ts)),riskPct:profile?riskPctOf(num(r.risk_pct),num(r.risk_money),balances.get(k)??null):num(r.risk_pct),net:Number(r.net)||0,closeReason:r.close_reason,balanceStart:balances.get(k)??null,slChanges:changes.get(r.id)||[],currencies:currenciesOf(r.symbol)});
  const dayTrades=new Map<string,EvalTrade[]>();
  for(const [k,rows] of byDay)dayTrades.set(k,rows.map(r=>toTrade(r,k)));
  // max_total_risk: jeden dotaz na všechny pozice účtu překrývající okno vyhodnocovaných vstupů
@@ -129,7 +139,7 @@ export async function evaluateAccount(d:Db,userId:string,accountId:string,ticket
  const found=new Map<string,Map<RuleId,ReturnType<typeof evaluate>[number]>>();
  for(const r of targets){
   const k=pragueDate(Number(r.open_ts)),day=dayTrades.get(k)!,t=day.find(x=>x.id===r.id)!;
-  found.set(r.id,new Map(evaluate(t,day,settings,useNews,overlap).map(v=>[v.rule,v])));
+  found.set(r.id,new Map(evaluate(t,day,daySettings(k),useNews,overlap).map(v=>[v.rule,v])));
  }
  // existující porušení cílových obchodů
  const tradeIds=targets.map(r=>'mt:'+r.id),existing=new Map<string,{id:number;rule:string;reasoned:boolean}[]>();

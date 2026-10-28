@@ -1,0 +1,67 @@
+/* Účty a riziko: kalkulačka pozice, proužek limitů, karta Dashboardu, stránka /ucty. Barvy jen z tokenů. */
+.pc{display:flex;flex-direction:column;gap:12px}
+.pc-title{margin:0;font-size:18px}
+.pc-grid{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end}
+.pc-field{display:flex;flex-direction:column;gap:4px;flex:1 1 180px;min-width:0;font-size:13px;color:var(--t-muted)}
+.pc-field.pc-narrow{flex:0 1 130px}
+.pc-field.pc-wide{flex:1 1 100%}
+.pc-field small{font-weight:400;color:var(--t-muted-2)}
+.pc-field input,.pc-field select{height:38px;padding:0 12px;border:1px solid var(--t-border);border-radius:10px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:15px;min-width:0;width:100%;box-sizing:border-box}
+.pc-field input:focus-visible,.pc-field select:focus-visible{outline:2px solid var(--t-focus,var(--t-brand));outline-offset:1px}
+.pc-check{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--t-fg-2);flex:1 1 200px;min-height:38px}
+.pc-spec,.pc-note{margin:0;font-size:13px;color:var(--t-muted);display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap}
+.pc-note{background:var(--t-surface-2);border:1px solid var(--t-border);border-radius:10px;padding:8px 10px}
+.pc-out{border:1px solid var(--t-border);border-radius:14px;padding:14px 16px;background:var(--t-surface-2);display:flex;flex-direction:column;gap:10px}
+.pc-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:16px}
+.pc-big b{font-size:30px;font-variant-numeric:tabular-nums}
+.pc-big span{color:var(--t-muted);font-size:14px}
+.pc-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 16px;margin:0}
+.pc-dl div{display:flex;flex-direction:column}
+.pc-dl dt{font-size:12px;color:var(--t-muted)}
+.pc-dl dd{margin:0;font-variant-numeric:tabular-nums;font-weight:600}
+.pc-warn{margin:0;display:flex;gap:6px;align-items:center;color:#b45309;font-size:14px}
+:root[data-theme=dark] .pc-warn{color:#f0a24b}
+.pc-err{margin:0;padding:10px 12px;border-radius:10px;background:var(--t-bad-soft);color:var(--bear-text,var(--t-fg));font-weight:600}
+.pc-err.soft{background:var(--t-surface-2);color:var(--t-muted);font-weight:400}
+/* proužek limitů */
+.rk-strip{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.rk-muted{color:var(--t-muted);font-size:14px;margin:0}
+.rk-chip{display:inline-flex;gap:4px;align-items:baseline;padding:4px 10px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);font-size:13px;color:var(--t-fg-2)}
+.rk-chip b{font-variant-numeric:tabular-nums}
+.rk-chip.up b{color:var(--bull-text)}
+.rk-chip.down{border-color:var(--bear-text);background:var(--t-bad-soft)}
+.rk-chip.down b{color:var(--bear-text)}
+.rk-chip.mid b{color:#b45309}
+:root[data-theme=dark] .rk-chip.mid b{color:#f0a24b}
+.rk-kind{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--t-surface-2);color:var(--t-muted);margin-left:6px;vertical-align:middle}
+/* karta Dashboardu */
+.rk-card .rk-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.rk-card .rk-name{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.rk-card .rk-bal{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--t-muted);font-size:14px}
+.rk-card .rk-breach{display:inline-flex;align-items:center;gap:3px;color:var(--bear-text);font-size:12px;font-weight:600;margin-left:6px}
+.rk-card .rk-empty{display:flex;gap:10px;align-items:flex-start;color:var(--t-muted)}
+.rk-card .rk-empty p{margin:0}
+/* stránka /ucty */
+.ua-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ua-head h2{margin:0}
+.ua-tools{display:flex;gap:4px}
+.ua-meta{color:var(--t-muted);font-size:14px;margin:6px 0 10px}
+.ua-card.off{opacity:.7}
+.ua-edit{display:flex;flex-direction:column;gap:12px}
+.ua-tpl{flex-wrap:wrap}
+.ua-rules{display:flex;flex-direction:column;gap:10px}
+.ua-rules fieldset{border:1px solid var(--t-border);border-radius:12px;padding:10px 12px 12px;margin:0}
+.ua-rules legend{font-weight:600;padding:0 6px;font-size:14px}
+.ua-num{display:flex;align-items:center;gap:6px}
+.ua-num i{font-style:normal;color:var(--t-muted);font-size:13px;white-space:nowrap}
+.ua-ver ul{margin:6px 0 0;padding-left:18px;color:var(--t-fg-2);font-size:14px}
+.ua-ov{border-top:1px solid var(--t-border);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.ua-ov h3{margin:0;font-size:16px}
+.ua-ovlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.ua-ovlist li{display:flex;align-items:center;gap:8px;font-size:14px}
+.ua-ovlist li span{color:var(--t-muted);flex:1;min-width:0;overflow-wrap:anywhere}
+/* okno kalkulačky v Deníku */
+.pc-modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.4);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.pc-modal>div{background:var(--t-surface);border:1px solid var(--t-border);border-radius:18px;padding:18px 20px;width:min(720px,100%);box-shadow:var(--t-shadow)}
+.pc-modal .ua-head{margin-bottom:10px}
+.j-risk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}
