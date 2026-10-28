@@ -1,12 +1,12 @@
 // Laboratoř · Simulace 100 000 Kč (jen vlastník, lab_paper_*), varianty A/B/C/D + S01…S20 ze „Hledání prahů“. GET = stav vybrané varianty
 // (?variant=A…D|S01…, výchozí A) + porovnání všech (bez vedlejších efektů), ?instrument= = obchody jednoho trhu ze všech variant pro vrstvu grafu.
 // POST {action:'reset',confirm:'RESTART',variant} = restart jedné varianty; {action:'remove',confirm:'ODEBRAT',variant:'S…'} = odebrání varianty
-// ze sweepu (jen z vlastní stránky). Novou variantu ze sweepu zakládá POST /api/laborator/sweep.
+// ze sweepu nebo agenta strategie R… (jen z vlastní stránky). Novou variantu ze sweepu zakládá POST /api/laborator/sweep, agenta R… POST /api/laborator/strategies.
 import {db,sameOrigin} from '@/lib/server';
 import {labUser,labFailed,labNotFound,LAB_HEADERS} from '@/lib/lab/http';
-import {listTrades,paperView,resetPaper,removeSweepVariant,withMarks} from '@/lib/lab/paper-store';
+import {listTrades,paperView,resetPaper,removeSweepVariant,removeRuleVariant,withMarks} from '@/lib/lab/paper-store';
 import {refreshSummary} from '@/lib/lab/store';
-import {isVariantId,isSweepVariant,isAgentVariant} from '@/lib/lab/paper';
+import {isVariantId,isSweepVariant,isAgentVariant,isRuleVariant} from '@/lib/lab/paper';
 import {liveQuotes} from '@/lib/live-store';
 import {instruments} from '@/lib/markets';
 const known=new Set(instruments.map(i=>i.id));
@@ -35,8 +35,9 @@ export async function POST(req:Request){try{const u=await labUser(req);if(u inst
   await resetPaper(d,u.id,Date.now(),variant);
  }else if(b.action==='remove'){
   if(b.confirm!=='ODEBRAT')throw Error('Odebrání je potřeba potvrdit.');
-  if(!isSweepVariant(variant))throw Error('Odebrat jde jen variantu ze sweepu (S…).');
-  await removeSweepVariant(d,u.id,variant);
+  if(isRuleVariant(variant))await removeRuleVariant(d,u.id,variant); // agent strategie (R…)
+  else{if(!isSweepVariant(variant))throw Error('Odebrat jde jen variantu ze sweepu (S…) nebo agenta strategie (R…).');
+  await removeSweepVariant(d,u.id,variant)}
  }else throw Error('Neznámá akce.');
  await refreshSummary(d,u.id).catch(e=>console.error(e));
  return Response.json({ok:true},{headers:LAB_HEADERS});

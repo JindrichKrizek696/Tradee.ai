@@ -1,9 +1,10 @@
 // Laboratoř · Simulace – databáze (lab_paper_*). Volá se z /api/laborator/paper za labGate a ze scripts/lab-paper.mjs (jen pro vlastníka).
 // Všechny dotazy filtrují user_id vlastníka (a variantu A/B/C/D, migrace 0027); nikdy se nepoužívá ?as= (lib/admin/http.ts viewAs).
 import type {Db} from '../mysql.ts';
-import {PAPER_RULES,PAPER_VARIANTS,isVoid,VARIANT_IDS,SWEEP_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,isAgentVariant,sweepVariant,agentVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
+import {PAPER_RULES,PAPER_VARIANTS,isVoid,VARIANT_IDS,SWEEP_VARIANT_IDS,RULE_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,isAgentVariant,isRuleVariant,sweepVariant,agentVariant,ruleVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
 import {normalizeCombo,comboIndex,type SweepCombo} from './sweep.ts';
 import {validateGenome,type Genome} from './agents.ts';
+import {validateDef,type StrategyDef} from './rules-def.ts';
 
 export const toSql=(ms:number,frac=false)=>{const s=new Date(ms).toISOString().replace('T',' ');return frac?s.slice(0,23):s.slice(0,19)};
 export const fromSql=(s:unknown)=>s===null||s===undefined?null:Date.parse(String(s).replace(' ','T')+(String(s).endsWith('Z')?'':'Z'));
@@ -14,12 +15,16 @@ const json=<T,>(s:unknown,def:T):T=>{if(typeof s!=='string'||!s)return def;try{r
 export type SweepOrigin={sweepId:string|null;combo:number;params:SweepCombo;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;nb:number|null;chance:number|null;at:string};
 // agent = genom a původ agenta populace G01… (rules.genome + rules.meta); u ostatních null
 export type AgentMeta={gen:number;parent:string|null;origin:string;retired?:string|null};
-export type PaperAccount={variant:VariantId;startEquity:number;started:number;rulesVersion:string;active:boolean;sweep:SweepOrigin|null;agent:{genome:Genome;meta:AgentMeta}|null};
+// rule = agent pravidlové strategie R… (id a zmrazená verze definice + výsledek testu v době spuštění)
+export type RuleOrigin={defId:string;version:number;runId:string|null;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;chance:number|null;robust:boolean;at:string};
+export type PaperAccount={variant:VariantId;startEquity:number;started:number;rulesVersion:string;active:boolean;sweep:SweepOrigin|null;agent:{genome:Genome;meta:AgentMeta}|null;rule:{def:StrategyDef;origin:RuleOrigin}|null};
 type AccRow={variant:string;start_equity:number;started:string;rules_version:string;active:number;rules:string|null};
-const toAcc=(r:AccRow):PaperAccount=>{const j=json<{sweep?:unknown;origin?:SweepOrigin;genome?:unknown;meta?:AgentMeta}>(r.rules,{}),c=normalizeCombo(j.sweep),g=isAgentVariant(r.variant)?validateGenome(j.genome):null;
+const toAcc=(r:AccRow):PaperAccount=>{const j=json<{sweep?:unknown;origin?:SweepOrigin;genome?:unknown;meta?:AgentMeta;rule?:{def?:unknown;origin?:RuleOrigin}}>(r.rules,{}),c=normalizeCombo(j.sweep),g=isAgentVariant(r.variant)?validateGenome(j.genome):null;
+ const rd=isRuleVariant(r.variant)&&j.rule?validateDef(j.rule.def):null;
  return {variant:(isVariantId(r.variant)?r.variant:'A'),startEquity:Number(r.start_equity),started:fromSql(r.started)!,rulesVersion:r.rules_version,active:Number(r.active)===1,
   sweep:isSweepVariant(r.variant)&&c?{...(j.origin??{sweepId:null,combo:comboIndex(c),is:null,oos:null,nb:null,chance:null,at:''}),params:c}:null,
-  agent:g&&g.ok?{genome:g.genome,meta:{gen:Number(j.meta?.gen??0),parent:j.meta?.parent??null,origin:String(j.meta?.origin??''),retired:j.meta?.retired??null}}:null}};
+  agent:g&&g.ok?{genome:g.genome,meta:{gen:Number(j.meta?.gen??0),parent:j.meta?.parent??null,origin:String(j.meta?.origin??''),retired:j.meta?.retired??null}}:null,
+  rule:rd&&rd.ok&&j.rule?.origin?{def:rd.def,origin:j.rule.origin}:null}};
 const ACC_COLS='variant,start_equity,started,rules_version,active,rules';
 export async function getAccount(d:Db,uid:string,variant:VariantId='A'):Promise<PaperAccount|null>{
  const r=await d.prepare(`SELECT ${ACC_COLS} FROM lab_paper_accounts WHERE user_id=? AND variant=?`).bind(uid,variant).first<AccRow>();
@@ -32,13 +37,14 @@ export async function listAccounts(d:Db,uid:string):Promise<PaperAccount[]>{
 export function variantOf(id:VariantId,acc?:PaperAccount|null):PaperVariant|null{
  if(isBaseVariant(id))return PAPER_VARIANTS[id];
  if(isAgentVariant(id))return acc?.agent?agentVariant(id,acc.agent.genome):null;
+ if(isRuleVariant(id))return acc?.rule?ruleVariant(id,acc.rule.origin.defId,acc.rule.def):null;
  return acc?.sweep?sweepVariant(id,acc.sweep.params):null;
 }
 // agenti populace (aktivní i archivovaní – runner u archivovaných jen dobíhá otevřené pozice)
 export const agentVariantsOf=(accounts:PaperAccount[])=>accounts.filter(a=>isAgentVariant(a.variant)&&a.agent).sort((a,b)=>a.variant.localeCompare(b.variant)).map(a=>agentVariant(a.variant,a.agent!.genome));
 // všechny varianty vlastníka: A–D vždy, S… podle účtů (seřazené)
-export const variantsOf=(accounts:PaperAccount[])=>[...VARIANT_IDS.map(v=>PAPER_VARIANTS[v]),...accounts.filter(a=>isSweepVariant(a.variant)).sort((a,b)=>a.variant.localeCompare(b.variant)).map(a=>variantOf(a.variant,a)).filter((v):v is PaperVariant=>!!v)];
-export const rulesJson=(V:PaperVariant,origin?:SweepOrigin,meta?:AgentMeta)=>JSON.stringify({variant:V.id,name:V.name,kind:V.kind,groups:V.groups,rules:V.rules,text:V.text,...(V.sweep?{sweep:V.sweep,markets:V.markets,origin}:{}),...(V.genome?{genome:V.genome,markets:V.markets,meta}:{})});
+export const variantsOf=(accounts:PaperAccount[])=>[...VARIANT_IDS.map(v=>PAPER_VARIANTS[v]),...accounts.filter(a=>isSweepVariant(a.variant)||isRuleVariant(a.variant)).sort((a,b)=>a.variant.localeCompare(b.variant)).map(a=>variantOf(a.variant,a)).filter((v):v is PaperVariant=>!!v)];
+export const rulesJson=(V:PaperVariant,origin?:SweepOrigin,meta?:AgentMeta,ruleOrigin?:RuleOrigin)=>JSON.stringify({variant:V.id,name:V.name,kind:V.kind,groups:V.groups,rules:V.rules,text:V.text,...(V.sweep?{sweep:V.sweep,markets:V.markets,origin}:{}),...(V.genome?{genome:V.genome,markets:V.markets,meta}:{}),...(V.rule?{markets:V.markets,rule:{def:V.rule.def,origin:ruleOrigin}}:{})});
 // nový účet varianty (start = první běh); u existujícího jen doplní uložená pravidla, když chybí (A z doby před 0027). Jen A–D; S… vzniká createSweepVariant.
 export async function ensureAccount(d:Db,uid:string,now:number,variant:VariantId='A'):Promise<PaperAccount>{
  const a=await getAccount(d,uid,variant);
@@ -61,6 +67,24 @@ export async function createSweepVariant(d:Db,uid:string,now:number,combo:SweepC
  if(!r.meta.changes)throw Error('Variantu se nepodařilo založit, zkus to znovu.');
  await addLog(d,uid,now,`Start simulace ${id} (${V.name}) ze sweepu: ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,id);
  return id;
+}
+// „Pustit do simulace“ ze Strategií: agent R01…R40 s NEMĚNNOU kopií definice (verze); stejná definice ve stejné verzi jen jednou
+export async function createRuleVariant(d:Db,uid:string,now:number,defId:string,def:StrategyDef,origin:Omit<RuleOrigin,'defId'|'version'>):Promise<VariantId>{
+ const accs=(await listAccounts(d,uid)).filter(a=>isRuleVariant(a.variant));
+ const dup=accs.find(a=>a.rule&&a.rule.origin.defId===defId&&a.rule.def.version===def.version);
+ if(dup)throw Error(`Tahle verze definice už běží jako ${dup.variant}.`);
+ const id=RULE_VARIANT_IDS.find(v=>!accs.some(a=>a.variant===v));
+ if(!id)throw Error(`Nejvýš ${RULE_VARIANT_IDS.length} agentů strategií – nejdřív nějakého odeber.`);
+ const V=ruleVariant(id,defId,def),o:RuleOrigin={...origin,defId,version:def.version};
+ const r=await d.prepare('INSERT IGNORE INTO lab_paper_accounts(user_id,variant,start_equity,started,rules_version,rules,active,updated) VALUES(?,?,?,?,?,?,1,?)').bind(uid,id,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(V,undefined,undefined,o),toSql(now)).run();
+ if(!r.meta.changes)throw Error('Agenta se nepodařilo založit, zkus to znovu.');
+ await addLog(d,uid,now,`Start simulace ${id} (pravidlová strategie, verze ${def.version}): ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,id);
+ return id;
+}
+// odebrání agenta strategie (jen R…): smaže účet, obchody, křivku i deník (definice v lab_strategy_defs zůstává)
+export async function removeRuleVariant(d:Db,uid:string,variant:VariantId){
+ if(!isRuleVariant(variant))throw Error('Odebrat jde jen agenta strategie.');
+ for(const t of ['lab_paper_trades','lab_paper_equity','lab_paper_log','lab_paper_accounts'])await d.prepare(`DELETE FROM ${t} WHERE user_id=? AND variant=?`).bind(uid,variant).run();
 }
 // odebrání varianty ze sweepu (jen S…): smaže účet, obchody, křivku i deník
 export async function removeSweepVariant(d:Db,uid:string,variant:VariantId){
@@ -107,7 +131,7 @@ export async function resetPaper(d:Db,uid:string,now:number,variant:VariantId='A
  if(!V)throw Error('Neznámá varianta.');
  for(const t of ['lab_paper_trades','lab_paper_equity','lab_paper_log'])await d.prepare(`DELETE FROM ${t} WHERE user_id=? AND variant=?`).bind(uid,variant).run();
  await d.prepare('INSERT INTO lab_paper_accounts(user_id,variant,start_equity,started,rules_version,rules,active,updated) VALUES(?,?,?,?,?,?,1,?) ON DUPLICATE KEY UPDATE start_equity=VALUES(start_equity),started=VALUES(started),rules_version=VALUES(rules_version),rules=VALUES(rules),active=1,updated=VALUES(updated)')
-  .bind(uid,variant,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(V,acc?.sweep??undefined),toSql(now)).run();
+  .bind(uid,variant,V.rules.startEquity,toSql(now),V.rulesVersion,rulesJson(V,acc?.sweep??undefined,undefined,acc?.rule?.origin),toSql(now)).run();
  await addLog(d,uid,now,`Simulace ${variant} restartována: ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,variant);
 }
 

@@ -1,4 +1,4 @@
-// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS), S01… ze sweepu a agentů populace G01… (pravidla z lab_paper_accounts.rules; archivovaný agent jen dobíhá otevřené pozice) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
+// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS), S01… ze sweepu, agentů strategií R01… (zmrazená definice, nastavení z dokončených svíček lib/lab/strat-engine.ts liveSetups) a agentů populace G01… (pravidla z lab_paper_accounts.rules; archivovaný agent jen dobíhá otevřené pozice) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
 // Cron: scripts/refresh-live.sh hned po živých cenách (každých 15 min, flock /tmp/tradee-lab-paper.lock; chyba nesmí shodit živé ceny).
 // node --experimental-strip-types scripts/lab-paper.mjs [--dry] [--why] [--near] [--owner-email x@y] [--try-combo N]   (--near = u C vypíše, proč který trh nesplnil vstup;
 //   --try-combo N = jen s --dry: přidá dočasnou variantu S99 z kombinace N sweepu, nic se neukládá; --try-agents = jen s --dry bez DB: dočasná populace G01…G20)
@@ -13,6 +13,7 @@ import {cotForInstrument} from '../lib/lab/study.ts';
 import {cotFromMarketJson} from '../lib/lab/store.ts';
 import {cotPctForInstrument,rateSeries,knownHistoryDays} from '../lib/lab/known.ts';
 import {isAgentVariant} from '../lib/lab/agents.ts';
+import {isRuleVariant} from '../lib/lab/paper.ts';
 
 const args=process.argv.slice(2),dry=args.includes('--dry'),opt=k=>{const i=args.indexOf(k);return i>=0?args[i+1]:null};
 const read=n=>JSON.parse(readFileSync(new URL('../data/'+n,import.meta.url),'utf8'));
@@ -50,7 +51,7 @@ if(args.includes('--try-agents')){
 
 // ---- zdroje: DB (VPS) nebo Yahoo (lokální --dry)
 const envFile=new URL('../.mariadb.env',import.meta.url);
-let d=null,uid=null,cotSrc=null;const accounts={},tradesOf={},quotes={},h1={},points={},d1={};
+let d=null,uid=null,cotSrc=null;const accounts={},tradesOf={},quotes={},h1={},points={},d1={},ruleSetups={};
 for(const v of VARIANT_IDS){accounts[v]=null;tradesOf[v]=[]}
 if(existsSync(envFile)){
  const env=Object.fromEntries(readFileSync(envFile,'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim()]));
@@ -79,6 +80,26 @@ if(existsSync(envFile)){
  for(const id of new Set([...needD1,...since.keys()]))d1[id]=await loadBars(d,id,'D1',now-Math.max(400,histDays[id]??0)*DAY,now+DAY);
  // COT: lab_cot (plná historie), jinak záloha z JSON souborů
  try{const {loadCot}=await import('../lib/lab/store.ts');const src=await loadCot(d);if(Object.keys(src).length)cotSrc=src}catch(e){console.warn('lab-paper: lab_cot nejde načíst –',e.code||e.message)}
+ // agenti strategií (R…): nastavení z dokončených svíček podle zmrazené definice (H1 ~400 dní, D1 ~12 let kvůli W1/MN, COT a sezonalitě)
+ const rv=variants.filter(V=>V.kind==='rule'&&V.rule);
+ if(rv.length){
+  const {liveSetups}=await import('../lib/lab/strat-engine.ts');const {syntheticDxy,DXY_WEIGHTS}=await import('../lib/lab/strat-blocks.ts');
+  const bc=new Map(),bars=async(id,tf)=>{const k=id+':'+tf;if(!bc.has(k))bc.set(k,(await loadBars(d,id,tf,now-(tf==='H1'?400:4400)*DAY,now+DAY)).map(b=>({t:b.t,o:b.o,h:b.h,l:b.l,c:b.c})));return bc.get(k)};
+  let cotRows=null,newsFn=null;
+  const calNews=async()=>{if(newsFn)return newsFn;const {newsItems,newsLookup}=await import('../lib/backtest/context.ts');newsFn=newsLookup(newsItems(read('calendar.json').events,f.events,f.sources));return newsFn};
+  for(const V of rv){
+   const def=V.rule.def,tf=def.data,conds=def.conditions,ctx={extra:{},d1:{}};
+   if(conds.some(c=>c.block==='cot_index')){if(!cotRows)try{const st=await import('../lib/lab/strat-store.ts');cotRows=await st.loadCotRows(d)}catch(e){console.warn('lab-paper: COT pro strategie –',e.code||e.message)}ctx.cot=cotRows}
+   if(def.filters.news||conds.some(c=>c.block==='news_blackout'))ctx.news=await calNews();
+   for(const c of conds){
+    if(c.block==='rel_strength'){const o=String(c.params.other);ctx.extra[o]??=await bars(o,tf)}
+    if(c.block==='seasonality'&&tf==='H1')for(const id of def.markets)ctx.d1[id]??=await bars(id,'D1');
+    if(c.block==='dxy_trend'&&!ctx.dxy){const dx=await bars('DX-Y.NYB',tf);if(dx.length)ctx.dxy=dx;else{const by={};for(const [p] of DXY_WEIGHTS)by[p]=await bars(p,tf);ctx.dxy=syntheticDxy(by)}}
+   }
+   const su={};for(const id of def.markets){try{su[id]=liveSetups(def,id,await bars(id,tf),ctx,now)}catch(e){console.warn('lab-paper: nastavení',V.id,id,e.message)}}
+   ruleSetups[V.id]=su;
+  }
+ }
 }else{
  if(!dry){console.error('lab-paper: chybí .mariadb.env (lokálně použij --dry)');process.exit(1)}
  const {yahooSymbol,parseChart}=await import('../lib/live.ts');
@@ -119,7 +140,7 @@ for(const V of variants){
  // archivovaný agent: žádné nové vstupy, jen dobíhají otevřené pozice (pak se už nic nezapisuje); ostatní vypnuté varianty nic
  const winding=a&&!a.active&&isAgentVariant(V.id)&&tradesOf[V.id].some(t=>t.closed===null);
  if(a&&!a.active&&!winding){results[V.id]=null;continue}
- results[V.id]=paperStep({now,startEquity:a?.startEquity??V.rules.startEquity,trades:tradesOf[V.id],signals,quotes,h1,points,d1,news,names,variant:V,cot,known,noEntries:!!winding});
+ results[V.id]=paperStep({now,startEquity:a?.startEquity??V.rules.startEquity,trades:tradesOf[V.id],signals,quotes,h1,points,d1,news,names,variant:V,cot,known,noEntries:!!winding,ruleSetups:ruleSetups[V.id]});
 }
 if(dry||!d){
  console.log(`lab-paper ${dry?'DRY':''} ${new Date(now).toISOString()} · silných signálů ${strong.length} · trhů pro kontra ${contraIds.length} (COT u ${Object.keys(cot).length})`);
@@ -145,7 +166,8 @@ for(const V of variants){const step=results[V.id];if(!step){out.push(`${V.id} vy
 }
 // Uzavřené obchody → hned upozornění jen vlastníkovi (mail přes Resend + push na jeho odběry)
 // agenti populace (G…) se neposílají jednotlivě – 20 agentů by zahltilo schránku; jejich obchody jsou v týdenní analýze a v Laboratoři
-const closedNow=variants.filter(V=>!isAgentVariant(V.id)).flatMap(V=>(results[V.id]?.closes||[]).map(c=>({V,c,t:tradesOf[V.id].find(t=>t.id===c.id)})));
+// agenti strategií (R…) stejně – až 40 agentů s částečnými výstupy; výsledky jsou v Laboratoři
+const closedNow=variants.filter(V=>!isAgentVariant(V.id)).filter(V=>!isRuleVariant(V.id)).flatMap(V=>(results[V.id]?.closes||[]).map(c=>({V,c,t:tradesOf[V.id].find(t=>t.id===c.id)})));
 if(closedNow.length&&!dry){
  try{
   const ld=f=>{try{return Object.fromEntries(readFileSync(new URL('../'+f,import.meta.url),'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim().replace(/^(["'])(.*)\1$/,'$2')]))}catch{return {}}};

@@ -16,6 +16,7 @@ import {SweepTab} from './sweep-tab';
 import {ForecastsTab} from './forecasts-tab';
 import {KnownTab} from './known-tab';
 import {AgentsTab} from './agents-tab';
+import {StrategiesTab} from './strategies-tab';
 import '../mt.css';
 import '../journaling/backtest/backtest.css';
 import './lab.css';
@@ -30,7 +31,7 @@ const pct=(v:number|null,d=2)=>v===null?'–':(v>0?'+':'')+fmtNum(v,d)+' %';
 const num=(v:number|null,d=2)=>v===null?'–':fmtNum(v,d);
 const sgn=(v:number|null)=>v===null?'':v>0?'pos':v<0?'neg':'';
 const day=(t:number|null)=>t===null?'–':new Date(t).toLocaleDateString('cs-CZ');
-const TABS=[['study','Předpovídá to cenu?'],['sweep','Hledání prahů'],['known','Známé strategie'],['paper','Simulace'],['agents','Agenti'],['forecasts','Prognózy'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
+const TABS=[['study','Předpovídá to cenu?'],['sweep','Hledání prahů'],['known','Známé strategie'],['strategies','Strategie'],['paper','Simulace'],['agents','Agenti'],['forecasts','Prognózy'],['rules','Moje pravidla'],['notes','Poznámky pro AI'],['summary','Shrnutí pro AI']] as const;
 type Tab=typeof TABS[number][0];
 
 export default function LabPage(){
@@ -45,7 +46,7 @@ export default function LabPage(){
    <h1>Laboratoř</h1>
    <p className="mt-lead">Soukromý výzkum – vidíš ho jen ty. Testy běží nad historickými denními svíčkami a vždy jen s daty, která byla v daný den opravdu známá.</p>
    <div className="mt-chips lb-tabs" role="tablist">{TABS.map(([k,l])=><button key={k} role="tab" aria-selected={tab===k} className={tab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>
-   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:tab==='sweep'?<SweepTab/>:tab==='known'?<KnownTab/>:tab==='agents'?<AgentsTab/>:tab==='forecasts'?<ForecastsTab/>:<Summary/>}
+   {!boot?<p className="mt-empty">Načítám…</p>:tab==='study'?<Study boot={boot}/>:tab==='rules'?<Rules boot={boot}/>:tab==='notes'?<Notes/>:tab==='paper'?<Paper/>:tab==='sweep'?<SweepTab/>:tab==='known'?<KnownTab/>:tab==='agents'?<AgentsTab/>:tab==='strategies'?<StrategiesTab/>:tab==='forecasts'?<ForecastsTab/>:<Summary/>}
   </main>
  </div>;
 }
@@ -215,9 +216,10 @@ type PaperVariantRow={id:VariantId;name:string;kind:string;rulesVersion:string;s
 type PaperData={variant:VariantId;account:{startEquity:number;started:number;rulesVersion:string;active:boolean}|null;stats:PaperStats;equity:PaperEquityPoint[];open:PaperRow[];closed:PaperRow[];log:{at:number;text:string}[];rules:{version:string;name:string;text:string[]};variants:PaperVariantRow[];names:Record<string,string>;now:number};
 type VCls='a'|'b'|'c'|'d'|'e';
 const VARIANTS:{id:VariantId;cls:VCls;hint:string}[]=[{id:'A',cls:'a',hint:'všechny trhy, |skóre| ≥ 50'},{id:'B',cls:'b',hint:'jen FX páry'},{id:'C',cls:'c',hint:'proti nataženému trendu'},{id:'D',cls:'d',hint:'|skóre| ≥ 65, max 1 krypto'}];
-const isVid=(v:string)=>/^[A-D]$|^S(0[1-9]|1\d|20)$/.test(v);
-// A–D pevně, S… ze sweepu podle účtů (barva „e“)
-const variantList=(rows:PaperVariantRow[])=>[...VARIANTS,...rows.filter(v=>v.id.startsWith('S')).map(v=>({id:v.id,cls:'e' as VCls,hint:v.sweep?sweepHint(v.sweep.params):'ze sweepu'}))];
+const isVid=(v:string)=>/^[A-D]$|^S(0[1-9]|1\d|20)$|^R(0[1-9]|[1-3]\d|40)$/.test(v);
+// A–D pevně, S… ze sweepu a R… agenti strategií podle účtů (barva „e“)
+const extraV=(id:string)=>id.startsWith('S')||id.startsWith('R');
+const variantList=(rows:PaperVariantRow[])=>[...VARIANTS,...rows.filter(v=>extraV(v.id)).map(v=>({id:v.id,cls:'e' as VCls,hint:v.sweep?sweepHint(v.sweep.params):v.id.startsWith('R')?'agent strategie':'ze sweepu'}))];
 const sweepHint=(c:SweepCombo)=>`${ENTRY_LABELS[c.entry]}, |skóre| ≥ ${c.threshold}, SL ${fmtNum(c.slAtr,1)} ATR, ${SWEEP_EXIT_LABELS[c.exit]}, max ${c.hold} d, ${SET_LABELS[c.set]}${c.corrCap?', kor. limit':''}${c.cooldown?', ochlazení':''}`;
 const VKEY='tradee.lab.paperVariant';
 const curveOf=(start:number|null,startEquity:number,equity:PaperEquityPoint[],now:number,last:number):EquityPoint[]=>{if(start===null)return [];const pts=[{t:start,equity:startEquity},...equity.filter(p=>p.t>=start)];if(pts.length===1)pts.push({t:Math.max(now,start+60000),equity:last});return pts};
@@ -234,7 +236,7 @@ function Paper(){
  const pickVariant=(v:VariantId)=>{setVariant(v);setOpenId(null);try{localStorage.setItem(VKEY,v)}catch{}};
  const load=useCallback(()=>{call<PaperData>('/api/laborator/paper?variant='+variant).then(j=>{setD(j);setErr('')}).catch(e=>{const st=(e as HttpError).status;if(st===503)setMissing(true);else if(st===404&&variant!=='A')pickVariant('A');else setErr((e as Error).message)})},[variant]);
  useEffect(()=>{load();const t=setInterval(()=>{if(document.visibilityState==='visible')load()},5*60000);return()=>clearInterval(t)},[load]);
- async function remove(){if(!confirm(`Odebrat variantu ${variant}? Smaže se její účet, obchody, křivka i deník. Kombinaci jde ze sweepu pustit znovu.`))return;setBusy(true);try{await call('/api/laborator/paper','POST',{action:'remove',confirm:'ODEBRAT',variant});pickVariant('A')}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
+ async function remove(){if(!confirm(`Odebrat variantu ${variant}? Smaže se její účet, obchody, křivka i deník. Znovu ji jde pustit ze sweepu nebo ze Strategií.`))return;setBusy(true);try{await call('/api/laborator/paper','POST',{action:'remove',confirm:'ODEBRAT',variant});pickVariant('A')}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
  async function reset(){if(!confirm(`Restartovat variantu ${variant}? Smažou se všechny její virtuální obchody, křivka i deník a účet začne znovu se 100 000 Kč. Ostatní varianty zůstanou.`))return;setBusy(true);try{await call('/api/laborator/paper','POST',{action:'reset',confirm:'RESTART',variant});load()}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
  const curve=useMemo(()=>d?curveOf(d.account?.started??null,d.account?.startEquity??0,d.equity,d.now,d.stats.equity):[],[d]);
  const list=useMemo(()=>d?variantList(d.variants):VARIANTS,[d]);
@@ -259,7 +261,7 @@ function Paper(){
   </section>
   <section className="mt-card">
    <div className="lb-variants" role="group" aria-label="Varianta simulace">{VARIANTS.map(({id,cls})=>{const v=d.variants.find(x=>x.id===id);return <button key={id} type="button" className={'mt-btn'+(id===variant?' on':'')} aria-pressed={id===variant} onClick={()=>pickVariant(id)}><i className={'bt-dot '+cls}/>{id}{v?' – '+v.name:''}</button>})}
-    {list.length>VARIANTS.length&&<select className={'lb-select'+(variant.startsWith('S')?' on':'')} aria-label="Varianta ze sweepu" value={variant.startsWith('S')?variant:''} onChange={e=>{if(e.target.value)pickVariant(e.target.value as VariantId)}}><option value="">Ze sweepu ({list.length-VARIANTS.length})…</option>{list.filter(x=>x.cls==='e').map(x=><option key={x.id} value={x.id}>{x.id} – {d.variants.find(v=>v.id===x.id)?.name}</option>)}</select>}</div>
+    {list.length>VARIANTS.length&&<select className={'lb-select'+(extraV(variant)?' on':'')} aria-label="Varianta ze sweepu nebo agent strategie" value={extraV(variant)?variant:''} onChange={e=>{if(e.target.value)pickVariant(e.target.value as VariantId)}}><option value="">Ze sweepu a strategií ({list.length-VARIANTS.length})…</option>{list.filter(x=>x.cls==='e').map(x=><option key={x.id} value={x.id}>{x.id} – {d.variants.find(v=>v.id===x.id)?.name}</option>)}</select>}</div>
    <h2>Simulace {d.variant} – {d.rules.name}</h2>
    <p className="mt-lead">Virtuální účet, který každých 15 minut obchoduje podle pevných pravidel varianty – bez zásahu. Ke každému obchodu si zapíše, proč do něj šel, jak moc si byl jistý a jak dopadl.{d.account?` Start ${when(d.account.started)}, pravidla ${d.account.rulesVersion}.`:' Spustí se při příštím běhu po živých cenách.'}</p>
    {err&&<p className="mt-alert" role="alert">{err}</p>}
@@ -288,7 +290,7 @@ function Paper(){
   </section>
   <section className="mt-card">
    <details className="lb-details"><summary>Deník simulace ({d.log.length})</summary>{!d.log.length?<p className="mt-empty">Prázdný.</p>:<ul className="lb-log">{d.log.map((l,i)=><li key={i}><time>{when(l.at)}</time> {l.text}</li>)}</ul>}</details>
-   <div className="lb-form lb-actions"><button className="mt-btn" disabled={busy} onClick={reset}><RotateCcw size={15}/>{busy?'Restartuji…':`Restartovat variantu ${d.variant}`}</button>{d.variant.startsWith('S')&&<button className="mt-btn" disabled={busy} onClick={remove}><Trash2 size={15}/>Odebrat variantu {d.variant}</button>}<span className="lb-hint">P&L v Kč = R × riziko (abstrahuje od velikosti kontraktu a převodu měn). Ceny z Yahoo, bez skutečného brokera.</span></div>
+   <div className="lb-form lb-actions"><button className="mt-btn" disabled={busy} onClick={reset}><RotateCcw size={15}/>{busy?'Restartuji…':`Restartovat variantu ${d.variant}`}</button>{extraV(d.variant)&&<button className="mt-btn" disabled={busy} onClick={remove}><Trash2 size={15}/>Odebrat variantu {d.variant}</button>}<span className="lb-hint">P&L v Kč = R × riziko (abstrahuje od velikosti kontraktu a převodu měn). Ceny z Yahoo, bez skutečného brokera.</span></div>
   </section>
  </>;
 }
