@@ -8,11 +8,15 @@ import {mapSymbol} from '../checklists/core.ts';
 import {symbolMap} from '../checklists/store.ts';
 import {instruments} from '../markets.ts';
 import {fillRiskPct} from '../risk/discipline.ts';
+import {loadMeta,ideaMap} from './record-store.ts';
+import {rMultiple} from './accounting.ts';
+import {excursionR} from './metrics.ts';
+import {loadBars} from '../bars/query.ts';
 import type {JournalAccount,JournalChange,JournalDetail,JournalFile,JournalList,JournalPosition,ManualJournalRow,MtJournalRow} from './types.ts';
 export async function listJournal(d:Db,userId:string):Promise<JournalList>{
  const currency=await userCurrency(d,userId);
  const accounts:JournalAccount[]=(await d.prepare('SELECT id,name,login,platform,currency FROM mt_accounts WHERE user_id=? ORDER BY created').bind(userId).all<{id:string;name:string;login:string;platform:string;currency:string}>()).results.map(a=>({id:a.id,name:a.name||'••••'+String(a.login).slice(-4),platform:a.platform,currency:a.currency}));
- const mtRaw=(await d.prepare(`SELECT p.id,p.account_id,p.symbol,p.side,p.open_ts,p.close_ts,p.volume_max,p.net,p.r_result,p.rr_planned,p.risk_pct,p.risk_money,p.mfe_money,p.mae_money,p.tags,p.tags_manual,
+ const mtRaw=(await d.prepare(`SELECT p.id,p.account_id,p.symbol,p.side,p.open_ts,p.close_ts,p.volume_max,p.net,p.r_result,p.rr_planned,p.risk_pct,p.risk_money,p.mfe_money,p.mae_money,p.open_price,p.sl_initial,p.tags,p.tags_manual,
   (p.note IS NOT NULL AND p.note<>'') AS has_note,(SELECT COUNT(*) FROM mt_position_files f WHERE f.position_id=p.id) AS files,a.currency AS acc_currency,a.name AS acc_name,a.login AS acc_login,a.platform AS acc_platform
   FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE a.user_id=? AND p.status='closed'`).bind(userId).all<MtJournalRow>()).results;
  // riziko v % pro účty bez zůstatku z EA (T212) z profilu účtu (Účty a riziko); bez tabulky profilů beze změny
@@ -24,7 +28,16 @@ export async function listJournal(d:Db,userId:string):Promise<JournalList>{
  for(const r of (await d.prepare('SELECT trade_id,completion FROM trade_checklists WHERE user_id=?').bind(userId).all<{trade_id:string;completion:number|null}>()).results)cl[r.trade_id]=r.completion===null?null:Number(r.completion);
  // trh Tradee podle mapování symbolů (stejně jako u checklistů) – pro typ trhu v analytice
  const ids=instruments.map(i=>i.id),map=await symbolMap(d,userId),inst=new Map<string,string|null>();
- const trades=toJournalTrades(mt,manual,currency,rates,cl).map(t=>{if(!inst.has(t.symbol))inst.set(t.symbol,mapSymbol(t.symbol,ids,map));return {...t,instrument:inst.get(t.symbol)??null}});
+ const base=toJournalTrades(mt,manual,currency,rates,cl).map(t=>{if(!inst.has(t.symbol))inst.set(t.symbol,mapSymbol(t.symbol,ids,map));return {...t,instrument:inst.get(t.symbol)??null}});
+ // etapa 1C: režim (live / sim / replay), nápad a R z původního plánovaného rizika (plán > první stop; posunutý stop nikdy)
+ const meta=await loadMeta(d,userId),ideas=await ideaMap(d,userId).catch(e=>{console.error('journal ideas',e);return {} as Record<string,string>}),rows=new Map(mt.map(r=>['mt:'+r.id,r]));
+ const trades=base.map(t=>{
+  const m=meta.get(t.id),out={...t,mode:m?.mode??'live' as const,ideaId:ideas[t.id]??null};
+  if(m?.plannedRisk&&m.plannedRisk>0){const net=t.source==='mt'?t.net:t.pnl,row=rows.get(t.id),perR=(v:number|null)=>v===null?null:Math.round(v/m.plannedRisk!*100)/100;
+   out.r=rMultiple(net,m.plannedRisk);if(row){out.mfeR=perR(row.mfe_money===null?null:Number(row.mfe_money));out.maeR=perR(row.mae_money===null?null:Number(row.mae_money))}}
+  return out;
+ });
+ await fillExcursions(d,trades,rows).catch(e=>console.error('journal excursions',e));
  return {currency,accounts,trades};
 }
 export async function ownsPosition(d:Db,userId:string,positionId:string){
@@ -59,3 +72,13 @@ export async function ownFile(d:Db,userId:string,fileId:string){
  return d.prepare('SELECT id,position_id,r2_key,type FROM mt_position_files WHERE id=? AND user_id=?').bind(fileId,userId).first<{id:string;position_id:string;r2_key:string;type:string}>();
 }
 export async function deleteFile(d:Db,fileId:string){await d.prepare('DELETE FROM mt_position_files WHERE id=?').bind(fileId).run()}
+// MFE / MAE z H1 svíček trhu pro obchody bez dat z EA (T212 import…): jen se známým trhem, vstupem a prvním stopem, nejvýš 300 obchodů za posledních 720 dní
+async function fillExcursions(d:Db,trades:import('./types.ts').JournalTrade[],rows:Map<string,MtJournalRow>){
+ const need=trades.filter(t=>t.source==='mt'&&t.mfeR===null&&t.maeR===null&&t.instrument&&t.openTs!==null&&t.side&&t.closeTs-t.openTs<=30*864e5&&t.closeTs>Date.now()-720*864e5).filter(t=>{const r=rows.get(t.id);return r&&r.sl_initial!==null&&r.sl_initial!==undefined&&r.open_price}).slice(0,300);
+ const byInst=new Map<string,typeof need>();for(const t of need)(byInst.get(t.instrument!)??byInst.set(t.instrument!,[]).get(t.instrument!)!).push(t);
+ for(const [inst,list] of byInst){
+  const from=Math.min(...list.map(t=>t.openTs as number))-3600000,to=Math.max(...list.map(t=>t.closeTs))+3600000;
+  const bars=await loadBars(d,inst,'H1',from,to);if(!bars.length)continue;
+  for(const t of list){const r=rows.get(t.id)!,x=excursionR(bars,{side:t.side as 'buy'|'sell',entry:Number(r.open_price),stop:Number(r.sl_initial),openTs:t.openTs as number,closeTs:t.closeTs});if(x){t.mfeR=x.mfeR;t.maeR=x.maeR}}
+ }
+}

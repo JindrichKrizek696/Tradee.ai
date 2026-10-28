@@ -22,10 +22,10 @@ export function TradesTable({trades,currency,onOpen}:{trades:JournalTrade[];curr
     <td data-l="Směr">{t.side?<span className={'j-side '+t.side}>{t.side==='buy'?'Buy':'Sell'}</span>:'–'}</td>
     <td data-l="Objem">{t.volume??'–'}</td>
     <td data-l="Výsledek" className={t.pnl>0?'pos':t.pnl<0?'neg':''} title={t.converted?undefined:'Kurz pro přepočet chybí – částka je v měně účtu'}>{fmtMoney(t.pnl,t.converted?currency:t.accountCurrency||currency)}</td>
-    <td data-l="R">{fmtR(t.r)}</td>
+    <td data-l="R" title={t.r===null&&t.source==='mt'?'Bez stopu a plánovaného rizika – neznámé R':undefined}>{t.r===null&&t.source==='mt'?<span className="j-muted">neznámé</span>:fmtR(t.r)}</td>
     <td data-l="Držení">{fmtHold(t.holdMs)}</td>
     <td data-l="Tagy">{t.tags.map(x=><span key={x} className="j-chip">#{x}</span>)}</td>
-    <td className="j-icons">{t.hasNote&&<FileText size={14} aria-label="Má poznámku"/>}{t.files>0&&<ImageIcon size={14} aria-label="Má screenshot"/>}<span className={'j-src '+(t.platform==='t212'?'t212':t.source)} title={t.platform==='t212'?'Importováno z Trading 212':undefined}>{t.platform==='t212'?'T212':t.source==='mt'?'MT':'Ručně'}</span></td>
+    <td className="j-icons">{t.mode&&t.mode!=='live'&&<span className="j-src" title="Režim obchodu">{t.mode==='sim'?'Sim':'Replay'}</span>}{t.hasNote&&<FileText size={14} aria-label="Má poznámku"/>}{t.files>0&&<ImageIcon size={14} aria-label="Má screenshot"/>}<span className={'j-src '+(t.platform==='t212'?'t212':t.source)} title={t.platform==='t212'?'Importováno z Trading 212':undefined}>{t.platform==='t212'?'T212':t.source==='mt'?'MT':'Ručně'}</span></td>
    </tr>)}</tbody>
   </table>
   {pages>1&&<div className="j-pager"><button type="button" disabled={p===0} onClick={()=>setPage(p-1)}>← Předchozí</button><span>{p+1} / {pages}</span><button type="button" disabled={p>=pages-1} onClick={()=>setPage(p+1)}>Další →</button></div>}

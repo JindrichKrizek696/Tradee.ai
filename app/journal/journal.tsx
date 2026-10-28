@@ -9,26 +9,29 @@ import {TradesTable} from './trades-table';
 import {TradeDetail} from './trade-detail';
 import {Journaling} from '../journaling/journaling';
 import {StatsView} from './stats-view';
+import {IdeasView} from './ideas-view';
 import {T212Import} from './t212-import';
 import {useOpenPositions,byAccount,OpenPositionsTab} from '../open-positions';
 import {JournalRisk} from '../risk/journal-risk';
 import './journal.css';
-type Tab='trades'|'stats'|'open'|'skipped';
+type Tab='trades'|'stats'|'open'|'skipped'|'ideas';
 type Sec='review'|'backtest'|'notes';
 // sloučený režim: #journal/vyhodnoceni[/<obchod>], #journal/backtest a #journal/poznamky jsou záložky Journalingu
 const hashSec=():Sec|null=>/^#journal\/vyhodnoceni(\/|$)/.test(location.hash)?'review':location.hash==='#journal/backtest'?'backtest':location.hash==='#journal/poznamky'?'notes':null;
 const SEC_HASH:Record<Sec,string>={review:'journal/vyhodnoceni',backtest:'journal/backtest',notes:'journal/poznamky'};
 // filtr a záložka se pamatují v prohlížeči (deník se renderuje jen na klientu)
-function saved(key:string):{filter:Filter;tab:Tab}{try{const v=JSON.parse(localStorage.getItem(key)||'{}');return {filter:{...DEFAULT_FILTER,...(v.filter||{})},tab:v.tab==='stats'||v.tab==='open'||v.tab==='skipped'?v.tab:'trades'}}catch{return {filter:DEFAULT_FILTER,tab:'trades'}}}
+function saved(key:string):{filter:Filter;tab:Tab}{try{const v=JSON.parse(localStorage.getItem(key)||'{}');return {filter:{...DEFAULT_FILTER,...(v.filter||{})},tab:v.tab==='stats'||v.tab==='open'||v.tab==='skipped'||v.tab==='ideas'?v.tab:'trades'}}catch{return {filter:DEFAULT_FILTER,tab:'trades'}}}
 const hashId=()=>{const h=location.hash;if(!h.startsWith('#journal/')||hashSec())return null;try{return decodeURIComponent(h.slice(9))}catch{return null}};
 export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?:boolean}={}){
  const m=!!merged&&!viewAs,[sec,setSec]=useState<Sec|null>(()=>m?hashSec():null);
  const q=viewAs?'?as='+encodeURIComponent(viewAs.id):'',KEY=viewAs?'tradee.journal.admin':'tradee.journal';
- const [data,setData]=useState<JournalList|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved(KEY).filter;return viewAs?f:{...f,account:readAccount()}}),[tab,setTab]=useState<Tab>(()=>saved(KEY).tab),[detail,setDetail]=useState<string|null>(()=>hashId()),[now]=useState(()=>Date.now());
+ const [focusIdea,setFocusIdea]=useState<string|null>(null),[data,setData]=useState<JournalList|null>(null),[error,setError]=useState(''),[filter,setFilter]=useState<Filter>(()=>{const f=saved(KEY).filter;return viewAs?f:{...f,account:readAccount()}}),[tab,setTab]=useState<Tab>(()=>saved(KEY).tab),[detail,setDetail]=useState<string|null>(()=>hashId()),[now]=useState(()=>Date.now());
  const {data:openData,now:openNow}=useOpenPositions(q),openCount=useMemo(()=>byAccount(openData?.positions||[],filter.account).length,[openData,filter.account]);
  async function reload(){try{const r=await fetch('/api/journal'+q,{cache:'no-store'});const j=await r.json() as JournalList&{error?:string};if(!r.ok)throw Error(j.error||'');setData(j);setError('')}catch(e){setError((e as Error).message||'Deník se nepodařilo načíst. Zkus obnovit stránku.')}}
  useEffect(()=>{reload();const on=()=>{setDetail(hashId());setSec(hashSec())};window.addEventListener('hashchange',on);
-  return()=>{window.removeEventListener('hashchange',on);if(/^#journal(\/|$)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}},[]);
+  // odkaz „Nápad“ v záznamu obchodu → záložka Nápady s rozbaleným nápadem
+  const idea=(e:Event)=>{setTab('ideas');setFocusIdea(String((e as CustomEvent).detail||'')||null)};window.addEventListener('tradee:journal-idea',idea);
+  return()=>{window.removeEventListener('hashchange',on);window.removeEventListener('tradee:journal-idea',idea);if(/^#journal(\/|$)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}},[]);
  // po načtení dat zrušit části filtru, které odkazují na smazaný účet, tag nebo pár
  useEffect(()=>{if(data)setFilter(f=>{const s=sanitizeFilter(f,data.trades,data.accounts);return JSON.stringify(s)===JSON.stringify(f)?f:s})},[data]);
  // vlastní deník: účet sdílený s Dashboardem (i po vrácení neexistujícího účtu na „all“)
@@ -43,7 +46,7 @@ export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?
  const close=()=>{location.hash='journal'};
  // stejný hash nevyvolá hashchange (např. sloučení se načetlo z účtu až po otevření odkazu) → záložku nastavit přímo
  const pick=(k:Tab|Sec)=>{if(k==='review'||k==='backtest'||k==='notes'){if(sec!==k){if(location.hash==='#'+SEC_HASH[k])setSec(k);else location.hash=SEC_HASH[k]}return}setTab(k);if(sec)location.hash='journal'};
- const activeTab=m&&sec?sec:tab,tabs:[Tab|Sec,string][]=[['trades','Obchody'],['stats','Statistiky'],['open',openData?`Otevřené (${openCount})`:'Otevřené'],['skipped','Vynechané'],...(m?[['review','Vyhodnocení'],['backtest','Backtest'],['notes','Poznámky']] as [Sec,string][]:[])];
+ const activeTab=m&&sec?sec:tab,tabs:[Tab|Sec,string][]=[['trades','Obchody'],['stats','Statistiky'],['open',openData?`Otevřené (${openCount})`:'Otevřené'],['skipped','Vynechané'],['ideas','Nápady'],...(m?[['review','Vyhodnocení'],['backtest','Backtest'],['notes','Poznámky']] as [Sec,string][]:[])];
  const tabBar=<div className="j-tabs" role="tablist">{tabs.map(([k,l])=><button key={k} type="button" role="tab" aria-selected={activeTab===k} className={activeTab===k?'active':''} onClick={()=>pick(k)}>{l}</button>)}</div>;
  // key: přepnutí záložky (Vyhodnocení / Backtest / Poznámky) = nová instance, jinak by Journaling zůstal na první otevřené záložce
  if(m&&sec)return <div className="j-page"><div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div><Journaling key={sec} embed={sec}/></div>;
@@ -54,10 +57,10 @@ export function Journal({viewAs,merged}:{viewAs?:{id:string;name:string};merged?
   {banner}<div className="j-head"><h1>Deník obchodů</h1>{tabBar}</div>
   {!viewAs&&<JournalRisk account={filter.account}/>}
   {error&&<p role="alert" className="s-notice">{error}</p>}
-  {tab==='open'?<>{(data.accounts.length>1||filter.account!=='all')&&<div className="j-filters"><label className="j-field"><span>Účet</span><select value={filter.account} onChange={e=>setFilter(f=>({...f,account:e.target.value}))}><option value="all">Všechny</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}{trades.some(t=>t.source==='manual')&&<option value="manual">Ručně</option>}</select></label></div>}<OpenPositionsTab data={openData} now={openNow} account={filter.account} onOpen={id=>open('mt:'+id)}/></>:tab==='skipped'&&!trades.length?<SkippedTimeline from={range[0]} to={range[1]} query={q} readOnly={!!viewAs}/>:!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p><p>Obchoduješ CFD u Trading 212? Nahraj export historie (CSV).</p>{!viewAs&&<T212Import onDone={reload} compact/>}</div>:<>
+  {tab==='ideas'?<><IdeasView account={filter.account} readOnly={!!viewAs} query={q} onOpen={open} focus={focusIdea}/></>:tab==='open'?<>{(data.accounts.length>1||filter.account!=='all')&&<div className="j-filters"><label className="j-field"><span>Účet</span><select value={filter.account} onChange={e=>setFilter(f=>({...f,account:e.target.value}))}><option value="all">Všechny</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}{trades.some(t=>t.source==='manual')&&<option value="manual">Ručně</option>}</select></label></div>}<OpenPositionsTab data={openData} now={openNow} account={filter.account} onOpen={id=>open('mt:'+id)}/></>:tab==='skipped'&&!trades.length?<SkippedTimeline from={range[0]} to={range[1]} query={q} readOnly={!!viewAs}/>:!trades.length?<div className="j-card j-empty"><p>Zatím tu nejsou žádné obchody.</p><p>Připoj MetaTrader na stránce <a href="/mt">Propojení s MetaTraderem</a> – každý obchod se sem pak zapíše sám. Ručně zapsané obchody z kalendáře na Dashboardu se tu objeví také.</p><p>Obchoduješ CFD u Trading 212? Nahraj export historie (CSV).</p>{!viewAs&&<T212Import onDone={reload} compact/>}</div>:<>
    {!viewAs&&tab==='trades'&&<T212Import onDone={reload}/>}
    <Filters filter={filter} onChange={setFilter} trades={trades} accounts={data.accounts}/>
-   {tab==='trades'?<TradesTable trades={list} currency={data.currency} onOpen={open}/>:tab==='skipped'?<SkippedTimeline from={range[0]} to={range[1]} query={q} readOnly={!!viewAs}/>:<><StatsView trades={list} currency={data.currency}/><PlanStatsCard from={range[0]} to={range[1]} tradeIds={list.map(t=>t.id)} query={q}/></>}
+   {tab==='trades'?<TradesTable trades={list} currency={data.currency} onOpen={open}/>:tab==='skipped'?<SkippedTimeline from={range[0]} to={range[1]} query={q} readOnly={!!viewAs}/>:<><StatsView trades={list} currency={data.currency} filter={filter} now={now} onOpen={open}/><PlanStatsCard from={range[0]} to={range[1]} tradeIds={list.map(t=>t.id)} query={q}/></>}
   </>}
  </div>;
 }

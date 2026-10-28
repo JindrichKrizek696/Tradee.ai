@@ -6,6 +6,8 @@ import calendarAuto from '@/data/calendar.json';
 import fundamentals from '@/data/fundamentals.json';
 import type {AutoEvent,CuratedEvent} from '@/lib/calendar';
 import {instruments} from '@/lib/markets';
+import {scenarioCollisions} from '@/lib/journal/record-store';
+import {allImpactNews} from '@/lib/journal/news-data';
 const headers={'Cache-Control':'private, no-store'},ids=instruments.map(i=>i.id);
 let news:ReturnType<typeof newsForScenarios>|null=null;
 const allNews=()=>news??=newsForScenarios(calendarAuto.events as AutoEvent[],fundamentals.events as CuratedEvent[],fundamentals.sources as Record<string,{url?:string}>);
@@ -15,7 +17,9 @@ export async function GET(req:Request){try{const u=await identity(req),q=new URL
  const list=await listScenarios(db(),u.id,{scope,instrument:inst&&ids.includes(inst)?inst:null,limit:Number(q.get('limit'))||200},now);
  const events:Record<string,{at:number;title:string}>={};
  for(const s of list)if(s.status==='waiting'||s.status==='active'){const e=nearestEvent(allNews(),s.instrument,now);if(e)events[s.id]={at:e.at,title:e.title}}
- return Response.json({scenarios:list,events,now},{headers})}catch(e){return failed(e)}}
+ // no-trade okna (verze strategie, všechny účty), do kterých platnost otevřeného scénáře zasahuje
+ const windows=await scenarioCollisions(db(),u.id,list,allImpactNews(),now).catch(e=>{console.error('scenario windows',e);return {}});
+ return Response.json({scenarios:list,events,windows,now},{headers})}catch(e){return failed(e)}}
 export async function POST(req:Request){try{sameOrigin(req);const u=await identity(req);
  if(Number(req.headers.get('content-length')||0)>100_000)throw Error('Scénář je příliš velký.');
  return Response.json({scenario:await createScenario(db(),u.id,await req.json(),ids)},{headers})}catch(e){return failed(e)}}

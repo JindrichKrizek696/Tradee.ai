@@ -1,4 +1,5 @@
 'use client';
+import {SessionLimitsEditor} from './journal/session-tile';
 import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,ArrowUp,ArrowDown,X} from 'lucide-react';
 import {LIMITS,type RuleDef,type RuleId,type RuleSettings} from '@/lib/discipline/rules';
@@ -103,7 +104,7 @@ export default function RulesPage(){
   <main className="mt-main">
    <h1>Pravidla a strategie</h1>
    <p className="mt-lead">Tady si nastavíš, jak chceš obchodovat. Automatická pravidla Tradee hlídá samo, vlastní pravidla a checklisty odškrtáváš ty, strategie slouží k rozdělení obchodů ve statistikách.</p>
-   <AutoRules/><CustomRules/><Strategies/>
+   <AutoRules/><SessionLimitsEditor/><CustomRules/><Strategies/>
    <ChecklistsPage embedded/>
   </main>
  </div>;

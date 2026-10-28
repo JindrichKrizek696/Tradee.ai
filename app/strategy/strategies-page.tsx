@@ -78,7 +78,9 @@ function Editor({s,onSaved}:{s:StrategyItem;onSaved:()=>void}){
    </div>}
    {b==='notrade'&&<div className="sg-scope">
     <div className="sg-row"><label className="sg-field"><span>Zprávy: minut před</span><input type="number" min={0} max={LIMITS.newsMin} value={c.noTrade.newsBefore??''} onChange={e=>setC(x=>({...x,noTrade:{...x.noTrade,newsBefore:e.target.value===''?null:Math.max(0,Math.min(LIMITS.newsMin,Number(e.target.value)))}}))}/></label>
-     <label className="sg-field"><span>minut po</span><input type="number" min={0} max={LIMITS.newsMin} value={c.noTrade.newsAfter??''} onChange={e=>setC(x=>({...x,noTrade:{...x.noTrade,newsAfter:e.target.value===''?null:Math.max(0,Math.min(LIMITS.newsMin,Number(e.target.value)))}}))}/></label></div>
+     <label className="sg-field"><span>minut po</span><input type="number" min={0} max={LIMITS.newsMin} value={c.noTrade.newsAfter??''} onChange={e=>setC(x=>({...x,noTrade:{...x.noTrade,newsAfter:e.target.value===''?null:Math.max(0,Math.min(LIMITS.newsMin,Number(e.target.value)))}}))}/></label>
+     <label className="sg-field"><span>dopad zpráv</span><select value={c.noTrade.minImpact===2?'2':'3'} onChange={e=>setC(x=>{const {minImpact:_,...rest}=x.noTrade;return {...x,noTrade:e.target.value==='2'?{...rest,minImpact:2 as const}:rest}})}><option value="3">Jen silné</option><option value="2">Střední i silné</option></select></label></div>
+    <small className="sg-muted">Scénář nebo obchod v tomto okně kolem zprávy se označí; okna uvidíš i v Kalendáři u sledovaných trhů.</small>
     <div className="sg-field"><span>Neobchoduji ve dnech</span><div className="sg-chips">{WEEKDAYS.map((w,k)=><button key={w} type="button" className={'sg-chip'+(c.noTrade.days.includes(k+1)?' on':'')} aria-pressed={c.noTrade.days.includes(k+1)} onClick={()=>setC(x=>({...x,noTrade:{...x.noTrade,days:toggle(x.noTrade.days,k+1).sort()}}))}>{w}</button>)}</div></div>
    </div>}
    <textarea className="sg-text" rows={3} maxLength={LIMITS.text} value={c.blocks[b].text} placeholder="Popis vlastními slovy…" aria-label={'Text bloku '+label} onChange={e=>setBlock(b,x=>({...x,text:e.target.value}))}/>

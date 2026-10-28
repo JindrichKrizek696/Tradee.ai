@@ -18,8 +18,9 @@ export type Example={kind:'valid'|'invalid';text:string;fileId:string|null};
 export type Condition={id:string;text:string;role:Role;model:string|null;examples:Example[]};
 export type Block={text:string;conditions:Condition[]};
 export type Scope={markets:string[];timeframes:string[];sessions:string[];style:Style|null};
-// Kdy neobchodovat: okno kolem zpráv s vysokým dopadem (minuty před / po) a dny v týdnu 1 = pondělí … 7 = neděle
-export type NoTradeRules={newsBefore:number|null;newsAfter:number|null;days:number[]};
+// Kdy neobchodovat: okno kolem zpráv (minuty před / po; minImpact 2 = i střední zprávy, bez klíče = jen silné – výchozí tvar zůstává jako v migraci 0036) a dny v týdnu 1 = pondělí … 7 = neděle
+export type NoTradeRules={newsBefore:number|null;newsAfter:number|null;days:number[];minImpact?:2};
+export const IMPACTS={3:'Jen silné zprávy',2:'Střední i silné zprávy'} as const;
 export type Content={models:string[];scope:Scope;noTrade:NoTradeRules;blocks:Record<BlockId,Block>};
 export const LIMITS={text:4000,cond:200,conds:25,totalConds:120,models:6,model:40,examples:3,validExamples:2,invalidExamples:1,example:300,changelog:300,mentor:80,markets:60,versions:200,newsMin:240,fileId:40};
 export function newItemId(){const a='abcdefghijklmnopqrstuvwxyz0123456789';let s='';const b=crypto.getRandomValues(new Uint8Array(8));for(const x of b)s+=a[x%a.length];return s}
@@ -41,7 +42,7 @@ export function validateContent(raw:unknown,marketIds:readonly string[]):Content
  out.scope={markets:list(sc.markets,m=>marketIds.includes(m),LIMITS.markets),timeframes:TIMEFRAMES.filter(t=>list(sc.timeframes,x=>(TIMEFRAMES as readonly string[]).includes(x),20).includes(t)),sessions:Object.keys(SESSIONS).filter(s=>list(sc.sessions,x=>x in SESSIONS,10).includes(s)),style:typeof sc.style==='string'&&sc.style in STYLES?sc.style as Style:null};
  const nt=isObj(raw.noTrade)?raw.noTrade:{};
  const mins=(v:unknown)=>{if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)&&n>=0?Math.min(LIMITS.newsMin,Math.round(n)):null};
- out.noTrade={newsBefore:mins(nt.newsBefore),newsAfter:mins(nt.newsAfter),days:[...new Set((Array.isArray(nt.days)?nt.days:[]).map(Number).filter(d=>Number.isInteger(d)&&d>=1&&d<=7))].sort()};
+ out.noTrade={newsBefore:mins(nt.newsBefore),newsAfter:mins(nt.newsAfter),days:[...new Set((Array.isArray(nt.days)?nt.days:[]).map(Number).filter(d=>Number.isInteger(d)&&d>=1&&d<=7))].sort(),...(Number(nt.minImpact)===2?{minImpact:2 as const}:{})};
  const blocks=isObj(raw.blocks)?raw.blocks:{};let total=0;const ids=new Set<string>();
  for(const b of BLOCK_IDS){
   const src=isObj(blocks[b])?blocks[b] as Record<string,unknown>:{};

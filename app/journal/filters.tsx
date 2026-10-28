@@ -15,6 +15,7 @@ export function Filters({filter,onChange,trades,accounts}:{filter:Filter;onChang
   {sel('Tag',filter.tag,v=>set({tag:v}),[['all','Všechny'],...tags.map(t=>[t,'#'+t] as Opt)])}
   {sel('Směr',filter.side,v=>set({side:v as Filter['side']}),[['all','Oba'],['buy','Buy'],['sell','Sell']])}
   {sel('Výsledek',filter.result,v=>set({result:v as Filter['result']}),[['all','Vše'],['win','Zisk'],['loss','Ztráta']])}
+  {sel('Režim',filter.mode??'all',v=>set({mode:v as Filter['mode']}),[['all','Vše'],['live','Živě'],['sim','Simulace'],['replay','Replay']])}
   {sel('Zdroj',filter.source,v=>set({source:v as Filter['source']}),[['all','Vše'],['mt','MetaTrader'],['manual','Ručně']])}
   {JSON.stringify(filter)!==JSON.stringify(DEFAULT_FILTER)&&<button type="button" className="j-reset" onClick={()=>onChange(DEFAULT_FILTER)}>Zrušit filtry</button>}
  </div>;

@@ -4,6 +4,8 @@ import type {JournalTrade} from '@/lib/journal/types';
 import {summary,equityCurve,breakdown,type BreakdownBy} from '@/lib/journal/stats';
 import {fmtMoney} from '@/lib/trades';
 import {AnalyticsView} from './analytics-view';
+import {MetricsPanel} from './metrics-view';
+import {DEFAULT_FILTER,type Filter} from '@/lib/journal/stats';
 import {fmtHold,fmtR,fmtNum,tradesWord} from '@/lib/journal/format';
 const BY:[BreakdownBy,string][]=[['tag','Tag'],['symbol','Pár'],['side','Směr'],['weekday','Den vstupu'],['hour','Hodina vstupu'],['hold','Délka držení'],['checklist','Checklist']];
 // Kumulovaný výsledek po obchodech; najetím myší (prstem) se ukáže obchod, jeho výsledek a průběžný součet.
@@ -26,24 +28,21 @@ export function Curve({points,currency,fill=false,end=false}:{points:{ts:number;
   </div>}
  </div>;
 }
-export function StatsView({trades,currency}:{trades:JournalTrade[];currency:string}){
+export function StatsView({trades,currency,filter=DEFAULT_FILTER,now=Date.now(),onOpen=()=>{}}:{trades:JournalTrade[];currency:string;filter?:Filter;now?:number;onOpen?:(id:string)=>void}){
  const [by,setBy]=useState<BreakdownBy>('tag');
  if(!trades.length)return <p className="j-muted">Filtru neodpovídá žádný obchod.</p>;
  const s=summary(trades),curve=equityCurve(trades),groups=breakdown(trades,by),m=(v:number|null)=>v===null?'–':fmtMoney(v,currency),maxAbs=Math.max(1,...groups.map(g=>Math.abs(g.total)));
+ // PF, expectancy (peníze i R), win rate, prům. zisk / ztráta, MFE / MAE a drawdowny jsou v panelu Metriky (se vzorcem, N a proklikem)
  const cards:[string,string,string?][]=[
   ['Obchody',String(s.count),`${s.wins} v zisku · ${s.losses} ve ztrátě`],
-  ['Win rate',s.winRate===null?'–':fmtNum(s.winRate,1)+' %'],
-  ['Profit factor',s.profitFactor===null?'–':fmtNum(s.profitFactor,2),s.profitFactor===null&&s.wins?'žádný ztrátový obchod':'zisky ÷ ztráty'],
-  ['Expectancy',m(s.expectancy),s.expectancyR===null?'průměr na obchod':`${fmtR(s.expectancyR)} na obchod`],
   ['Celkem',m(s.total)],
-  ['Prům. zisk / ztráta',`${m(s.avgWin)} / ${m(s.avgLoss)}`],
   ['Nejlepší / nejhorší',`${m(s.best)} / ${m(s.worst)}`],
   ['Série výher / proher',`${s.maxWinStreak} / ${s.maxLossStreak}`],
-  ['Max. drawdown',s.maxDrawdown?m(-s.maxDrawdown):'–','největší pokles od maxima'],
   ['Prům. držení',fmtHold(s.avgHoldMs)]];
  return <div className="j-stats">
+  <MetricsPanel trades={trades} currency={currency} filter={filter} now={now} onOpen={onOpen}/>
   <div className="j-cards">{cards.map(([k,v,sub])=><div key={k} className="j-card j-kpi"><span>{k}</span><b>{v}</b>{sub&&<small>{sub}</small>}</div>)}</div>
-  {s.noRisk>0&&<p className="j-muted">Metriky v R počítají jen obchody se stop lossem – {s.noRisk} {tradesWord(s.noRisk)} bez SL.</p>}
+  {s.noRisk>0&&<p className="j-muted">Metriky v R počítají jen obchody se známým původním rizikem – {s.noRisk} {tradesWord(s.noRisk)} bez SL (neznámé R).</p>}
   <section className="j-card"><h2>Vývoj výsledku</h2><Curve points={curve} currency={currency}/></section>
   <section className="j-card"><div className="j-bhead"><h2>Rozpad</h2><div className="j-tabs small" role="tablist">{BY.map(([k,l])=><button key={k} type="button" role="tab" aria-selected={by===k} className={by===k?'active':''} onClick={()=>setBy(k)}>{l}</button>)}</div></div>
    {groups.length?<table className="j-table j-break"><thead><tr><th>{BY.find(b=>b[0]===by)?.[1]}</th><th>Obchody</th><th>Win rate</th><th>Celkem</th><th>Exp. R</th><th aria-hidden="true"/></tr></thead>

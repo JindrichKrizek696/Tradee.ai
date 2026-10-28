@@ -6,6 +6,9 @@ import type {SnapshotList} from '@/lib/checklists/core';
 import {RULES,EMOTIONS,REASONS,REVIEW_LIMITS} from '@/lib/discipline/rules';
 import {fmtMoney} from '@/lib/trades';
 import {fmtR,fmtHold,fmtNum,fmtDateTime,fmtDate} from '@/lib/journal/format';
+import {PROCESS_QUESTIONS,PROCESS_ANSWERS,processComplete,type ProcessAnswer} from '@/lib/journal/process';
+import {SESSION_RULE_LABELS,sessionViolationText} from '@/lib/journal/session';
+import '../journal/record.css';
 export type Strat={id:string;name:string;archived:boolean};
 export type Custom={id:string;text:string};
 type Review={rating:number|null;strategyId:string|null;reason:string;emotions:string[];lesson:string;customBroken:string[]};
@@ -26,10 +29,10 @@ export function violationText(rule:string,d:Record<string,unknown>):string{
   case 'no_early_close':return 'Pozice zavřena ručně dřív, než ji vyřídil SL nebo TP.';
   case 'no_sl_widen':return `Stop loss posunut proti obchodu z ${n(d.from,5)} na ${n(d.to,5)}.`;
   case 'no_news':return 'Vstup krátce před nebo po zprávě s vysokým dopadem.';
-  default:return '';
+  default:return rule.startsWith('session_')?sessionViolationText(rule,d):'';
  }
 }
-export const ruleLabel=(rule:string,custom:Custom[])=>rule.startsWith('custom:')?custom.find(c=>c.id===rule.slice(7))?.text||'Smazané pravidlo':RULES.find(r=>r.id===rule)?.label||rule;
+export const ruleLabel=(rule:string,custom:Custom[])=>rule.startsWith('custom:')?custom.find(c=>c.id===rule.slice(7))?.text||'Smazané pravidlo':RULES.find(r=>r.id===rule)?.label||(SESSION_RULE_LABELS as Record<string,string>)[rule]||rule;
 export function Stars({value,size=14,onPick,label}:{value:number|null;size?:number;onPick?:(n:number)=>void;label?:string}){
  return <span className={'jg-stars'+(onPick?' pick':'')} role={onPick?'radiogroup':'img'} aria-label={label||(value?`Hodnocení ${value} z 5`:'Nevyhodnoceno')}>{[1,2,3,4,5].map(i=>{const on=!!value&&i<=value,s=<Star size={size} className={on?'on':''} fill={on?'currentColor':'none'} aria-hidden="true"/>;
   return onPick?<button key={i} type="button" role="radio" aria-checked={value===i} aria-label={`${i} z 5`} onClick={()=>onPick(i)}>{s}</button>:<i key={i}>{s}</i>})}</span>;
@@ -38,6 +41,11 @@ const toForm=(r:Rev):Form=>({rating:r.review.rating,strategyId:r.review.strategy
 export function ReviewPanel({id,trade,currency,strategies,custom,readOnly,query,nextId,dirtyRef,onClose,onOpen,onSaved}:{id:string;trade?:JournalTrade;currency:string;strategies:Strat[];custom:Custom[];readOnly:boolean;query:string;nextId:string|null;dirtyRef:{current:boolean};onClose:()=>void;onOpen:(id:string)=>void;onSaved:()=>void}){
  const [rev,setRev]=useState<Rev|null>(null),[form,setForm]=useState<Form|null>(null),[base,setBase]=useState(''),[error,setError]=useState(''),[state,setState]=useState<'idle'|'saving'|'saved'>('idle'),[loadErr,setLoadErr]=useState('');
  const top=useRef<HTMLDivElement>(null);
+ // hodnocení procesu (před výsledkem): P&L a R se ukážou až po zodpovězení všech otázek
+ const [proc,setProc]=useState<{answers:Record<string,ProcessAnswer>;rating:number|null}|null>(null),[procErr,setProcErr]=useState('');
+ useEffect(()=>{let live=true;setProc(null);fetch('/api/journal/'+encodeURIComponent(id)+'/record'+query,{cache:'no-store'}).then(async r=>{const j=await r.json() as {process?:{answers:Record<string,ProcessAnswer>;rating:number|null};error?:string};if(!r.ok)throw Error(j.error||'');if(live)setProc({answers:j.process?.answers||{},rating:j.process?.rating??null})}).catch(()=>{if(live)setProc({answers:{},rating:null})});return()=>{live=false}},[id,query]);
+ async function saveProc(next:{answers:Record<string,ProcessAnswer>;rating:number|null}){setProc(next);if(readOnly)return;try{const r=await fetch('/api/journal/'+encodeURIComponent(id)+'/record',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({process:next})});const j=await r.json().catch(()=>({})) as {error?:string};if(!r.ok)throw Error(j.error||'');setProcErr('')}catch(e){setProcErr((e as Error).message||'Hodnocení procesu se nepodařilo uložit.')}}
+ const showPnl=readOnly||(!!proc&&processComplete(proc.answers));
  useEffect(()=>{let live=true;setRev(null);setForm(null);setError('');setLoadErr('');setState('idle');
   fetch('/api/reviews/'+encodeURIComponent(id)+query,{cache:'no-store'}).then(async r=>{const j=await r.json() as Rev&{error?:string};if(!r.ok)throw Error(j.error||'');if(!live)return;const f=toForm(j);setRev(j);setForm(f);setBase(JSON.stringify(f))}).catch(e=>{if(live)setLoadErr((e as Error).message||'Vyhodnocení se nepodařilo načíst.')});
   top.current?.scrollIntoView?.({block:'nearest'});
@@ -63,14 +71,18 @@ export function ReviewPanel({id,trade,currency,strategies,custom,readOnly,query,
    if(andNext){if(nextId)onOpen(nextId);else onClose()}
   }catch(e){setState('idle');setError((e as Error).message||'Vyhodnocení se nepodařilo uložit. Zkus to znovu.')}
  }
- const head=<div className="jg-phead" ref={top}><div className="jg-ptitle">{trade?<><b>{trade.symbol}</b>{trade.side&&<span className={'j-side '+trade.side}>{trade.side==='buy'?'Buy':'Sell'}</span>}<span className={'jg-res '+(trade.pnl>0?'pos':trade.pnl<0?'neg':'')}>{fmtMoney(trade.pnl,trade.converted?currency:trade.accountCurrency||currency)}</span></>:<b>Obchod</b>}</div><button type="button" className="jg-x" aria-label="Zavřít panel" onClick={()=>leave(onClose)}><X size={18}/></button></div>;
- const preview=trade&&<div className="jg-prev"><span>{trade.source==='mt'&&trade.closeTs?fmtDateTime(trade.closeTs):fmtDate(trade.date)}</span><span>R <b>{fmtR(trade.r)}</b></span><span>Držení <b>{fmtHold(trade.holdMs)}</b></span><a href={'#journal/'+encodeURIComponent(id)} onClick={e=>{if(dirty&&!readOnly&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))e.preventDefault()}}>Otevřít v Deníku <ExternalLink size={13}/></a></div>;
+ const head=<div className="jg-phead" ref={top}><div className="jg-ptitle">{trade?<><b>{trade.symbol}</b>{trade.side&&<span className={'j-side '+trade.side}>{trade.side==='buy'?'Buy':'Sell'}</span>}{showPnl?<span className={'jg-res '+(trade.pnl>0?'pos':trade.pnl<0?'neg':'')}>{fmtMoney(trade.pnl,trade.converted?currency:trade.accountCurrency||currency)}</span>:<span className="jp-hidden">výsledek skrytý</span>}</>:<b>Obchod</b>}</div><button type="button" className="jg-x" aria-label="Zavřít panel" onClick={()=>leave(onClose)}><X size={18}/></button></div>;
+ const preview=trade&&<div className="jg-prev"><span>{trade.source==='mt'&&trade.closeTs?fmtDateTime(trade.closeTs):fmtDate(trade.date)}</span><span>R <b>{showPnl?(trade.r===null&&trade.source==='mt'?'neznámé R':fmtR(trade.r)):'skryté'}</b></span><span>Držení <b>{fmtHold(trade.holdMs)}</b></span><a href={'#journal/'+encodeURIComponent(id)} onClick={e=>{if(dirty&&!readOnly&&!confirm('Máš neuložené změny. Opravdu je zahodit?'))e.preventDefault()}}>Otevřít v Deníku <ExternalLink size={13}/></a></div>;
  if(loadErr)return <aside className="jg-panel" aria-label="Vyhodnocení obchodu">{head}<p role="alert" className="s-notice">{loadErr}</p></aside>;
  if(!rev||!form)return <aside className="jg-panel" aria-label="Vyhodnocení obchodu">{head}{preview}<p className="j-muted">Načítám vyhodnocení…</p></aside>;
  const active=strategies.filter(s=>!s.archived||s.id===form.strategyId);
  return <aside className="jg-panel" aria-label="Vyhodnocení obchodu">
   {head}{preview}
   <fieldset className="jg-form" disabled={readOnly}>
+   <section className="jp"><h3>Hodnoť proces, ne výsledek</h3>{!showPnl&&<p className="j-muted">Výsledek obchodu se ukáže, až odpovíš na všechny otázky.</p>}
+    {!proc?<p className="j-muted">Načítám…</p>:<>{PROCESS_QUESTIONS.map(q=><div key={q.id} className="jp-q"><span>{q.text}</span><div className="jp-opts" role="radiogroup" aria-label={q.text}>{(Object.keys(PROCESS_ANSWERS) as ProcessAnswer[]).map(a=><button key={a} type="button" role="radio" aria-checked={proc.answers[q.id]===a} className={proc.answers[q.id]===a?'on':''} onClick={()=>saveProc({...proc,answers:{...proc.answers,[q.id]:a}})}>{PROCESS_ANSWERS[a]}</button>)}</div></div>)}
+     <div className="jp-q"><span>Celkové hodnocení procesu</span><Stars value={proc.rating} size={20} onPick={readOnly?undefined:v=>saveProc({...proc,rating:proc.rating===v?null:v})} label="Hodnocení procesu"/></div></>}
+    {procErr&&<p role="alert" className="jg-err">{procErr}</p>}</section>
    <section><h3>Hodnocení</h3><div className="jg-rate"><Stars value={form.rating} size={26} onPick={v=>set({rating:form.rating===v?null:v})} label="Hodnocení obchodu"/><small>{form.rating?`${form.rating} z 5 · klikni znovu pro zrušení`:'Zatím nehodnoceno'}</small></div></section>
    <section><label className="jg-lab" htmlFor="jg-strat">Strategie</label>
     <select id="jg-strat" value={form.strategyId} onChange={e=>set({strategyId:e.target.value})}><option value="">Bez strategie</option>{active.map(s=><option key={s.id} value={s.id}>{s.name}{s.archived?' (archivovaná)':''}</option>)}<option value={NEW}>+ Nová strategie…</option></select>

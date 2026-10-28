@@ -3,8 +3,8 @@ import {pragueDate} from '../mt/trades.ts';
 import {completionGroup} from '../checklists/core.ts';
 import type {JournalTrade,JournalAccount} from './types.ts';
 export type Period='week'|'month'|'prevmonth'|'30d'|'90d'|'year'|'all'|'custom';
-export type Filter={account:string;period:Period;from:string;to:string;symbol:string;tag:string;side:'all'|'buy'|'sell';result:'all'|'win'|'loss';source:'all'|'mt'|'manual'};
-export const DEFAULT_FILTER:Filter={account:'all',period:'all',from:'',to:'',symbol:'all',tag:'all',side:'all',result:'all',source:'all'};
+export type Filter={account:string;period:Period;from:string;to:string;symbol:string;tag:string;side:'all'|'buy'|'sell';result:'all'|'win'|'loss';source:'all'|'mt'|'manual';mode:'all'|'live'|'sim'|'replay'};
+export const DEFAULT_FILTER:Filter={account:'all',period:'all',from:'',to:'',symbol:'all',tag:'all',side:'all',result:'all',source:'all',mode:'all'};
 const DAY=86400000,r2=(n:number)=>Math.round(n*100)/100;
 // minulý kalendářní měsíc (leden → prosinec předchozího roku) vůči dnešku RRRR-MM-DD
 export function prevMonthRange(today:string):[string,string]{
@@ -36,7 +36,7 @@ export function periodRange(f:Filter,now:number):[string,string]{
 }
 export function filterTrades(trades:JournalTrade[],f:Filter,now:number){
  const [from,to]=periodRange(f,now);
- return trades.filter(t=>t.date>=from&&t.date<=to&&(f.account==='all'||t.accountId===f.account)&&(f.symbol==='all'||t.symbol===f.symbol)&&(f.tag==='all'||t.tags.includes(f.tag))&&(f.side==='all'||t.side===f.side)&&(f.result==='all'||(f.result==='win'?t.pnl>0:t.pnl<0))&&(f.source==='all'||t.source===f.source));
+ return trades.filter(t=>t.date>=from&&t.date<=to&&(f.account==='all'||t.accountId===f.account)&&(f.symbol==='all'||t.symbol===f.symbol)&&(f.tag==='all'||t.tags.includes(f.tag))&&(f.side==='all'||t.side===f.side)&&(f.result==='all'||(f.result==='win'?t.pnl>0:t.pnl<0))&&(f.source==='all'||t.source===f.source)&&(!f.mode||f.mode==='all'||(t.mode??'live')===f.mode));
 }
 // uložený filtr může odkazovat na smazaný účet, tag nebo pár → zrušit jen tu část
 export function sanitizeFilter(f:Filter,trades:JournalTrade[],accounts:JournalAccount[]):Filter{

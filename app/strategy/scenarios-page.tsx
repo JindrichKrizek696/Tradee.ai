@@ -96,9 +96,9 @@ export function DayStatusCard(){
 export default function ScenariosPage(){
  usePalette();
  const {list:strategies}=useStrategies(true);
- const [items,setItems]=useState<Scenario[]|null>(null),[events,setEvents]=useState<Record<string,{at:number;title:string}>>({}),[scope,setScope]=useState<'open'|'closed'|'all'>('open'),[error,setError]=useState(''),[msg,setMsg]=useState('');
+ const [items,setItems]=useState<Scenario[]|null>(null),[events,setEvents]=useState<Record<string,{at:number;title:string}>>({}),[windows,setWindows]=useState<Record<string,{title:string;at:number;source:string}[]>>({}),[scope,setScope]=useState<'open'|'closed'|'all'>('open'),[error,setError]=useState(''),[msg,setMsg]=useState('');
  const [form,setForm]=useState<Draft|null>(null),[skip,setSkip]=useState<Scenario|null|false>(false),[focus,setFocus]=useState<string|null>(null),[skips,setSkips]=useState<NoTrade[]>([]),[now,setNow]=useState(()=>Date.now());
- async function load(){try{const j=await call<{scenarios:Scenario[];events:Record<string,{at:number;title:string}>;now:number}>('/api/scenarios?scope=all');setItems(j.scenarios);setEvents(j.events);setNow(j.now);setError('')}catch(e){setError((e as Error).message)}}
+ async function load(){try{const j=await call<{scenarios:Scenario[];events:Record<string,{at:number;title:string}>;windows?:Record<string,{title:string;at:number;source:string}[]>;now:number}>('/api/scenarios?scope=all');setItems(j.scenarios);setEvents(j.events);setWindows(j.windows||{});setNow(j.now);setError('')}catch(e){setError((e as Error).message)}}
  async function loadSkips(){try{const from=pragueDay(Date.now()-30*864e5);const j=await call<{noTrades:NoTrade[]}>('/api/no-trades?from='+from);setSkips(j.noTrades)}catch{}}
  useEffect(()=>{load();loadSkips();
   const q=new URLSearchParams(location.search);if(q.get('novy')){setForm(newDraft(q));history.replaceState(null,'',location.pathname+location.hash)}
@@ -129,6 +129,7 @@ export default function ScenariosPage(){
      return <li key={s.id} id={s.id} className={'sg-card'+(focus===s.id?' focus':'')+(v?.verdict==='blocked'?' blocked':'')}>
       <div className="sg-card-top"><b>{nameOf(s.instrument)}</b><span className={'sg-bias '+s.bias}>{BIASES[s.bias]}</span><StatusTag status={st}/>
        {v&&<span className={'sg-mini '+v.verdict} title="Checklist">{v.verdict==='blocked'?`✗ povinná nesplněna (${v.requiredUnmet})`:v.verdict==='incomplete'?`? povinná nevím (${v.requiredUnknown})`:'✓ povinné OK'}{v.supportiveTotal?` · podpůrné ${v.supportiveMet}/${v.supportiveTotal}`:''}</span>}
+       {windows[s.id]?.length>0&&<span className="sg-mini blocked" title={windows[s.id].map(w=>`${w.title} · ${dtText(w.at)} · ${w.source}`).join('\n')}>⚠ no-trade okno: {windows[s.id][0].title} {dtText(windows[s.id][0].at)}</span>}
        <span className="al-item-actions">
         {chartable(s.instrument)&&<a className="al-btn sm" href={'/graf/'+encodeURIComponent(slugOf(s.instrument))}><ChartCandlestick size={14}/>Graf</a>}
         <button type="button" className="al-btn sm" onClick={()=>{setSkip(false);setForm(draftFrom(s))}}><Pencil size={14}/>Upravit</button>

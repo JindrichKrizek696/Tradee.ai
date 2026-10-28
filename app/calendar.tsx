@@ -5,6 +5,7 @@ import {pairs} from '@/lib/score-engine';
 import {categories,marketLabels,marketGroups,signalLabels,defaultFilters,filterEvents,flaggedMarkets,readFilters,relative,sourceUrl,TIMEZONES,DEFAULT_TZ,isTz,resolveTz,tzOffset,type CalendarEvent,type Category,type Filters,type Signal} from '@/lib/calendar';
 import {forecastLine} from '@/lib/calendar-ff';
 import {useOpenRequest} from './open-request';
+import {NoTradeWindows} from './journal/no-trade-windows';
 const KEY='tradee.calendar.filters',TZ_KEY='tradee.calendar.tz';
 const time=(s:string,tz:string)=>new Date(s).toLocaleTimeString('cs-CZ',{timeZone:tz,hour:'2-digit',minute:'2-digit'});
 const dayName=(s:string,tz:string)=>new Date(s).toLocaleDateString('cs-CZ',{timeZone:tz,weekday:'long',day:'numeric',month:'long'});
@@ -76,6 +77,7 @@ export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEven
    <div><h1>Kalendář</h1><p>{events.length} událostí · aktualizováno {stamp(generatedAt,zone)}</p></div>
    <label className="c-tz"><Globe2 size={15} aria-hidden="true"/>Časové pásmo<select value={pick} onChange={x=>pickTz(x.target.value)}>{TIMEZONES.map(([id,l])=><option key={id} value={id}>{l} ({tzOffset(id,now)})</option>)}</select></label>
   </div>
+  <NoTradeWindows events={events} mine={mine} now={now} zone={zone}/>
   <button type="button" className="c-filter-toggle" aria-expanded={panel} onClick={()=>setPanel(!panel)}><SlidersHorizontal size={16}/>Filtry</button>
   <div ref={filters} className={'c-filters'+(panel?' open':'')+(stuck?' stuck':'')}>
    <div className="c-frow"><span className="c-flab">Síla</span><div className="c-fopts">{([1,2,3] as Signal[]).map(s=>chip(f.signals.includes(s),<><SignalBars signal={s}/>{signalLabels[s]}</>,()=>update({...f,signals:toggle(f.signals,s)}),'s'+s))}</div></div>

@@ -9,6 +9,7 @@ import {TradeChart} from './trade-chart';
 import {CheckSet} from '../checklist-card';
 import type {SnapshotList} from '@/lib/checklists/core';
 import {TradePlan} from '../strategy/trade-plan';
+import {TradeRecord,useRecord} from './trade-record';
 export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void;readOnly?:boolean;query?:string};
 const KIND:Record<string,string>={open:'Otevření',add:'Přidání',partial_close:'Částečné uzavření',close:'Uzavření',sl:'Stop loss',tp:'Take profit'};
 const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus',manual:'ručně',market:'tržní příkaz',pending:'čekající příkaz'};
@@ -52,7 +53,9 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <section className="j-card"><dl className="j-dl"><div><dt>Výsledek</dt><dd className={trade.pnl>0?'pos':trade.pnl<0?'neg':''}>{fmtMoney(trade.pnl,currency)}</dd></div></dl><p className="j-muted">Ruční zápis nemá vstup, výstup ani stop loss – graf a podrobná čísla jsou jen u obchodů z MetaTraderu.</p></section>
    <section className="j-card"><h2>Poznámka</h2>{noteBox(500)}</section>
    <section className="j-card"><h2>Plán obchodu</h2><TradePlan id={id} exec={{side:null,openPrice:null,sl:null,tp:null,closePrice:null}} readOnly={readOnly} query={query}/></section>
+   <TradeRecord id={id} readOnly={readOnly} query={query} currency={currency} onChanged={onChanged}/>
   {checklistBox&&<section className="j-card"><h2>Checklist při vstupu</h2>{checklistBox}</section>}
+   <ManualShots id={id} readOnly={readOnly} query={query} onChanged={onChanged}/>
   </div>;
  }
  const p=d?.position;
@@ -86,6 +89,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <small className="j-muted">Tagy napsané v komentáři obchodu v MetaTraderu (#breakout) se přidají samy.</small></>}
   </section>
   <section className="j-card"><h2>Poznámka</h2>{noteBox(5000)}</section>
+  <TradeRecord id={id} readOnly={readOnly} query={query} currency={currency} onChanged={onChanged}/>
   <section className="j-card"><h2>Plán obchodu</h2><TradePlan id={id} exec={{side:p.side==='sell'?'sell':'buy',openPrice:p.open_price??null,sl:p.sl_initial??null,tp:p.tp_initial??null,closePrice:p.close_price_avg??null}} readOnly={readOnly} query={query}/></section>
   {checklistBox&&<section className="j-card"><h2>Checklist při vstupu</h2>{checklistBox}</section>}
   <section className="j-card"><h2>Screenshoty</h2>
@@ -95,4 +99,20 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
   </section>
   {zoom&&<div className="j-zoom" role="dialog" aria-modal="true" aria-label="Screenshot" onClick={()=>setZoom(null)}><img src={zoom} alt=""/><button type="button" aria-label="Zavřít" onClick={()=>setZoom(null)}><X size={20}/></button></div>}
  </div>;
+}
+// Screenshoty k ručnímu zápisu: stejné úložiště jako u MT obchodů (seznam ze záznamu obchodu)
+function ManualShots({id,readOnly,query,onChanged}:{id:string;readOnly:boolean;query:string;onChanged:()=>void}){
+ const {rec,setRec,error,setError,url}=useRecord(id,query),[busy,setBusy]=useState(false),[zoom,setZoom]=useState<string|null>(null),files=rec?.files||[];
+ const base='/api/journal/'+encodeURIComponent(id);
+ async function reload(){const r=await fetch(url+query,{cache:'no-store'});if(r.ok)setRec(await r.json())}
+ async function upload(f:File){const err=checkUpload({type:f.type,size:f.size},files.length);if(err){setError(err);return}
+  setBusy(true);try{const fd=new FormData();fd.append('file',f);await send(base+'/files','POST',fd);setError('');await reload();onChanged()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ async function remove(fileId:string){if(!window.confirm('Smazat screenshot?'))return;try{await send(base+'/files','DELETE',{fileId});await reload();onChanged()}catch(e){setError((e as Error).message)}}
+ if(!rec)return null;
+ return <section className="j-card"><h2>Screenshoty</h2>
+  {error&&<p role="alert" className="s-notice">{error}</p>}
+  {files.length>0&&<div className="j-shots">{files.map(f=><figure key={f.id}><button type="button" className="j-shot" onClick={()=>setZoom('/api/journal/files/'+f.id+query)} aria-label={'Zvětšit '+f.name}><img src={'/api/journal/files/'+f.id+query} alt={f.name} loading="lazy"/></button>{!readOnly&&<button type="button" className="j-del" aria-label={'Smazat '+f.name} onClick={()=>remove(f.id)}><Trash2 size={14}/></button>}</figure>)}</div>}
+  {readOnly?!files.length&&<p className="j-muted">Bez screenshotů.</p>:files.length<5?<label className="j-btn"><Upload size={14}/> {busy?'Nahrávám…':'Nahrát screenshot'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)upload(f)}}/></label>:<p className="j-muted">K obchodu jde nahrát nejvýš 5 screenshotů.</p>}
+  {zoom&&<div className="j-zoom" role="dialog" aria-modal="true" aria-label="Screenshot" onClick={()=>setZoom(null)}><img src={zoom} alt=""/><button type="button" aria-label="Zavřít" onClick={()=>setZoom(null)}><X size={20}/></button></div>}
+ </section>;
 }
