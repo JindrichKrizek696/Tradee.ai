@@ -1,4 +1,4 @@
-// Kontrola cenových alertů (cena, % změna dnes, skóre Tradee) → push + e-mail. Cron na VPS každou minutu:
+// Kontrola cenových alertů (cena, % změna dnes, skóre Tradee) → push + e-mail (podle alertu a Nastavení → Upozornění) + testovací push. Cron na VPS každou minutu:
 // * * * * * cd /home/ubuntu/tradee && . /home/ubuntu/.nvm/nvm.sh && nvm use 22 >/dev/null && node --experimental-strip-types scripts/alerts-check.mjs >> /home/ubuntu/tradee/alerts.log 2>&1
 // Prostředí z .mariadb.env + .notify.env (VAPID_*, RESEND_API_KEY, MAIL_FROM) jako scripts/notify.mjs. Zámek /tmp/tradee-alerts.lock (souběžný běh skončí hned),
 // tvrdý limit běhu 50 s. Ceny jen pro trhy s aktivním alertem: Yahoo 1m (bez pre/post), krypto Binance; zavřený trh se přeskočí.
@@ -58,6 +58,7 @@ if(fx){
  const {createDb}=await import('../lib/mysql.ts');
  const {rowToAlert}=await import('../lib/alerts/store.ts');
  const {pushEndpoint}=await import('../lib/discipline/notify.ts');
+ const {prefRowsFor,gateAlert,defaultPrefs}=await import('../lib/notify/prefs.ts');
  const d=createDb({host:env.MARIADB_HOST,port:Number(env.MARIADB_PORT||3306),user:env.MARIADB_USER,password:env.MARIADB_PASSWORD,database:env.MARIADB_DB});
  const pushOn=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT),mailOn=!!env.RESEND_API_KEY;
  let webpush=null;if(pushOn&&!dry){webpush=(await import('web-push')).default;webpush.setVapidDetails(env.VAPID_SUBJECT,env.VAPID_PUBLIC_KEY,env.VAPID_PRIVATE_KEY)}
@@ -65,6 +66,28 @@ if(fx){
  const rows=(await d.prepare("SELECT a.*,m.email,m.name AS member_name FROM price_alerts a LEFT JOIN members m ON m.id=a.user_id WHERE a.active=1 LIMIT 5000").all()).results;
  const loaded=rows.map(r=>({...rowToAlert(r),email:r.email??null,name:r.member_name??null,_updated:r.updated}));
  const scoreFn=loaded.some(a=>a.kind==='score')?await needScore():()=>null;
+ // Nastavení → Upozornění → Cenové alerty: push / e-mail jde ven jen když ho má alert vybraný A uživatel ho nevypnul (bez řádku vše zapnuto)
+ const aPrefs=await prefRowsFor(d,'alerts',loaded.map(a=>a.userId)),gate=a=>gateAlert(a.channels,aPrefs.get(a.userId)??defaultPrefs().alerts);
+ // push na všechna zařízení uživatele; mrtvé odběry pryč. Vrací {subs, ok}
+ const sendPush=async(userId,body,ttl)=>{
+  const subs=(await d.prepare('SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=?').bind(userId).all()).results;let ok=0;
+  for(const s of subs){
+   if(!pushEndpoint(s.endpoint)){await d.prepare('DELETE FROM push_subscriptions WHERE id=?').bind(s.id).run();continue}
+   try{await webpush.sendNotification({endpoint:s.endpoint,keys:{p256dh:s.p256dh,auth:s.auth}},body,{TTL:ttl,urgency:'high',timeout:10000});ok++;await d.prepare('UPDATE push_subscriptions SET last_ok=? WHERE id=?').bind(sqlT(Date.now()),s.id).run()}
+   catch(e){if(e?.statusCode===404||e?.statusCode===410)await d.prepare('DELETE FROM push_subscriptions WHERE id=?').bind(s.id).run()}
+  }
+  return {subs:subs.length,ok};
+ };
+ // testovací push z Nastavení (POST /api/notify/test zapíše žádost, nejvýš 1/min); kategorie se neřeší – testuje se zařízení
+ if(!dry){try{
+  const tests=(await d.prepare('SELECT user_id FROM notify_tests WHERE done IS NULL AND requested>=UTC_TIMESTAMP()-INTERVAL 10 MINUTE LIMIT 50').all()).results;
+  for(const t of tests){
+   if(!(await d.prepare('UPDATE notify_tests SET done=? WHERE user_id=? AND done IS NULL').bind(sqlT(Date.now()),t.user_id).run()).meta.changes)continue;
+   const r=pushOn?await sendPush(t.user_id,JSON.stringify({title:'Tradee · test upozornění',body:'Push funguje – takhle ti dorazí alerty a další upozornění.',url:'https://tradee.eu/nastaveni#upozorneni',tag:'tradee-test'}),600):{ok:0};
+   await d.prepare('UPDATE notify_tests SET sent=? WHERE user_id=?').bind(r.ok,t.user_id).run();
+   console.log(`test push: ${r.ok} zařízení`);
+  }
+ }catch(e){if(!/notify_tests/.test(String(e?.message)))console.log('test push chyba:',e?.code||e?.name||'neznámá')}}
  deps={now,loadAlerts:async()=>loaded,
   fetchQuotes:(ids,lim)=>fetchQuotes(ids,fetch,{concurrency:4,limitMin:lim}),
   scoreOf:scoreFn,meta:id=>META.get(id)??null,isOpen:(id,g,t)=>isMarketOpen(id,g,t),
@@ -76,20 +99,13 @@ if(fx){
   deliver:async(a,f)=>{
    const res={push:null,mail:null};
    if(dry){console.log('  (dry) push+mail by odešel: '+pushPayload(f).title);return res}
-   if(a.channels.includes('push')&&pushOn){
-    const subs=(await d.prepare('SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=?').bind(a.userId).all()).results,body=JSON.stringify(pushPayload(f));
-    let ok=0,fail=0;
-    for(const s of subs){
-     if(!pushEndpoint(s.endpoint)){await d.prepare('DELETE FROM push_subscriptions WHERE id=?').bind(s.id).run();continue}
-     try{await webpush.sendNotification({endpoint:s.endpoint,keys:{p256dh:s.p256dh,auth:s.auth}},body,{TTL:3600,urgency:'high',timeout:10000});ok++;await d.prepare('UPDATE push_subscriptions SET last_ok=? WHERE id=?').bind(sqlT(Date.now()),s.id).run()}
-     catch(e){if(e?.statusCode===404||e?.statusCode===410)await d.prepare('DELETE FROM push_subscriptions WHERE id=?').bind(s.id).run();else fail++}
-    }
-    res.push=subs.length?ok>0:false;void fail;
-   }else if(a.channels.includes('push'))res.push=false;
-   if(a.channels.includes('mail')&&mailOn&&a.email){
+   const g=gate(a);
+   if(g.push&&pushOn){const r=await sendPush(a.userId,JSON.stringify(pushPayload(f)),3600);res.push=r.subs?r.ok>0:false}
+   else if(g.push)res.push=false;
+   if(g.mail&&mailOn&&a.email){
     const m=mailContent(a.name||'',f);
     try{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),body:JSON.stringify({from:env.MAIL_FROM||'Tradee <info@dejny.eu>',to:[a.email],subject:m.subject,html:m.html,text:m.text})});res.mail=r.ok}catch{res.mail=false}
-   }else if(a.channels.includes('mail'))res.mail=false;
+   }else if(g.mail)res.mail=false;
    return res;
   },
   delivered:async(id,r)=>{if(!dry&&id)await d.prepare('UPDATE alert_events SET delivered_push=?,delivered_mail=? WHERE id=?').bind(r.push===null?null:r.push?1:0,r.mail===null?null:r.mail?1:0,id).run()},

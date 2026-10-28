@@ -46,8 +46,11 @@ if(dry){
 await ps.addLog(d,uid,now,`Týdenní souhrn simulace\n${s.md}`,'*');
 try{const {refreshSummary}=await import('../lib/lab/store.ts');await refreshSummary(d,uid)}catch(e){console.error('lab-paper-weekly: shrnutí pro AI',e.message)}
 const S={push:0,pushGone:0,pushFail:0,mail:false};
+// Nastavení → Upozornění → Laboratoř (jen vlastník); bez řádku vše zapnuto
+const {channelsFor}=await import('../lib/notify/prefs.ts'),lab=await channelsFor(d,uid,'lab');
 // (a) push jen na odběry vlastníka
-if(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT){
+if(!lab.push)console.log('push vypnutý v Nastavení → Upozornění');
+else if(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT){
  const webpush=(await import('web-push')).default;
  const {pushEndpoint}=await import('../lib/discipline/notify.ts');
  webpush.setVapidDetails(env.VAPID_SUBJECT,env.VAPID_PUBLIC_KEY,env.VAPID_PRIVATE_KEY);
@@ -60,7 +63,8 @@ if(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT){
  }
 }else console.log('push vypnutý – chybí VAPID klíče');
 // (b) e-mail jen na OWNER_EMAIL
-if(env.RESEND_API_KEY){
+if(!lab.mail)console.log('mail vypnutý v Nastavení → Upozornění');
+else if(env.RESEND_API_KEY){
  try{const res=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),
   body:JSON.stringify({from:env.MAIL_FROM||'Tradee <info@dejny.eu>',to:[ownerEmail],subject:s.subject,html:s.html,text:s.text})});S.mail=res.ok;if(!res.ok)console.log('mail HTTP',res.status)}catch(e){console.log('mail chyba',e?.name||'neznámá')}
 }else console.log('mail vypnutý – chybí klíč');

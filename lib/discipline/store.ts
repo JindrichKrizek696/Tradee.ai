@@ -262,12 +262,17 @@ export type Notify={popup:boolean;mail:boolean;push:boolean;snoozeUntil:number|n
 const sqlMs=(s:string|null)=>{if(!s)return null;const t=Date.parse(String(s).replace(' ','T')+'Z');return Number.isFinite(t)?t:null};
 export async function getNotify(d:Db,userId:string):Promise<Notify>{
  const r=await d.prepare('SELECT popup,mail,push,snooze_until FROM notify_settings WHERE user_id=?').bind(userId).first<{popup:number;mail:number;push:number;snooze_until:string|null}>();
- return r?{popup:!!Number(r.popup),mail:!!Number(r.mail),push:!!Number(r.push),snoozeUntil:sqlMs(r.snooze_until)}:{popup:true,mail:true,push:false,snoozeUntil:null};
+ const base=r?{popup:!!Number(r.popup),mail:!!Number(r.mail),push:!!Number(r.push),snoozeUntil:sqlMs(r.snooze_until)}:{popup:true,mail:true,push:false,snoozeUntil:null};
+ // novější volba v Nastavení (notify_prefs, kategorie discipline) má přednost; bez řádku / bez tabulky platí notify_settings
+ try{const p=await d.prepare("SELECT push,mail,inapp FROM notify_prefs WHERE user_id=? AND category='discipline'").bind(userId).first<{push:number;mail:number;inapp:number}>();
+  if(p)return {...base,popup:!!Number(p.inapp),mail:!!Number(p.mail),push:!!Number(p.push)}}catch{}
+ return base;
 }
 export async function setNotify(d:Db,userId:string,p:{popup?:unknown;mail?:unknown;push?:unknown}):Promise<Notify>{
  const cur=await getNotify(d,userId),pick=(v:unknown,c:boolean,what:string)=>{if(v===undefined)return c;if(typeof v!=='boolean')throw new Error(`Nastavení „${what}“ musí být ano / ne.`);return v};
  const popup=pick(p?.popup,cur.popup,'okno'),mail=pick(p?.mail,cur.mail,'e-mail'),push=pick(p?.push,cur.push,'push');
  await d.prepare('INSERT INTO notify_settings(user_id,popup,mail,push,updated) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE popup=VALUES(popup),mail=VALUES(mail),push=VALUES(push),updated=VALUES(updated)').bind(userId,popup?1:0,mail?1:0,push?1:0,nowSql()).run();
+ try{await d.prepare("UPDATE notify_prefs SET push=?,mail=?,inapp=?,updated=? WHERE user_id=? AND category='discipline'").bind(push?1:0,mail?1:0,popup?1:0,nowSql(),userId).run()}catch{}
  return {popup,mail,push,snoozeUntil:cur.snoozeUntil};
 }
 /** Odloží okno o `hours` hodin (výchozí 4); vrací čas konce odložení v ms. */

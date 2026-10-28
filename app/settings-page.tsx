@@ -47,7 +47,10 @@ function Look(){
  </section>;
 }
 function Alerts(){
- return <section className="mt-card" id="upozorneni"><h2>Upozornění</h2><div className="p-picker nv-embed"><NotifySettings/></div></section>;
+ useEffect(()=>{if(location.hash!=='#upozorneni')return;const t=setTimeout(()=>document.getElementById('upozorneni')?.scrollIntoView({block:'start'}),300);return()=>clearTimeout(t)},[]);
+ return <section className="mt-card" id="upozorneni"><h2>Upozornění</h2>
+  <p className="mt-lead">Push na tomto zařízení a pro každý druh upozornění volba: push, e-mail, nebo okénko v aplikaci.</p>
+  <NotifySettings/></section>;
 }
 function Summary(){
  const [cur,setCur]=useState(''),[st,setSt]=useState<'idle'|'saved'|'err'>('idle');
@@ -87,8 +90,8 @@ export default function SettingsPage(){
   <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
   <main className="mt-main">
    <h1>Nastavení</h1>
-   <p className="mt-lead">Navigace, vzhled, upozornění, měna souhrnu a barvy kreseb na jednom místě. Změny se ukládají k tvému účtu.</p>
-   <Navigation/><Look/><Alerts/><Summary/><DrawColors/>
+   <p className="mt-lead">Upozornění, navigace, vzhled, měna souhrnu a barvy kreseb na jednom místě. Změny se ukládají k tvému účtu.</p>
+   <Alerts/><Navigation/><Look/><Summary/><DrawColors/>
   </main>
  </div>;
 }

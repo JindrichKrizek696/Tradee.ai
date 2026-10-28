@@ -157,8 +157,10 @@ if(closedNow.length&&!dry){
   const esc=x=>String(x??'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
   const html=`<div style="font-family:system-ui,sans-serif;max-width:560px">${closedNow.map(x=>`<h3 style="margin:18px 0 6px">${esc(line(x))}</h3><p style="margin:0 0 6px;color:#555"><b>Proč jsem šel dovnitř:</b> ${esc(x.t?.why)}</p><p style="margin:0;color:#555"><b>Výsledek:</b> ${esc(x.c.resultNote)}</p>`).join('')}<p style="margin-top:20px"><a href="https://tradee.eu/laborator#paper">Otevřít Simulaci</a></p></div>`;
   const text=closedNow.map(x=>`${line(x)}\nProč: ${x.t?.why??''}\nVýsledek: ${x.c.resultNote}`).join('\n\n');
-  if(ne.RESEND_API_KEY&&to){const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+ne.RESEND_API_KEY,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),body:JSON.stringify({from:ne.MAIL_FROM||'Tradee <info@dejny.eu>',to:[to],subject,html,text})});if(!r.ok)console.log('lab-paper: mail HTTP',r.status)}
-  if(ne.VAPID_PUBLIC_KEY&&ne.VAPID_PRIVATE_KEY&&ne.VAPID_SUBJECT){
+  // Nastavení → Upozornění → Laboratoř (jen vlastník); bez řádku vše zapnuto
+  const {channelsFor}=await import('../lib/notify/prefs.ts'),lab=await channelsFor(d,uid,'lab');
+  if(lab.mail&&ne.RESEND_API_KEY&&to){const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+ne.RESEND_API_KEY,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),body:JSON.stringify({from:ne.MAIL_FROM||'Tradee <info@dejny.eu>',to:[to],subject,html,text})});if(!r.ok)console.log('lab-paper: mail HTTP',r.status)}
+  if(lab.push&&ne.VAPID_PUBLIC_KEY&&ne.VAPID_PRIVATE_KEY&&ne.VAPID_SUBJECT){
    const webpush=(await import('web-push')).default;webpush.setVapidDetails(ne.VAPID_SUBJECT,ne.VAPID_PUBLIC_KEY,ne.VAPID_PRIVATE_KEY);
    const subs=(await d.prepare('SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=?').bind(uid).all()).results;
    const body=JSON.stringify({title:'Tradee · Simulace',body:subject.replace(/^Simulace: /,''),url:'https://tradee.eu/laborator#paper',tag:'lab-close'});

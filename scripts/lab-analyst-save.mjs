@@ -20,7 +20,9 @@ const {LAB_LIMITS}=await import('../lib/lab/core.ts');
 const id=await createNote(d,owner.id,{title,body:body.slice(0,LAB_LIMITS.body),tags:['agenti','analyza','ai']});
 try{await refreshSummary(d,owner.id)}catch(e){console.error('lab-analyst-save: shrnutí pro AI',e.message)}
 let mail=false;
-if(!args.includes('--no-mail')&&env.RESEND_API_KEY){
+// Nastavení → Upozornění → Laboratoř (jen vlastník); bez řádku zapnuto
+const {channelsFor}=await import('../lib/notify/prefs.ts'),lab=await channelsFor(d,owner.id,'lab');
+if(!args.includes('--no-mail')&&lab.mail&&env.RESEND_API_KEY){
  const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
  const html=`<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1b2a5a;max-width:640px"><h2 style="font-size:18px;margin:0 0 12px">Analýza týdne – agenti</h2><p style="white-space:pre-wrap">${esc(verdict)}</p><p><a href="https://tradee.eu/laborator#agents">Celá analýza v Laboratoři → Agenti</a></p><p style="font-size:12px;color:#777">Napsal AI analytik (Claude) jen z týdenního reportu; nic sám nemění.</p></div>`;
  try{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),

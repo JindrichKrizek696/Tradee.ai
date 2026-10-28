@@ -7,6 +7,8 @@ import {conditionLabel,statusOf,STATUS_LABEL,slugOf,MAX_ACTIVE,type Status} from
 import {useLive} from '../live';
 import {usePalette} from '../palette';
 import {AlertForm} from './alert-form';
+import {AlertToasts} from './alert-toast';
+import {AlertNotifyCard} from '../notify-settings';
 import {useAlerts,saveAlert,removeAlert,loadEvents,readEvents,onAlertsChanged,type ClientAlert,type AlertEvent} from './alert-api';
 import '../mt.css';
 import './alerts.css';
@@ -40,12 +42,13 @@ export default function AlertsPage(){
   <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
   <main className="mt-main">
    <div className="al-page-head"><h1>Alerty</h1>{data&&<span className="al-tag">{data.active} / {data.limit||MAX_ACTIVE} aktivních</span>}</div>
-   <p className="mt-lead">Upozornění na cenu (nad, pod, dotyk), denní změnu v % a skóre Tradee. Ceny se kontrolují každou minutu, jen když je trh otevřený (krypto nonstop); skóre při jeho obnově. Push a e-mail podle nastavení alertu.</p>
+   <p className="mt-lead">Upozornění na cenu (nad, pod, dotyk), denní změnu v % a skóre Tradee. Ceny se kontrolují každou minutu, jen když je trh otevřený (krypto nonstop); skóre při jeho obnově. Push a e-mail podle nastavení alertu a volby níže.</p>
+   <AlertNotifyCard/>
    <section className="mt-card">
     <h2>Nový alert</h2>
     <div className="al-new"><select aria-label="Trh" value={pick} onChange={e=>setPick(e.target.value)}>{instruments.map(i=><option key={i.id} value={i.id}>{i.name}{i.group==='currency'?' (jen skóre)':''}</option>)}</select>
      <button type="button" className="al-btn primary" onClick={()=>setEdit({instrument:pick})}><Plus size={15} aria-hidden/>Nový alert</button></div>
-    {data&&!data.pushAvailable&&<p className="mt-lead" style={{marginTop:10}}>Push nemáš zapnutý na žádném zařízení – alerty dorazí e-mailem. Zapneš ho v <a href="/nastaveni#upozorneni">Nastavení → Upozornění</a>.</p>}
+    {data&&!data.pushAvailable&&<p className="mt-lead" style={{marginTop:10}}>Push nemáš zapnutý na žádném zařízení – alerty dorazí e-mailem. Zapneš ho výše v kartě „Kam posílat alerty“.</p>}
    </section>
    <section className="mt-card">
     <h2>Moje alerty</h2>
@@ -72,6 +75,7 @@ export default function AlertsPage(){
     <table className="mt-table"><thead><tr><th>Čas</th><th>Alert</th><th>Hodnota</th><th>Push</th><th>E-mail</th></tr></thead><tbody>{events.map(e=><tr key={e.id} style={e.read?undefined:{fontWeight:600}}><td>{dt(e.at)}</td><td>{e.label}</td><td>{e.price.toLocaleString('cs-CZ',{maximumFractionDigits:5})}</td><td>{mark(e.push)}</td><td>{mark(e.mail)}</td></tr>)}</tbody></table>}
    </section>
   </main>
+  <AlertToasts/>
   {edit&&<AlertForm key={edit.alert?.id||edit.instrument} instrument={edit.instrument} name={nameOf(edit.instrument)} alert={edit.alert} price={q2(edit.instrument)?.price??null} changePct={q2(edit.instrument)?.changePct??null} pushAvailable={data?.pushAvailable} onClose={()=>setEdit(null)} onSaved={(_a,w)=>setMsg(w.length?w.join(' '):'')}/>}
  </div>;
 }

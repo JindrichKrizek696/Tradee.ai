@@ -11,7 +11,7 @@ check('předmět 2',mailSubject(2)==='Tradee: 2 obchody čekají na zdůvodněn�
 check('předmět 5',mailSubject(5)==='Tradee: 5 obchodů čeká na zdůvodnění',mailSubject(5));
 const m=mailContent('<script>alert(1)</script>',[it({trade:{symbol:'<script>x</script>',net:5,currency:'EUR'}})]);
 check('escapování html',!m.html.includes('<script>')&&m.html.includes('&lt;script&gt;'),m.html);
-check('mail text a patička',m.text.includes('https://tradee.eu/#journaling/')&&m.text.includes('Upozornění vypneš v Tradee v menu u avataru.')&&m.html.includes('menu u avataru'),m.text);
+check('mail text a patička',m.text.includes('https://tradee.eu/#journaling/')&&m.text.includes('Upozornění nastavíš v Tradee v Nastavení → Upozornění.')&&m.html.includes('Nastavení → Upozornění'),m.text);
 check('mail více položek',mailContent('Dan Slabý',[it(),it({id:8,tradeId:'mt:a/2'})]).subject==='Tradee: 2 obchody čekají na zdůvodnění','');
 const N=Date.UTC(2026,9,9,12,0,0);
 check('dueForMail null',dueForMail(null,N)===true,'');

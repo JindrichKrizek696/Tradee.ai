@@ -15,7 +15,7 @@ export function mailContent(name:string,items:NotifyItem[]){
  const subject=mailSubject(items.length),hi=name.trim()?`Ahoj ${name.trim().split(/\s+/)[0]},`:'Ahoj,';
  const result=(i:NotifyItem)=>i.trade.net===null||i.trade.net===undefined?'':money(i.trade.net,i.trade.currency);
  const intro=items.length===1?'jeden obchod čeká na tvoje zdůvodnění:':`${items.length} ${plural(items.length,['obchod','obchody','obchodů'])} čeká na tvoje zdůvodnění:`;
- const foot='Upozornění vypneš v Tradee v menu u avataru.';
+ const foot='Upozornění nastavíš v Tradee v Nastavení → Upozornění.';
  const text=[hi,'',intro,'',...items.map(i=>`- ${i.trade.symbol}${result(i)?' ('+result(i)+')':''} – ${ruleLabel(i.rule)}\n  ${linkFor(i.tradeId)}`),'',foot].join('\n');
  const li=items.map(i=>`<li style="margin:0 0 12px"><b>${esc(i.trade.symbol)}</b>${result(i)?` <span style="color:#555">(${esc(result(i))})</span>`:''}<br><span style="color:#555">${esc(ruleLabel(i.rule))}</span><br><a href="${esc(linkFor(i.tradeId))}" style="color:#245bff">Zdůvodnit v Tradee</a></li>`).join('');
  const html=`<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#1b2a5a;max-width:520px"><p>${esc(hi)}</p><p>${esc(intro)}</p><ul style="padding-left:18px">${li}</ul><p style="font-size:12px;color:#777">${esc(foot)}</p></div>`;
