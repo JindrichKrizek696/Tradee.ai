@@ -102,3 +102,33 @@
 .lb-genome dt{font-size:11px;color:var(--t-muted)}.lb-genome dd{margin:0;font-weight:600}
 .lb-fc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
 .lb-fc-grid>div>h3{margin:0 0 6px;font-size:15px}
+/* Strategie: diagnostika (trychtýř, fáze vstupu, detektory), ukázkové obchody, verze */
+.lb-vers{display:inline-flex;gap:8px;flex-wrap:wrap}
+.lb-h4{font-size:13px;margin:14px 0 6px;color:var(--t-fg)}
+.lb-funnel{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.lb-funnel li{padding:8px 10px;border:1px solid var(--t-border);border-radius:12px;display:grid;gap:4px}
+.lb-funnel li.lb-bottleneck{border-color:var(--bear,#dc2626);box-shadow:inset 3px 0 0 var(--bear,#dc2626)}
+.lb-funnel small{color:var(--t-muted);font-size:12px;font-variant-numeric:tabular-nums;line-height:1.45}
+.lb-fn-head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;font-size:13px}
+.lb-fn-head span{color:var(--t-muted)}
+.lb-bar{height:8px;border-radius:999px;background:var(--t-surface-2);overflow:hidden;min-width:60px}
+.lb-bar i{display:block;height:100%;background:color-mix(in srgb,var(--t-brand) 45%,transparent);border-radius:999px}
+.lb-bar.cum i{background:var(--t-brand)}
+.lb-wf{list-style:none;padding:0;margin:0;display:grid;gap:4px;font-size:13px}
+.lb-wf li{display:grid;grid-template-columns:minmax(0,300px) minmax(60px,1fr) 80px;gap:10px;align-items:center}
+.lb-wf li b{text-align:right;font-variant-numeric:tabular-nums}
+.lb-wf li.in{font-weight:600}
+.lb-wf li.out,.lb-wf li.sub{color:var(--t-muted)}
+.lb-wf li.out .lb-bar i{background:color-mix(in srgb,var(--bear,#dc2626) 55%,transparent)}
+.lb-wf li.sub .lb-bar i{background:var(--t-border-strong,var(--t-border))}
+.lb-table td.lb-wrap{white-space:normal}
+.lb-stat{display:inline-block;margin:0 12px 2px 0;font-size:12.5px;color:var(--t-muted)}
+.lb-stat b{color:var(--t-fg);font-variant-numeric:tabular-nums}
+.lb-stat.zero b{color:var(--bear-text,var(--bear,#dc2626))}
+.lb-samples{max-height:360px;overflow:auto;margin-top:10px}
+.lb-sample{margin:6px 0 4px}
+.lb-chart{height:380px;width:100%}
+.lb-tracelist{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:4px;font-size:12.5px;color:var(--t-muted)}
+.lb-tracelist i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.lb-tracelist b{color:var(--t-fg)}
+@media (max-width:760px){.lb-wf li{grid-template-columns:minmax(0,1fr) 70px}.lb-wf li .lb-bar{grid-column:1/-1;grid-row:2}.lb-chart{height:300px}}

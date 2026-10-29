@@ -1,12 +1,14 @@
 // Kontrola obecného enginu strategií (lib/lab/rules-def.ts, strat-blocks.ts, strat-engine.ts) na SYNTETICKÝCH řadách:
 // každý blok + bez pohledu do budoucna (useknutí budoucích svíček nemění minulost), mitigace zón knotem / close, seance s letním časem,
 // sweep → MSS, dvě nohy (strop rizika), částečný výstup + BE, náklady, limity portfolia, IS/OOS, hranice náhody, validace schématu,
-// živá simulace agentů R…, jen vlastník u nových rout. Názvy strategií v testu jsou neutrální („zone-swing“, „sweep-reversal“).
+// živá simulace agentů R…, jen vlastník u nových rout, diagnostika (trychtýř podmínek se známým úzkým hrdlem, součty fází vstupu),
+// stopa obchodu (úrovně = provedený vstup / stop), verze definic při importu. Názvy strategií v testu jsou neutrální („zone-swing“, „sweep-reversal“).
 // node --experimental-strip-types scripts/check-lab-strategies.mjs
 import {readFileSync} from 'node:fs';
 import * as B from '../lib/lab/strat-blocks.ts';
 import {validateDef,parseDefJson,applyOverrides,defRuns,BLOCKS,BLOCK_IDS,defOutline} from '../lib/lab/rules-def.ts';
-import {prepare,compile,simulate,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32} from '../lib/lab/strat-engine.ts';
+import {prepare,compile,simulate,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32,condFunnel,buildDiag,mergeDiag,pickSamples,STAGE_KEYS} from '../lib/lab/strat-engine.ts';
+import {versionPlan,importDef,saveDef,saveRun,getRun,listDefs} from '../lib/lab/strat-store.ts';
 import {ruleVariant,paperStep,checkExit,isRuleVariant,isVariantId,RULE_VARIANT_IDS} from '../lib/lab/paper.ts';
 import {labGate} from '../lib/lab/access.ts';
 const fails=[];
@@ -22,7 +24,8 @@ const mk=(rows,t0=Date.UTC(2020,0,6),step=DAY)=>rows.map(([o,h,l,c],i)=>({t:t0+i
 const sameF=(a,b,k)=>{for(let i=0;i<k;i++){const x=a[i],y=b[i];if(!(x===y||(Number.isNaN(x)&&Number.isNaN(y))))return i}return -1};
 const sameOut=(a,b,k)=>{let i=sameF(a.L,b.L,k);if(i>=0)return 'L@'+i;i=sameF(a.S,b.S,k);if(i>=0)return 'S@'+i;
  for(const side of ['lvL','lvS'])for(const key of Object.keys(a[side])){i=sameF(a[side][key],b[side][key],k);if(i>=0)return side+'.'+key+'@'+i}
- if(a.unknown||b.unknown){i=sameF(a.unknown||[],b.unknown||[],k);if(i>=0)return 'unknown@'+i}return null};
+ if(a.unknown||b.unknown){i=sameF(a.unknown||[],b.unknown||[],k);if(i>=0)return 'unknown@'+i}
+ for(const side of ['tL','tS'])if(a[side]||b[side]){i=sameF(a[side]||[],b[side]||[],k);if(i>=0)return side+'@'+i}return null};
 
 // ======================= 1) vyšší TF a uzavřené svíčky
 {
@@ -417,7 +420,15 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
  check('paper route: odebrání R… jen přes removeRuleVariant, agenti G… dál neměnní',/isRuleVariant\(variant\)\)await removeRuleVariant/.test(pr)&&/isAgentVariant\(variant\)\)throw Error/.test(pr));
  const sc=src('scripts/lab-strategies.mjs');
  check('runner: import jen ze souboru MIMO repozitář',/real===ROOT\|\|real\.startsWith\(ROOT\+sep\)/.test(sc)&&/process\.exit\(1\)/.test(sc));
- check('runner: nevypisuje obsah definic (žádný log textu / JSONu definice)',!/console\.(log|error|warn)\([^)]*(x\.text|JSON\.stringify\((def|raw|x)\b|readFileSync)/.test(sc)&&!/writeFileSync/.test(sc));
+ check('runner: nevypisuje obsah definic (žádný log textu / JSONu definice)',!/console\.(log|error|warn)\([^)]*(x\.text|JSON\.stringify\((def|raw|x)\b|readFileSync)/.test(sc));
+ const wf=[...sc.matchAll(/writeFileSync\(([^,)]*)/g)].map(m=>m[1]);
+ check('runner: jediný zápis souboru = --diag-json, a jen MIMO repozitář',wf.length===1&&wf[0]==='diagOut'&&/diagOut=diagJson\?outsideRepo\(diagJson\):null/.test(sc)&&/real===ROOT\|\|real\.startsWith\(ROOT\+sep\)\?null/.test(sc)&&/--diag-json musí mířit MIMO/.test(sc));
+ const pd=sc.slice(sc.indexOf('function printDiag'),sc.indexOf('for(const x of defs)'));
+ check('runner --diag: vypisuje jen id podmínek, bloky a počty (žádné parametry)',pd.length>100&&!/params|\.text\b|JSON\.stringify/.test(pd)&&/c\.id/.test(pd)&&/c\.block/.test(pd));
+ check('runner: bez --id / --name jen poslední verze každé definice; --name, --all-versions',/--all-versions/.test(sc)&&/byName\.get\(x\.name\)===x/.test(sc)&&/opt\('--name'\)/.test(sc));
+ check('route strategies: svíčky kolem obchodu jen po labUser, ověřený trh / TF / rozsah',/if\(mk!==null\)/.test(hs[0])&&/MARKET\.test\(mk\)/.test(hs[0])&&/BARS_MAX/.test(hs[0])&&/loadBars\(d,mk,tf,from,to\)/.test(hs[0]));
+ const ui=src('app/laborator/strategies-tab.tsx');
+ check('Strategie: Diagnostika, Ukázkové obchody a porovnání verzí v UI',/<DiagPanel /.test(ui)&&/<SamplesPanel /.test(ui)&&/<CompareVersions /.test(ui)&&/lightweight-charts/.test(src('app/laborator/strategy-diag.tsx')));
  const mig=src('drizzle/mariadb/0035_lab_strategy_defs.sql');
  check('migrace 0035: tabulky lab_strategy_defs / runs s user_id, available_at v lab_cot, breakpointy',/CREATE TABLE IF NOT EXISTS lab_strategy_defs/.test(mig)&&/CREATE TABLE IF NOT EXISTS lab_strategy_runs/.test(mig)&&/available_at/.test(mig)&&mig.split('--> statement-breakpoint').length===4&&(mig.match(/user_id VARCHAR\(128\) NOT NULL/g)||[]).length===2);
  const tab=src('app/laborator/lab-page.tsx');
@@ -431,6 +442,116 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
  const dn=validateDef({...ALL_DEF,conditions:[{id:'z2',block:'zone',params:{impulseK:.6,requireBreak:false,status:'valid',maxBase:2,baseBodyRatio:.7}},{id:'n',block:'news_blackout'}],entry:{type:'market_on_close'},stop:{from:'z2',key:'distal'},targets:{type:'r',r:2},filters:{}}).def;
  const sn=simulate(dn,[pm],[compile(dn,pm,{})],{});
  check('bez dat: povinný COT neplatí (0 signálů), zprávy bez kalendáře neblokují (signály, počítané jako bez dat)',sim.signals===0&&sn.signals>0&&sn.unknown.news_blackout===sn.signals,{cot:sim.signals,news:sn.signals,u:sn.unknown});
+}
+
+// ======================= 14) diagnostika: trychtýř podmínek se známým úzkým hrdlem
+{
+ const def=validateDef({...BASE,conditions:[{id:'a',block:'ma'},{id:'b',block:'atr_regime'},{id:'c',block:'engulfing'},{id:'o',block:'pin_bar',role:'optional'}],entry:{type:'market_on_close',side:'long'},stop:{from:'entry',atrK:1}}).def;
+ const n=10,pm=prepare('EUR/USD',mk(flat(n)),'D1'),outs=[0,1,2,3].map(()=>B.newOut(n,[]));
+ for(let i=0;i<=7;i++)outs[0].L[i]=1;for(let i=2;i<=9;i++)outs[1].L[i]=1;outs[2].L[3]=outs[2].L[4]=1;outs[3].L[5]=1;
+ outs[0].S.fill(1);outs[1].S.fill(1);outs[2].S.fill(1); // short je vypnutý (entry.side long) – nesmí se počítat
+ const f=condFunnel(def,pm.E.n?{outs,req:[0,1,2],opt:[3],idx:new Map([['a',0],['b',1],['c',2],['o',3]])}:null,pm);
+ const [a,b,c,o]=f.conds;
+ check('trychtýř: platí a 8, a∧b 6, a∧b∧c 2 (= všechny povinné)',f.bars===10&&a.true===8&&a.funnel===8&&b.funnel===6&&c.funnel===2&&f.allRequired===2&&a.trueS===0,f.conds.map(x=>[x.id,x.true,x.funnel]));
+ check('trychtýř: první nesplněná a 2×, b 2×, c 4× → úzké hrdlo c; součet = svíčky',a.firstFail===2&&b.firstFail===2&&c.firstFail===4&&a.firstFail+b.firstFail+c.firstFail+f.allRequired===f.bars,f.conds.map(x=>[x.id,x.firstFail]));
+ check('trychtýř: volitelná podmínka nemá funnel ani firstFail, počítá se jen „platí“ a úseky',o.funnel===null&&o.firstFail===null&&o.true===1&&o.onsets===1&&c.onsets===1);
+ const w=condFunnel(def,{outs,req:[0,1,2],opt:[3],idx:new Map()},pm,pm.E.t[5]);
+ check('trychtýř: okno od času (svíčky 5–9)',w.bars===5&&w.conds[2].firstFail===3&&w.conds[0].firstFail===2&&w.conds[1].firstFail===0&&w.allRequired===0,w.conds.map(x=>[x.id,x.firstFail]));
+ const both={...def,entry:{...def.entry,side:'both'}},fb=condFunnel(both,{outs,req:[0,1,2],opt:[3],idx:new Map()},pm);
+ check('trychtýř: obě strany – lepší strana (short všude splněno) → všechny povinné na každé svíčce',fb.allRequired===10&&fb.conds.every(x=>!x.firstFail));
+ const mg=mergeDiag([{...f,stages:{...Object.fromEntries(STAGE_KEYS.map(k=>[k,1]))}},{...w,stages:{...Object.fromEntries(STAGE_KEYS.map(k=>[k,2]))}}]);
+ check('součet trhů: svíčky, trychtýř i fáze se sčítají',mg.bars===15&&mg.conds[2].firstFail===7&&mg.stages.opened===3&&mg.conds[3].funnel===null);
+}
+
+// ======================= 15) fáze vstupu: součty (limit i market), shoda s trychtýřem, detektory, stopa obchodu
+{
+ const stageSums=(s,lim)=>{const e=[];
+  if(s.allRequired!==s.both+s.busy+s.setups)e.push('allRequired');
+  if(s.setups!==s.skipRating+s.skipRR+s.skipObstacle+s.skipLevel+s.placed)e.push('setups');
+  const tail=s.opened+s.blockFull+s.blockTrades+s.blockLoss+(lim?s.expired+s.pendingAtEnd:s.blockSession+s.blockNews);
+  if(s.placed!==tail)e.push('placed');return e};
+ const dLim=validateDef({...ALL_DEF,risk:{basePct:1,minRating:0},targets:{type:'r',r:2,minRR:0},filters:{maxTradesPerDay:1,maxOpen:1,stopAfterLosses:1,news:{minutes:30,minSignal:3}},markets:['EUR/USD','GBP/USD']}).def;
+ const dMkt=validateDef({...ALL_DEF,entry:{type:'market_on_close'},stop:{from:'z2',key:'distal',atrK:.1},targets:{type:'level',from:'tr',key:'high',minRR:1.5},risk:{basePct:1,minRating:6},
+  filters:{sessions:['london','ny'],maxTradesPerDay:2,dailyLossR:1,news:{minutes:30,minSignal:3}},markets:['EUR/USD','GBP/USD']}).def;
+ for(const [name,def] of [['limit',dLim],['market_on_close',dMkt]]){
+  const pms=[prepare('EUR/USD',eu,'H1'),prepare('GBP/USD',gu,'H1')],cps=pms.map(pm=>compile(def,pm,ctx));
+  const sim=simulate(def,pms,cps,ctx,{diagFrom:-Infinity,trace:true}),dg=buildDiag(def,pms,cps,sim.stages,-Infinity),t=dg.total.stages,lim=name==='limit';
+  const errs=[...dg.markets.flatMap(m=>stageSums(m.stages,lim).map(e=>m.id+':'+e)),...stageSums(t,lim)];
+  check(`fáze vstupu (${name}): součty sedí na každém trhu i celkem`,errs.length===0&&t.setups>20,{errs,t});
+  check(`fáze vstupu (${name}): otevřeno = počet obchodů, nastavení = signály, trychtýř = povinné splněné`,t.opened===sim.trades.length&&t.setups===sim.signals&&dg.total.allRequired===t.allRequired&&dg.markets.every(m=>m.allRequired===m.stages.allRequired)&&t.bars===dg.total.bars,{t,trades:sim.trades.length,fa:dg.total.allRequired});
+  const req=dg.total.conds.filter(c=>c.role==='required');
+  check(`trychtýř (${name}): Σ první nesplněná + povinné = svíčky, kumulativní řada neroste`,req.reduce((a,c)=>a+c.firstFail,0)+dg.total.allRequired===dg.total.bars&&req.every((c,k)=>k===0||c.funnel<=req[k-1].funnel)&&req.at(-1).funnel===dg.total.allRequired);
+  if(lim)check('fáze vstupu (limit): limity vyprší i se zablokují portfoliem (test není prázdný)',t.expired>0&&t.blockFull+t.blockTrades+t.blockLoss>0&&t.busy>0,t);
+  else check('fáze vstupu (market): odmítnutí R:R, hodnocením, seancí a limity (test není prázdný)',t.skipRR>0&&t.skipRating>0&&t.blockSession>0&&t.blockTrades+t.blockLoss>0,t);
+  // stopa obchodu: úrovně ve stopě = provedený vstup / stop / cíl
+  const bad=[];let exact=0;
+  for(const tr of sim.trades){const x=tr.trace;if(!x){bad.push('bez stopy');continue}
+   if(tr.stop!==x.stop.price)bad.push('stop');if(tr.target!==x.target.price)bad.push('cíl');
+   if(x.stop.key){const c=x.conds.find(c=>c.id===x.stop.from);if(!c||c.lv[x.stop.key]!==x.stop.ref)bad.push('stop ref')}
+   if(lim){const l=x.legs[0],c=x.conds.find(c=>c.id===l.from);if(!c||c.lv[l.key]!==l.L)bad.push('úroveň vstupu');
+    if(tr.legs===1){if(tr.entry===l.L)exact++;else if(!(tr.side>0?tr.entry<l.L:tr.entry>l.L))bad.push('vstup '+tr.entry+' vs '+l.L)}}
+   else{const pm=pms.find(p=>p.id===tr.market),i=Array.prototype.indexOf.call(pm.E.t,x.sigBarT);if(tr.entry!==pm.E.c[i]||x.legs[0].L!==tr.entry)bad.push('close')
+    if(x.target.from==='tr'){const c=x.conds.find(c=>c.id==='tr');if(!c||c.lv.high!==tr.target&&c.lv.low!==tr.target)bad.push('cíl úroveň')}}
+   if(!x.conds.every(c=>def.conditions.some(d=>d.id===c.id&&d.block===c.block)))bad.push('podmínka');
+   if(x.conds.some(c=>c.t!==null&&c.t>x.sigBarT))bad.push('událost po signálu');
+  }
+  check(`stopa obchodu (${name}): úrovně podmínek = provedený vstup / stop / cíl${lim?` (${exact} plnění přesně na úrovni, zbytek gap za lepší cenu)`:''}`,bad.length===0&&(!lim||exact>0),bad.slice(0,8));
+  check(`stopa obchodu (${name}): zóna má čas vzniku (událost) u každého obchodu`,sim.trades.every(tr=>tr.trace.conds.find(c=>c.id==='z2')?.t>0));
+  const js=JSON.stringify(dg);
+  check(`diagnostika (${name}): bez parametrů definice (jen id, bloky, počty)`,!/impulseK|atrPeriod|maxBase|baseBodyRatio|lookback|minSignal|"params"/.test(js));
+ }
+ const st=buildDiag(dLim,[prepare('EUR/USD',eu,'H1')],[compile(dLim,prepare('EUR/USD',eu,'H1'),ctx)],[{...Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}],-Infinity).total.conds;
+ const z=st.find(c=>c.id==='z2').stats,mss=st.find(c=>c.id==='mss').stats,sw=st.find(c=>c.id==='sw').stats,fv=st.find(c=>c.id==='fvg').stats;
+ const mit=z.mit0_25+z.mit25_50+z.mit50_75+z.mit75_100+z.mit100;
+ check('detektor zón: nalezeno = zneplatněno + vypršelo + platí na konci; rozložení mitigace = dotčené',z.detected>0&&z.detected===z.invalidated+z.expired+z.aliveAtEnd&&mit===z.touchedFresh&&z.demand+z.supply===z.detected,z);
+ check('detektor MSS: swingy ≥ průrazy ≥ s displacementem ≥ události; sweep: knot za úrovní ≥ sweepy',mss.swingHighs>0&&mss.structureBreaks>=mss.withDisplacement&&mss.withDisplacement>=mss.mssEvents&&sw.wickBeyondLow>=sw.sweepsLong&&sw.sweepsLong+sw.sweepsShort>0,{mss,sw});
+ check('detektor FVG: nalezeno = vyplněno + vypršelo + platí na konci',fv.detected>0&&fv.detected===fv.filled+fv.expired+fv.aliveAtEnd,fv);
+ // výsledek běhu: diagnostika u každé varianty, ukázkové obchody IS + OOS se stopou, obchody bez stopy
+ const def=validateDef({...ALL_DEF,variants:[{name:'cíl 3 R',overrides:{'targets.r':3}}]}).def;
+ const r=runStrategy(def,[{id:'EUR/USD',bars:eu},{id:'GBP/USD',bars:gu}],ctx,{shuffles:1,seed:3,now:Date.UTC(2024,0,1)}),v=r.variants[0];
+ check('běh: diagnostika u každé varianty (fáze od začátku IS), trychtýř po trzích',r.variants.every(x=>x.diag&&x.diag.markets.length===2&&x.diag.from===r.from)&&stageSums(v.diag.total.stages,true).length===0);
+ check('běh: ukázkové obchody (≤ 50) z IS i OOS se stopou; seznam obchodů stopu nenese',v.samples.length>0&&v.samples.length<=50&&v.samples.some(t=>t.seg==='is')&&v.samples.some(t=>t.seg==='oos')&&v.samples.every(t=>t.trace&&(t.seg==='is')===(t.entryT<Date.parse(r.split+'T00:00:00Z')))&&v.trades.every(t=>!t.trace));
+ const mkT=(e)=>({entryT:e,r:0});
+ const ps=pickSamples([...Array.from({length:100},(_,k)=>mkT(k)),...Array.from({length:10},(_,k)=>mkT(1000+k))],500,50);
+ check('výběr ukázek: 50 = 40 IS + všech 10 OOS, rovnoměrně',ps.length===50&&ps.filter(t=>t.seg==='oos').length===10&&ps.filter(t=>t.seg==='is').length===40&&ps[1].entryT===2);
+}
+
+// ======================= 16) verze definic: import se stejným názvem = nová verze, staré verze a běhy zůstávají
+{
+ const plan=versionPlan([{id:'a',version:1,def:defOf()},{id:'b',version:2,def:defOf({targets:{type:'r',r:3}})}],defOf({targets:{type:'r',r:3}}));
+ check('versionPlan: shodný obsah s poslední verzí = beze změny',plan.action==='same'&&plan.id==='b'&&plan.version===2);
+ check('versionPlan: změna = verze max + 1; nový název = verze z definice',versionPlan([{id:'a',version:1,def:defOf()},{id:'b',version:4,def:defOf({targets:{type:'r',r:3}})}],defOf()).version===5&&versionPlan([],defOf({version:3})).version===3);
+ // malá databáze v paměti (jen dotazy lib/lab/strat-store.ts)
+ const defs=[],runs=[],uid='u:1';
+ const db={prepare(sql){return {bind:(...p)=>({
+  async all(){
+   if(/FROM lab_strategy_defs WHERE user_id=\? AND name=\?/.test(sql))return {results:defs.filter(r=>r.user_id===p[0]&&r.name===p[1]).sort((a,b)=>b.version-a.version)};
+   if(/FROM lab_strategy_defs WHERE user_id=\? ORDER BY/.test(sql))return {results:defs.filter(r=>r.user_id===p[0])};
+   if(/SELECT id FROM lab_strategy_runs WHERE user_id=\? AND def_id=\?/.test(sql))return {results:runs.filter(r=>r.user_id===p[0]&&r.def_id===p[1]).reverse()};
+   throw Error('fake all: '+sql)},
+  async first(){
+   if(/COUNT\(\*\)/.test(sql))return {n:defs.filter(r=>r.user_id===p[0]).length};
+   if(/FROM lab_strategy_defs WHERE user_id=\? AND id=\?/.test(sql))return defs.find(r=>r.user_id===p[0]&&r.id===p[1])??null;
+   if(/FROM lab_strategy_runs WHERE user_id=\? AND def_id=\? ORDER BY created DESC LIMIT 1/.test(sql))return runs.filter(r=>r.user_id===p[0]&&r.def_id===p[1]).at(-1)??null;
+   throw Error('fake first: '+sql)},
+  async run(){
+   if(/INSERT INTO lab_strategy_defs/.test(sql)){const [id,user_id,name,version,def,created,updated]=p;defs.push({id,user_id,name,version,def,created,updated,notes:null});return {meta:{changes:1}}}
+   if(/INSERT INTO lab_strategy_runs/.test(sql)){const [id,user_id,def_id,version,params,result,summary,created]=p;runs.push({id,user_id,def_id,version,params,result,summary,created});return {meta:{changes:1}}}
+   if(/DELETE FROM lab_strategy_runs WHERE id=\?/.test(sql)){const k=runs.findIndex(r=>r.id===p[0]);if(k>=0)runs.splice(k,1);return {meta:{changes:k>=0?1:0}}}
+   throw Error('fake run: '+sql)}})}}};
+ const raw={...BASE,name:'sweep-reversal'};
+ const i1=await importDef(db,uid,raw,Date.UTC(2024,0,1));
+ const res=runStrategy(defOf(),[{id:'EUR/USD',bars:walk(400,5,Date.UTC(2021,0,1),DAY)}],{},{shuffles:0,now:Date.UTC(2024,0,1)});
+ const run1=await saveRun(db,uid,i1.id,i1.version,{},res,Date.UTC(2024,0,2));
+ const i2=await importDef(db,uid,raw,Date.UTC(2024,0,3));
+ const i3=await importDef(db,uid,{...raw,targets:{type:'r',r:3}},Date.UTC(2024,0,4));
+ const all=await listDefs(db,uid),old=await getRun(db,uid,i1.id);
+ check('import: v1 nová, stejný obsah beze změny, změna se stejným názvem = NOVÁ verze v2 (nový řádek)',i1.changed&&i1.version===1&&!i2.changed&&i2.id===i1.id&&i3.changed&&i3.version===2&&i3.id!==i1.id&&all.length===2,{i1,i2,i3,n:all.length});
+ check('import: stará verze v1 zůstává i s během; v2 má text s verzí 2',all.some(x=>x.id===i1.id&&x.version===1&&x.def.targets.r===2)&&all.some(x=>x.id===i3.id&&x.def.version===2&&x.def.targets.r===3)&&old?.id===run1&&old.result.variants[0].diag!==undefined);
+ const e1=await saveDef(db,uid,i1.id,{...raw,targets:{type:'r',r:4}},Date.UTC(2024,0,5));
+ check('úprava staré verze v editoru: nová verze v3 (max + 1), v1 i v2 zůstávají',e1.changed&&e1.version===3&&(await listDefs(db,uid)).length===3);
+ const e2=await saveDef(db,uid,e1.id,{...raw,targets:{type:'r',r:4}},Date.UTC(2024,0,6));
+ check('uložení beze změny obsahu: stejná verze',!e2.changed&&e2.id===e1.id&&e2.version===3);
 }
 
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše v pořádku');

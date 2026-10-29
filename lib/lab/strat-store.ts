@@ -7,7 +7,7 @@ import {packJson,unpackJson} from './sweep-store.ts';
 import {runSummary,type StrategyRunResult,type RunSummary} from './strat-engine.ts';
 import {cotAvailableAt,type CotSrc} from './strat-blocks.ts';
 
-export const RUNS_KEEP=5,DEFS_MAX=100;
+export const RUNS_KEEP=5,DEFS_MAX=300;
 const sqlNow=(t=Date.now())=>new Date(t).toISOString().slice(0,19).replace('T',' ');
 const iso=(s:unknown)=>typeof s==='string'&&/^\d{4}-\d\d-\d\d \d/.test(s)?s.replace(' ','T')+'Z':s instanceof Date?s.toISOString():String(s??'');
 const json=<T,>(s:unknown,def:T):T=>{if(typeof s!=='string'||!s)return def;try{return JSON.parse(s) as T}catch{return def}};
@@ -22,30 +22,37 @@ export async function getDef(d:Db,uid:string,id:string):Promise<DefRow|null>{
  const r=await d.prepare('SELECT id,name,version,def,created,updated,notes FROM lab_strategy_defs WHERE user_id=? AND id=?').bind(uid,id).first<Row>();
  return r?toDef(r):null;
 }
-// porovnání obsahu bez čísla verze (změna obsahu = nová verze; stejná verze se dvakrát s jiným obsahem neuloží)
+// VERZE: každá verze definice je vlastní řádek se stejným názvem (v1, v2, …). Změna obsahu (úprava v editoru i import se stejným názvem)
+// vloží NOVÝ řádek s verzí max+1 – staré verze i jejich běhy zůstávají (porovnání v1 vs v2), agenti R… mají vlastní neměnnou kopii.
+// Obsah shodný s poslední verzí téhož názvu = beze změny. Porovnání obsahu je bez čísla verze.
 const sameContent=(a:StrategyDef,b:StrategyDef)=>JSON.stringify({...a,version:0})===JSON.stringify({...b,version:0});
-// uložení (nová nebo úprava): vrací id a výslednou verzi; raw = objekt definice (validuje se tady znovu)
+export type VersionPlan={action:'same';id:string;version:number}|{action:'insert';version:number};
+export function versionPlan(existing:Pick<DefRow,'id'|'version'|'def'>[],nd:StrategyDef):VersionPlan{
+ if(!existing.length)return {action:'insert',version:nd.version};
+ const latest=existing.reduce((a,b)=>b.version>a.version?b:a);
+ if(latest.def&&sameContent(latest.def,nd))return {action:'same',id:latest.id,version:latest.version};
+ return {action:'insert',version:latest.version+1};
+}
+export async function listVersions(d:Db,uid:string,name:string):Promise<DefRow[]>{
+ return (await d.prepare('SELECT id,name,version,def,created,updated,notes FROM lab_strategy_defs WHERE user_id=? AND name=? ORDER BY version DESC').bind(uid,name).all<Row>()).results.map(toDef);
+}
+// uložení (nová definice, nebo nová verze při změně obsahu): vrací id řádku verze a číslo verze; raw = objekt definice (validuje se tady znovu).
+// id = verze, ze které úprava vychází (musí existovat); nová verze patří k názvu z definice.
 export async function saveDef(d:Db,uid:string,id:string|null,raw:unknown,now=Date.now()):Promise<{id:string;version:number;changed:boolean}>{
  const v=validateDef(raw);if(!v.ok)throw Object.assign(new Error('Definice není platná.'),{errors:v.errors});
  const obj=raw as Record<string,unknown>;
- if(id){
-  const old=await getDef(d,uid,id);if(!old)throw Error('Definice nenalezena.');
-  if(old.def&&sameContent(old.def,v.def))return {id,version:old.version,changed:false};
-  const version=Math.max(v.def.version,old.version+1),text=JSON.stringify({...obj,version},null,1);
-  await d.prepare('UPDATE lab_strategy_defs SET name=?,version=?,def=?,updated=? WHERE id=? AND user_id=?').bind(v.def.name,version,text,sqlNow(now),id,uid).run();
-  return {id,version,changed:true};
- }
+ if(id){const old=await getDef(d,uid,id);if(!old)throw Error('Definice nenalezena.');if(old.def&&old.name===v.def.name&&sameContent(old.def,v.def))return {id,version:old.version,changed:false}}
+ const plan=versionPlan(await listVersions(d,uid,v.def.name),v.def);
+ if(plan.action==='same')return {id:plan.id,version:plan.version,changed:false};
  const c=await d.prepare('SELECT COUNT(*) n FROM lab_strategy_defs WHERE user_id=?').bind(uid).first<{n:number}>();
- if(Number(c?.n)>=DEFS_MAX)throw Error(`Nejvýš ${DEFS_MAX} definic.`);
- const nid=crypto.randomUUID();
- await d.prepare('INSERT INTO lab_strategy_defs(id,user_id,name,version,def,created,updated) VALUES(?,?,?,?,?,?,?)').bind(nid,uid,v.def.name,v.def.version,JSON.stringify(obj,null,1),sqlNow(now),sqlNow(now)).run();
- return {id:nid,version:v.def.version,changed:true};
+ if(Number(c?.n)>=DEFS_MAX)throw Error(`Nejvýš ${DEFS_MAX} verzí definic – smaž staré verze.`);
+ const nid=crypto.randomUUID(),version=plan.version;
+ await d.prepare('INSERT INTO lab_strategy_defs(id,user_id,name,version,def,created,updated) VALUES(?,?,?,?,?,?,?)').bind(nid,uid,v.def.name,version,JSON.stringify({...obj,version},null,1),sqlNow(now),sqlNow(now)).run();
+ return {id:nid,version,changed:true};
 }
-// import ze souboru: podle názvu – existující se upraví (nová verze při změně), jinak vznikne nová
+// import ze souboru: podle názvu – shodný obsah s poslední verzí = beze změny, jinak nová verze (nebo nová definice)
 export async function importDef(d:Db,uid:string,raw:unknown,now=Date.now()){
- const v=validateDef(raw);if(!v.ok)throw Object.assign(new Error('Definice není platná.'),{errors:v.errors});
- const ex=await d.prepare('SELECT id FROM lab_strategy_defs WHERE user_id=? AND name=? ORDER BY updated DESC LIMIT 1').bind(uid,v.def.name).first<{id:string}>();
- return saveDef(d,uid,ex?.id??null,raw,now);
+ return saveDef(d,uid,null,raw,now);
 }
 export async function deleteDef(d:Db,uid:string,id:string){
  await d.prepare('DELETE FROM lab_strategy_runs WHERE user_id=? AND def_id=?').bind(uid,id).run();

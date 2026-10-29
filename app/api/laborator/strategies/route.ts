@@ -1,5 +1,7 @@
-// Laboratoř · Strategie (jen vlastník, lab_strategy_defs / lab_strategy_runs). GET = seznam definic s posledním výsledkem (bez vedlejších
-// efektů), ?id= = jedna definice (JSON text) + poslední výsledek. Výpočet běží mimo web (scripts/lab-strategies.mjs na VPS).
+// Laboratoř · Strategie (jen vlastník, lab_strategy_defs / lab_strategy_runs). GET = seznam definic (každá verze = řádek) s posledním
+// výsledkem (bez vedlejších efektů), ?id= = jedna verze (JSON text) + poslední výsledek (s diagnostikou a ukázkovými obchody),
+// ?bars=<trh>&tf=D1|H1&from=&to= = svíčky z archivu (market_bars) kolem ukázkového obchodu, nejvýš 600 svíček.
+// Výpočet běží mimo web (scripts/lab-strategies.mjs na VPS).
 // POST (jen z vlastní stránky: sameOrigin + sec-fetch-site): {action:'save',id?,text} = uložit / upravit definici (validace, nová verze
 // při změně obsahu), {action:'simulate',id} = „Pustit do simulace“ → agent R01…R40 s neměnnou kopií aktuální verze,
 // {action:'delete',id,confirm:'SMAZAT'} = smazat definici a její běhy (agenti R… zůstávají – mají vlastní kopii).
@@ -10,10 +12,18 @@ import {createRuleVariant,listAccounts} from '@/lib/lab/paper-store';
 import {refreshSummary} from '@/lib/lab/store';
 import {isRuleVariant} from '@/lib/lab/paper';
 import {defOutline,parseDefJson} from '@/lib/lab/rules-def';
-const ID=/^[0-9a-f-]{36}$/;
+import {loadBars} from '@/lib/bars/query';
+const ID=/^[0-9a-f-]{36}$/,MARKET=/^[A-Za-z0-9^=\/.\-]{1,16}$/,BARS_MAX=600;
 const bad=(error:string,errors?:string[])=>Response.json({error,errors},{status:400,headers:LAB_HEADERS});
 export async function GET(req:Request){try{const u=await labUser(req);if(u instanceof Response)return u;const d=db();
- const id=new URL(req.url).searchParams.get('id');
+ const q=new URL(req.url).searchParams,id=q.get('id'),mk=q.get('bars');
+ if(mk!==null){
+  const tf=q.get('tf'),from=Number(q.get('from')),to=Number(q.get('to'));
+  if(!MARKET.test(mk)||(tf!=='D1'&&tf!=='H1')||!Number.isFinite(from)||!Number.isFinite(to)||to<=from)return bad('Neplatný dotaz na svíčky.');
+  if((to-from)/(tf==='D1'?86400000:3600000)>BARS_MAX*1.6)return bad('Příliš dlouhé období.');
+  const rows=await loadBars(d,mk,tf,from,to);
+  return Response.json({bars:rows.slice(-BARS_MAX).map(b=>[b.t,b.o,b.h,b.l,b.c])},{headers:LAB_HEADERS});
+ }
  if(id!==null){
   if(!ID.test(id))return labNotFound();
   const def=await getDef(d,u.id,id);if(!def)return labNotFound();

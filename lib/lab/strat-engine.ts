@@ -23,7 +23,7 @@
 //    od chvíle, kdy byla známá (výstup uvnitř svíčky = konec svíčky). Vstupní okna seancí a zprávy se kontrolují v čase vstupu.
 //  • In-sample / out-of-sample podle času vstupu: D1 IS 2015–2022, OOS od 2023 (data před 2015 jen na zahřátí); H1 posledních 30 % období.
 //  • Hranice náhody: stejné vstupy (časy i ceny plnění), náhodný směr se zrcadleným stopem a cílem; medián nejlepšího OOS průměru R.
-import {BLOCKS,DEFAULT_SESSIONS,defRuns,condLabel,type StrategyDef,type Condition,type Tf,type LevelKey,type SessionId,type SessionDef} from './rules-def.ts';
+import {BLOCKS,DEFAULT_SESSIONS,defRuns,condLabel,type StrategyDef,type Condition,type Tf,type LevelKey,type SessionId,type SessionDef,type BlockId} from './rules-def.ts';
 import * as B from './strat-blocks.ts';
 import {spreadPrice,DEFAULT_RULES} from '../backtest/rules.ts';
 import {MIN_OOS_TRADES,MIN_OOS_PF,IS_FROM,OOS_FROM,median} from './sweep-grid.ts';
@@ -64,9 +64,9 @@ function tfData(pm:PM,tf:Tf):TfData{
  const a=B.aggregate(base,B.TF_MS[pm.data],B.tfKey(tf,pm.data));x={s:B.series(a.bars,tf),done:a.done};pm.tfs.set(tf,x);return x;
 }
 function mapOut(o:B.Out,done:Int32Array):B.Out{
- const n=done.length,keys=Object.keys(o.lvL),m=B.newOut(n,keys);if(o.unknown)m.unknown=new Uint8Array(n);
+ const n=done.length,keys=Object.keys(o.lvL),m=B.newOut(n,keys,!!o.tL);if(o.unknown)m.unknown=new Uint8Array(n);if(o.stats)m.stats=o.stats;
  for(let i=0;i<n;i++){const k=done[i];if(k<0){if(m.unknown)m.unknown[i]=1;continue}
-  m.L[i]=o.L[k];m.S[i]=o.S[k];if(m.unknown)m.unknown[i]=o.unknown![k];
+  m.L[i]=o.L[k];m.S[i]=o.S[k];if(m.unknown)m.unknown[i]=o.unknown![k];if(m.tL){m.tL[i]=o.tL![k];m.tS![i]=o.tS![k]}
   for(const key of keys){(m.lvL as Record<string,Float64Array>)[key][i]=(o.lvL as Record<string,Float64Array>)[key][k];(m.lvS as Record<string,Float64Array>)[key][i]=(o.lvS as Record<string,Float64Array>)[key][k]}}
  return m;
 }
@@ -144,11 +144,11 @@ const levelOf=(cp:Compiled,from:string,key:LevelKey,side:Side,i:number):number=>
 export function riskPctOf(def:StrategyDef,rating:number):number{let p=def.risk.basePct;for(const x of def.risk.byRating)if(rating>=x.min)p=x.pct;return p}
 
 // ---- plán obchodu ze signálu (úrovně vstupu, stop, cíl, TP1) – sdílí backtest i živá simulace
-export type Plan={side:Side;legs:{L:number;share:number}[];stop:number;target:number|null;tp1:number|null;risk:number;rr:number|null;rating:number;riskPct:number;sat:number[]};
+export type Plan={side:Side;legs:{L:number;share:number}[];stop:number;ref:number;target:number|null;tp1:number|null;risk:number;rr:number|null;rating:number;riskPct:number;sat:number[]};
 export type PlanSkip={skip:string};
 export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rating:number,sat:number[],entryOverride?:number):Plan|PlanSkip{
  const E=pm.E,a=B.atrOf(E,def.stop.atrPeriod)[i];
- if(rating<def.risk.minRating)return {skip:'hodnocení pod minimem'};
+ if(rating<def.risk.minRating)return {skip:SKIP_RATING};
  let legs:{L:number;share:number}[];
  if(def.entry.type==='market_on_close')legs=[{L:entryOverride??E.c[i],share:1}];
  else if(def.entry.legs)legs=def.entry.legs.map(l=>({L:levelOf(cp,l.from,l.key,side,i),share:l.share}));
@@ -169,11 +169,11 @@ export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rati
  else if(def.targets.type==='swing'){const st=B.structure(E,def.targets.swingN);target=side>0?st.hi[i]:st.lo[i];if(!Number.isFinite(target)||!(side*(target-avg)>0))return {skip:'chybí protilehlý swing'}}
  else{target=levelOf(cp,def.targets.from!,def.targets.key,side,i);if(!Number.isFinite(target)||!(side*(target-avg)>0))return {skip:'cíl na špatné straně'}}
  const rr=side*(target-avg)/risk;
- if(def.targets.minRR>0&&rr<def.targets.minRR)return {skip:'R:R pod minimem'};
+ if(def.targets.minRR>0&&rr<def.targets.minRR)return {skip:SKIP_RR};
  if(def.targets.obstacle){const ob=levelOf(cp,def.targets.obstacle.from,def.targets.obstacle.key,side,i);
-  if(Number.isFinite(ob)&&side*(ob-avg)>0&&side*(target-ob)>0&&side*(ob-avg)/risk<Math.max(def.targets.minRR,1))return {skip:'překážka před cílem'}}
+  if(Number.isFinite(ob)&&side*(ob-avg)>0&&side*(target-ob)>0&&side*(ob-avg)/risk<Math.max(def.targets.minRR,1))return {skip:SKIP_OBSTACLE}}
  const tp1=def.targets.partial?avg+side*def.targets.partial.atR*risk:null;
- return {side,legs,stop,target,tp1,risk,rr,rating,riskPct:riskPctOf(def,rating),sat};
+ return {side,legs,stop,ref,target,tp1,risk,rr,rating,riskPct:riskPctOf(def,rating),sat};
 }
 
 // ---- portfolio limity (sdílí backtest i živá simulace)
@@ -202,15 +202,50 @@ export function clockDeadline(tz:string,at:string,from:number):number{
  let t=mk(d);if(t<=from)t=mk(d+1);return t;
 }
 
+// ---- stopa obchodu: která podmínka dala jakou úroveň a kdy (čas události bloku), plánovaný vstup / stop / cíl – pro ukázkové obchody v grafu.
+// Jen id podmínek, názvy bloků, ceny a časy – žádné parametry definice.
+export type TraceCond={id:string;block:BlockId;role:'required'|'optional';t:number|null;lv:Partial<Record<LevelKey,number>>};
+export type Trace={sigBarT:number;legs:{L:number;share:number;from:string|null;key:LevelKey|null}[];stop:{price:number;ref:number;from:string;key:LevelKey|null};
+ target:{price:number|null;type:string;from:string|null;key:LevelKey|null};tp1:number|null;conds:TraceCond[]};
+export function traceOf(def:StrategyDef,cp:Compiled,i:number,pl:Plan,sigBarT:number):Trace{
+ const side=pl.side;
+ const conds=pl.sat.map(k=>{const c=def.conditions[k],o=cp.outs[k],lv:Partial<Record<LevelKey,number>>={};
+  for(const [key,arr] of Object.entries(side>0?o.lvL:o.lvS)){const v=arr?.[i];if(v!==undefined&&Number.isFinite(v))lv[key as LevelKey]=v}
+  const tt=(side>0?o.tL:o.tS)?.[i];return {id:c.id,block:c.block,role:c.role,t:tt!==undefined&&Number.isFinite(tt)?tt:null,lv}});
+ const e=def.entry,legs=e.type==='market_on_close'?[{L:pl.legs[0].L,share:1,from:null,key:null}]
+  :e.legs?pl.legs.map((l,q)=>({L:l.L,share:l.share,from:e.legs![q].from,key:e.legs![q].key})):[{L:pl.legs[0].L,share:1,from:e.from,key:e.key}];
+ const special=def.stop.from==='entry'||def.stop.from==='signal_bar',lvlT=def.targets.type==='level';
+ return {sigBarT,legs,stop:{price:pl.stop,ref:pl.ref,from:def.stop.from,key:special?null:def.stop.key},
+  target:{price:pl.target,type:def.targets.type,from:lvlT?def.targets.from:null,key:lvlT?def.targets.key:null},tp1:pl.tp1,conds};
+}
+
+// ---- fáze vstupu (diagnostika): co se stalo se svíčkami, kde platily všechny povinné podmínky. Součty (test check-lab-strategies.mjs):
+//  allRequired = both + busy + setups;  setups = skipRating + skipRR + skipObstacle + skipLevel + placed;
+//  market_on_close: placed = opened + blockSession + blockNews + blockFull + blockTrades + blockLoss;
+//  limit: placed = opened + expired + pendingAtEnd + blockFull + blockTrades + blockLoss (blockSession / blockNews = dotyky limitu mimo okno, příkaz dál čeká).
+export type Stages={bars:number;allRequired:number;both:number;busy:number;setups:number;skipRating:number;skipRR:number;skipObstacle:number;skipLevel:number;placed:number;
+ blockSession:number;blockNews:number;blockFull:number;blockTrades:number;blockLoss:number;expired:number;pendingAtEnd:number;opened:number};
+export const STAGE_KEYS:(keyof Stages)[]=['bars','allRequired','both','busy','setups','skipRating','skipRR','skipObstacle','skipLevel','placed','blockSession','blockNews','blockFull','blockTrades','blockLoss','expired','pendingAtEnd','opened'];
+export const newStages=():Stages=>Object.fromEntries(STAGE_KEYS.map(k=>[k,0])) as Stages;
+export const SKIP_RATING='hodnocení pod minimem',SKIP_RR='R:R pod minimem',SKIP_OBSTACLE='překážka před cílem';
+const planSkipKey=(m:string):keyof Stages=>m===SKIP_RR?'skipRR':m===SKIP_OBSTACLE?'skipObstacle':m===SKIP_RATING?'skipRating':'skipLevel';
+// portfolioBlock → druh: plno (maxOpen), limit počtu obchodů, ztrátové stopky (stop-den, denní / týdenní limit ztráty)
+export const blockKind=(m:string):'blockFull'|'blockTrades'|'blockLoss'=>m.startsWith('plno')?'blockFull':m.startsWith('limit')?'blockTrades':'blockLoss';
+
 // ---- simulace (jeden průchod časem přes trhy)
-export type Trade={market:string;side:Side;sigT:number;entryT:number;exitT:number;r:number;reason:'sl'|'be'|'tp'|'time'|'end';rating:number;riskPct:number;legs:number;partial:boolean};
+export type Trade={market:string;side:Side;sigT:number;entryT:number;exitT:number;r:number;reason:'sl'|'be'|'tp'|'time'|'end';rating:number;riskPct:number;legs:number;partial:boolean;
+ entry?:number;stop?:number;target?:number|null;exit?:number;trace?:Trace}; // entry = průměr plněných nohou (mid), stop = původní stop, exit = mid výstupu
 type Leg={L:number;share:number;filled:boolean;fill:number;mid:number};
 type Pos={side:Side;fillSide:Side;sig:number;sigT:number;legs:Leg[];stop:number;orig:number;target:number|null;tp1:number|null;risk:number;entryIdx:number;entryT:number;
- partialDone:boolean;pendingBE:boolean;rating:number;riskPct:number;partR:number;deadline:number;active:boolean;expires:number;type:'limit'|'market_on_close';h:HistTrade|null};
-export type SimOut={trades:Trade[];skips:Record<string,number>;signals:number;unknown:Record<string,number>};
-export type SimOpts={flipSeed?:number|null;to?:number};
+ partialDone:boolean;pendingBE:boolean;rating:number;riskPct:number;partR:number;deadline:number;active:boolean;expires:number;type:'limit'|'market_on_close';h:HistTrade|null;
+ inWin:boolean;trace:Trace|null};
+export type SimOut={trades:Trade[];skips:Record<string,number>;signals:number;unknown:Record<string,number>;stages?:Stages[]};
+// diagFrom = sbírat fáze vstupu pro signální svíčky od tohoto času (null/undefined = bez diagnostiky); trace = stopa u každého obchodu
+export type SimOpts={flipSeed?:number|null;to?:number;diagFrom?:number|null;trace?:boolean};
 export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOpts={}):SimOut{
  const trades:Trade[]=[],skips:Record<string,number>={},hist:HistTrade[]=[],unknown:Record<string,number>={};
+ const stages=o.diagFrom!=null?pms.map(()=>newStages()):null,diagFrom=o.diagFrom??Infinity;
+ const st=(m:number,p:Pos|null,k:keyof Stages)=>{if(stages&&p?.inWin)stages[m][k]++};
  const skip=(r:string)=>{skips[r]=(skips[r]||0)+1};let signals=0;
  const rnd=o.flipSeed!=null?seeded(o.flipSeed):null,cost=def.costs.spreadMult,commR=def.costs.commissionR,cons=def.management.ambiguity==='conservative';
  const pos:(Pos|null)[]=pms.map(()=>null),ptr=pms.map(()=>0);let openCount=0;
@@ -221,7 +256,9 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   let r=p.partR;const rem=p.partialDone?1-(def.targets.partial!.pct/100):1;
   for(const l of p.legs)if(l.filled){const ru=side*(l.fill-(p.orig-side*hs));r+=l.share*rem*side*((mid-side*hs)-l.fill)/ru}
   const filledShare=p.legs.reduce((s,l)=>s+(l.filled?l.share:0),0);r-=commR*filledShare;
-  trades.push({market:pm.id,side,sigT:p.sigT,entryT:p.entryT,exitT,r,reason,rating:p.rating,riskPct:p.riskPct,legs:p.legs.filter(l=>l.filled).length,partial:p.partialDone});
+  const entry=p.legs.reduce((s,l)=>s+(l.filled?l.mid*l.share:0),0)/filledShare;
+  const t:Trade={market:pm.id,side,sigT:p.sigT,entryT:p.entryT,exitT,r,reason,rating:p.rating,riskPct:p.riskPct,legs:p.legs.filter(l=>l.filled).length,partial:p.partialDone,entry,stop:p.orig,target:p.target,exit:mid};
+  if(p.trace)t.trace=p.trace;trades.push(t);
   if(p.h){p.h.knownAt=knownAt;p.h.r=r}openCount--;pos[m]=null;
  };
  const partial=(m:number,mid:number)=>{const p=pos[m]!,hs=pms[m].hs*cost,side=p.side,pct=def.targets.partial!.pct/100;
@@ -253,20 +290,20 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   if(def.management.beAtR&&p.stop===p.orig&&!p.pendingBE){const lvl=be(p)+p.side*def.management.beAtR*p.risk;if(p.side>0?E.h[i]>=lvl:E.l[i]<=lvl)p.pendingBE=true}
  };
  const open=(m:number,p:Pos,T:number,mid:number,legIdx:number,i:number)=>{
-  p.active=true;p.entryIdx=i;p.entryT=T;openCount++;fillLeg(m,p.legs[legIdx],mid);
+  p.active=true;p.entryIdx=i;p.entryT=T;openCount++;fillLeg(m,p.legs[legIdx],mid);st(m,p,'opened');
   p.h={entryT:T,knownAt:null,r:null};hist.push(p.h); // vstup se počítá do limitů hned, výsledek až po zavření
   p.deadline=def.management.timeExitClock?clockDeadline(def.management.timeExitClock.tz,def.management.timeExitClock.at,T):0;
  };
  // pending/aktivní pozice v jednom objektu: active=false = čeká limitní příkaz
  const fills=(m:number,i:number)=>{
   const p=pos[m];if(!p||p.type!=='limit')return;const E=pms[m].E,t=E.t[i],fs=p.fillSide;
-  if(i>p.expires){if(!p.active){pos[m]=null;skip('limit vypršel')}return}
+  if(i>p.expires){if(!p.active){st(m,p,'expired');pos[m]=null;skip('limit vypršel')}return}
   for(const [k,l] of p.legs.entries()){
    if(l.filled)continue;
    const atOpen=fs>0?E.o[i]<=l.L:E.o[i]>=l.L,touch=atOpen||(fs>0?E.l[i]<=l.L:E.h[i]>=l.L);if(!touch)continue;
    if(!p.active){
-    if(!entryWindowOk(def,t)||newsBlocked(pms[m],t)){skip('mimo vstupní okno / zprávy');continue}
-    const blk=portfolioBlock(def.filters,hist,t,openCount);if(blk){skip(blk);pos[m]=null;return}
+    const win=entryWindowOk(def,t);if(!win||newsBlocked(pms[m],t)){skip('mimo vstupní okno / zprávy');st(m,p,win?'blockNews':'blockSession');continue}
+    const blk=portfolioBlock(def.filters,hist,t,openCount);if(blk){skip(blk);st(m,p,blockKind(blk));pos[m]=null;return}
     open(m,p,t,atOpen?E.o[i]:l.L,k,i);
     if(rnd)mirror(m,p);
     // v téže svíčce jen SL (gap plnění = celá svíčka)
@@ -284,17 +321,21 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   for(const l of p.legs)if(l.filled)l.fill=l.mid+p.side*hs;
  };
  const signal=(m:number,i:number)=>{
-  const pm=pms[m],cp=cps[m],E=pm.E;if(pos[m])return;
-  const sg=signalAt(def,cp,i);if(sg.both){skip('obě strany zároveň');return}if(!sg.side)return;
-  signals++;
+  const pm=pms[m],cp=cps[m],E=pm.E,D=stages&&E.t[i]>=diagFrom?stages[m]:null;
+  if(D)D.bars++;
+  if(pos[m]){if(D){const sg=signalAt(def,cp,i);if(sg.side||sg.both){D.allRequired++;D.busy++}}return}
+  const sg=signalAt(def,cp,i);if(sg.both){skip('obě strany zároveň');if(D){D.allRequired++;D.both++}return}if(!sg.side)return;
+  signals++;if(D){D.allRequired++;D.setups++}
   for(const k of sg.sat){const u=cp.outs[k].unknown;if(u?.[i]){const id=def.conditions[k].block;unknown[id]=(unknown[id]||0)+1}}
-  const pl=planAt(def,pm,cp,i,sg.side,sg.rating,sg.sat);if('skip' in pl){skip(pl.skip);return}
+  const pl=planAt(def,pm,cp,i,sg.side,sg.rating,sg.sat);if('skip' in pl){skip(pl.skip);if(D)D[planSkipKey(pl.skip)]++;return}
+  if(D)D.placed++;
   const T=E.t[i]+E.ms;
   const p:Pos={side:pl.side,fillSide:pl.side,sig:i,sigT:T,legs:pl.legs.map(l=>({L:l.L,share:l.share,filled:false,fill:NaN,mid:NaN})),stop:pl.stop,orig:pl.stop,target:pl.target,tp1:pl.tp1,risk:pl.risk,
-   entryIdx:-1,entryT:NaN,partialDone:false,pendingBE:false,rating:pl.rating,riskPct:pl.riskPct,partR:0,deadline:0,active:false,expires:i+def.entry.validBars,type:def.entry.type,h:null};
+   entryIdx:-1,entryT:NaN,partialDone:false,pendingBE:false,rating:pl.rating,riskPct:pl.riskPct,partR:0,deadline:0,active:false,expires:i+def.entry.validBars,type:def.entry.type,h:null,
+   inWin:!!D,trace:o.trace?traceOf(def,cp,i,pl,E.t[i]):null};
   if(def.entry.type==='market_on_close'){
-   if(!entryWindowOk(def,T)||newsBlocked(pm,T)){skip('mimo vstupní okno / zprávy');return}
-   const blk=portfolioBlock(def.filters,hist,T,openCount);if(blk){skip(blk);return}
+   const win=entryWindowOk(def,T);if(!win||newsBlocked(pm,T)){skip('mimo vstupní okno / zprávy');st(m,p,win?'blockNews':'blockSession');return}
+   const blk=portfolioBlock(def.filters,hist,T,openCount);if(blk){skip(blk);st(m,p,blockKind(blk));return}
    pos[m]=p;open(m,p,T,E.c[i],0,i);if(rnd)mirror(m,p);
   }else pos[m]=p;
  };
@@ -307,15 +348,68 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   for(const m of now)fills(m,ptr[m]);
   for(const m of now){atClose(m,ptr[m]);signal(m,ptr[m]);ptr[m]++}
  }
- for(let m=0;m<pms.length;m++){const p=pos[m];if(!p)continue;if(!p.active){pos[m]=null;continue}const E=pms[m].E,i=Math.min(E.n,ptr[m])-1;close(m,E.c[i],E.t[i],E.t[i]+E.ms,'end')}
+ for(let m=0;m<pms.length;m++){const p=pos[m];if(!p)continue;if(!p.active){st(m,p,'pendingAtEnd');pos[m]=null;continue}const E=pms[m].E,i=Math.min(E.n,ptr[m])-1;close(m,E.c[i],E.t[i],E.t[i]+E.ms,'end')}
  trades.sort((a,b)=>a.exitT-b.exitT||a.entryT-b.entryT);
- return {trades,skips,signals,unknown};
+ return stages?{trades,skips,signals,unknown,stages}:{trades,skips,signals,unknown};
+}
+
+// ---- diagnostika podmínek (čistá funkce nad zkompilovanými výstupy bloků) – „trychtýř“ v pořadí definice:
+//  true = svíček, kdy podmínka platí (long nebo short podle entry.side), onsets = začátky souvislých úseků platnosti,
+//  funnel[k] = svíček, kdy pro některou stranu platí všechny POVINNÉ podmínky až po k-tou (cond1 ∧ … ∧ condk),
+//  firstFail[k] = svíček, kdy k-tá povinná podmínka byla PRVNÍ nesplněná (u lepší strany) = úzké hrdlo.
+//  Součet: bars = Σ firstFail + allRequired; funnel poslední povinné = allRequired. Volitelné podmínky trychtýř neovlivňují (funnel/firstFail = null).
+//  stats = diagnostika detektoru bloku za celou historii (počty nalezených zón / swingů / sweepů / MSS / FVG …).
+export type CondDiag={id:string;block:BlockId;role:'required'|'optional';tf:Tf;trueL:number;trueS:number;true:number;onsets:number;unknown:number;
+ funnel:number|null;firstFail:number|null;stats:Record<string,number>|null};
+export type FunnelOut={bars:number;allRequired:number;conds:CondDiag[]};
+export function condFunnel(def:StrategyDef,cp:Compiled,pm:PM,from=-Infinity):FunnelOut{
+ const E=pm.E,K=def.conditions.length,useL=def.entry.side!=='short',useS=def.entry.side!=='long';
+ const conds:CondDiag[]=def.conditions.map((c,k)=>({id:c.id,block:c.block,role:c.role,tf:tfOf(def,c),trueL:0,trueS:0,true:0,onsets:0,unknown:0,
+  funnel:c.role==='required'?0:null,firstFail:c.role==='required'?0:null,stats:cp.outs[k].stats?{...cp.outs[k].stats}:null}));
+ let bars=0,all=0;const prev=new Uint8Array(K);
+ for(let i=0;i<E.n;i++){
+  const cur=new Uint8Array(K);
+  for(let k=0;k<K;k++){const o=cp.outs[k],l=useL&&o.L[i]===1,s=useS&&o.S[i]===1;cur[k]=l||s?1:0;
+   if(E.t[i]<from)continue;const d=conds[k];if(l)d.trueL++;if(s)d.trueS++;if(cur[k]){d.true++;if(!prev[k])d.onsets++}if(o.unknown?.[i])d.unknown++}
+  prev.set(cur);
+  if(E.t[i]<from)continue;bars++;
+  let best=0;
+  for(const side of [1,-1] as const){if(side>0?!useL:!useS)continue;let q=0;for(;q<cp.req.length;q++){const o=cp.outs[cp.req[q]];if((side>0?o.L:o.S)[i]!==1)break}if(q>best)best=q}
+  for(let q=0;q<best;q++)conds[cp.req[q]].funnel!++;
+  if(best<cp.req.length)conds[cp.req[best]].firstFail!++;else all++;
+ }
+ return {bars,allRequired:all,conds};
+}
+export type MarketDiag={id:string;bars:number;allRequired:number;conds:CondDiag[];stages:Stages};
+export type StratDiag={from:string;entryType:'limit'|'market_on_close';total:Omit<MarketDiag,'id'>;markets:MarketDiag[]};
+const addRec=(a:Record<string,number>,b:Record<string,number>)=>{for(const [k,v] of Object.entries(b))a[k]=(a[k]||0)+v};
+export function mergeDiag(ms:Omit<MarketDiag,'id'>[]):Omit<MarketDiag,'id'>{
+ const out:Omit<MarketDiag,'id'>={bars:0,allRequired:0,conds:[],stages:newStages()};
+ for(const m of ms){out.bars+=m.bars;out.allRequired+=m.allRequired;addRec(out.stages,m.stages);
+  m.conds.forEach((c,k)=>{const o=out.conds[k];if(!o){out.conds[k]={...c,stats:c.stats?{...c.stats}:null};return}
+   for(const f of ['trueL','trueS','true','onsets','unknown'] as const)o[f]+=c[f];
+   if(o.funnel!==null)o.funnel+=c.funnel!;if(o.firstFail!==null)o.firstFail+=c.firstFail!;
+   if(c.stats){if(!o.stats)o.stats={};addRec(o.stats,c.stats)}})}
+ return out;
+}
+export function buildDiag(def:StrategyDef,pms:PM[],cps:Compiled[],stages:Stages[],from:number):StratDiag{
+ const markets=pms.map((pm,m)=>({id:pm.id,...condFunnel(def,cps[m],pm,from),stages:stages[m]}));
+ return {from:Number.isFinite(from)?new Date(from).toISOString().slice(0,10):'',entryType:def.entry.type,total:mergeDiag(markets),markets};
+}
+// ukázkové obchody: rovnoměrně z IS a OOS (polovina z každého, zbytek doplní druhý úsek)
+export type SampleTrade=Trade&{seg:'is'|'oos'};
+export function pickSamples(trades:Trade[],split:number,max=50):SampleTrade[]{
+ const is=trades.filter(t=>t.entryT<split),oos=trades.filter(t=>t.entryT>=split);
+ const even=<T,>(a:T[],k:number)=>{if(k>=a.length)return [...a];const out:T[]=[];for(let q=0;q<k;q++)out.push(a[Math.floor(q*a.length/k)]);return out};
+ const ko=Math.min(oos.length,max-Math.min(is.length,Math.ceil(max/2))),ki=Math.min(is.length,max-ko);
+ return [...even(is,ki).map(t=>({...t,seg:'is' as const})),...even(oos,ko).map(t=>({...t,seg:'oos' as const}))];
 }
 
 // ---- vyhodnocení: IS / OOS, trhy, křivka, varianty, hranice náhody, robustnost
 export type Metrics3={is:SegMetrics;oos:SegMetrics;all:SegMetrics};
 export type VariantResult={name:string;metrics:Metrics3;nb:number|null;robust:boolean;returnPct:number;maxDdPct:number;
- perMarket:({id:string}&Metrics3)[];equity:[number,number][];skips:Record<string,number>;signals:number;unknown:Record<string,number>;trades:Trade[]};
+ perMarket:({id:string}&Metrics3)[];equity:[number,number][];skips:Record<string,number>;signals:number;unknown:Record<string,number>;trades:Trade[];
+ diag?:StratDiag;samples?:SampleTrade[]}; // diag a samples chybí u výsledků spočítaných před diagnostikou
 export type StrategyRunResult={version:string;defName:string;defVersion:number;data:'D1'|'H1';computedAt:string;from:string;split:string;to:string;splitRule:string;
  markets:{id:string;bars:number;from:string|null;to:string|null}[];variants:VariantResult[];chance:{reps:number;seed:number;values:number[];median:number|null;max:number|null}|null;
  robustRule:string;notes:string[];warnings:string[];ms:number};
@@ -345,19 +439,21 @@ export function isRobustRun(m:Metrics3,nb:number|null):boolean{
  return (m.is.avgR??0)>0&&(m.oos.avgR??0)>0&&m.oos.trades>=MIN_OOS_TRADES&&(nb??-1)>0&&(m.oos.pf??0)>=MIN_OOS_PF;
 }
 export const ROBUST_RULE=`Robustní = IS průměr R > 0, OOS průměr R > 0, OOS aspoň ${MIN_OOS_TRADES} obchodů, medián OOS průměru R základu a variant > 0 a OOS profit factor ≥ ${MIN_OOS_PF} (stejná pravidla jako Hledání prahů).`;
-export type RunOpts={shuffles?:number;seed?:number;now?:number;keepTrades?:number;onProgress?:(msg:string)=>void};
+export type RunOpts={shuffles?:number;seed?:number;now?:number;keepTrades?:number;samples?:number;onProgress?:(msg:string)=>void};
 export function runStrategy(def:StrategyDef,markets:MarketIn[],ctx:Ctx,o:RunOpts={}):StrategyRunResult{
  const t0=Date.now(),warnings:string[]=[],notes:string[]=[];
  const runs=defRuns(def),pms=markets.filter(m=>m.bars.length).map(m=>prepare(m.id,m.bars,def.data));
  for(const m of def.markets)if(!pms.some(p=>p.id===m))warnings.push(`${m}: v archivu nejsou svíčky ${def.data} – trh se netestuje.`);
  const sp=splitOf(def.data,pms),ids=pms.map(p=>p.id);
- const sims=runs.map(r=>{const cps=pms.map(pm=>compile(r.def,pm,ctx));return {r,cps,sim:simulate(r.def,pms,cps,ctx)}});
+ const sims=runs.map(r=>{const cps=pms.map(pm=>compile(r.def,pm,ctx)),sim=simulate(r.def,pms,cps,ctx,{diagFrom:sp.from,trace:true});
+  return {r,cps,sim,diag:buildDiag(r.def,pms,cps,sim.stages!,sp.from)}});
  o.onProgress?.(`varianty: ${sims.length}`);
  const evals=sims.map(x=>({...evaluate(x.sim.trades,ids,sp.from,sp.split),x}));
  const oosAvgs=evals.filter(e=>e.metrics.oos.trades>0).map(e=>e.metrics.oos.avgR as number),nb=median(oosAvgs);
  const keep=o.keepTrades??400;
  const variants:VariantResult[]=evals.map(e=>({name:e.x.r.name,metrics:e.metrics,nb:nb===null?null:rd(nb),robust:isRobustRun(e.metrics,nb),returnPct:e.returnPct,maxDdPct:e.maxDdPct,perMarket:e.perMarket,
-  equity:e.equity,skips:e.x.sim.skips,signals:e.x.sim.signals,unknown:e.x.sim.unknown,trades:e.trades.slice(-keep)}));
+  equity:e.equity,skips:e.x.sim.skips,signals:e.x.sim.signals,unknown:e.x.sim.unknown,trades:e.trades.slice(-keep).map(t=>{const c={...t};delete c.trace;return c}),
+  diag:e.x.diag,samples:pickSamples(e.trades,sp.split,o.samples??50)}));
  // hranice náhody: nejlepší OOS průměr R přes základ a varianty s náhodnými směry
  const reps=o.shuffles??20,seed=o.seed??42,vals:number[]=[];
  for(let k=0;k<reps;k++){

@@ -1,13 +1,16 @@
 'use client';
 // Laboratoř · Strategie (jen vlastník): obecný engine pravidlových strategií – definice jsou JSON v DB (lab_strategy_defs), výsledky
 // počítá scripts/lab-strategies.mjs (IS / OOS, hranice náhody, varianty). Tady: seznam, výsledky, editor JSON s validací a „Pustit do
-// simulace“ (agent R01…R40 s neměnnou kopií verze). API /api/laborator/strategies vrací ostatním 404.
+// simulace“ (agent R01…R40 s neměnnou kopií verze), diagnostika (trychtýř podmínek, fáze vstupu, detektory), ukázkové obchody v grafu
+// a porovnání verzí (každá verze = vlastní řádek se stejným názvem; staré verze a jejich běhy zůstávají). API /api/laborator/strategies
+// vrací ostatním 404.
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {Play,Save,Trash2,Plus,AlertTriangle,CheckCircle2} from 'lucide-react';
 import {fmtNum} from '@/lib/journal/format';
 import {parseDefJson,BLOCKS,BLOCK_IDS} from '@/lib/lab/rules-def';
 import type {StrategyRunResult,RunSummary,SegMetrics} from '@/lib/lab/strat-engine';
 import {EquityChart} from '../journaling/backtest/equity-chart';
+import {DiagPanel,SamplesPanel,CompareVersions,type VersionRun} from './strategy-diag';
 
 type DefItem={id:string;name:string;version:number;updated:string;valid:boolean;errors:number;markets:string[];data:string|null;conditions:number;variants:number;run:{id:string;version:number;created:string;summary:RunSummary|null}|null};
 type ListData={defs:DefItem[];running:{variant:string;defId:string;version:number;active:boolean}[]};
@@ -25,15 +28,19 @@ const when=(s:string)=>s?new Date(s).toLocaleString('cs-CZ'):'–';
 const TEMPLATE=JSON.stringify({name:'Nová strategie',version:1,markets:['EUR/USD'],data:'D1',tf:{context:'W1',zone:'D1',entry:'D1'},
  conditions:[{id:'trend',block:'trend_swing',tf:'context',role:'required',params:{n:2}},{id:'ma',block:'ma',role:'optional',params:{period:50}}],
  entry:{type:'market_on_close'},stop:{from:'entry',atrK:1.5},targets:{type:'r',r:2},management:{},risk:{basePct:1},filters:{},variants:[]},null,1);
+const cmd=(x:string)=>`node --experimental-strip-types scripts/lab-strategies.mjs ${x}`;
 const METRIC_ROWS:[keyof SegMetrics,string,(v:number|null)=>string][]=[['trades','Obchodů',v=>v===null?'–':String(v)],['winRate','Win rate',v=>v===null?'–':fmtNum(v,1)+' %'],['avgR','Průměr R',rr],['pf','Profit factor',v=>n2(v)],['maxDd','Max. drawdown (R)',v=>n2(v)],['expectancy','Expectancy (R)',rr]];
 
 export function StrategiesTab(){
  const [list,setList]=useState<ListData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[sel,setSel]=useState<string|null>(null);
  const [detail,setDetail]=useState<Detail|null>(null),[edit,setEdit]=useState<string|null>(null),[editErrs,setEditErrs]=useState<string[]>([]),[busy,setBusy]=useState(false),[msg,setMsg]=useState('');
- const [vi,setVi]=useState(0);
+ const [vi,setVi]=useState(0),[cmpA,setCmpA]=useState(''),[cmpB,setCmpB]=useState(''),[cmp,setCmp]=useState<{a:VersionRun;b:VersionRun}|null>(null),[cmpBusy,setCmpBusy]=useState(false);
+ // verze podle názvu (nejnovější první) – seznam ukazuje poslední verzi, starší jsou odkazy
+ const groups=useMemo(()=>{const g=new Map<string,DefItem[]>();for(const x of list?.defs??[]){const a=g.get(x.name);if(a)a.push(x);else g.set(x.name,[x])}
+  return [...g.values()].map(a=>a.sort((p,q)=>q.version-p.version))},[list]);
  const load=useCallback(()=>{call<ListData>('/api/laborator/strategies').then(j=>{setList(j);setErr('')}).catch(e=>{if((e as {status?:number}).status===503)setMissing(true);else setErr((e as Error).message)})},[]);
  useEffect(()=>{load()},[load]);
- const open=useCallback((id:string)=>{setSel(id);setDetail(null);setEdit(null);setEditErrs([]);setMsg('');setVi(0);
+ const open=useCallback((id:string)=>{setSel(id);setDetail(null);setEdit(null);setEditErrs([]);setMsg('');setVi(0);setCmp(null);
   call<Detail>('/api/laborator/strategies?id='+encodeURIComponent(id)).then(setDetail).catch(e=>setErr((e as Error).message))},[]);
  const check=(text:string)=>{const v=parseDefJson(text);setEditErrs(v.ok?[]:v.errors);return v.ok};
  async function save(){
@@ -45,10 +52,17 @@ export function StrategiesTab(){
  async function simulate(){if(!sel||sel==='new')return;setBusy(true);setMsg('');
   try{const r=await call<{variant:string}>('/api/laborator/strategies','POST',{action:'simulate',id:sel});setMsg(`Agent ${r.variant} poběží v Simulaci od dalšího běhu (každých 15 min).`);load()}
   catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
- async function remove(){if(!sel||sel==='new'||!confirm('Smazat definici a její výsledky? Agenti v simulaci zůstanou (mají vlastní kopii).'))return;setBusy(true);
+ async function remove(){if(!sel||sel==='new'||!confirm(`Smazat tuto verzi (v${detail?.def.version??'?'}) a její výsledky? Ostatní verze zůstanou, agenti v simulaci také (mají vlastní kopii).`))return;setBusy(true);
   try{await call('/api/laborator/strategies','POST',{action:'delete',id:sel,confirm:'SMAZAT'});setSel(null);setDetail(null);load()}catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
  const res=detail?.run?.result??null,v=res?.variants[vi]??null,stale=detail&&detail.run&&detail.run.version!==detail.def.version;
  const running=list?.running.filter(r=>r.defId===sel)??[];
+ const versions=detail?groups.find(g=>g.some(x=>x.id===detail.def.id))??[]:[];
+ // výchozí porovnání: předposlední vs poslední verze
+ const ca=versions.some(x=>x.id===cmpA)?cmpA:versions[1]?.id??'',cb=versions.some(x=>x.id===cmpB)?cmpB:versions[0]?.id??'';
+ async function compare(){if(!ca||!cb)return;setCmpBusy(true);
+  try{const [a,b]=await Promise.all([ca,cb].map(id=>call<Detail>('/api/laborator/strategies?id='+encodeURIComponent(id))));
+   setCmp({a:{id:a.def.id,version:a.def.version,run:a.run},b:{id:b.def.id,version:b.def.version,run:b.run}})}
+  catch(e){setMsg((e as Error).message)}finally{setCmpBusy(false)}}
  const curve=useMemo(()=>v&&v.equity.length?[{label:v.name,cls:'a' as const,points:[{t:v.equity[0][0]-1,equity:100},...v.equity.map(([t,e])=>({t,equity:e}))]}]:[],[v]);
  if(missing)return <section className="mt-card"><h2>Strategie</h2><p className="mt-alert">Tabulky strategií zatím neexistují – na VPS je potřeba spustit migraci 0035_lab_strategy_defs.sql.</p></section>;
  return <>
@@ -59,9 +73,9 @@ export function StrategiesTab(){
    {!list?<p className="mt-empty">Načítám…</p>:<>
     {!list.defs.length&&<p className="mt-empty">Zatím žádná definice. Vlož ji tlačítkem níže nebo importem <code>--import soubor.json</code>.</p>}
     {!!list.defs.length&&<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Název</th><th>Verze</th><th>Data</th><th>Trhy</th><th>Podmínky</th><th>IS průměr R</th><th>OOS průměr R</th><th>OOS obchodů</th><th>Náhoda</th><th>Robustní</th><th>Spočítáno</th></tr></thead>
-     <tbody>{list.defs.map(x=>{const s=x.run?.summary;return <tr key={x.id} className={x.id===sel?'lb-sel':''}>
-      <td><button className="lb-link" onClick={()=>open(x.id)}>{x.name}</button>{!x.valid&&<small><AlertTriangle size={12}/> neplatná ({x.errors} chyb)</small>}</td>
-      <td>v{x.version}{x.run&&x.run.version!==x.version&&<small>výsledek je z v{x.run.version}</small>}</td><td>{x.data??'–'}</td><td>{x.markets.length}</td><td>{x.conditions}{x.variants?` · ${x.variants} var.`:''}</td>
+     <tbody>{groups.map(g=>{const x=g.find(y=>y.id===sel)??g[0],s=x.run?.summary;return <tr key={g[0].name} className={g.some(y=>y.id===sel)?'lb-sel':''}>
+      <td><button className="lb-link" onClick={()=>open(g[0].id)}>{x.name}</button>{!x.valid&&<small><AlertTriangle size={12}/> neplatná ({x.errors} chyb)</small>}</td>
+      <td><span className="lb-vers">{g.map(y=><button key={y.id} className={'lb-link'+(y.id===x.id?' lb-strong':'')} onClick={()=>open(y.id)} title={y.run?'má výsledek':'bez výsledku'}>v{y.version}</button>)}</span>{x.run&&x.run.version!==x.version&&<small>výsledek je z v{x.run.version}</small>}</td><td>{x.data??'–'}</td><td>{x.markets.length}</td><td>{x.conditions}{x.variants?` · ${x.variants} var.`:''}</td>
       <td className={sgn(s?.is.avgR)}>{rr(s?.is.avgR)}</td><td className={sgn(s?.oos.avgR)}>{rr(s?.oos.avgR)}</td><td>{s?.oos.trades??'–'}</td><td>{rr(s?.chance)}</td><td>{s?(s.robust?`ano (${s.robust}/${s.variants})`:'ne'):'–'}</td><td>{x.run?when(x.run.created):'zatím ne'}</td></tr>})}</tbody></table></div>}
     <div className="lb-form"><button className="mt-btn" onClick={()=>{setSel('new');setDetail(null);setEdit(TEMPLATE);setEditErrs([]);setMsg('')}}><Plus size={15}/>Nová definice</button></div>
    </>}
@@ -78,7 +92,7 @@ export function StrategiesTab(){
     {running.length>0&&<span className="lb-hint">V simulaci: {running.map(r=>`${r.variant} (v${r.version}${r.active?'':', vypnutý'})`).join(', ')}</span>}
    </div>
    {msg&&<p className="lb-meta" role="status">{msg}</p>}
-   {!res?<p className="mt-empty">Výsledek zatím není – spusť na VPS <code>node --experimental-strip-types scripts/lab-strategies.mjs --id {detail.def.id}</code>.</p>:<>
+   {!res?<p className="mt-empty">Výsledek zatím není – spusť na VPS <code>{cmd('--id '+detail.def.id)}</code>.</p>:<>
     <p className="lb-meta">Spočítáno {when(detail.run!.created)} pro verzi v{detail.run!.version}{stale?' (definice se od té doby změnila)':''} · {res.splitRule} · období {res.from} – {res.to}, OOS od {res.split} · {res.markets.length} trhů · {fmtNum(res.ms/1000,1)} s</p>
     {res.warnings.length>0&&<ul className="lb-notes">{res.warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>}
     <h3 className="lb-h3">Varianty</h3>
@@ -98,6 +112,10 @@ export function StrategiesTab(){
      <h3 className="lb-h3">Po trzích</h3>
      <div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>IS obch.</th><th>IS průměr R</th><th>OOS obch.</th><th>OOS průměr R</th><th>OOS PF</th><th>Celkem R</th></tr></thead>
       <tbody>{v.perMarket.map(m=><tr key={m.id} className={m.all.trades?'':'lb-dim'}><td>{m.id}</td><td>{m.is.trades}</td><td className={sgn(m.is.avgR)}>{rr(m.is.avgR)}</td><td>{m.oos.trades}</td><td className={sgn(m.oos.avgR)}>{rr(m.oos.avgR)}</td><td>{n2(m.oos.pf)}</td><td className={sgn(m.all.totalR)}>{rr(m.all.totalR)}</td></tr>)}</tbody></table></div>
+     <h3 className="lb-h3">Diagnostika{res.variants.length>1?` · ${v.name}`:''}</h3>
+     {v.diag?<DiagPanel diag={v.diag}/>:<p className="mt-empty">Výsledek je spočítaný před diagnostikou – přepočítej <code>{cmd('--id '+detail.def.id+' --diag')}</code>.</p>}
+     <h3 className="lb-h3">Ukázkové obchody{res.variants.length>1?` · ${v.name}`:''}</h3>
+     {v.samples?.length?<SamplesPanel key={detail.run!.id+v.name} samples={v.samples} data={res.data}/>:<p className="mt-empty">{v.samples?'Běh nemá žádné obchody.':'Výsledek je spočítaný před ukázkovými obchody – přepočítej ho.'}</p>}
      <details className="lb-details"><summary>Signály a důvody bez obchodu</summary>
       <p className="lb-meta">Signálů {v.signals}. {Object.entries(v.skips).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`${k}: ${n}`).join(' · ')||'Žádné přeskočené.'}</p>
       {Object.keys(v.unknown).length>0&&<p className="lb-meta">Bez dat (zprávy mimo pokrytí kalendáře neblokují; ostatní podmínky bez dat neplatí): {Object.entries(v.unknown).map(([k,n])=>`${BLOCKS[k as keyof typeof BLOCKS]?.label??k}: ${n}`).join(' · ')}</p>}
@@ -105,10 +123,20 @@ export function StrategiesTab(){
     </>}
     {res.notes.length>0&&<ul className="lb-notes">{res.notes.map((x,i)=><li key={i}>{x}</li>)}</ul>}
    </>}
+   {versions.length>1&&<>
+    <h3 className="lb-h3">Porovnání verzí</h3>
+    <div className="lb-form">
+     <label>Verze A<select className="lb-select" value={ca} onChange={e=>{setCmpA(e.target.value);setCmp(null)}}>{versions.map(x=><option key={x.id} value={x.id}>v{x.version}{x.run?'':' (bez výsledku)'}</option>)}</select></label>
+     <label>Verze B<select className="lb-select" value={cb} onChange={e=>{setCmpB(e.target.value);setCmp(null)}}>{versions.map(x=><option key={x.id} value={x.id}>v{x.version}{x.run?'':' (bez výsledku)'}</option>)}</select></label>
+     <button className="mt-btn" disabled={cmpBusy||!ca||!cb||ca===cb} onClick={compare}>{cmpBusy?'Načítám…':'Porovnat'}</button>
+    </div>
+    <p className="lb-hint">Přepočet všech verzí na VPS: <code>{cmd(`--name "${detail.def.name.replace(/"/g,'\\"')}" --all-versions --diag`)}</code> · jedné verze: <code>{cmd('--id <id verze>')}</code></p>
+    {cmp&&<CompareVersions a={cmp.a} b={cmp.b}/>}
+   </>}
   </section>}
   {edit!==null&&<section className="mt-card">
    <h2>{sel==='new'?'Nová definice':'Úprava definice'} (JSON)</h2>
-   <p className="lb-hint">Změna obsahu uloží novou verzi; agenti v simulaci dál běží na verzi, se kterou byli spuštěni. Bloky: {BLOCK_IDS.map(b=>`${b} – ${BLOCKS[b].label}`).join(' · ')}.</p>
+   <p className="lb-hint">Změna obsahu uloží novou verzi (stará verze i její výsledky zůstanou k porovnání); agenti v simulaci dál běží na verzi, se kterou byli spuštěni. Bloky: {BLOCK_IDS.map(b=>`${b} – ${BLOCKS[b].label}`).join(' · ')}.</p>
    <textarea className="lb-pre" style={{width:'100%',minHeight:420}} spellCheck={false} value={edit} onChange={e=>{setEdit(e.target.value);if(editErrs.length)check(e.target.value)}} aria-label="Definice strategie (JSON)"/>
    {editErrs.length>0&&<div className="mt-alert" role="alert"><b>Chyby ({editErrs.length}):</b><ul>{editErrs.map((e,i)=><li key={i}>{e}</li>)}</ul></div>}
    <div className="lb-form"><button className="mt-btn" onClick={()=>{if(check(edit))setMsg('Definice je platná.')}}>Zkontrolovat</button><button className="mt-btn dark" disabled={busy} onClick={save}><Save size={15}/>{busy?'Ukládám…':'Uložit'}</button><button className="mt-btn" onClick={()=>{setEdit(null);setEditErrs([]);if(sel==='new')setSel(null)}}>Zavřít</button></div>

@@ -95,15 +95,24 @@ export function structure(s:Series,N:number):Structure{
 
 // ---- výstup bloku po svíčkách: L/S = podmínka platí pro long/short; úrovně podle strany (NaN = není)
 export type Levels=Partial<Record<'proximal'|'distal'|'mid'|'level'|'extreme'|'high'|'low',Float64Array>>;
-export type Out={L:Uint8Array;S:Uint8Array;lvL:Levels;lvS:Levels;unknown?:Uint8Array}; // unknown = blok nemohl být vyhodnocen (chybí data) → bere se jako splněný, počítá se pokrytí
-export function newOut(n:number,keys:string[]):Out{
+// unknown = blok nemohl být vyhodnocen (chybí data); tL/tS = čas (ms) události, ze které úroveň pochází (vznik zóny, sweep, MSS, FVG,
+// formace) – jen pro stopu obchodu; stats = diagnostika detektoru za celou historii (počty, rozložení mitigace) – jen počty, žádné parametry
+export type Out={L:Uint8Array;S:Uint8Array;lvL:Levels;lvS:Levels;unknown?:Uint8Array;tL?:Float64Array;tS?:Float64Array;stats?:Record<string,number>};
+export function newOut(n:number,keys:string[],times=false):Out{
  const mk=()=>Object.fromEntries(keys.map(k=>[k,new Float64Array(n).fill(NaN)])) as Levels;
- return {L:new Uint8Array(n),S:new Uint8Array(n),lvL:mk(),lvS:mk()};
+ const o:Out={L:new Uint8Array(n),S:new Uint8Array(n),lvL:mk(),lvS:mk()};
+ if(times){o.tL=new Float64Array(n).fill(NaN);o.tS=new Float64Array(n).fill(NaN)}
+ return o;
 }
+// počet nalezených swingů (fraktál N) – diagnostika bloků nad strukturou
+export const swingCount=(s:Series,N:number)=>s.get('swcount:'+N,()=>{const w=swings(s.h,s.l,N);return {highs:w.filter(x=>x.high).length,lows:w.filter(x=>!x.high).length}});
+// rozložení mitigace (max. průnik do zóny / mezery v %) do košů po 25 %
+export const MIT_BUCKETS=['mit0_25','mit25_50','mit50_75','mit75_100','mit100'] as const;
+export const mitBucket=(pct:number)=>MIT_BUCKETS[pct>=100?4:pct>=75?3:pct>=50?2:pct>=25?1:0];
 
 // ---- trend ze swingů
 export function trendSwing(s:Series,N:number):Out{
- const st=structure(s,N),o=newOut(s.n,['high','low']);
+ const st=structure(s,N),o=newOut(s.n,['high','low']),sc=swingCount(s,N);o.stats={swingHighs:sc.highs,swingLows:sc.lows};
  for(let i=0;i<s.n;i++){o.L[i]=st.trend[i]>0?1:0;o.S[i]=st.trend[i]<0?1:0;o.lvL.high![i]=o.lvS.high![i]=st.hi[i];o.lvL.low![i]=o.lvS.low![i]=st.lo[i]}
  return o;
 }
@@ -175,9 +184,13 @@ export function trackZone(z:Zone,s:Series,i:number,o:{mitigation:string;invalida
 type ZoneSel={maxAge:number;status:string;mitigation:string;maxMitigationPct:number;invalidate:string;maxDistAtr:number;atrPeriod:number};
 // výběr zóny na každé svíčce: nejbližší platná zóna ve směru (poptávka pod cenou → long, nabídka nad cenou → short)
 export function zoneBlock(s:Series,zones:Zone[],p:ZoneSel):Out{
- const o=newOut(s.n,['proximal','distal','mid']),a=atrOf(s,p.atrPeriod);
+ const o=newOut(s.n,['proximal','distal','mid'],true),a=atrOf(s,p.atrPeriod);
  type Live={z:Zone;deep:number;touched:boolean;dead:boolean};
  const live:Live[]=[];let k=0;const sorted=[...zones].sort((x,y)=>x.created-y.created);
+ // diagnostika: kolik zón vzniklo, kolik se dočkalo dotyku dokud platily (čerstvé při dotyku), jak skončily, rozložení mitigace dotčených
+ const st:Record<string,number>={detected:zones.length,demand:zones.filter(z=>z.side>0).length,supply:zones.filter(z=>z.side<0).length,touchedFresh:0,invalidated:0,expired:0,aliveAtEnd:0};
+ for(const b of MIT_BUCKETS)st[b]=0;
+ const fin=(x:Live,how:'invalidated'|'expired'|'aliveAtEnd')=>{st[how]++;if(x.touched){st.touchedFresh++;st[mitBucket(Math.max(0,x.deep*100))]++}};
  for(let i=0;i<s.n;i++){
   // aktualizace stavu existujících zón svíčkou i (zóna vzniklá na i se svíčkou i nesleduje)
   for(const x of live){if(x.dead)continue;const z=x.z,w=z.proximal-z.distal;
@@ -185,7 +198,7 @@ export function zoneBlock(s:Series,zones:Zone[],p:ZoneSel):Out{
    if(pen>=0)x.touched=true;if(pen>x.deep)x.deep=pen;
    if(z.side>0?(p.invalidate==='wick'?s.l[i]:s.c[i])<z.distal:(p.invalidate==='wick'?s.h[i]:s.c[i])>z.distal)x.dead=true}
   while(k<sorted.length&&sorted[k].created<=i)live.push({z:sorted[k++],deep:-Infinity,touched:false,dead:false});
-  for(let q=live.length-1;q>=0;q--)if(live[q].dead||i-live[q].z.created>p.maxAge)live.splice(q,1);
+  for(let q=live.length-1;q>=0;q--)if(live[q].dead||i-live[q].z.created>p.maxAge){fin(live[q],live[q].dead?'invalidated':'expired');live.splice(q,1)}
   let bl:Zone|null=null,bs:Zone|null=null;
   for(const x of live){
    const z=x.z,pct=x.touched?Math.max(0,x.deep*100):0,mit=x.touched&&pct>=p.maxMitigationPct;
@@ -194,9 +207,11 @@ export function zoneBlock(s:Series,zones:Zone[],p:ZoneSel):Out{
    if(z.side>0&&s.c[i]>=z.distal&&(!bl||z.proximal>bl.proximal))bl=z;
    if(z.side<0&&s.c[i]<=z.distal&&(!bs||z.proximal<bs.proximal))bs=z;
   }
-  if(bl){o.L[i]=1;o.lvL.proximal![i]=bl.proximal;o.lvL.distal![i]=bl.distal;o.lvL.mid![i]=(bl.proximal+bl.distal)/2}
-  if(bs){o.S[i]=1;o.lvS.proximal![i]=bs.proximal;o.lvS.distal![i]=bs.distal;o.lvS.mid![i]=(bs.proximal+bs.distal)/2}
+  if(bl){o.L[i]=1;o.lvL.proximal![i]=bl.proximal;o.lvL.distal![i]=bl.distal;o.lvL.mid![i]=(bl.proximal+bl.distal)/2;o.tL![i]=s.t[bl.baseFrom]}
+  if(bs){o.S[i]=1;o.lvS.proximal![i]=bs.proximal;o.lvS.distal![i]=bs.distal;o.lvS.mid![i]=(bs.proximal+bs.distal)/2;o.tS![i]=s.t[bs.baseFrom]}
  }
+ for(const x of live)fin(x,x.dead?'invalidated':'aliveAtEnd');
+ o.stats=st;
  return o;
 }
 // vnořená zóna: vnitřní (nižší TF) leží uvnitř vnější (vyšší TF) – contain = celá, overlap = překryv; úrovně = vnitřní zóna
@@ -206,23 +221,24 @@ export function nestedOk(inner:{proximal:number;distal:number},outer:{proximal:n
  return mode==='overlap'?iLo<=oHi&&iHi>=oLo:iLo>=oLo&&iHi<=oHi;
 }
 export function nestedBlock(n:number,inner:Out,outer:Out,mode:string):Out{
- const o=newOut(n,['proximal','distal','mid']);
+ const o=newOut(n,['proximal','distal','mid'],true);let both=0,nested=0;
  for(const [side,io,oo,lv] of [[1,inner.lvL,outer.lvL,o.lvL],[-1,inner.lvS,outer.lvS,o.lvS]] as const){
   const A=side>0?inner.L:inner.S,B=side>0?outer.L:outer.S,R=side>0?o.L:o.S;
   for(let i=0;i<n;i++){
-   if(!A[i]||!B[i])continue;
+   if(!A[i]||!B[i])continue;both++;
    const a={proximal:io.proximal![i],distal:io.distal![i]},b={proximal:oo.proximal![i],distal:oo.distal![i]};
-   if(!nestedOk(a,b,mode))continue;
-   R[i]=1;lv.proximal![i]=a.proximal;lv.distal![i]=a.distal;lv.mid![i]=(a.proximal+a.distal)/2;
+   if(!nestedOk(a,b,mode))continue;nested++;
+   R[i]=1;lv.proximal![i]=a.proximal;lv.distal![i]=a.distal;lv.mid![i]=(a.proximal+a.distal)/2;(side>0?o.tL!:o.tS!)[i]=(side>0?inner.tL:inner.tS)?.[i]??NaN;
   }
  }
+ o.stats={bothActiveBars:both,nestedBars:nested};
  return o;
 }
 
 // ---- premium / discount: pozice close v rozsahu posledního potvrzeného swing high a swing low (0 = low, 1 = high)
 export function pdPosition(close:number,hi:number,lo:number):number|null{return hi>lo?(close-lo)/(hi-lo):null}
 export function premiumDiscount(s:Series,p:{swingN:number;discount:number;premium:number}):Out{
- const st=structure(s,p.swingN),o=newOut(s.n,['high','low','mid']);
+ const st=structure(s,p.swingN),o=newOut(s.n,['high','low','mid']),sc=swingCount(s,p.swingN);o.stats={swingHighs:sc.highs,swingLows:sc.lows};
  for(let i=0;i<s.n;i++){const x=pdPosition(s.c[i],st.hi[i],st.lo[i]);if(x===null)continue;
   o.L[i]=x<=p.discount?1:0;o.S[i]=x>=p.premium?1:0;
   for(const lv of [o.lvL,o.lvS]){lv.high![i]=st.hi[i];lv.low![i]=st.lo[i];lv.mid![i]=(st.hi[i]+st.lo[i])/2}}
@@ -239,28 +255,34 @@ export function findFvgs(s:Series,minAtr:number,atrPeriod:number):Gap[]{
  return out;
 }
 export function fvgBlock(s:Series,p:{minAtr:number;atrPeriod:number;maxAge:number;maxFillPct:number}):Out{
- const gaps=findFvgs(s,p.minAtr,p.atrPeriod),o=newOut(s.n,['proximal','distal','mid']);
+ const gaps=findFvgs(s,p.minAtr,p.atrPeriod),o=newOut(s.n,['proximal','distal','mid'],true);
  type G={g:Gap;fill:number};const live:G[]=[];let k=0;
+ const st:Record<string,number>={detected:gaps.length,bullish:gaps.filter(g=>g.side>0).length,bearish:gaps.filter(g=>g.side<0).length,filled:0,expired:0,aliveAtEnd:0};
+ for(const b of MIT_BUCKETS)st[b]=0;
+ const fin=(x:G,how:'filled'|'expired'|'aliveAtEnd')=>{st[how]++;st[mitBucket(Math.max(0,x.fill*100))]++};
  for(let i=0;i<s.n;i++){
   for(const x of live){const g=x.g,w=g.top-g.bottom;const f=g.side>0?(g.top-s.l[i])/w:(s.h[i]-g.bottom)/w;if(f>x.fill)x.fill=f}
   while(k<gaps.length&&gaps[k].i<=i)live.push({g:gaps[k++],fill:0});
-  for(let q=live.length-1;q>=0;q--)if(i-live[q].g.i>p.maxAge||live[q].fill>=1)live.splice(q,1);
+  for(let q=live.length-1;q>=0;q--)if(i-live[q].g.i>p.maxAge||live[q].fill>=1){fin(live[q],live[q].fill>=1?'filled':'expired');live.splice(q,1)}
   let bl:Gap|null=null,bs:Gap|null=null;
   for(const x of live){if(x.fill*100>p.maxFillPct)continue;const g=x.g;if(g.side>0&&(!bl||g.i>bl.i))bl=g;if(g.side<0&&(!bs||g.i>bs.i))bs=g}
-  if(bl){o.L[i]=1;o.lvL.proximal![i]=bl.top;o.lvL.distal![i]=bl.bottom;o.lvL.mid![i]=(bl.top+bl.bottom)/2}
-  if(bs){o.S[i]=1;o.lvS.proximal![i]=bs.bottom;o.lvS.distal![i]=bs.top;o.lvS.mid![i]=(bs.top+bs.bottom)/2}
+  if(bl){o.L[i]=1;o.lvL.proximal![i]=bl.top;o.lvL.distal![i]=bl.bottom;o.lvL.mid![i]=(bl.top+bl.bottom)/2;o.tL![i]=s.t[bl.i-1]}
+  if(bs){o.S[i]=1;o.lvS.proximal![i]=bs.bottom;o.lvS.distal![i]=bs.top;o.lvS.mid![i]=(bs.top+bs.bottom)/2;o.tS![i]=s.t[bs.i-1]}
  }
+ for(const x of live)fin(x,'aliveAtEnd');
+ o.stats=st;
  return o;
 }
 // ---- Fibonacci pásmo posledního impulzu: swing low → pozdější swing high (býčí) dává long pásmo high − x·(high − low), x ∈ [from, to]
 export function fibLevel(hi:number,lo:number,x:number,up:boolean){return up?hi-x*(hi-lo):lo+x*(hi-lo)}
 export function fibBand(s:Series,p:{swingN:number;from:number;to:number}):Out{
- const st=structure(s,p.swingN),o=newOut(s.n,['proximal','distal','mid','extreme']);
+ const st=structure(s,p.swingN),o=newOut(s.n,['proximal','distal','mid','extreme'],true),sc=swingCount(s,p.swingN);o.stats={swingHighs:sc.highs,swingLows:sc.lows};
  for(let i=0;i<s.n;i++){
   const hi=st.hi[i],lo=st.lo[i];if(!(hi>lo))continue;
   const up=st.loI[i]<st.hiI[i],a=fibLevel(hi,lo,p.from,up),b=fibLevel(hi,lo,p.to,up),mid=fibLevel(hi,lo,(p.from+p.to)/2,up),c=s.c[i];
   const inBand=c<=Math.max(a,b)&&c>=Math.min(a,b);
   const lv=up?o.lvL:o.lvS;lv.proximal![i]=a;lv.distal![i]=b;lv.mid![i]=mid;lv.extreme![i]=up?lo:hi;
+  (up?o.tL!:o.tS!)[i]=s.t[up?st.loI[i]:st.hiI[i]];
   if(inBand){if(up)o.L[i]=1;else o.S[i]=1}
  }
  return o;
@@ -305,14 +327,15 @@ export function sessionLevels(s:Series,d:SessionDef):SessionLv{
 }
 // použití úrovně: break = close za úrovní (long nad high), near = do k × ATR od úrovně (long u low, short u high), inside = mezi low a high
 export function levelUse(s:Series,hi:Float64Array,lo:Float64Array,use:string,k:number,atrPeriod:number):Out{
- const a=atrOf(s,atrPeriod),o=newOut(s.n,['high','low']);
+ const a=atrOf(s,atrPeriod),o=newOut(s.n,['high','low']);let known=0;
  for(let i=0;i<s.n;i++){
-  const H_=hi[i],L_=lo[i],c=s.c[i];if(Number.isNaN(H_)||Number.isNaN(L_))continue;
+  const H_=hi[i],L_=lo[i],c=s.c[i];if(Number.isNaN(H_)||Number.isNaN(L_))continue;known++;
   o.lvL.high![i]=o.lvS.high![i]=H_;o.lvL.low![i]=o.lvS.low![i]=L_;
   if(use==='break'){o.L[i]=c>H_?1:0;o.S[i]=c<L_?1:0}
   else if(use==='near'){if(a[i]>0){o.L[i]=Math.abs(c-L_)<=k*a[i]?1:0;o.S[i]=Math.abs(c-H_)<=k*a[i]?1:0}}
   else o.L[i]=o.S[i]=c<=H_&&c>=L_?1:0;
  }
+ o.stats={levelKnownBars:known};
  return o;
 }
 // zdroj úrovně pro sweep (low strana pro long, high strana pro short) na svíčce i
@@ -323,19 +346,27 @@ export function levelSource(s:Series,src:string,data:DataTf,swingN:number,sessio
 }
 // ---- vybrání likvidity: v posledních `lookback` svíčkách (včetně i) knot pod úrovní (long) a close svíčky i zpět nad ní
 export function sweepSeries(s:Series,hi:Float64Array,lo:Float64Array,lookback:number):Out{
- const o=newOut(s.n,['level','extreme']);
+ const o=newOut(s.n,['level','extreme'],true);
+ // diagnostika: svíčky se známou úrovní, knot za úrovní (pokus o sweep), sweep s návratem close (událost na svíčce j = i)
+ let known=0,wickL=0,wickS=0;
+ for(let i=0;i<s.n;i++){if(!Number.isNaN(lo[i])){known++;if(s.l[i]<lo[i])wickL++}if(!Number.isNaN(hi[i])&&s.h[i]>hi[i])wickS++}
  for(let i=0;i<s.n;i++){
   for(let j=i;j>=0&&i-j<lookback;j--){
-   const L=lo[j];if(!o.L[i]&&!Number.isNaN(L)&&s.l[j]<L&&s.c[i]>L){let ex=Infinity;for(let q=j;q<=i;q++)ex=Math.min(ex,s.l[q]);o.L[i]=1;o.lvL.level![i]=L;o.lvL.extreme![i]=ex}
-   const Hh=hi[j];if(!o.S[i]&&!Number.isNaN(Hh)&&s.h[j]>Hh&&s.c[i]<Hh){let ex=-Infinity;for(let q=j;q<=i;q++)ex=Math.max(ex,s.h[q]);o.S[i]=1;o.lvS.level![i]=Hh;o.lvS.extreme![i]=ex}
+   const L=lo[j];if(!o.L[i]&&!Number.isNaN(L)&&s.l[j]<L&&s.c[i]>L){let ex=Infinity;for(let q=j;q<=i;q++)ex=Math.min(ex,s.l[q]);o.L[i]=1;o.lvL.level![i]=L;o.lvL.extreme![i]=ex;o.tL![i]=s.t[j]}
+   const Hh=hi[j];if(!o.S[i]&&!Number.isNaN(Hh)&&s.h[j]>Hh&&s.c[i]<Hh){let ex=-Infinity;for(let q=j;q<=i;q++)ex=Math.max(ex,s.h[q]);o.S[i]=1;o.lvS.level![i]=Hh;o.lvS.extreme![i]=ex;o.tS![i]=s.t[j]}
   }
  }
+ let evL=0,evS=0;for(let i=0;i<s.n;i++){if(o.L[i]&&o.tL![i]===s.t[i])evL++;if(o.S[i]&&o.tS![i]===s.t[i])evS++}
+ o.stats={levelKnownBars:known,wickBeyondLow:wickL,wickBeyondHigh:wickS,sweepsLong:evL,sweepsShort:evS};
  return o;
 }
 // ---- změna struktury (MSS) s displacementem: svíčka j zavře nad posledním potvrzeným swing high (long) s tělem ≥ k × ATR;
 // requireSweep = do `within` svíček před j (včetně) proběhlo vybrání likvidity na stejné straně; MSS musí být v posledních `lookback` svíčkách
 export function mssBlock(s:Series,p:{swingN:number;displacementK:number;atrPeriod:number;requireSweep:boolean;within:number;lookback:number},sw:Out|null):Out{
- const st=structure(s,p.swingN),a=atrOf(s,p.atrPeriod),o=newOut(s.n,['level','extreme','mid']);
+ const st=structure(s,p.swingN),a=atrOf(s,p.atrPeriod),o=newOut(s.n,['level','extreme','mid'],true),sc=swingCount(s,p.swingN);
+ // diagnostika: průrazy swingu close (bez ohledu na tělo), s displacementem, se sweepem (= události MSS)
+ let breaks=0,disp=0,ev=0;
+ for(let j=1;j<s.n;j++)for(const side of [1,-1] as const){const lvl=side>0?st.hi[j-1]:st.lo[j-1];if(Number.isNaN(lvl))continue;if(side>0?s.c[j]>lvl&&s.c[j-1]<=lvl:s.c[j]<lvl&&s.c[j-1]>=lvl){breaks++;if(a[j]>0&&Math.abs(s.c[j]-s.o[j])>=p.displacementK*a[j])disp++}}
  const evL=new Int32Array(s.n).fill(-1),evS=new Int32Array(s.n).fill(-1),exL=new Float64Array(s.n).fill(NaN),exS=new Float64Array(s.n).fill(NaN),lvLv=new Float64Array(s.n).fill(NaN),lvSv=new Float64Array(s.n).fill(NaN);
  for(let j=1;j<s.n;j++){
   const body=Math.abs(s.c[j]-s.o[j]);if(!(a[j]>0)||body<p.displacementK*a[j])continue;
@@ -346,13 +377,14 @@ export function mssBlock(s:Series,p:{swingN:number;displacementK:number;atrPerio
    if(p.requireSweep){if(!sw)continue;let found=-1;for(let q=j;q>=0&&j-q<p.within;q--)if((side>0?sw.L:sw.S)[q]){found=q;break}if(found<0)continue;
     ex=side>0?Infinity:-Infinity;for(let q=found;q<=j;q++)ex=side>0?Math.min(ex,s.l[q]):Math.max(ex,s.h[q])}
    else{ex=side>0?Infinity:-Infinity;for(let q=Math.max(0,j-p.within+1);q<=j;q++)ex=side>0?Math.min(ex,s.l[q]):Math.max(ex,s.h[q])}
-   if(side>0){evL[j]=j;exL[j]=ex;lvLv[j]=lvl}else{evS[j]=j;exS[j]=ex;lvSv[j]=lvl}
+   ev++;if(side>0){evL[j]=j;exL[j]=ex;lvLv[j]=lvl}else{evS[j]=j;exS[j]=ex;lvSv[j]=lvl}
   }
  }
  for(let i=0;i<s.n;i++)for(let j=i;j>=0&&i-j<p.lookback;j--){
-  if(!o.L[i]&&evL[j]>=0){o.L[i]=1;o.lvL.level![i]=lvLv[j];o.lvL.extreme![i]=exL[j];o.lvL.mid![i]=(lvLv[j]+exL[j])/2}
-  if(!o.S[i]&&evS[j]>=0){o.S[i]=1;o.lvS.level![i]=lvSv[j];o.lvS.extreme![i]=exS[j];o.lvS.mid![i]=(lvSv[j]+exS[j])/2}
+  if(!o.L[i]&&evL[j]>=0){o.L[i]=1;o.lvL.level![i]=lvLv[j];o.lvL.extreme![i]=exL[j];o.lvL.mid![i]=(lvLv[j]+exL[j])/2;o.tL![i]=s.t[j]}
+  if(!o.S[i]&&evS[j]>=0){o.S[i]=1;o.lvS.level![i]=lvSv[j];o.lvS.extreme![i]=exS[j];o.lvS.mid![i]=(lvSv[j]+exS[j])/2;o.tS![i]=s.t[j]}
  }
+ o.stats={swingHighs:sc.highs,swingLows:sc.lows,structureBreaks:breaks,withDisplacement:disp,mssEvents:ev};
  return o;
 }
 // ---- svíčkové formace (na svíčce i nebo v posledních `lookback` svíčkách)
@@ -369,11 +401,13 @@ export function isPin(s:Series,i:number,side:1|-1,p:{wickRatio:number;bodyRatio:
  const w=s.h[i]-Math.max(s.o[i],s.c[i]);return w>=p.wickRatio*r&&(s.h[i]-s.c[i])/r>=p.closePos;
 }
 export function patternBlock(s:Series,lookback:number,test:(i:number,side:1|-1)=>boolean):Out{
- const o=newOut(s.n,['level','extreme']);
+ const o=newOut(s.n,['level','extreme'],true);let pl=0,ps=0;
+ for(let i=0;i<s.n;i++){if(test(i,1))pl++;if(test(i,-1))ps++}
  for(let i=0;i<s.n;i++)for(let j=i;j>=0&&i-j<lookback;j--){
-  if(!o.L[i]&&test(j,1)){o.L[i]=1;o.lvL.level![i]=s.c[j];o.lvL.extreme![i]=Math.min(s.l[j],j>0?s.l[j-1]:s.l[j])}
-  if(!o.S[i]&&test(j,-1)){o.S[i]=1;o.lvS.level![i]=s.c[j];o.lvS.extreme![i]=Math.max(s.h[j],j>0?s.h[j-1]:s.h[j])}
+  if(!o.L[i]&&test(j,1)){o.L[i]=1;o.lvL.level![i]=s.c[j];o.lvL.extreme![i]=Math.min(s.l[j],j>0?s.l[j-1]:s.l[j]);o.tL![i]=s.t[j]}
+  if(!o.S[i]&&test(j,-1)){o.S[i]=1;o.lvS.level![i]=s.c[j];o.lvS.extreme![i]=Math.max(s.h[j],j>0?s.h[j-1]:s.h[j]);o.tS![i]=s.t[j]}
  }
+ o.stats={patternsLong:pl,patternsShort:ps};
  return o;
 }
 
