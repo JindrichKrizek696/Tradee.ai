@@ -54,3 +54,4 @@
 .dc-pick input[type=color]:focus-visible{outline:2px solid var(--t-brand);outline-offset:2px}
 .dc-pick code{font-size:13px;color:var(--t-muted)}
 .mt-card label.dc-pick{display:inline-flex;flex-direction:row;align-items:center;gap:8px;margin:0}
+.nv-sub{font-size:14px;margin:14px 0 6px;color:var(--t-fg-2)}

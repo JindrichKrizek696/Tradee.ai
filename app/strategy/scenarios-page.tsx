@@ -1,6 +1,7 @@
 'use client';
 // Stránka /scenare: scénáře (plán obchodu) se stavem a checklistem, vynechané obchody a stav dne.
 // ?novy=<trh>&bias=&ez=&ez2=&inv=&tp=&alert= = nový scénář s předvyplněním (z detailu trhu, z grafu, z alertu); #<id> = otevřít scénář.
+import {SessionCheckin,EntryCheck} from '../checkins/checkins';
 import {useEffect,useMemo,useState} from 'react';
 import {ScoreAt} from '../score-pit';
 import {ArrowLeft,Plus,Pencil,Trash2,ChartCandlestick,CalendarClock,Bell,Ban} from 'lucide-react';
@@ -67,6 +68,7 @@ function ScenarioForm({draft,strategies,onSaved,onCancel}:{draft:Draft;strategie
   </div>
   <div className="sg-row"><label className="sg-field grow"><span>Odkaz na graf (nepovinné)</span><input type="url" value={d.chartUrl} placeholder="https://…" onChange={e=>set({chartUrl:e.target.value})}/></label><ImageUpload fileId={d.fileId} onChange={fileId=>set({fileId})}/></div>
   <label className="sg-field"><span>Poznámka</span><textarea rows={2} maxLength={2000} value={d.note} onChange={e=>set({note:e.target.value})}/></label>
+  {d.id&&<EntryCheck scenarioId={d.id} compact/>}
   <div className="sg-row"><button type="button" className="al-btn primary" disabled={busy} onClick={save}>{busy?'Ukládám…':d.id?'Uložit':'Vytvořit scénář'}</button><button type="button" className="al-btn" onClick={onCancel}>Zrušit</button></div>
  </section>;
 }
@@ -119,6 +121,7 @@ export default function ScenariosPage(){
    <p className="mt-lead">Plán obchodu předem: hypotéza, strategie a verze, úrovně, platnost a checklist. Když se podmínky nesejdou, obchod vynech – i to se počítá.</p>
    <p className="sg-links"><a href="/strategie">Strategie (playbook) →</a> · <a href="/alerty">Alerty →</a></p>
    <DayStatusCard/>
+   <SessionCheckin/>
    <div className="sg-row sg-actions"><button type="button" className="al-btn primary" onClick={()=>{setSkip(false);setForm(newDraft(new URLSearchParams()))}}><Plus size={15}/>Nový scénář</button><button type="button" className="al-btn" onClick={()=>{setForm(null);setSkip(null)}}><Ban size={15}/>Vynechaný obchod</button></div>
    {form&&strategies&&<ScenarioForm key={form.id||'new'} draft={form} strategies={strategies} onCancel={()=>setForm(null)} onSaved={s=>{setForm(null);load();location.hash=s.id}}/>}
    {skip!==false&&strategies&&<SkipForm key={skip?skip.id:'free'} scenario={skip} strategies={strategies} onCancel={()=>setSkip(false)} onSaved={()=>{setSkip(false);load();loadSkips();setMsg('Vynechaný obchod zapsán.')}}/>}
@@ -143,6 +146,7 @@ export default function ScenariosPage(){
       {focus===s.id||scoreOpen===s.id?<ScoreAt market={s.instrument} t={s.created} title="Skóre při založení scénáře"/>:<button type="button" className="al-link" onClick={()=>setScoreOpen(s.id)}>Skóre při založení</button>}
       {focus===s.id&&s.snapshot&&<SnapshotView snap={s.snapshot}/>}
       {focus!==s.id&&s.snapshot&&<button type="button" className="al-link" onClick={()=>{location.hash=s.id}}>Zobrazit checklist</button>}
+      {st==='active'&&<EntryCheck scenarioId={s.id} compact/>}
       <div className="sg-moves">{(['active','entered','invalidated','waiting'] as Status[]).filter(t=>t!==st&&canMove(st,t)&&!(t==='waiting'&&s.validUntil!==null&&s.validUntil<=now)).map(t=><button key={t} type="button" className="al-btn sm" onClick={()=>move(s,t)}>{t==='waiting'&&st!=='active'?'Znovu otevřít':t==='entered'?'Vstoupeno':STATUSES[t]}</button>)}
        {canMove(st,'skipped')&&st!=='skipped'&&<button type="button" className="al-btn sm" onClick={()=>{setForm(null);setSkip(s)}}><Ban size={13}/>Vynechat</button>}</div>
      </li>})}</ul>}

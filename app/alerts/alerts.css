@@ -31,7 +31,7 @@
 .al-sp{flex:1}
 .al-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--t-border);background:var(--t-surface);color:var(--t-fg);font:inherit;font-weight:600;cursor:pointer}
 .al-btn:hover{background:var(--t-surface-3)}
-.al-btn.primary{background:var(--t-brand);border-color:var(--t-brand);color:#fff}
+.al-btn.primary{background:var(--t-inverse);border-color:var(--t-inverse);color:#fff}
 .al-btn.primary:hover{opacity:.92}
 .al-btn.danger{color:#dc2626}
 .al-btn.danger.on{background:#dc2626;border-color:#dc2626;color:#fff}
@@ -85,7 +85,7 @@
 .mc-al-menu{position:absolute;z-index:30;background:var(--t-surface);border:1px solid var(--t-border);border-radius:10px;box-shadow:var(--t-shadow,0 8px 24px rgba(0,0,0,.18));padding:4px;display:grid;min-width:190px}
 .mc-al-menu button{display:flex;gap:8px;align-items:center;border:0;background:transparent;color:var(--t-fg);font:inherit;font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left}
 .mc-al-menu button:hover{background:var(--t-surface-3)}
-.mc-al-drag{position:absolute;right:64px;z-index:25;transform:translateY(-50%);pointer-events:none;background:var(--t-brand);color:#fff;font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
+.mc-al-drag{position:absolute;right:64px;z-index:25;transform:translateY(-50%);pointer-events:none;background:var(--t-inverse);color:#fff;font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
 .mc-chart[data-alert-hover="1"],.mc-chart[data-alert-hover="1"] *{cursor:ns-resize!important}
 .al-inbox-back{display:none}
 .al-inbox-head b{min-width:0;overflow-wrap:anywhere}

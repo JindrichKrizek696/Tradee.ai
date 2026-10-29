@@ -35,6 +35,7 @@ export default function AdminPage(){
  return <div className="mt-page">{top}
   <main className="mt-main">
    <h1>Administrace</h1>
+   <p className="mt-lead"><a href="/admin/funkce">Stav funkcí (interní QA) →</a></p>
    {error&&<p className="mt-alert" role="alert">{error}</p>}
    {!ready&&<p className="mt-empty">Načítám…</p>}
    {ov&&<section className="mt-card" aria-label="Přehled"><h2>Přehled</h2><div className="ad-kpis">

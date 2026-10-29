@@ -1,9 +1,10 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useOpenRequest} from '../open-request';
-import {ArrowDown,ArrowLeft,ArrowUp,FileText,Folder as FolderIcon,FolderPlus,Pencil,Plus,Trash2} from 'lucide-react';
+import {ArrowDown,ArrowLeft,ArrowUp,CalendarOff,FileText,Folder as FolderIcon,FolderPlus,Pencil,Plus,Trash2} from 'lucide-react';
 import {LIMITS,SUGGESTED,cleanFolderName,suggestions,excerpt,noteLabel,sqlMs,sortNotes,folderCounts,type Folder,type Note,type NoteMeta,type NotePatch} from '@/lib/notebook/core';
 import {groups} from '@/lib/markets';
+import {DAY_STATUSES,type DayStatus} from '@/lib/strategy/scenario';
 import {fmtDateTime,plural} from '@/lib/journal/format';
 import './notebook.css';
 // Poznámky (Notebook): vlastní složky vlevo, papíry ve složce (nejnovější nahoře) a papír s textem, který se ukládá sám při psaní
@@ -79,6 +80,19 @@ function Paper({id,initial,folders,markets,onMeta,onDeleted,onClose,onLost}:{id:
   <div className="nb-pfoot"><span>{note.body.length.toLocaleString('cs-CZ')} / {LIMITS.body.toLocaleString('cs-CZ')} znaků</span><span>Ukládá se samo · Ctrl+S hned</span></div>
  </article>;
 }
+// „Den bez obchodu“: stav dne (čekám / vynechávám / pauza) + poznámka → papír ve složce Deník dne (jeden na den) a stav dne v deníku
+function DayEntry({onDone}:{onDone:(id:string)=>void}){
+ const [open,setOpen]=useState(false),[status,setStatus]=useState<DayStatus|null>(null),[note,setNote]=useState(''),[busy,setBusy]=useState(false),[err,setErr]=useState('');
+ async function save(){setBusy(true);setErr('');try{const j=await call<{note:Note;created:boolean}>('/api/journaling/day-entry','POST',{status,note});setOpen(false);setNote('');setStatus(null);onDone(j.note.id)}catch(e){setErr((e as Error).message)}finally{setBusy(false)}}
+ if(!open)return <button type="button" className="j-btn nb-dayb" onClick={()=>setOpen(true)}><CalendarOff size={15} aria-hidden="true"/> Den bez obchodu</button>;
+ return <div className="nb-dayform" role="group" aria-label="Den bez obchodu">
+  <b>Den bez obchodu</b><small className="j-muted">I den bez obchodu je plnohodnotný záznam. Založí se papír se šablonou a stav dne se propíše do deníku.</small>
+  <div className="nb-sugg" role="radiogroup" aria-label="Stav dne">{(Object.keys(DAY_STATUSES) as DayStatus[]).map(k=><button key={k} type="button" role="radio" aria-checked={status===k} className={'nb-chip'+(status===k?' on':'')} onClick={()=>setStatus(status===k?null:k)}>{DAY_STATUSES[k]}</button>)}</div>
+  <input type="text" maxLength={500} value={note} aria-label="Poznámka ke dni" placeholder="Poznámka ke dni (nepovinné)" onChange={e=>setNote(e.target.value)}/>
+  <div className="nb-form-btns"><button type="button" className="j-btn dark" disabled={busy} onClick={save}>{busy?'Zapisuji…':'Zapsat den'}</button><button type="button" className="j-btn" disabled={busy} onClick={()=>setOpen(false)}>Zrušit</button></div>
+  {err&&<p className="jg-err" role="alert">{err}</p>}
+ </div>;
+}
 export function Notebook(){
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[folderId,setFolderId]=useState<string|null>(null),[noteId,setNoteId]=useState<string|null>(null),[fresh,setFresh]=useState<Note|null>(null),[form,setForm]=useState<'add'|'rename'|null>(null),[busy,setBusy]=useState(false);
  const [tick,setTick]=useState(0),load=()=>setTick(t=>t+1);// load = načíst znovu
@@ -112,6 +126,7 @@ export function Notebook(){
  const onMeta=(id:string,m:Partial<NoteMeta>,follow=true)=>{change(d=>({...d,notes:d.notes.map(n=>n.id===id?{...n,...m}:n)}));if(follow&&m.folderId)setFolderId(m.folderId)};
  const onDeleted=(id:string)=>{change(d=>({...d,notes:d.notes.filter(n=>n.id!==id)}));setNoteId(null);setFresh(null)};
  const onLost=(msg:string)=>setError('Poslední změny papíru se nepodařilo uložit: '+msg);
+ const openDay=(id:string)=>{wanted.current=id;load()};
  if(!data)return error?<div className="nb-load"><p role="alert" className="s-notice">{error}</p><button type="button" className="j-btn" onClick={load}>Zkusit znovu</button></div>:<p className="j-muted">Načítám poznámky…</p>;
  if(!folders.length)return <div className="j-card nb-start">
   <h2>Poznámky</h2>
@@ -120,6 +135,7 @@ export function Notebook(){
   <div className="nb-sugg">{SUGGESTED.map(s=><button key={s} type="button" className="j-btn" disabled={busy} onClick={()=>act(()=>addFolder(s))}><FolderPlus size={15}/> {s}</button>)}<button type="button" className="j-btn dark" disabled={busy} onClick={addSuggested}>Založit všechny tři</button></div>
   <p className="j-muted">Nebo si pojmenuj vlastní – třeba „Páry“, „Psychologie“ nebo „Nápady“.</p>
   <NameForm label="Název vlastní složky" submit="Vytvořit" onDone={addFolder}/>
+  <DayEntry onDone={openDay}/>
  </div>;
  return <div className={'nb'+(noteId?' open':'')}>
   {error&&<p role="alert" className="s-notice nb-alert">{error}</p>}
@@ -137,9 +153,10 @@ export function Notebook(){
      <button type="button" className="nb-icon" aria-label="Přejmenovat složku" title="Přejmenovat" onClick={()=>setForm('rename')}><Pencil size={14}/></button>
      <button type="button" className="nb-icon" aria-label="Smazat složku" title="Smazat složku" disabled={busy} onClick={deleteFolder}><Trash2 size={14}/></button></div></div>)}
    <button type="button" className="j-btn dark nb-new" disabled={busy||!folder||notes.length>=LIMITS.notes} onClick={newNote}><Plus size={15}/> Nový papír</button>
+   <DayEntry onDone={openDay}/>
    {notes.length>=LIMITS.notes&&<p className="j-muted">Máš {LIMITS.notes} papírů, víc se nevejde. Smaž nějaké staré.</p>}
    {list.length?<ul className="nb-notes">{list.map(n=><li key={n.id}><button type="button" className={'nb-note'+(n.id===noteId?' on':'')} aria-current={n.id===noteId?'true':undefined} onClick={()=>openNote(n.id)}>
-     <b>{noteLabel(n)}</b><span className="nb-ex">{n.excerpt||'Prázdný papír'}</span>
+     <b>{noteLabel(n)}</b>{n.kind==='noday'&&<span className="nb-daytag">Den bez obchodu</span>}<span className="nb-ex">{n.excerpt||'Prázdný papír'}</span>
      <span className="nb-meta"><time dateTime={n.created.replace(' ','T')+'Z'}>{when(n.created)}</time>{n.instrument&&<span className="nb-mkt">{names[n.instrument]||n.instrument}</span>}</span></button></li>)}</ul>
     :folder&&<div className="nb-empty"><p>Ve složce „{folder.name}“ zatím nejsou žádné papíry.</p><p>Založ první – třeba report za tento týden.</p></div>}
   </section>

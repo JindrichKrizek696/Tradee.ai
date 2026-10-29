@@ -1,5 +1,6 @@
 'use client';
 // Metriky Statistik: u každé vzorec (tooltip), období, filtry a N; kliknutím seznam obchodů, ze kterých se počítá. Živé / sim / replay se nemíchají; export CSV.
+import {Term} from '../term';
 import {useState} from 'react';
 import {Download,Info} from 'lucide-react';
 import type {JournalTrade} from '@/lib/journal/types';
@@ -28,6 +29,7 @@ export function MetricsPanel({trades,currency,filter,now,onOpen}:{trades:Journal
   <p className="jm-meta"><span>Období: <b>{ft.period}</b></span><span>Filtry: <b>{ft.filters}</b></span><span>Režim: <b>{mode==='all'?'všechny':MODES[mode]}</b></span><span>N = <b>{list.length}</b></span><button type="button" className="j-btn" onClick={exportCsv}><Download size={13}/> Export CSV</button></p>
   {mixed&&<p className="j-muted">Obchody ve filtru jsou z více režimů – metriky je nemíchají, přepni režim nahoře nebo ve filtru.</p>}
   <div className="jm-cards">{ms.map(m=><button key={m.key} type="button" className={'jm-card'+(sel===m.key?' on':'')} title={m.formula} aria-pressed={sel===m.key} onClick={()=>setSel(sel===m.key?null:m.key)}>
+  <p className="j-muted jm-terms">Pojmy: <Term id="r">R</Term> · <Term id="expectancy">expectancy</Term> · <Term id="profit-factor">profit factor</Term> · <Term id="win-rate">win rate</Term> · <Term id="drawdown">drawdown</Term> · <Term id="be-ucetni">BE účetní</Term></p>
    <span>{m.label}<Info size={12} aria-hidden/></span><b className={m.unit==='money'||m.unit==='R'?(m.value??0)>0?'pos':(m.value??0)<0?'neg':'':''}>{fmt(m)}</b><small>N = {m.n} · {m.ids.length?'zobrazit obchody':'bez obchodů'}</small></button>)}</div>
   {cur&&<div className="jm-list"><p className="j-muted"><b>{cur.label}</b>: {cur.formula}</p>{cur.ids.slice(0,100).map(id=>{const t=byId.get(id);return t?<button key={id} type="button" onClick={()=>onOpen(id)}><span>{t.source==='mt'?fmtDateTime(t.closeTs):fmtDate(t.date)}</span><b>{t.symbol}</b><span className={t.pnl>0?'pos':t.pnl<0?'neg':''}>{fmtMoney(t.pnl,currency)}</span><span>{t.r===null?'neznámé R':fmtR(t.r)}</span></button>:null})}{cur.ids.length>100&&<small className="j-muted">… a dalších {cur.ids.length-100}</small>}</div>}
  </section>;

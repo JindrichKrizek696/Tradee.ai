@@ -1,6 +1,8 @@
 'use client';
 // Karta „Přehled skóre <PÁR>“ a řádky složek pro kartu skóre: 11 složek −2…+2 s vahou, příspěvkem v bodech,
 // vstupními čísly, stářím, časovým oknem a zdrojem. Výpočet: lib/score/v3.ts (složky z lib/fundamentals/breakdown.ts)
+import {Term} from './term';
+import {SCORE_TERMS} from '@/lib/glossary';
 import {useEffect,useId,useRef,useState} from 'react';
 import {ChevronDown,Info} from 'lucide-react';
 import type {V3Part,V3Result} from '@/lib/score/v3';
@@ -27,7 +29,7 @@ export function ComponentRow({p,scale,compact,excluded,onToggle,why}:{p:V3Part;s
  return <div className={'sb-row'+(compact?' compact':'')+(p.status!=='ok'?' off':'')+(more?' open':'')+(onToggle?' sb-toggle':'')+(excluded?' sb-excluded':'')} ref={ref} onMouseLeave={()=>setOpen(false)}>
   <div className="sb-top">
    {onToggle&&<button type="button" role="switch" aria-checked={!excluded} aria-label={'Počítat do přehledu: '+p.label} title={excluded?'Vypnuto – nepočítá se. Kliknutím zapneš.':'Počítá se. Kliknutím složku vypneš z přehledu.'} className="sb-switch" onClick={onToggle}><i aria-hidden="true"/></button>}
-   <span className="sb-label">{p.label}
+   <span className="sb-label">{SCORE_TERMS[p.id]?<Term id={SCORE_TERMS[p.id]}>{p.label}</Term>:p.label}
     <button type="button" className="sb-info" aria-label={'Co je '+p.label} aria-describedby={id} data-open={open||undefined} onClick={()=>setOpen(true)} onMouseEnter={()=>setOpen(true)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)}><Info size={14} aria-hidden/></button>
     {wp&&<WhyButton open={whyOpen} onToggle={()=>setWhyOpen(o=>!o)} label={p.label}/>}{excluded&&<span className="sb-offtag">nepočítá se</span>}
     <span role="tooltip" id={id} className="sb-tip" hidden={!open}><b>{p.label} · váha {p.weight} %</b>{p.reason}<span className="sb-tip-now">Okno: {p.window}</span></span>
@@ -53,7 +55,7 @@ export function ScoreBreakdown({r,pair,why}:{r:Pick<V3Result,'parts'|'score'|'co
  const [off,setOff]=useScoreOff(),v=applyOff(r,off),scale=barScale({coverage:v.coverage,parts:r.parts}),pts=v.points;
  const offNames=v.parts.filter(p=>p.off).map(p=>p.label);
  return <section className="s-card sb-card" aria-labelledby={'sb-'+pair.replace('/','')}>
-  <div className="sb-head"><h2 id={'sb-'+pair.replace('/','')}>Přehled skóre {pair}</h2>
+  <div className="sb-head"><h2 id={'sb-'+pair.replace('/','')}>Přehled <Term id="skore-v3">skóre</Term> {pair}</h2>
    <span className="sb-total"><small>Body</small><span className={'sb-chip '+(pts>0?'bull1':pts<0?'bear1':'zero')} title={`Prostý součet ${v.cut?'zapnutých ':''}složek −2…+2 (${v.counted} složek, rozsah ±${v.counted*2})`}>{num(pts,1)} <i>/ ±{v.counted*2}</i></span></span>
    <span className="sb-total"><small>Celkem</small><span className={'sb-chip sb-total-chip '+(v.score===null?'na':v.score>0?'bull2':v.score<0?'bear2':'zero')} title={v.cut?`Skóre −100…+100 jen ze zapnutých složek (váhy přepočtené). Plné skóre modelu (karta skóre, Analýza trhů): ${r.score===null?'pozastaveno':num(r.score)}`:'Celkové skóre −100…+100 podle vah (stejné jako karta skóre)'}>{v.score===null?(r.score!==null&&v.cut?'nic nezapnuto':'pozastaveno'):num(v.score)}</span></span>
    <span className="s-badge">{v.cut?`${v.counted}/${r.count} složek počítáno · váhy ${v.coverage} %`:`${r.available}/${r.count} složek · váhy ${r.coverage} % dostupné`}</span></div>

@@ -1,6 +1,7 @@
 'use client';
 // Kalkulačka velikosti pozice (lib/risk/size.ts): stránka /kalkulacka, okno v Deníku a později formulář scénáře.
 // Exportovaná komponenta – vstupy jdou předvyplnit (trh z grafu, vstup, stop, cíl) a onResult vrací výsledek volajícímu.
+import {Term} from '../term';
 import {useEffect,useMemo,useState} from 'react';
 import {Info,TriangleAlert} from 'lucide-react';
 import {positionSize,RISK_MODE_LABELS,type RiskMode,type SizeResult,type RateFn} from '@/lib/risk/size';
@@ -44,11 +45,11 @@ export function PositionCalculator({initial,onResult,title=true,fixed}:{initial?
   {profile&&<RiskStatus profile={profile} compact/>}
   <div className="pc-grid">
    <label className="pc-field"><span>Vstup</span><input inputMode="decimal" value={entry} onChange={e=>setEntry(e.target.value)}/></label>
-   <label className="pc-field"><span>Stop loss</span><input inputMode="decimal" value={stop} onChange={e=>setStop(e.target.value)}/></label>
+   <label className="pc-field"><span><Term id="stop-loss">Stop loss</Term></span><input inputMode="decimal" value={stop} onChange={e=>setStop(e.target.value)}/></label>
    <label className="pc-field"><span>Cíl <small>(volitelné)</small></span><input inputMode="decimal" value={target} onChange={e=>setTarget(e.target.value)}/></label>
   </div>
   <div className="pc-grid">
-   <div className="pc-field pc-wide"><span>Riziko</span><div className="mt-chips" role="radiogroup" aria-label="Způsob rizika">{(Object.keys(RISK_MODE_LABELS) as RiskMode[]).map(m=><button key={m} type="button" role="radio" aria-checked={mode===m} className={mode===m?'active':''} onClick={()=>{setMode(m);setValue(null)}}>{RISK_MODE_LABELS[m]}</button>)}</div></div>
+   <div className="pc-field pc-wide"><span><Term id="riziko">Riziko</Term></span><div className="mt-chips" role="radiogroup" aria-label="Způsob rizika">{(Object.keys(RISK_MODE_LABELS) as RiskMode[]).map(m=><button key={m} type="button" role="radio" aria-checked={mode===m} className={mode===m?'active':''} onClick={()=>{setMode(m);setValue(null)}}>{RISK_MODE_LABELS[m]}</button>)}</div></div>
    <label className="pc-field pc-narrow"><span>{mode==='fixed'?accCcy:'%'}</span><input inputMode="decimal" value={value} onChange={e=>setValue(e.target.value)} aria-label="Hodnota rizika"/></label>
   </div>
   {spec&&<p className="pc-spec">Tick {f(spec.tickSize,6)} = {f(spec.tickValue,6)} {spec.quote} za {spec.unit==='lot'?'lot':spec.unit==='kontrakt'?'kontrakt':'kus'} · krok {f(spec.lotStep,4)}, minimum {f(spec.minLot,4)}{spec.commission||spec.spread?` · náklady: komise ${f(spec.commission)} ${spec.quote}, spread ${f(spec.spread,6)}`:''}{spec.overridden.length?' · upraveno pro účet':''}{profile&&<> · <a href={'/ucty#'+profile.id}>upravit pro broker</a></>}</p>}
@@ -60,9 +61,9 @@ export function PositionCalculator({initial,onResult,title=true,fixed}:{initial?
     <div><dt>Ztráta do SL / {result.unit==='lot'?'lot':result.unit==='kontrakt'?'kontrakt':'kus'}</dt><dd>{f(result.lossPerUnit)} {accCcy}</dd></div>
     <div><dt>Náklady / {result.unit==='lot'?'lot':result.unit==='kontrakt'?'kontrakt':'kus'}</dt><dd>{f(result.costPerUnit)} {accCcy}</dd></div>
     <div><dt>Stop</dt><dd>{f(result.stopTicks,2)} ticků</dd></div>
-    <div><dt>Hodnota ticku</dt><dd>{f(result.tickValueAcc,4)} {accCcy}</dd></div>
-    {result.pipValueAcc!==null&&<div><dt>Hodnota pipu</dt><dd>{f(result.pipValueAcc)} {accCcy}</dd></div>}
-    <div><dt>R:R</dt><dd>{result.rr===null?'–':f(result.rr)}</dd></div>
+    <div><dt>Hodnota <Term id="tick">ticku</Term></dt><dd>{f(result.tickValueAcc,4)} {accCcy}</dd></div>
+    {result.pipValueAcc!==null&&<div><dt>Hodnota <Term id="pip">pipu</Term></dt><dd>{f(result.pipValueAcc)} {accCcy}</dd></div>}
+    <div><dt><Term id="rrr">R:R</Term></dt><dd>{result.rr===null?'–':f(result.rr)}</dd></div>
     {result.reward!==null&&<div><dt>Zisk v cíli</dt><dd>{f(result.reward)} {accCcy}</dd></div>}
     {result.rate!==1&&<div><dt>Kurz {spec?.quote} → {accCcy}</dt><dd>{f(result.rate,6)}</dd></div>}
    </dl>

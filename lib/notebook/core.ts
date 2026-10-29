@@ -1,8 +1,19 @@
 // Poznámky (Notebook v Journalingu): vlastní složky uživatele a v nich papíry s volným textem. Čisté funkce – testy scripts/check-notebook.mjs.
 export type Folder={id:string;name:string};
-export type NoteMeta={id:string;folderId:string;title:string;excerpt:string;instrument:string|null;created:string;updated:string};
+// kind: 'note' = volný papír, 'noday' = „Den bez obchodu“ (den bez obchodu se stavem dne z etapy 1A); day = den záznamu (YYYY-MM-DD)
+export type NoteMeta={id:string;folderId:string;title:string;excerpt:string;instrument:string|null;created:string;updated:string;kind?:NoteKind;day?:string|null};
 export type Note=Omit<NoteMeta,'excerpt'>&{body:string};
 export type NotePatch={folderId?:string;title?:string;body?:string;instrument?:string|null};
+export const NOTE_KINDS={note:'Papír',noday:'Den bez obchodu'} as const;
+export type NoteKind=keyof typeof NOTE_KINDS;
+/** Složka, do které se zakládají dny bez obchodu (založí se sama, když chybí). */
+export const DAY_FOLDER='Deník dne';
+const csDay=(day:string)=>{const [y,m,d]=day.split('-').map(Number);return `${d}. ${m}. ${y}`};
+export const dayEntryTitle=(day:string)=>`Den bez obchodu · ${csDay(day)}`;
+/** Šablona papíru dne bez obchodu: stav dne, poznámka a otázky na konec dne (nic nehodnotí, jen pomáhá zapsat). */
+export function dayEntryBody(statusLabel:string|null,note:string){
+ return [`Stav dne: ${statusLabel||'nevyplněn'}`,note?`Poznámka: ${note}`:'', '','Co jsem dnes sledoval a proč jsem neobchodoval:','','Co trh udělal (stalo se něco z mých scénářů?):','','Na co se zaměřit zítra:',''].filter((l,i)=>i>1||l!=='').join('\n');
+}
 export const LIMITS={folders:30,notes:1000,name:40,title:120,body:20000,excerpt:140};
 // návrhy do prázdného stavu (Jindra: Analýza, Začátek týdne, Konec týdne; páry si každý založí sám)
 export const SUGGESTED=['Analýza','Začátek týdne','Konec týdne'] as const;

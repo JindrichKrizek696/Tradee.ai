@@ -1,5 +1,7 @@
 'use client';
 // Stránka /strategie: playbook strategií s verzemi. 8 bloků (text + podmínky s rolí, modelem a příklady), historie verzí s popisem změn.
+import {Term} from '../term';
+import {BLOCK_TERMS} from '@/lib/glossary';
 import {useEffect,useMemo,useState} from 'react';
 import {ArrowLeft,ArrowUp,ArrowDown,Plus,X,History,Lock} from 'lucide-react';
 import {instruments,groups} from '@/lib/markets';
@@ -69,7 +71,7 @@ function Editor({s,onSaved}:{s:StrategyItem;onSaved:()=>void}){
      {c.models.length<LIMITS.models&&<form className="sg-inline" onSubmit={e=>{e.preventDefault();const m=model.trim();if(m&&!c.models.some(x=>x.toLowerCase()===m.toLowerCase())){setC(x=>({...x,models:[...x.models,m]}));setModel('')}}}><input type="text" value={model} maxLength={LIMITS.model} placeholder="Model 1, průraz…" aria-label="Nový vstupní model" onChange={e=>setModel(e.target.value)}/><button type="submit" className="al-btn sm"><Plus size={13}/>Model</button></form>}</div></div>
   </section>
   {BLOCKS.map(([b,label])=><section key={b} className="mt-card sg-block">
-   <h2>{label}</h2><p className="mt-lead">{BLOCK_HINT[b]}</p>
+   <h2>{BLOCK_TERMS[b]?<Term id={BLOCK_TERMS[b]}>{label}</Term>:label}</h2><p className="mt-lead">{BLOCK_HINT[b]}</p>
    {b==='scope'&&<div className="sg-scope">
     <div className="sg-field"><span>Trhy</span><MarketsBox value={c.scope.markets} onChange={v=>setC(x=>({...x,scope:{...x.scope,markets:v}}))}/></div>
     <div className="sg-field"><span>Časové rámce</span><div className="sg-chips">{TIMEFRAMES.map(t=><button key={t} type="button" className={'sg-chip'+(c.scope.timeframes.includes(t)?' on':'')} aria-pressed={c.scope.timeframes.includes(t)} onClick={()=>setC(x=>({...x,scope:{...x.scope,timeframes:TIMEFRAMES.filter(y=>toggle(x.scope.timeframes,t).includes(y))}}))}>{t}</button>)}</div></div>

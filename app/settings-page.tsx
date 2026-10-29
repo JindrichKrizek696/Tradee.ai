@@ -9,6 +9,8 @@ import {NotifySettings} from './notify-settings';
 import {useTheme} from './theme';
 import {NavBar,NAV_META} from './nav-bar';
 import {useNav} from './nav-prefs';
+import {usePrefs} from './onboarding/workspace';
+import {DASH_PANELS,JOURNAL_FIELDS} from '@/lib/onboarding/core';
 import './mt.css';
 import './nastaveni.css';
 const move=<T,>(a:T[],i:number,d:number)=>{const j=i+d;if(j<0||j>=a.length)return a;const b=[...a];[b[i],b[j]]=[b[j],b[i]];return b};
@@ -84,14 +86,32 @@ function DrawColors(){
   </div>
  </section>;
 }
+// Průvodce nastavením (úvodní dotazník) jde otevřít znovu; panely Dashboardu a pole záznamu obchodu jdou schovat i bez něj
+function Guide(){
+ return <section className="mt-card" id="pruvodce"><h2>Průvodce nastavením</h2>
+  <p className="mt-lead">Odpovědi o trzích, stylu a účtu přizpůsobí navigaci, Dashboard, deník a vlaječky. Před použitím uvidíš náhled; předchozí nastavení jde vrátit.</p>
+  <div className="nv-foot"><a className="mt-btn" href="/pruvodce">Otevřít průvodce</a><a className="mt-btn" href="/slovnik">Slovník pojmů</a></div></section>;
+}
+function Panels(){
+ const {prefs,save}=usePrefs(),[st,setSt]=useState<'idle'|'saved'|'err'>('idle'),[msg,setMsg]=useState('');
+ const flip=(kind:'dash'|'journal',id:string)=>{const off=(prefs[kind].off as string[]),next={...prefs,[kind]:{off:off.includes(id)?off.filter(x=>x!==id):[...off,id]}} as typeof prefs;setSt('idle');save(next).then(()=>setSt('saved'),e=>{setSt('err');setMsg((e as Error).message)})};
+ return <section className="mt-card" id="panely">
+  <div className="nv-title"><h2>Panely Dashboardu a pole deníku</h2><span className={'nv-status'+(st==='err'?' err':'')} role="status" aria-live="polite">{st==='saved'?'Uloženo':st==='err'?msg:''}</span></div>
+  <p className="mt-lead">Schované panely a pole jen nejsou vidět – data zůstávají. Pole záznamu obchodu jde v deníku kdykoli rozbalit.</p>
+  <h3 className="nv-sub">Dashboard</h3>
+  <ul className="nv-list">{DASH_PANELS.map(([id,label])=>{const on=!prefs.dash.off.includes(id);return <li key={id} className={'nv-row'+(on?'':' off')}><span className="nv-name">{label}</span><button type="button" role="switch" aria-checked={on} aria-label={'Zobrazit panel '+label} className="nv-switch" onClick={()=>flip('dash',id)}><i aria-hidden="true"/></button></li>})}</ul>
+  <h3 className="nv-sub">Záznam obchodu</h3>
+  <ul className="nv-list">{JOURNAL_FIELDS.map(([id,label])=>{const on=!prefs.journal.off.includes(id);return <li key={id} className={'nv-row'+(on?'':' off')}><span className="nv-name">{label}</span><button type="button" role="switch" aria-checked={on} aria-label={'Zobrazit pole '+label} className="nv-switch" onClick={()=>flip('journal',id)}><i aria-hidden="true"/></button></li>})}</ul>
+ </section>;
+}
 export default function SettingsPage(){
  usePalette(); // barvy signálu podle nastavení uživatele hned po načtení
  return <div className="mt-page">
   <header className="mt-top"><a href="/" className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a></header>
   <main className="mt-main">
    <h1>Nastavení</h1>
-   <p className="mt-lead">Upozornění, navigace, vzhled, měna souhrnu a barvy kreseb na jednom místě. Změny se ukládají k tvému účtu.</p>
-   <Alerts/><Navigation/><Look/><Summary/><DrawColors/>
+   <p className="mt-lead">Upozornění, navigace, průvodce, panely, vzhled, měna souhrnu a barvy kreseb na jednom místě. Změny se ukládají k tvému účtu.</p>
+   <Alerts/><Navigation/><Guide/><Panels/><Look/><Summary/><DrawColors/>
   </main>
  </div>;
 }

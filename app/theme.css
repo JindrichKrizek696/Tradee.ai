@@ -17,3 +17,16 @@
 :root[data-theme=dark] svg [stroke="#d5d8df"],:root[data-theme=dark] svg [stroke="#eef1f7"]{stroke:var(--t-border-strong)}
 :root[data-theme=dark] svg [stroke="#9aa3b2"]{stroke:var(--t-muted-2)}
 :root[data-theme=dark] svg [stroke="#17191e"]{stroke:var(--t-chart-line)}
+/* Přístupnost (etapa 3C, kontrola scripts/check-a11y.mjs): text na modré ≥ 4,5 : 1 v obou motivech, viditelný fokus, varovné texty čitelné.
+   Tmavý --t-inverse #4a78ff dával bílému textu jen 3,9 : 1 → #2f5dff (5,1 : 1). Pilulka navigace a hlavní tlačítka nesou bílý text → --t-inverse. */
+:root{--t-focus-ring:#245bff}
+:root[data-theme=dark]{--t-inverse:#2f5dff;--t-focus-ring:#8aa6ff}
+:root :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--t-focus-ring);outline-offset:2px}
+:root .t-pill{background:var(--t-inverse);box-shadow:0 4px 14px -6px var(--t-inverse)}
+:root .d-dash .t-btn.primary,:root .pf-page .mt-btn.primary{background:var(--t-inverse);border-color:var(--t-inverse);color:var(--t-on-inverse)}
+:root[data-theme=dark] .mt-alert{color:#fca5a5}
+:root .mt-tag.warn{color:#b45309}
+:root[data-theme=dark] .mt-tag.warn{color:#fbbf24}
+:root .j-table tbody tr:focus-visible{box-shadow:inset 3px 0 0 var(--t-focus-ring)}
+:root .d-dash .d-notch:focus-visible{outline:2px solid var(--t-focus-ring);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){:root *,:root *::before,:root *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

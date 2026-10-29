@@ -2,6 +2,7 @@
 // COT detail (záložka v detailu trhu): přepínání reportů Legacy / TFF / Disaggregated, kategorie, long/short/net/změna,
 // COT index a percentil ve zvoleném okně 26/52/156 týdnů, graf čisté pozice s pásmy indexu 20/80, datum pozic vs zveřejnění
 // a snímek do scénáře (poznámka otevřeného scénáře přes /api/scenarios).
+import {Term} from './term';
 import {useEffect,useState} from 'react';
 import {Target} from 'lucide-react';
 import type {CotContract} from '@/lib/score-engine';
@@ -30,7 +31,7 @@ export function CotDetail({title,instrument,sources,now}:{title:string;instrumen
  const last=pts.at(-1)!,idx=bands.at(-1)!,shown=Math.min(pts.length,Math.max(win,26)),from=pts.length-shown,c=src.contract!;
  const stale=!fresh(last.date,11,now);
  return <section className="s-card ad-cot">
-  <div className="s-card-head"><div><span className="s-kicker">CFTC · {src.report.toUpperCase()} · FUTURES ONLY</span><h2>{title} <span className="muted">/ {c.contract}</span></h2></div><span className={'s-badge'+(stale?' warning':'')}>{stale?'Starší report':'Týdenní report'}</span></div>
+  <div className="s-card-head"><div><span className="s-kicker"><Term id={src.report==='TFF'?'cot-tff':src.report==='Disaggregated'?'cot-disaggregated':'cot-legacy'}>CFTC · {src.report.toUpperCase()}</Term> · FUTURES ONLY</span><h2>{title} <span className="muted">/ {c.contract}</span></h2></div><span className={'s-badge'+(stale?' warning':'')}>{stale?'Starší report':'Týdenní report'}</span></div>
   {avail.length>1&&<div className="ad-chips" role="group" aria-label="Report">{avail.map(s=><button key={s.report} type="button" className={'c-chip'+(s.report===src.report?' on':'')} aria-pressed={s.report===src.report} onClick={()=>{setRep(s.report);setGroup(s.groups[0].value)}}>{s.report}</button>)}</div>}
   <div className="ad-chips" role="group" aria-label="Kategorie">{src.groups.map(o=><button key={o.value} type="button" className={'c-chip'+(o.value===g.value?' on':'')} aria-pressed={o.value===g.value} onClick={()=>setGroup(o.value)}>{o.label}</button>)}</div>
   <div className="ad-dates"><span>{cotPositionsLabel(last.date)}</span><span>{cotPublishedLabel(last.date)} (15:30 ET)</span><span>kontrola {new Date(c.checkedAt).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>
@@ -39,8 +40,8 @@ export function CotDetail({title,instrument,sources,now}:{title:string;instrumen
    <div><small>Short</small><b className="negative">{num(last.short)}</b></div>
    <div><small>Net</small><b className={tone(last.net)}>{sgn(last.net)}</b></div>
    <div><small>Změna za týden</small><b className={tone(last.change)}>{sgn(last.change)}</b></div>
-   <div><small>COT index</small><b>{idx.index===null?'—':Math.round(idx.index)}</b><em>0 = min, 100 = max okna</em></div>
-   <div><small>Percentil</small><b>{idx.percentile===null?'—':Math.round(idx.percentile)}</b><em>{idx.n} týdnů</em></div>
+   <div><small><Term id="cot-index">COT index</Term></small><b>{idx.index===null?'—':Math.round(idx.index)}</b><em>0 = min, 100 = max okna</em></div>
+   <div><small><Term id="percentil">Percentil</Term></small><b>{idx.percentile===null?'—':Math.round(idx.percentile)}</b><em>{idx.n} týdnů</em></div>
   </div>
   <div className="ad-chips" role="group" aria-label="Okno indexu"><span className="ad-lab">Okno</span>{COT_WINDOWS.map(w=><button key={w} type="button" className={'c-chip'+(w===win?' on':'')} aria-pressed={w===win} onClick={()=>setWin(w)}>{w} týdnů</button>)}</div>
   {idx.short&&<p className="s-note warning" role="status">K dispozici je jen {idx.n} týdenních reportů – index a percentil jsou z kratší historie než {win} týdnů.</p>}

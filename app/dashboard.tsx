@@ -1,4 +1,7 @@
 'use client';
+import {OnboardingGate} from './onboarding/onboarding-gate';
+import {usePrefs} from './onboarding/workspace';
+import {dashHideCss} from '@/lib/onboarding/core';
 import {Spark as LiveSpark,LiveChange,LiveBadge,newest,type LiveData} from './live';
 import {InstallBanner} from './pwa/pwa-ui';
 import {useEffect,useId,useMemo,useRef,useState,useSyncExternalStore} from 'react';
@@ -92,6 +95,7 @@ function Notch({side,label,rail,children,wide,onOpenChange}:{side:'left'|'right'
 }
 
 export function Dashboard({rows,flags,history,data,market,now,userName,greet,open,setView,calendar,flagsReady,live:liveData}:{live?:LiveData|null;calendar:CalendarEvent[];rows:Row[];flags:Record<string,string>;history:HistoryLike;data:FundamentalData;market:MarketData;now:number;userName:string;greet?:string|null;open:(id:string)=>void;setView:(v:View)=>void;flagsReady:boolean}){
+ const {prefs:dashPrefs}=usePrefs();
  const {trades,currency,error:tradeError,ready:tradesReady,load:reloadTrades}=useTrades();
  const [side,setSide]=useState<'bull'|'bear'>('bull'),[group,setGroup]=useState('all'),[rev,setRev]=useState(0),[account,setAccount]=useState('all'),[period,setPeriod]=useState<P>('month'),[range,setRange]=useState<Range>({from:'',to:''});
  const b=breadth(rows),sess=sessions(now),health=dataHealth(data,market,now),changes=recentChanges(history,5),mine=flaggedMarkets(flags);
@@ -114,7 +118,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,greet,ope
  const dateLine=new Date(now).toLocaleDateString('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',year:'numeric'});
  const pct=(n:number)=>b.scored?100*n/b.scored+'%':'0%',spark=(r:Row)=>scoreSeries(history,r.id,r.r.method,'1m',now).map(p=>p.score);
  const tile=(i:number):Tile=>({'--i':i}),recent=[...trades].sort((a,c)=>c.date.localeCompare(a.date)||c.created.localeCompare(a.created)).slice(0,4);
- return <div className="d-dash"><InstallBanner/>
+ return <div className="d-dash"><InstallBanner/><OnboardingGate name={greet||(userName?vocative(userName):undefined)}/>
   <header className="d-pagehead">
    <div><p className="d-date">{dateLine.charAt(0).toUpperCase()+dateLine.slice(1)}</p><h1>{greeting(new Date(now))}{(greet||userName)&&<>, <span className="d-hello">{greet||vocative(userName)}</span></>}</h1></div>
    <div className="d-status">
@@ -124,7 +128,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,greet,ope
    </div>
   </header>
 
-  <div className="d-bento">
+  <style>{dashHideCss()}</style><div className="d-bento" data-off={dashPrefs.dash.off.join(' ')||undefined}>
    <MyTrading now={now} rev={rev} style={tile(0)} onAccount={setAccount} onPeriod={(p,r)=>{setPeriod(p);setRange(r)}} onAddTrade={()=>document.querySelector('.d-cal')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
    <OpenPositionsCard account={account} style={tile(1)} shared={op}/>
    <DisciplineTile now={now} account={account} period={period} from={range.from} to={range.to} rev={rev} style={tile(2)}/>

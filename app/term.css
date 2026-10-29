@@ -1,0 +1,13 @@
+/* <Term>: podtržený pojem s vysvětlivkou (app/term.tsx) */
+.tm{position:relative;display:inline}
+.tm-btn{all:unset;cursor:help;color:inherit;font:inherit;text-decoration:underline dotted color-mix(in srgb,currentColor 55%,transparent);text-underline-offset:3px;text-decoration-thickness:1px;border-radius:3px}
+.tm-btn:hover{text-decoration-color:currentColor}
+.tm-btn:focus-visible{outline:2px solid var(--t-brand-fg);outline-offset:2px}
+.tm-pop{position:absolute;z-index:60;left:0;top:calc(100% + 6px);width:min(320px,80vw);display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--t-surface);color:var(--t-fg);border:1px solid var(--t-border-strong);box-shadow:var(--t-shadow),0 12px 32px -12px #0b0c0e40;font-size:13px;font-weight:400;line-height:1.45;text-align:left;white-space:normal;letter-spacing:0;text-transform:none}
+.tm-pop[hidden]{display:none}
+.tm-pop b{font-size:14px;color:var(--t-fg)}
+.tm-ex{color:var(--t-fg-2)}
+.tm-ex i{font-style:normal;font-weight:600}
+.tm-link{color:var(--t-brand-fg);font-weight:600;text-decoration:none;justify-self:start}
+.tm-link:hover{text-decoration:underline}
+@media(max-width:560px){.tm-pop{position:fixed;left:16px;right:16px;top:auto;bottom:calc(84px + env(safe-area-inset-bottom));width:auto}}

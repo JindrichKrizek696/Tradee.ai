@@ -112,6 +112,10 @@ export default function AccountsPage(){
  // odkaz /ucty#<id> z kalkulačky otevře úpravu profilu
  useEffect(()=>{const id=location.hash.slice(1);if(id&&data){const p=data.profiles.find(x=>x.id===id);if(p)setEdit(toDraft(p))}},[data]);
  const fresh=():Draft=>({name:'',kind:'personal',currency:'USD',startBalance:'',startDate:today(),balance:'',linkId:'',feeChallenge:'',feeActivation:'',rules:emptyRules(),effective:today(),archived:false});
+ // /ucty?navrh=1 z průvodce: nový profil předvyplněný z odpovědí (typ, název, zóna resetu dne, riziko jen když ho uživatel zadal)
+ useEffect(()=>{if(!data||new URLSearchParams(location.search).get('navrh')!=='1')return;history.replaceState(null,'',location.pathname);
+  fetch('/api/onboarding',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{answers?:{account:ProfileKind|null;broker:string;tz:string;riskPct:number|null}|null}>:null).then(j=>{const a=j?.answers;if(!a?.account)return;const base=fresh(),r=emptyRules();
+   setEdit({...base,kind:a.account,name:(KIND_LABELS[a.account]+(a.broker?' · '+a.broker:'')).slice(0,60),rules:{...r,dailyLoss:{...r.dailyLoss,tz:a.tz||r.dailyLoss.tz},maxRiskPct:a.riskPct}})}).catch(()=>{})},[data]);// eslint-disable-line react-hooks/exhaustive-deps
  const act=async(fn:()=>Promise<unknown>)=>{setErr('');try{await fn();await reloadRisk()}catch(e){setErr((e as Error).message)}};
  const linkName=(p:ClientProfile)=>p.linkId==='manual'?'ruční zápisy':p.linkId?(data?.accounts.find(a=>a.id===p.linkId)?.name||'propojený účet'):'samostatný';
  return <div className="mt-page">

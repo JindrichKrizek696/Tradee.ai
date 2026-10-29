@@ -84,3 +84,9 @@
  .nb-paper .nb-body{min-height:60vh}
 }
 @media (max-width:640px){.nb-paper .nb-title{font-size:19px}.nb-dates{margin-left:0;width:100%}.nb-prop select{max-width:170px}.nb-start .nb-form{grid-template-columns:minmax(0,1fr)}}
+/* Den bez obchodu (etapa 3C) */
+.nb-dayb{margin-top:8px}
+.nb-dayform{display:grid;gap:8px;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--t-border-strong);background:var(--t-surface-2)}
+.nb-dayform input{height:38px;padding:0 12px;border:1px solid var(--t-border);border-radius:10px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:14px}
+.nb-chip.on{background:var(--t-inverse);border-color:var(--t-inverse);color:var(--t-on-inverse)}
+.nb-daytag{justify-self:start;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--t-accent-soft);color:var(--t-brand-fg)}

@@ -1,0 +1,21 @@
+.gl-search{position:relative;display:flex;align-items:center;max-width:560px}
+.gl-search svg{position:absolute;left:14px;color:var(--t-muted);pointer-events:none}
+.gl-search input{flex:1;height:44px;padding:0 42px;border:1px solid var(--t-border-strong);border-radius:9999px;background:var(--t-surface);color:var(--t-fg);font:inherit}
+.gl-clear{position:absolute;right:8px;width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--t-muted);cursor:pointer}
+.gl-clear:hover{background:var(--t-surface-3);color:var(--t-fg)}
+.gl-count{color:var(--t-muted);font-size:13px;margin:8px 0 0}
+.gl-toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.gl-toc a{padding:6px 12px;border-radius:9999px;background:var(--t-surface);border:1px solid var(--t-border);color:var(--t-fg-2);text-decoration:none;font-size:13px;font-weight:600}
+.gl-toc a:hover{border-color:var(--t-border-strong);color:var(--t-fg)}
+.gl-group dl{margin:0;display:grid;gap:4px}
+.gl-term{padding:12px 10px;border-radius:12px;scroll-margin-top:80px}
+.gl-term+.gl-term{border-top:1px solid var(--t-border)}
+.gl-term.hit{background:var(--t-accent-soft)}
+.gl-term:focus{outline:none}.gl-term:focus-visible{outline:2px solid var(--t-brand-fg)}
+.gl-term dt{font-weight:700;font-size:15px}
+.gl-term dt small{font-weight:500;color:var(--t-muted)}
+.gl-term dd{margin:4px 0 0;color:var(--t-fg-2);line-height:1.5}
+.gl-term dd p{margin:0 0 4px}
+.gl-ex{color:var(--t-fg-2)}
+.gl-see{font-size:13px;color:var(--t-muted)}
+.gl-see a{color:var(--t-brand-fg)}

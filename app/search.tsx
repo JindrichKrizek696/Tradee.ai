@@ -1,11 +1,12 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
-import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon,Bell,Wallet,Calculator,History} from 'lucide-react';
+import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon,Bell,Wallet,Calculator,History,BookOpen} from 'lucide-react';
 import {rank,score,highlight,currencyWords,resolveAlias,aliasWords,suggestAliases,type Searchable} from '@/lib/search';
 import {dataSource} from '@/lib/instrument-info';
 import {categories,marketLabels,signalLabels,relative,type CalendarEvent} from '@/lib/calendar';
 import {groups} from '@/lib/markets';
 import {RULES} from '@/lib/discipline/rules';
+import {GLOSSARY} from '@/lib/glossary';
 import type {Row} from '@/lib/dashboard';
 import type {View} from '@/lib/nav';
 import type {JournalList,JournalTrade} from '@/lib/journal/types';
@@ -16,9 +17,9 @@ import {requestOpen} from './open-request';
 import {dropPush} from './notify-settings';
 import './search.css';
 
-type Group='page'|'market'|'action'|'event'|'trade'|'note'|'rule'|'checklist'|'setting';
-const GROUP_LABEL:Record<Group,string>={page:'Stránky',market:'Trhy',action:'Akce',event:'Kalendář',trade:'Deník',note:'Poznámky',rule:'Pravidla a strategie',checklist:'Checklisty',setting:'Nastavení a profil'};
-const LIMIT:Partial<Record<Group,number>>={market:6,trade:6,event:5,note:5};
+type Group='page'|'market'|'action'|'event'|'trade'|'note'|'rule'|'checklist'|'setting'|'term';
+const GROUP_LABEL:Record<Group,string>={page:'Stránky',market:'Trhy',action:'Akce',event:'Kalendář',trade:'Deník',note:'Poznámky',rule:'Pravidla a strategie',checklist:'Checklisty',setting:'Nastavení a profil',term:'Slovník pojmů'};
+const LIMIT:Partial<Record<Group,number>>={market:6,trade:6,event:5,note:5,term:5};
 const BY_DATE=new Set<Group>(['trade','event','note']);
 type Item=Searchable&{id:string;group:Group;icon:LucideIcon;badge?:string;tone?:'up'|'down';run:()=>void};
 type Remote={trades:JournalTrade[];currency:string;notes:NoteMeta[];strategies:{id:string;name:string;archived:boolean}[];custom:{text:string}[];checklists:{id:string;name:string}[];failed:boolean};
@@ -99,6 +100,8 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'p:mt',group:'page',icon:Link2,title:'Propojení s MetaTraderem',keywords:'mt4 mt5 ea expert advisor účet broker',boost:3,run:href('/mt')},
    ...(owner?[{id:'p:lab',group:'page' as const,icon:FlaskConical,title:'Laboratoř',keywords:'agenti strategie evoluce',boost:3,run:href('/laborator')}]:[]),
    ...(admin?[{id:'p:admin',group:'page' as const,icon:Shield,title:'Administrace',keywords:'uživatelé členové waitlist přístup',boost:3,run:href('/admin')}]:[]),
+   {id:'p:slovnik',group:'page',icon:BookOpen,title:'Slovník pojmů',keywords:'pojmy glosář vysvětlení definice co je',boost:3,run:href('/slovnik')},
+   {id:'s:pruvodce',group:'setting',icon:Settings,title:'Průvodce nastavením',subtitle:'Nastavení',keywords:'onboarding dotazník úvod začátek přizpůsobit',boost:2,run:href('/pruvodce')},
    {id:'s:profil',group:'setting',icon:User,title:'Profil',keywords:'jméno oslovení fotka avatar o mně účet',boost:3,run:href('/profil')},
    {id:'s:fotka',group:'setting',icon:User,title:'Profilová fotka',subtitle:'Profil',keywords:'avatar obrázek',run:href('/profil#fotka')},
    {id:'s:nastaveni',group:'setting',icon:Settings,title:'Nastavení',boost:3,run:href('/nastaveni')},
@@ -125,6 +128,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    remote.custom.forEach((c,i)=>items.push({id:'cr:'+i,group:'rule',icon:ShieldCheck,title:c.text.length>80?c.text.slice(0,79)+'…':c.text,subtitle:'Vlastní pravidlo',keywords:c.text,run:href('/pravidla')}));
    for(const c of remote.checklists)items.push({id:'cl:'+c.id,group:'checklist',icon:ListChecks,title:c.name,subtitle:'Checklist',run:href('/checklisty')});
   }
+  for(const t of GLOSSARY)items.push({id:'g:'+t.id,group:'term',icon:BookOpen,title:t.term,subtitle:t.def.length>90?t.def.slice(0,89)+'…':t.def,keywords:[t.id,...(t.aliases||[])].join(' '),run:href('/slovnik#'+t.id)});
   for(const r of RULES)items.push({id:'r:'+r.id,group:'rule',icon:ShieldCheck,title:r.label,subtitle:'Pravidlo disciplíny',keywords:r.help,run:href('/pravidla')});
   return items;
  },[rows,calendar,now,zone,admin,owner,merge,setView,openMarket,onRefresh,remote,theme,toggle]);
