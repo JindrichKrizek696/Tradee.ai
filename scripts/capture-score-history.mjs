@@ -7,3 +7,21 @@ const scores=Object.fromEntries(instruments.map(i=>{const r=marketScore(data,mar
 const previous=history.snapshots.at(-1);if(!previous||JSON.stringify(previous.scores)!==JSON.stringify(scores)||now-Date.parse(previous.at)>86400000){history.snapshots.push({at,scores,context:data.changes.slice(0,3).map(c=>c.title)});}
 for(const [currency,obs] of Object.entries(Object.fromEntries([...new Set([...Object.keys(data.observations),...Object.keys(data.pairObservations)])].map(key=>[key,{...data.observations[key],...data.pairObservations[key]}]))))for(const [id,o] of Object.entries(obs)){if(o.value===null||!o.checkedAt)continue;const last=history.observations.filter(x=>x.currency===currency&&x.id===id).at(-1);if(!last||last.value!==o.value||last.period!==o.period)history.observations.push({currency,id,...o,capturedAt:at});}
 fs.writeFileSync(path,JSON.stringify(history,null,2)+'\n');console.log('Saved real score snapshots:',history.snapshots.length,'indicator observations:',history.observations.length);
+// Etapa 2A · skóre k datu: plný neměnný snímek každého trhu (vstupy, pravidla, váhy, příspěvky) do score_snapshots_v2
+// + kanonický denní (první snímek dne). Bez DB / před migrací 0039 se snímky odloží do .pit-queue.jsonl a zapíšou při dalším běhu.
+{
+ const {captureAll,asDaily}=await import('../lib/score/pit.ts');
+ const snaps=captureAll(instruments.map(i=>i.id),data,market,now),all=[...snaps,...snaps.map(asDaily)];
+ const queue=new URL('../.pit-queue.jsonl',import.meta.url),envFile=new URL('../.mariadb.env',import.meta.url);
+ const pending=fs.existsSync(queue)?fs.readFileSync(queue,'utf8').split('\n').filter(Boolean).map(l=>JSON.parse(l)):[];
+ const park=list=>{list=list.slice(-4000);fs.writeFileSync(queue,list.map(s=>JSON.stringify(s)).join('\n')+'\n');console.log(`PIT: ${list.length} snímků odloženo do .pit-queue.jsonl`)};
+ if(!fs.existsSync(envFile))park([...pending,...all]);
+ else try{
+  const {createDb}=await import('../lib/mysql.ts'),{insertSnapshots}=await import('../lib/score/pit-store.ts');
+  const env=Object.fromEntries(fs.readFileSync(envFile,'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim()]));
+  const d=createDb({host:env.MARIADB_HOST,port:Number(env.MARIADB_PORT||3306),user:env.MARIADB_USER,password:env.MARIADB_PASSWORD,database:env.MARIADB_DB});
+  const n=await insertSnapshots(d,[...pending,...all]);
+  if(pending.length)fs.unlinkSync(queue);
+  console.log(`PIT: uloženo ${n} nových snímků (${snaps.length} trhů, čas ${at})`);
+ }catch(e){console.log('!! PIT snímky: '+e.message);park([...pending,...all])}
+}

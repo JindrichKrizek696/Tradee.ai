@@ -60,3 +60,6 @@ logs/
 
 # Laboratoř · AI analytik (pracovní složka a logy na VPS)
 /.lab-analyst/
+
+# skóre k datu: odložené snímky, když DB není dostupná (scripts/capture-score-history.mjs)
+/.pit-queue.jsonl

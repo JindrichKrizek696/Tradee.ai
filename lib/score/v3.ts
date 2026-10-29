@@ -17,6 +17,8 @@ import {eventMarkets} from '../calendar.ts';
 import {cotPublishedAt,cotDatesLabel} from '../cot-dates.ts';
 
 export const METHOD_V3='score-v3';
+/** Revize metodiky v3 (váhy, prahy, limity stáří). Změna = nový bod „změna metodiky“ v historii skóre (lib/score/pit.ts). */
+export const METHOD_REVISION='3.0 · 2026-10-28';
 export const MIN_COVERAGE=60;
 /** Váhy složek v % (součet 100), v pořadí zobrazení. */
 export const WEIGHTS={rates:15,cot:15,trend:15,inflation:10,employment:10,gdp:8,mpmi:6,spmi:6,retailSales:5,seasonality:5,retailPositions:5} as const;

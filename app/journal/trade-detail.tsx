@@ -10,6 +10,11 @@ import {CheckSet} from '../checklist-card';
 import type {SnapshotList} from '@/lib/checklists/core';
 import {TradePlan} from '../strategy/trade-plan';
 import {TradeRecord,useRecord} from './trade-record';
+import {ScoreAt} from '../score-pit';
+import {SEED,findInstrument} from '@/lib/risk/instruments';
+import {instruments} from '@/lib/markets';
+// trh Tradee k symbolu brokera (EURUSD.m → EUR/USD); jen trhy se skóre
+const scoreMarket=(symbol:string|null|undefined)=>{const m=symbol?(instruments.some(i=>i.id===symbol)?symbol:findInstrument(SEED,symbol)?.market):null;return m&&instruments.some(i=>i.id===m)?m:null};
 export type TradeDetailProps={id:string;trade?:JournalTrade;currency:string;allTags:string[];prev:string|null;next:string|null;onOpen:(id:string)=>void;onClose:()=>void;onChanged:()=>void;readOnly?:boolean;query?:string};
 const KIND:Record<string,string>={open:'Otevření',add:'Přidání',partial_close:'Částečné uzavření',close:'Uzavření',sl:'Stop loss',tp:'Take profit'};
 const REASON:Record<string,string>={sl:'stop loss',tp:'take profit',so:'stop out',client:'ručně (terminál)',mobile:'ručně (mobil)',web:'ručně (web)',expert:'EA / algoritmus',manual:'ručně',market:'tržní příkaz',pending:'čekající příkaz'};
@@ -51,6 +56,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <h1 className="j-title">{trade.symbol} <small>Ručně · {fmtDate(trade.date)}</small></h1>
    {error&&<p role="alert" className="s-notice">{error}</p>}
    <section className="j-card"><dl className="j-dl"><div><dt>Výsledek</dt><dd className={trade.pnl>0?'pos':trade.pnl<0?'neg':''}>{fmtMoney(trade.pnl,currency)}</dd></div></dl><p className="j-muted">Ruční zápis nemá vstup, výstup ani stop loss – graf a podrobná čísla jsou jen u obchodů z MetaTraderu.</p></section>
+   {scoreMarket(trade.instrument||trade.symbol)&&<section className="j-card"><ScoreAt market={scoreMarket(trade.instrument||trade.symbol)} t={Date.parse(trade.date+'T21:59:59Z')} title="Skóre v den obchodu (konec dne)"/></section>}
    <section className="j-card"><h2>Poznámka</h2>{noteBox(500)}</section>
    <section className="j-card"><h2>Plán obchodu</h2><TradePlan id={id} exec={{side:null,openPrice:null,sl:null,tp:null,closePrice:null}} readOnly={readOnly} query={query}/></section>
    <TradeRecord id={id} readOnly={readOnly} query={query} currency={currency} onChanged={onChanged}/>
@@ -83,6 +89,7 @@ export function TradeDetail({id,trade,currency,allTags,prev,next,onOpen,onClose,
    <section className="j-card"><h2>Čísla</h2><dl className="j-dl">{rows.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></section>
    <section className="j-card"><h2>Průběh</h2><ol className="j-timeline">{d.changes.map((c,i)=><li key={i}><time>{fmtDateTime(c.ts)}</time><b>{KIND[c.kind]||c.kind}</b><span>{describe(c)}</span></li>)}</ol></section>
   </div>
+  {scoreMarket(p.symbol)&&<section className="j-card"><ScoreAt market={scoreMarket(p.symbol)} t={p.open_ts} title="Skóre v době vstupu"/></section>}
   <section className="j-card"><h2>Tagy</h2>
    <div className="j-chips">{autoTags.map(t=><span key={'a'+t} className="j-chip" title="Z komentáře obchodu v MetaTraderu">#{t}</span>)}{manualTags.map(t=><span key={t} className="j-chip manual">#{t}{!readOnly&&<button type="button" aria-label={'Odebrat tag '+t} onClick={()=>saveTags(manualTags.filter(x=>x!==t))}><X size={12}/></button>}</span>)}{!autoTags.length&&!manualTags.length&&<span className="j-muted">Zatím bez tagů.</span>}</div>
    {!readOnly&&<><form className="j-tagform" onSubmit={e=>{e.preventDefault();addTag()}}><input list="j-alltags" value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="Přidat tag, např. breakout" maxLength={31} aria-label="Nový tag"/><datalist id="j-alltags">{allTags.map(t=><option key={t} value={t}/>)}</datalist><button type="submit" className="j-btn">Přidat</button></form>

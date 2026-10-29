@@ -2,6 +2,7 @@
 // Stránka /scenare: scénáře (plán obchodu) se stavem a checklistem, vynechané obchody a stav dne.
 // ?novy=<trh>&bias=&ez=&ez2=&inv=&tp=&alert= = nový scénář s předvyplněním (z detailu trhu, z grafu, z alertu); #<id> = otevřít scénář.
 import {useEffect,useMemo,useState} from 'react';
+import {ScoreAt} from '../score-pit';
 import {ArrowLeft,Plus,Pencil,Trash2,ChartCandlestick,CalendarClock,Bell,Ban} from 'lucide-react';
 import {instruments} from '@/lib/markets';
 import {matchesText} from '@/lib/market-view';
@@ -96,6 +97,7 @@ export function DayStatusCard(){
 export default function ScenariosPage(){
  usePalette();
  const {list:strategies}=useStrategies(true);
+ const [scoreOpen,setScoreOpen]=useState<string|null>(null);
  const [items,setItems]=useState<Scenario[]|null>(null),[events,setEvents]=useState<Record<string,{at:number;title:string}>>({}),[windows,setWindows]=useState<Record<string,{title:string;at:number;source:string}[]>>({}),[scope,setScope]=useState<'open'|'closed'|'all'>('open'),[error,setError]=useState(''),[msg,setMsg]=useState('');
  const [form,setForm]=useState<Draft|null>(null),[skip,setSkip]=useState<Scenario|null|false>(false),[focus,setFocus]=useState<string|null>(null),[skips,setSkips]=useState<NoTrade[]>([]),[now,setNow]=useState(()=>Date.now());
  async function load(){try{const j=await call<{scenarios:Scenario[];events:Record<string,{at:number;title:string}>;windows?:Record<string,{title:string;at:number;source:string}[]>;now:number}>('/api/scenarios?scope=all');setItems(j.scenarios);setEvents(j.events);setWindows(j.windows||{});setNow(j.now);setError('')}catch(e){setError((e as Error).message)}}
@@ -138,6 +140,7 @@ export default function ScenariosPage(){
       <p className="sg-hyp">{s.hypothesis}</p>
       <div className="al-meta"><span>{s.strategyName?`${s.strategyName} · v${s.version??'?'}${s.model?' · '+s.model:''}`:'bez strategie'}</span><span>{levelsText(s.levels)}</span><span>{s.validUntil?(st==='expired'?'vypršel ':'platí do ')+dtText(s.validUntil):'bez omezení platnosti'}</span>{s.reviewAt&&<span><CalendarClock size={12}/> přehodnotit {dtText(s.reviewAt)}</span>}{ev&&<span className="sg-event">Zpráva: <b>{ev.title}</b> {until(ev.at,now)}</span>}{s.alertId&&<span><Bell size={12}/> s alertem</span>}{s.trades>0&&<span>{s.trades} {s.trades===1?'obchod':'obchody'}</span>}<span>založen {dayText(s.created)}</span></div>
       {s.note&&<p className="al-note">{s.note}</p>}
+      {focus===s.id||scoreOpen===s.id?<ScoreAt market={s.instrument} t={s.created} title="Skóre při založení scénáře"/>:<button type="button" className="al-link" onClick={()=>setScoreOpen(s.id)}>Skóre při založení</button>}
       {focus===s.id&&s.snapshot&&<SnapshotView snap={s.snapshot}/>}
       {focus!==s.id&&s.snapshot&&<button type="button" className="al-link" onClick={()=>{location.hash=s.id}}>Zobrazit checklist</button>}
       <div className="sg-moves">{(['active','entered','invalidated','waiting'] as Status[]).filter(t=>t!==st&&canMove(st,t)&&!(t==='waiting'&&s.validUntil!==null&&s.validUntil<=now)).map(t=><button key={t} type="button" className="al-btn sm" onClick={()=>move(s,t)}>{t==='waiting'&&st!=='active'?'Znovu otevřít':t==='entered'?'Vstoupeno':STATUSES[t]}</button>)}

@@ -7,7 +7,7 @@
 // Pravidla (rozdíl = BASE − QUOTE; práh t1 → ±1, t2 → ±2):
 //  • COT          signál TFF leveraged funds z cotStats (60 % net/OI + 40 % změna za 4 týdny), párový stejně jako
 //                 v score-engine (pár s USD = signál cizí měny, USD Index je jen proxy; kříž = polovina rozdílu).
-//                 t1 0,15 · t2 0,5.
+//                 t1 0,25 · t2 0,75 (THRESHOLDS.cot).
 //  • HDP          mezikvartální růst reálného HDP (q/q, p. b.). Jen měsíční/anualizovaný údaj → chybí data. t1 0,3 · t2 0,8.
 //  • Sezonalita   sezónní signál aktuálního měsíce z seasonalStats (rozsah ±0,5). |s| t1 0,03 · t2 0,1.
 //  • Trend        tři hlasy ceny páru vůči GMA50/GMA200 (−1, −⅓, ⅓, 1): ±1 → ±2, ±⅓ → ±1.
@@ -50,9 +50,15 @@ export const ROWS=[
 const fmt=(n:number,d=1)=>(n>0?'+':n<0?'−':'')+Math.abs(n).toLocaleString('cs-CZ',{minimumFractionDigits:d,maximumFractionDigits:d});
 const sig=(n:number)=>Number(n.toPrecision(6)).toLocaleString('cs-CZ',{maximumFractionDigits:6});
 const round=(n:number,d=2)=>Math.round(n*10**d)/10**d;
+/** Prahy složek [t1 → ±1, t2 → ±2] – jediný zdroj pro výpočet i vysvětlení „Proč?“ (lib/score/pit.ts). */
+export const THRESHOLDS={cot:[.25,.75],gdp:[.3,.8],retailSales:[.5,1.5],mpmi:[1.5,5],spmi:[1.5,5],inflation:[.5,1.5],seasonality:[.03,.1]} as const;
+/** Retail pozice (kontrariánsky): podíl long v %. */
+export const RETAIL_LONG={minus2:75,minus1:60,plus1:40,plus2:25} as const;
 /** Spojité číslo → −2…+2 podle prahů t1 (±1) a t2 (±2). */
 export function bucket(x:number,t1:number,t2:number):Score{const v=round(x,4);return v>=t2?2:v>=t1?1:v<=-t2?-2:v<=-t1?-1:0}
-const clamp2=(n:number)=>Math.max(-2,Math.min(2,Math.round(n))) as Score;
+/** Kontrariánské skóre z podílu long (%). */
+export const retailScore=(long:number):Score=>(long>=RETAIL_LONG.minus2?-2:long>=RETAIL_LONG.minus1?-1:long<=RETAIL_LONG.plus2?2:long<=RETAIL_LONG.plus1?1:0) as Score;
+export const clamp2=(n:number)=>Math.max(-2,Math.min(2,Math.round(n))) as Score;
 const toNum=(s:string)=>Number(s.replace(/[−–]/g,'-').replace(',','.'));
 
 const UNIT:Record<'qq'|'mm'|'yy',string>={qq:'(?:mezikvartálně|q\\/q)',mm:'(?:meziměsíčně|m\\/m)',yy:'(?:meziročně|y\\/y)'};
@@ -137,7 +143,7 @@ type RowOut={score:Score|null;detail:string;asOf?:string;source?:string};
 /** Sezonalita aktuálního měsíce z cenové řady (páru i vlastního měnového indexu). */
 export function seasonRow(price:PriceData|undefined,month:number,sample=10):RowOut{
  const season=seasonalStats(price,month,sample);
- return price&&season.signal!==null?{score:bucket(season.signal,.03,.1),detail:`${monthName[month-1][0].toUpperCase()+monthName[month-1].slice(1)}: průměr ${fmt(season.avg,2)} %, růst ${season.positive}/${season.n} let · signál ${fmt(season.signal,3)}.`,asOf:`${season.years[0]?.year}–${season.years.at(-1)?.year}`,source:price.sourceUrl}
+ return price&&season.signal!==null?{score:bucket(season.signal,...THRESHOLDS.seasonality),detail:`${monthName[month-1][0].toUpperCase()+monthName[month-1].slice(1)}: průměr ${fmt(season.avg,2)} %, růst ${season.positive}/${season.n} let · signál ${fmt(season.signal,3)}.`,asOf:`${season.years[0]?.year}–${season.years.at(-1)?.year}`,source:price.sourceUrl}
   :{score:null,detail:'Chybí data: méně než 5 let cenové historie pro tento měsíc.'};
 }
 /** Denní trend ze tří hlasů (reference vs. GMA50, vs. GMA200, pořadí průměrů). */
@@ -163,15 +169,15 @@ export function pairBreakdown(pair:string,data:FundamentalData,market:MarketData
 
  // COT
  const cot=cotPairSignal(market,base,quote);
- out.cot=cot?{score:bucket(cot.signal,.25,.75),detail:`Signál ${fmt(cot.signal,2)} · `+cot.parts.map(([c,p])=>`${c} fondy net ${fmt(p.net*100)} % OI`).join(', ')+(base==='USD'||quote==='USD'?' (USD jen proxy, rozhoduje cizí měna)':'')+'.',asOf:cot.date,source:cot.url}
+ out.cot=cot?{score:bucket(cot.signal,...THRESHOLDS.cot),detail:`Signál ${fmt(cot.signal,2)} · `+cot.parts.map(([c,p])=>`${c} fondy net ${fmt(p.net*100)} % OI`).join(', ')+(base==='USD'||quote==='USD'?' (USD jen proxy, rozhoduje cizí měna)':'')+'.',asOf:cot.date,source:cot.url}
   :{score:null,detail:'Chybí data: COT report pro obě měny se stejným datem není k dispozici.'};
 
  // HDP, Retail Sales, PMI, inflace
- out.gdp=macroRow(data,base,quote,'gdp',o=>pctChange(o?.value,'qq'),'%',.3,.8,'mezikvartální HDP',now);
- out.retailSales=macroRow(data,base,quote,'retailSales',o=>{const m=pctChange(o?.value,'mm');if(m!==null)return m;const q=pctChange(o?.value,'qq');return q===null?null:round(q/3,2)},'%',.5,1.5,'meziměsíční tržby',now);
- out.mpmi=macroRow(data,base,quote,'mpmi',o=>pmiLevel(o?.value),'',1.5,5,'hodnota výrobního PMI',now);
- out.spmi=macroRow(data,base,quote,'spmi',o=>pmiLevel(o?.value),'',1.5,5,'hodnota PMI služeb',now);
- out.inflation=macroRow(data,base,quote,'inflation',o=>pctChange(o?.value,'yy'),'%',.5,1.5,'meziroční inflace',now);
+ out.gdp=macroRow(data,base,quote,'gdp',o=>pctChange(o?.value,'qq'),'%',...THRESHOLDS.gdp,'mezikvartální HDP',now);
+ out.retailSales=macroRow(data,base,quote,'retailSales',o=>{const m=pctChange(o?.value,'mm');if(m!==null)return m;const q=pctChange(o?.value,'qq');return q===null?null:round(q/3,2)},'%',...THRESHOLDS.retailSales,'meziměsíční tržby',now);
+ out.mpmi=macroRow(data,base,quote,'mpmi',o=>pmiLevel(o?.value),'',...THRESHOLDS.mpmi,'hodnota výrobního PMI',now);
+ out.spmi=macroRow(data,base,quote,'spmi',o=>pmiLevel(o?.value),'',...THRESHOLDS.spmi,'hodnota PMI služeb',now);
+ out.inflation=macroRow(data,base,quote,'inflation',o=>pctChange(o?.value,'yy'),'%',...THRESHOLDS.inflation,'meziroční inflace',now);
 
  // Sezonalita a trend z cen páru
  const price=market.prices[pair];
@@ -180,7 +186,7 @@ export function pairBreakdown(pair:string,data:FundamentalData,market:MarketData
 
  // Retail pozice (kontrariánsky), jen pro přesně tento pár
  const rp=data.pairObservations?.[pair]?.retailPositions,r=rp?.value?parseRetail(rp.value):null;
- if(r&&r.long+r.short>0){const long=100*r.long/(r.long+r.short);out.retailPositions={score:(long>=75?-2:long>=60?-1:long<=25?2:long<=40?1:0) as Score,detail:`Retail long ${Math.round(long)} % / short ${Math.round(100-long)} % (vzorek brokerů) → kontrariánsky ${long>=60?'proti růstu':long<=40?'pro růst':'bez převahy'}.`,asOf:rp?.period??undefined,source:rp?.sourceUrl}}
+ if(r&&r.long+r.short>0){const long=100*r.long/(r.long+r.short);out.retailPositions={score:retailScore(long),detail:`Retail long ${Math.round(long)} % / short ${Math.round(100-long)} % (vzorek brokerů) → kontrariánsky ${long>=60?'proti růstu':long<=40?'pro růst':'bez převahy'}.`,asOf:rp?.period??undefined,source:rp?.sourceUrl}}
  else out.retailPositions={score:null,detail:'Chybí data: pro tento pár není uložený ověřený vzorek retailových pozic (Myfxbook / broker sentiment).'};
 
  // Úrokové sazby a zaměstnanost z hodnocení bank

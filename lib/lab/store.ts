@@ -91,7 +91,7 @@ export function cotFromMarketJson(core:{cot?:Record<string,{isProxy?:boolean;his
  for(const k of ['GC=F','SI=F','CL=F']){const x=legacy?.[k];if(x)out[k]={rows:x.history as CotSource[string]['rows'],group:'managedMoney'}}
  return out;
 }
-// uložené snapshoty skóre: tabulka score_snapshots (sync-mariadb.py), když existuje, + data/score-history.json
+// uložené snapshoty skóre: tabulka score_snapshots (sync-mariadb.py), když existuje, + data/score-history.json + score_snapshots_v2 (skóre k datu)
 export async function loadScoreSnaps(d:Db,markets:string[],json:{snapshots:{at:string;scores:Record<string,{score:number|null;method?:string}|undefined>}[]}):Promise<ScoreSnap[]>{
  const seen=new Set<string>(),out:ScoreSnap[]=[],want=new Set(markets);
  const push=(at:string,instrument:string,score:unknown,method:unknown)=>{const t=Date.parse(at),v=Number(score);if(!want.has(instrument)||!Number.isFinite(t)||score===null||!Number.isFinite(v))return;const k=t+' '+instrument;if(seen.has(k))return;seen.add(k);out.push({at:t,instrument,score:v,method:String(method||'')})};
@@ -100,5 +100,10 @@ export async function loadScoreSnaps(d:Db,markets:string[],json:{snapshots:{at:s
   const rows=(await d.prepare('SELECT at,instrument,score,method FROM score_snapshots WHERE instrument IN ('+markets.map(()=>'?').join(',')+')').bind(...markets).all<{at:string;instrument:string;score:number|null;method:string|null}>()).results;
   for(const r of rows)push(r.at,r.instrument,r.score,r.method);
  }catch{} // tabulka nemusí existovat (zrcadlení vypnuté) – stačí JSON
+ // plné snímky skóre k datu (migrace 0039): capture + rekonstrukce; čas DATETIME(3) UTC → ISO
+ if(markets.length)try{
+  const rows=(await d.prepare("SELECT at,market,score,method FROM score_snapshots_v2 WHERE kind IN ('capture','backfill') AND market IN ("+markets.map(()=>'?').join(',')+')').bind(...markets).all<{at:string;market:string;score:number|null;method:string|null}>()).results;
+  for(const r of rows)push(String(r.at).replace(' ','T')+(/Z$/.test(String(r.at))?'':'Z'),r.market,r.score,r.method);
+ }catch{} // před migrací 0039 tabulka chybí
  return out;
 }

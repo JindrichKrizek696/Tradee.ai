@@ -1,0 +1,58 @@
+/* Skóre k datu, panel Proč?, karta měny, historie – jen tokeny motivu */
+.pit-asof{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pit-asof label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--t-muted)}
+.pit-asof input{height:32px;padding:0 8px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface);color:var(--t-fg);font:inherit;font-size:13px;max-width:100%}
+.pit-now,.pit-banner button,.pit-wins button{height:30px;padding:0 10px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface);color:var(--t-fg);font-size:13px;cursor:pointer}
+.pit-banner{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--t-notice-border);border-radius:10px;background:var(--t-notice-bg);color:var(--t-fg);font-size:13px}
+.pit-banner b{font-size:14px}.pit-banner span{color:var(--t-fg-2);flex:1 1 220px}
+.pit-whybtn{height:22px;padding:0 7px;margin-left:4px;border:1px solid var(--t-border);border-radius:999px;background:transparent;color:var(--t-brand-fg);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.pit-whybtn:hover,.pit-whybtn.on{background:var(--t-surface-2);border-color:var(--t-border-strong)}
+.pit-whybtn:focus-visible{outline:2px solid var(--t-brand);outline-offset:1px}
+.pit-why{margin:8px 0 4px;padding:10px 12px;border:1px solid var(--t-border-strong);border-radius:10px;background:var(--t-surface);font-size:13px;line-height:1.45;color:var(--t-fg-2);min-width:0}
+.pit-why-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--t-fg)}
+.pit-why-head b{margin-right:auto}
+.pit-x{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:50%;background:transparent;color:var(--t-muted);cursor:pointer}
+.pit-x:hover{background:var(--t-surface-2);color:var(--t-fg)}
+.pit-note{margin:4px 0!important;font-size:12px!important;color:var(--t-muted)!important}
+.pit-inputs{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px;display:block;overflow-x:auto}
+.pit-inputs th{text-align:left;font-weight:600;color:var(--t-muted);padding:3px 8px 3px 0;border-bottom:1px solid var(--t-border)}
+.pit-inputs td{padding:4px 8px 4px 0;border-bottom:1px solid var(--t-border);vertical-align:top}
+.pit-inputs td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--t-fg)}
+.pit-inputs td small{display:block;color:var(--t-muted);white-space:normal}
+.pit-inputs a,.pit-ccard a{color:var(--t-brand-fg);text-decoration:none}
+.pit-dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:2px 10px;margin:6px 0}
+.pit-dl dt{color:var(--t-muted)}.pit-dl dd{margin:0;color:var(--t-fg)}
+.pit-changes{margin-top:6px;padding-top:6px;border-top:1px dashed var(--t-border)}
+.pit-changes ul,.pit-chlist{margin:4px 0 0;padding-left:18px}.pit-changes p{margin:2px 0!important;font-size:12px!important}
+.pit-stance,.pit-badge{display:inline-flex;align-items:center;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--t-surface-2);color:var(--t-fg-2)}
+.pit-stance.pro,.pit-badge.pro{background:color-mix(in srgb,var(--bull) 16%,transparent);color:var(--t-fg)}
+.pit-stance.proti,.pit-badge.proti{background:color-mix(in srgb,var(--bear) 16%,transparent);color:var(--t-fg)}
+.pit-badge.none{opacity:.6}
+.pit-pair{margin:8px 0 12px}
+.pit-dir{margin:0 0 6px!important;font-size:13px!important;color:var(--t-fg-2)}
+.pit-badges{display:flex;flex-wrap:wrap;gap:4px}
+.pit-mixed{margin:6px 0 0!important;font-size:12px!important;color:var(--t-muted)!important}
+.pit-cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 24px}
+.pit-cgroup h3{display:flex;flex-direction:column;margin:0 0 4px;font-size:14px}
+.pit-cgroup h3 small{font-weight:400;font-size:12px;color:var(--t-muted)}
+.pit-crow{display:grid;grid-template-columns:minmax(0,1fr) auto 64px;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--t-border);font-size:13px}
+.pit-clabel{display:flex;flex-direction:column;min-width:0}.pit-clabel small{color:var(--t-muted);font-size:11px;overflow-wrap:anywhere}
+.pit-cown{color:var(--t-fg);text-align:right;max-width:180px}
+.pit-cidx{text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--t-muted)}
+.pit-cidx.positive{color:var(--bull)}.pit-cidx.negative{color:var(--bear)}
+.pit-wins{display:inline-flex;gap:4px}
+.pit-wins button.on{background:var(--t-surface-2);border-color:var(--t-border-strong);font-weight:600}
+.pit-hist svg{width:100%;height:auto;display:block;cursor:crosshair}
+.pit-grid{stroke:var(--t-border)}.pit-axis{fill:var(--t-muted);font-size:12px}
+.pit-line{fill:none;stroke:var(--t-chart-line,#245bff);stroke-width:2.5}
+.pit-mark{stroke:var(--t-border-strong);stroke-dasharray:6 4}
+.pit-dot{fill:var(--t-chart-line,#245bff);stroke:var(--t-surface);stroke-width:1.5;cursor:pointer}
+.pit-dot.rec{fill:var(--t-surface);stroke:var(--t-chart-line,#245bff);stroke-width:2}
+.pit-at{display:flex;flex-direction:column;gap:4px}
+.pit-at-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px}
+.pit-at-head strong{font-size:18px;font-variant-numeric:tabular-nums}
+.pit-at-head span{color:var(--t-muted)}
+.pit-at .positive,.pit-why .positive{color:var(--bull)}.pit-at .negative,.pit-why .negative{color:var(--bear)}
+.pit-score-why{margin-top:6px}
+@media (max-width:640px){.pit-crow{grid-template-columns:minmax(0,1fr) 56px}.pit-cown{grid-column:1/-1;text-align:left;max-width:none}}
+.pit-row{display:flex;justify-content:flex-end;margin:0 0 10px}.m-head-bar .pit-asof{margin-left:auto}
