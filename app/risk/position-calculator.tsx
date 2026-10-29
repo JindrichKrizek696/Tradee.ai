@@ -3,41 +3,44 @@
 // Exportovaná komponenta – vstupy jdou předvyplnit (trh z grafu, vstup, stop, cíl) a onResult vrací výsledek volajícímu.
 import {useEffect,useMemo,useState} from 'react';
 import {Info,TriangleAlert} from 'lucide-react';
-import {positionSize,RISK_MODE_LABELS,type RiskMode,type SizeResult} from '@/lib/risk/size';
-import {defaultInstrumentFor,KIND_LABELS as INST_KIND,type Instrument} from '@/lib/risk/instruments';
+import {positionSize,RISK_MODE_LABELS,type RiskMode,type SizeResult,type RateFn} from '@/lib/risk/size';
+import {defaultInstrumentFor,KIND_LABELS as INST_KIND,type Instrument,type Spec} from '@/lib/risk/instruments';
 import {KIND_LABELS} from '@/lib/risk/account';
 import {useRisk,activeProfiles,rateOf,specOf,useProfilePref,writeProfilePref,defaultRiskPct} from './risk-context';
 import {RiskStatus} from './account-risk';
 import '../mt.css';
 import './risk.css';
 export type CalcInitial={market?:string;instrument?:string;entry?:number;stop?:number;target?:number};
+/** Pevný účet a instrument (replay): bez výběru profilu a instrumentu, zůstatek / zbývající limity a kurz dodá volající. */
+export type CalcFixed={name:string;currency:string;balance:number;remainingDD:number|null;remainingDaily:number|null;maxRiskPct:number|null;spec:Spec;rate:RateFn};
+export type CalcCtx={profileId:string;instrumentId:string;entry:number;stop:number;target:number|null};
 const num=(s:string)=>{const n=Number(s.replace(/\s/g,'').replace(',','.'));return s.trim()&&Number.isFinite(n)?n:NaN};
 const f=(n:number,max=2)=>n.toLocaleString('cs-CZ',{maximumFractionDigits:max});
 const str=(n:number|undefined)=>n===undefined||!Number.isFinite(n)?'':String(n);
-export function PositionCalculator({initial,onResult,title=true}:{initial?:CalcInitial;onResult?:(r:SizeResult|null,ctx:{profileId:string;instrumentId:string})=>void;title?:boolean}){
- const {data,error}=useRisk(),profiles=activeProfiles(data),pref=useProfilePref();
- const profile=profiles.find(p=>p.id===pref)||null;
- const [inst,setInst]=useState(initial?.instrument||''),[entry,setEntry]=useState(str(initial?.entry)),[stop,setStop]=useState(str(initial?.stop)),[target,setTarget]=useState(str(initial?.target));
+export function PositionCalculator({initial,onResult,title=true,fixed}:{initial?:CalcInitial;onResult?:(r:SizeResult|null,ctx:CalcCtx)=>void;title?:boolean;fixed?:CalcFixed}){
+ const {data,error}=useRisk(!fixed),profiles=activeProfiles(data),pref=useProfilePref();
+ const profile=fixed?null:profiles.find(p=>p.id===pref)||null;
+ const [inst,setInst]=useState(fixed?.spec.id||initial?.instrument||''),[entry,setEntry]=useState(str(initial?.entry)),[stop,setStop]=useState(str(initial?.stop)),[target,setTarget]=useState(str(initial?.target));
  const [mode,setMode]=useState<RiskMode>('pct'),[rawValue,setValue]=useState<string|null>(null),[bal,setBal]=useState(''),[ccy,setCcy]=useState('USD');
  // výchozí instrument podle trhu, jakmile jsou data
  useEffect(()=>{if(!inst&&data){const d=initial?.market?defaultInstrumentFor(data.instruments,initial.market):null;setInst(d?.id||'EURUSD')}},[data,inst,initial?.market]);
- const value=rawValue??(mode==='fixed'?'':String(defaultRiskPct(profile)));
- const spec=useMemo(()=>inst?specOf(data,profile?.id||null,inst):null,[data,profile,inst]);
- const accCcy=profile?.currency||ccy,balance=profile?profile.status?.balance??profile.balance??profile.startBalance:num(bal);
- const result=useMemo(()=>spec?positionSize({spec,entry:num(entry),stop:num(stop),target:Number.isFinite(num(target))?num(target):null,accountCcy:accCcy,balance:Number.isFinite(balance)?balance:null,mode,value:num(value),remainingDD:profile?.status?.drawdown?.remaining??null,remainingDaily:profile?.status?.daily?.remaining??null,rate:rateOf(data)}):null,[spec,entry,stop,target,accCcy,balance,mode,value,profile,data]);
- useEffect(()=>{onResult?.(result,{profileId:profile?.id||'',instrumentId:inst})},[result,profile,inst,onResult]);
+ const value=rawValue??(mode==='fixed'?'':String(fixed?fixed.maxRiskPct??1:defaultRiskPct(profile)));
+ const spec=useMemo(()=>fixed?fixed.spec:inst?specOf(data,profile?.id||null,inst):null,[fixed,data,profile,inst]);
+ const accCcy=fixed?.currency||profile?.currency||ccy,balance=fixed?fixed.balance:profile?profile.status?.balance??profile.balance??profile.startBalance:num(bal);
+ const result=useMemo(()=>spec?positionSize({spec,entry:num(entry),stop:num(stop),target:Number.isFinite(num(target))?num(target):null,accountCcy:accCcy,balance:Number.isFinite(balance)?balance:null,mode,value:num(value),remainingDD:fixed?fixed.remainingDD:profile?.status?.drawdown?.remaining??null,remainingDaily:fixed?fixed.remainingDaily:profile?.status?.daily?.remaining??null,rate:fixed?fixed.rate:rateOf(data)}):null,[spec,entry,stop,target,accCcy,balance,mode,value,profile,data,fixed]);
+ useEffect(()=>{onResult?.(result,{profileId:profile?.id||'',instrumentId:inst,entry:num(entry),stop:num(stop),target:Number.isFinite(num(target))?num(target):null})},[result,profile,inst,onResult,entry,stop,target]);
  const groups=useMemo(()=>{const g=new Map<string,Instrument[]>();for(const i of data?.instruments||[]){const k=INST_KIND[i.kind];(g.get(k)||g.set(k,[]).get(k)!).push(i)}return [...g]},[data]);
  const unitWord=(u:string)=>u==='lot'?'loty':u==='kontrakt'?'kontrakty':'kusy';
- if(!data)return <div className="pc">{error?<p className="mt-alert" role="alert">{error}</p>:<p className="rk-muted">Načítám účty a instrumenty…</p>}</div>;
+ if(!data&&!fixed)return <div className="pc">{error?<p className="mt-alert" role="alert">{error}</p>:<p className="rk-muted">Načítám účty a instrumenty…</p>}</div>;
  return <div className="pc">
   {title&&<h2 className="pc-title">Kalkulačka pozice</h2>}
-  <div className="pc-grid">
+  {fixed?<p className="pc-spec">Účet <b>{fixed.name}</b> · zůstatek {f(fixed.balance)} {fixed.currency}{fixed.remainingDaily!==null?` · zbývá denní ztráta ${f(fixed.remainingDaily)}`:''}{fixed.remainingDD!==null?` · zbývá drawdown ${f(fixed.remainingDD)}`:''} · {fixed.spec.id}</p>:<div className="pc-grid">
    <label className="pc-field"><span>Účet</span><select value={profile?.id||''} onChange={e=>{writeProfilePref(e.target.value);setValue(null)}}>
     <option value="">Bez profilu (zadám zůstatek)</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.name} · {KIND_LABELS[p.kind]} · {p.currency}</option>)}</select></label>
-   {!profile&&<><label className="pc-field"><span>Zůstatek</span><input inputMode="decimal" value={bal} onChange={e=>setBal(e.target.value)} placeholder="10 000"/></label>
-    <label className="pc-field pc-narrow"><span>Měna</span><select value={ccy} onChange={e=>setCcy(e.target.value)}>{data.currencies.map(c=><option key={c}>{c}</option>)}</select></label></>}
+   {!profile&&data&&<><label className="pc-field"><span>Zůstatek</span><input inputMode="decimal" value={bal} onChange={e=>setBal(e.target.value)} placeholder="10 000"/></label>
+    <label className="pc-field pc-narrow"><span>Měna</span><select value={ccy} onChange={e=>setCcy(e.target.value)}>{(data?.currencies||[]).map(c=><option key={c}>{c}</option>)}</select></label></>}
    <label className="pc-field"><span>Instrument</span><select value={inst} onChange={e=>setInst(e.target.value)}>{groups.map(([k,list])=><optgroup key={k} label={k}>{list.map(i=><option key={i.id} value={i.id}>{i.name===i.id?i.id:`${i.id} – ${i.name}`}</option>)}</optgroup>)}</select></label>
-  </div>
+  </div>}
   {profile&&<RiskStatus profile={profile} compact/>}
   <div className="pc-grid">
    <label className="pc-field"><span>Vstup</span><input inputMode="decimal" value={entry} onChange={e=>setEntry(e.target.value)}/></label>

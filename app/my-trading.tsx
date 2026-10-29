@@ -46,7 +46,7 @@ export function MyTrading({now,onAddTrade,onAccount,onPeriod,rev=0,style}:{now:n
  // vybraný účet hlásí Dashboardu (karta Otevřené pozice)
  useEffect(()=>{onAccount?.(acc)},[acc,onAccount]);
  useEffect(()=>{onPeriod?.(period,range)},[period,range,onPeriod]);
- const trades=useMemo(()=>data?.trades||[],[data]),cur=data?.currency||'USD',today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7));
+ const trades=useMemo(()=>(data?.trades||[]).filter(t=>t.mode!=='replay'),[data]) /* replay není živé obchodování */,cur=data?.currency||'USD',today=todayIso(now),y=Number(today.slice(0,4)),mo=Number(today.slice(5,7));
  const all=useMemo(()=>filterTrades(trades,{...DEFAULT_FILTER,account:acc},now),[trades,acc,now]);
  const list=useMemo(()=>filterTrades(trades,{...DEFAULT_FILTER,account:acc,period,from:range.from,to:range.to},now),[trades,acc,period,range,now]);
  const s=useMemo(()=>summary(list),[list]),streak=useMemo(()=>currentStreak(list),[list]),curve=useMemo(()=>equityCurve(all),[all]);

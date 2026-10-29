@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
-import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon,Bell,Wallet,Calculator} from 'lucide-react';
+import {Search,X,LayoutDashboard,ChartNoAxesCombined,Landmark,CalendarDays,NotebookPen,ClipboardCheck,FlaskConical,StickyNote,User,Settings,ListChecks,ShieldCheck,Shield,Link2,Moon,Sun,RefreshCw,LogOut,CandlestickChart,CornerDownLeft,type LucideIcon,Bell,Wallet,Calculator,History} from 'lucide-react';
 import {rank,score,highlight,currencyWords,resolveAlias,aliasWords,suggestAliases,type Searchable} from '@/lib/search';
 import {dataSource} from '@/lib/instrument-info';
 import {categories,marketLabels,signalLabels,relative,type CalendarEvent} from '@/lib/calendar';
@@ -93,6 +93,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'p:makro',group:'page',icon:Landmark,title:'Katalog makro řad',subtitle:'Zdroje, jednotky, poslední hodnoty a příští vydání',keywords:'makro řady cpi inflace nezaměstnanost nfp hdp gdp maloobchod retail pmi sazba zdroj revize katalog',boost:2,run:href('/makro')},
    {id:'p:scenare',group:'page',icon:ShieldCheck,title:'Scénáře',subtitle:'Plán obchodu, vynechané obchody',keywords:'scénář plán hypotéza vynechaný obchod no trade pauza',boost:3,run:href('/scenare')},
    {id:'p:strategie',group:'page',icon:ShieldCheck,title:'Strategie (playbook)',subtitle:'Podmínky, verze, vstupní modely',keywords:'strategie playbook podmínky verze setup trigger invalidace',boost:3,run:href('/strategie')},
+   {id:'p:replay',group:'page',icon:History,title:'Replay',subtitle:'Trénink a validace na historii',keywords:'replay backtest historie trénink validace simulace svíčky prop challenge',boost:3,run:href('/replay')},
    {id:'p:alerty',group:'page',icon:Bell,title:'Alerty',subtitle:'Cenové alerty',keywords:'alert upozornění notifikace hlídání ceny cena skóre zvonek',boost:3,run:href('/alerty')},
    {id:'p:checklisty',group:'page',icon:ListChecks,title:'Checklisty',keywords:'kontrolní seznam před vstupem',boost:3,run:href('/checklisty')},
    {id:'p:mt',group:'page',icon:Link2,title:'Propojení s MetaTraderem',keywords:'mt4 mt5 ea expert advisor účet broker',boost:3,run:href('/mt')},

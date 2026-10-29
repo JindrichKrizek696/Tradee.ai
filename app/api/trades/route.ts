@@ -8,9 +8,10 @@ import {mtTradesToCalendar,pragueDate,type MtClosedRow} from '@/lib/mt/trades';
 const str=(s:unknown):s is string=>typeof s==='string';
 // starší ruční záznamy mají created jako 'RRRR-MM-DD HH:MM:SS' (UTC) – sjednotit na ISO kvůli řazení s MT obchody
 const iso=(s:string)=>s.includes('T')?s:s.replace(' ','T')+'Z';
+// obchody z replaye (trade_meta.mode='replay') nejsou živé obchodování – kalendář a souhrny je nepočítají
 export async function GET(req:Request){try{const u=await identity(req),d=db();
  const currency=await userCurrency(d,u.id);
- const manual=(await d.prepare('SELECT id,date,instrument,pnl,note,created FROM trades WHERE user_id=? ORDER BY date,created').bind(u.id).all<Trade>()).results.map(t=>({...t,created:iso(String(t.created)),source:'manual' as const}));
+ const manual=(await d.prepare("SELECT id,date,instrument,pnl,note,created FROM trades WHERE user_id=? AND NOT EXISTS(SELECT 1 FROM trade_meta m WHERE m.user_id=trades.user_id AND m.trade_id=CONCAT('man:',trades.id) AND m.mode='replay') ORDER BY date,created").bind(u.id).all<Trade>()).results.map(t=>({...t,created:iso(String(t.created)),source:'manual' as const}));
  const mtRows=(await d.prepare(`SELECT p.id,p.ticket,p.symbol,p.net,p.close_ts,p.tags,p.tags_manual,p.note,a.currency AS acc_currency,a.name AS acc_name,a.login AS acc_login
   FROM mt_positions p JOIN mt_accounts a ON a.id=p.account_id WHERE a.user_id=? AND p.status='closed' ORDER BY p.close_ts`).bind(u.id).all<MtClosedRow>()).results;
  const rates=await loadRates(d,currency,mtRows.map(r=>r.acc_currency));

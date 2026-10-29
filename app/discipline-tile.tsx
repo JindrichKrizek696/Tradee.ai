@@ -23,7 +23,7 @@ export function DisciplineTile({now,account,period='month',from='',to='',rev=0,s
   return()=>{live=false}},[rev]);
  const ov=useMemo(()=>{
   if(!data)return null;
-  const list=filterTrades(data.trades,{...DEFAULT_FILTER,account,period,from,to},now);
+  const list=filterTrades(data.trades.filter(t=>t.mode!=='replay'),{...DEFAULT_FILTER,account,period,from,to},now);
   return overview(list,data.reviews,data.violations,Object.fromEntries(Object.entries(data.reviews).map(([k,v])=>[k,v.customBroken||[]])),data.strategies);
  },[data,account,period,from,to,now]);
  const word=period==='custom'?rangeLabel(from,to,pragueDate(now)):PW[period];

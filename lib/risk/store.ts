@@ -42,7 +42,7 @@ const startTs=(date:string)=>Date.parse(date+'T00:00:00Z')-2*3600000; // s rezer
 export async function profileData(d:Db,userId:string,p:Pick<Profile,'linkId'|'startBalance'|'startDate'|'balance'>,accounts?:LinkedAccount[]):Promise<{balance:number;equity:number|null;points:Point[];trades:ClosedTrade[];source:'mt'|'trades'|'manual'}>{
  const from=startTs(p.startDate);
  if(p.linkId==='manual'){
-  const trades=(await d.prepare('SELECT date,pnl FROM trades WHERE user_id=? AND date>=?').bind(userId,p.startDate).all<{date:string;pnl:number}>()).results.map(t=>({closeTs:Date.parse(String(t.date).slice(0,10)+'T12:00:00Z'),pnl:Number(t.pnl)}));
+  const trades=(await d.prepare("SELECT date,pnl FROM trades WHERE user_id=? AND date>=? AND NOT EXISTS(SELECT 1 FROM trade_meta m WHERE m.user_id=trades.user_id AND m.trade_id=CONCAT('man:',trades.id) AND m.mode='replay')").bind(userId,p.startDate).all<{date:string;pnl:number}>()).results.map(t=>({closeTs:Date.parse(String(t.date).slice(0,10)+'T12:00:00Z'),pnl:Number(t.pnl)}));
   const sum=trades.reduce((a,t)=>a+t.pnl,0);
   return {balance:p.balance??Math.round((p.startBalance+sum)*100)/100,equity:null,points:balancePoints(p.startBalance,trades),trades,source:'manual'};
  }
