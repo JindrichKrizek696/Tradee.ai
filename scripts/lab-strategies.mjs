@@ -103,6 +103,7 @@ for(const x of defs){
  const ctx={cot,news,extra:{},d1:{}};
  for(const c of all.flatMap(z=>z.conditions)){
   if(c.block==='rel_strength'){const o=String(c.params.other);ctx.extra[o]??=await bars(o,tf)}
+  if(c.block==='rs_best')for(const o of String(c.params.group).split(',').map(x=>x.trim()).filter(Boolean))ctx.extra[o]??=await bars(o,tf);
   if(c.block==='seasonality'&&tf==='H1')for(const id of def.markets)ctx.d1[id]??=await bars(id,'D1');
   if(c.block==='dxy_trend'&&!ctx.dxy){const dx=await bars('DX-Y.NYB',tf);if(dx.length)ctx.dxy=dx;else{const by={};for(const [p] of DXY_WEIGHTS)by[p]=await bars(p,tf);ctx.dxy=syntheticDxy(by)}}
  }

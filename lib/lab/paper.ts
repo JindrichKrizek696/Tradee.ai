@@ -542,6 +542,8 @@ export function ruleStep(inp:PaperInput,V:PaperVariant):PaperStepResult{
   const q=inp.quotes[id];if(!q||!(q.price>0)){skip('chybí živá cena');continue}
   if(now-q.marketTime>R.staleQuoteMs){skip('trh je zavřený (cena starší než 2 h)');continue}
   const first=!done.length;
+  // smíšené nohy: limitní noha už dosažená na dokončených svíčkách = nastavení se pozdě nezačíná (backtest by ji plnil dřív)
+  if(first&&su.legs.some(l=>l.touched)){skip('limit už byl dosažen (pozdě)');continue}
   if(first){
    if(!entryWindowOk(def,now)){skip('mimo vstupní okno seance');continue}
    if(R.newsWindowMs>0){const ccy=marketCurrencies(id),n=inp.news.find(x=>Math.abs(x.at-now)<=R.newsWindowMs&&x.currencies.some(c=>ccy.includes(c)));if(n){skip(`zpráva ${new Date(n.at).toISOString().slice(11,16)} UTC`);continue}}
@@ -550,7 +552,10 @@ export function ruleStep(inp:PaperInput,V:PaperVariant):PaperStepResult{
   const sg=su.side,hs=halfSpread(id,q.price);let any=false;
   for(const [k,leg] of su.legs.entries()){
    if(legsDone.has(String(k)))continue;
-   if(su.type==='limit'&&!(sg>0?q.price<=leg.L:q.price>=leg.L)){if(su.legs.length===1)skip(`limit: čeká na ${fmtPx(leg.L)} (teď ${fmtPx(q.price)})`);continue}
+   const moc=leg.type==='market_on_close';
+   if(moc&&!leg.ready)continue; // MOC noha: vstup jen na svíčce potvrzení
+   if(!moc&&leg.touched)continue;
+   if(!moc&&su.type==='limit'&&!(sg>0?q.price<=leg.L:q.price>=leg.L)){if(su.legs.length===1)skip(`limit: čeká na ${fmtPx(leg.L)} (teď ${fmtPx(q.price)})`);continue}
    const entry=q.price+sg*hs,sl=su.stop;
    if(!(sg*(entry-sl)>0)){skip('cena je za stopem');continue}
    const risk=Math.abs(entry-sl),totalCzk=balance*su.riskPct/100*leg.share,p=def.targets.partial;
@@ -564,7 +569,7 @@ export function ruleStep(inp:PaperInput,V:PaperVariant):PaperStepResult{
      rule:{key:su.key,leg:legTag,beAtR:row.beAtR,maxHoldMs:def.management.timeExitBars?def.management.timeExitBars*(def.data==='H1'?H:DAY):null,clock:def.management.timeExitClock,rating:su.rating}};
     const why=[`${name(id)} ${direction} – pravidlová strategie ${V.id} (verze ${V.rule!.version}), signál ze svíčky ukončené ${new Date(su.sigT).toISOString().slice(0,16).replace('T',' ')} UTC.`,
      `Proč: splněno ${su.sat.length} podmínek – ${su.sat.join('; ')}. Hodnocení ${su.rating}/${optN}.`,
-     `Plán: vstup ${fmtPx(entry)}${su.type==='limit'?` (limit ${fmtPx(leg.L)})`:''}, SL ${fmtPx(sl)}, ${row.tp>0?`TP ${fmtPx(row.tp)}`:'bez TP'}${row.tag==='a'?` (částečný výstup ${cz(round(row.share*100,0),0)} %)`:row.tag==='b'?' (zbytek, stop na BE po TP1)':''}${su.legs.length>1?`, noha ${k+1}/${su.legs.length}`:''}, riziko ${cz(round(riskCzk,0),0)} Kč (${cz(su.riskPct,2)} % z ${cz(round(balance,0),0)} Kč).`].join('\n');
+     `Plán: vstup ${fmtPx(entry)}${moc?' (za trh po potvrzení)':su.type==='limit'?` (limit ${fmtPx(leg.L)})`:''}, SL ${fmtPx(sl)}, ${row.tp>0?`TP ${fmtPx(row.tp)}`:'bez TP'}${row.tag==='a'?` (částečný výstup ${cz(round(row.share*100,0),0)} %)`:row.tag==='b'?' (zbytek, stop na BE po TP1)':''}${su.legs.length>1?`, noha ${k+1}/${su.legs.length}`:''}, riziko ${cz(round(riskCzk,0),0)} Kč (${cz(su.riskPct,2)} % z ${cz(round(balance,0),0)} Kč).`].join('\n');
     opens.push({id:tradeId(now,id,V.id)+(su.legs.length>1?'-l'+k:'')+(row.tag?'-'+row.tag:''),instrument:id,direction,opened:now,entry,sl,tp:row.tp,riskCzk,confidence:Math.round(50+50*Math.min(1,su.rating/optN)),
      scoreAtEntry:su.rating,partsAtEntry:snap,why,closed:null,exit:null,exitReason:null,r:null,pnlCzk:null,pct:null,scoreAtExit:null,resultNote:null,rulesVersion:V.rulesVersion,variant:V.id});
    }

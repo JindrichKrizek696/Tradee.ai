@@ -23,7 +23,10 @@ const STAT_LABELS:Record<string,string>={detected:'nalezeno',demand:'poptávka',
  invalidatedAtFirstTouch:'zneplatněno hned při 1. dotyku',touchedInvalidated:'dotčené a zneplatněné',exceededMaxMit:'dotčené nad max. mitigací',pairsChecked:'porovnaných párů zón',pairsNested:'vnořených párů',
  swingHighs:'swing high',swingLows:'swing low',structureBreaks:'průrazů swingu',withDisplacement:'s displacementem',mssEvents:'MSS (se všemi podmínkami)',
  levelKnownBars:'svíček se známou úrovní',wickBeyondLow:'knot pod úrovní',wickBeyondHigh:'knot nad úrovní',sweepsLong:'sweepů long',sweepsShort:'sweepů short',
- patternsLong:'formací long',patternsShort:'formací short',bothActiveBars:'svíček s oběma zónami',nestedBars:'svíček s vnořením'};
+ patternsLong:'formací long',patternsShort:'formací short',bothActiveBars:'svíček s oběma zónami',nestedBars:'svíček s vnořením',
+ days:'dní',barsKnown:'svíček se známým biasem',bullDays:'býčích dní',bearDays:'medvědích dní',insideDays:'inside dní',
+ swingsUsed:'swingů',barsWithSupport:'svíček s podporou',barsWithResistance:'svíček s rezistencí',atSupport:'u podpory',atResistance:'u rezistence',maxTouches:'max. dotyků shluku',
+ touchesAbove:'dotyků shluku nad',touchesBelow:'dotyků shluku pod',bothRefsBars:'svíček s oběma úrovněmi',validBars:'správný směr',passBars:'splněno',groupBars:'svíček s daty skupiny',strongestBars:'nejsilnější',weakestBars:'nejslabší'};
 
 // ---- trychtýř podmínek + fáze vstupu + detektory
 export function DiagPanel({diag}:{diag:StratDiag}){
@@ -148,8 +151,8 @@ function SampleChart({t,data}:{t:SampleTrade;data:'D1'|'H1'}){
   <div ref={el} className="lb-chart" role="img" aria-label={`Graf ukázkového obchodu ${t.market}: svíčky, vstup, stop, cíl a úrovně podmínek`}/>
   {err&&<p className="mt-alert" role="alert">{err}</p>}{!bars&&!err&&<p className="mt-empty">Načítám svíčky…</p>}{bars&&!bars.length&&<p className="mt-empty">V archivu nejsou svíčky pro toto období.</p>}
   {tr?<div className="lb-trace">
-   <p className="lb-meta">Signál {dt(tr.sigBarT,data==='H1')} · vstup {tr.legs.map(l=>`${px(l.L)}${l.from?` (${l.from}.${l.key})`:' (close)'}`).join(' + ')} · stop {px(tr.stop.price)} (od {tr.stop.from}{tr.stop.key?'.'+tr.stop.key:''}, výchozí úroveň {px(tr.stop.ref)}) · cíl {px(tr.target.price)} ({tr.target.type==='level'?`${tr.target.from}.${tr.target.key}`:tr.target.type==='r'?'násobek R':'protilehlý swing'}){tr.tp1!==null?` · TP1 ${px(tr.tp1)}`:''}</p>
-   <ul className="lb-tracelist">{tr.conds.map((c,k)=><li key={c.id}><i style={{background:PALETTE[k%PALETTE.length]}}/><b>{c.id}</b> {blockLabel(c.block)}{c.role==='optional'?' · volitelná':''}{c.t!==null?` · událost ${dt(c.t,data==='H1')}`:''}{Object.keys(c.lv).length?' · '+Object.entries(c.lv).map(([k,v])=>`${k} ${px(v)}`).join(', '):''}</li>)}</ul>
+   <p className="lb-meta">Signál {dt(tr.sigBarT,data==='H1')} · vstup {tr.legs.map(l=>`${px(l.L)}${l.from?` (${l.from}.${l.key})`:tr.legs.length>1?' (close po potvrzení – plán)':' (close)'}`).join(' + ')} · stop {px(tr.stop.price)} (od {tr.stop.from}{tr.stop.key?'.'+tr.stop.key:''}, výchozí úroveň {px(tr.stop.ref)}) · cíl {px(tr.target.price)} ({tr.target.type==='level'?`${tr.target.from}.${tr.target.key}`:tr.target.type==='r'?'násobek R':tr.target.type==='expr'?'min/max úrovní':tr.target.type==='zone'?'protilehlá zóna':'protilehlý swing'}){tr.tp1!==null?` · TP1 ${px(tr.tp1)}`:''}</p>
+   <ul className="lb-tracelist">{tr.conds.map((c,k)=><li key={c.id}><i style={{background:PALETTE[k%PALETTE.length]}}/><b>{c.id}</b> {blockLabel(c.block)}{c.role==='optional'?' · volitelná':''}{c.t!==null?` · událost ${dt(c.t,data==='H1')}`:''}{Object.keys(c.lv).length?' · '+Object.entries(c.lv).map(([k,v])=>`${k} ${px(v)}`).join(', '):''}{c.n?' · '+Object.entries(c.n).map(([k,v])=>`${STAT_LABELS[k]??k} ${v}`).join(', '):''}</li>)}</ul>
   </div>:<p className="lb-hint">Tento obchod nemá stopu enginu (spočítáno starší verzí).</p>}
  </div>;
 }

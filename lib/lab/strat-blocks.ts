@@ -102,13 +102,15 @@ export function structure(s:Series,N:number):Structure{
 }
 
 // ---- výstup bloku po svíčkách: L/S = podmínka platí pro long/short; úrovně podle strany (NaN = není)
-export type Levels=Partial<Record<'proximal'|'distal'|'mid'|'level'|'extreme'|'high'|'low',Float64Array>>;
+export type Levels=Partial<Record<'proximal'|'distal'|'mid'|'level'|'extreme'|'high'|'low'|'opp_proximal'|'opp_distal'|'opp_mid'|
+ 'above_top'|'above_bottom'|'above_mid'|'below_top'|'below_bottom'|'below_mid',Float64Array>>;
 // unknown = blok nemohl být vyhodnocen (chybí data); tL/tS = čas (ms) události, ze které úroveň pochází (vznik zóny, sweep, MSS, FVG,
 // formace) – jen pro stopu obchodu; stats = diagnostika detektoru za celou historii (počty, rozložení mitigace) – jen počty, žádné parametry
 // zones = všechny aktivní (vybratelné) zóny na svíčce i podle strany – pro vnoření všech zón a cíl „zóna“ (zone / order_block / fvg)
 export type ZRef={proximal:number;distal:number;t:number};
 export const NO_ZONES:ZRef[]=[];
-export type Out={L:Uint8Array;S:Uint8Array;lvL:Levels;lvS:Levels;unknown?:Uint8Array;tL?:Float64Array;tS?:Float64Array;stats?:Record<string,number>;zones?:{L:ZRef[][];S:ZRef[][]}};
+// nums = nečenové hodnoty po svíčkách (např. počet dotyků S/R shluku) – jen pro stopu obchodu, nikdy jako úroveň vstupu / stopu
+export type Out={L:Uint8Array;S:Uint8Array;lvL:Levels;lvS:Levels;unknown?:Uint8Array;tL?:Float64Array;tS?:Float64Array;stats?:Record<string,number>;zones?:{L:ZRef[][];S:ZRef[][]};nums?:Record<string,Float64Array>};
 export function newOut(n:number,keys:string[],times=false):Out{
  const mk=()=>Object.fromEntries(keys.map(k=>[k,new Float64Array(n).fill(NaN)])) as Levels;
  const o:Out={L:new Uint8Array(n),S:new Uint8Array(n),lvL:mk(),lvS:mk()};
@@ -467,6 +469,111 @@ export function patternBlock(s:Series,lookback:number,test:(i:number,side:1|-1)=
  return o;
 }
 
+// ---- denní bias: D−1 = poslední UZAVŘENÝ den při zavření svíčky i (agregace jako vyšší TF – done), D−2 = den před ním.
+// Hranice dne: dayTz prázdné = obchodní den dat (tradeDayOf), jinak místní den v zóně dayTz začínající v dayStart ("HH:MM", prázdné = půlnoc).
+export function dayKeyOf(data:DataTf,tz:string,start:string):(t:number)=>number{
+ if(!tz)return tradeDayOf(data);const sm=start?hhmm(start)*60000:0;
+ return t=>Math.floor((t+tzOff(tz,t)*60000-sm)/DAY);
+}
+// close_beyond_prev_range: long když close(D−1) > high(D−2), short když close(D−1) < low(D−2);
+// inside_day_close_position: D−1 uvnitř D−2 (high ≤, low ≥) a close(D−1) v rozsahu D−1 ≥ pct % → long, ≤ (100 − pct) % → short (obojí = nic)
+export function dailyBias(s:Series,key:(t:number)=>number,mode:string,insidePct:number):Out{
+ const base=Array.from({length:s.n},(_,i)=>({t:s.t[i],o:s.o[i],h:s.h[i],l:s.l[i],c:s.c[i]})),ag=aggregate(base,s.ms,key),D=ag.bars,o=newOut(s.n,['high','low','mid']);
+ const x=insidePct/100,dir=new Int8Array(D.length);let known=0,bull=0,bear=0,inside=0;
+ for(let k=1;k<D.length;k++){const a=D[k],b=D[k-1];let L=false,S=false;
+  if(mode==='inside_day_close_position'){const ins=a.h<=b.h&&a.l>=b.l,r=a.h-a.l;if(ins){inside++;if(r>0){const pos=(a.c-a.l)/r;L=pos>=x;S=pos<=1-x;if(L&&S)L=S=false}}}
+  else{L=a.c>b.h;S=a.c<b.l}
+  dir[k]=L?1:S?-1:0;if(L)bull++;if(S)bear++;
+ }
+ for(let i=0;i<s.n;i++){const k=ag.done[i];if(k<0)continue;const a=D[k];
+  for(const lv of [o.lvL,o.lvS]){lv.high![i]=a.h;lv.low![i]=a.l;lv.mid![i]=(a.h+a.l)/2}
+  if(k<1)continue;known++;o.L[i]=dir[k]>0?1:0;o.S[i]=dir[k]<0?1:0}
+ // dny s rozhodnutím: 0 = první den (bez D−2) a poslední (rozpracovaný) se nepočítají
+ o.stats={days:Math.max(0,D.length-1),barsKnown:known,bullDays:bull,bearDays:bear,...(mode==='inside_day_close_position'?{insideDays:inside}:{})};
+ return o;
+}
+
+// ---- S/R shluky: potvrzené swingy (fraktál N, jen conf ≤ i) s pivotem v posledních `lookback` svíčkách; ceny seřazené, shluk = souvislá
+// skupina, kde (cena − nejnižší cena shluku) ≤ tolAtr × ATR(i); platný shluk má ≥ minTouches swingů. Pod cenou (mid ≤ close) = podpora,
+// nad cenou = rezistence. mode: at = knot svíčky v toleranci shluku a close ho drží (long podpora, short rezistence), clear = žádný
+// protilehlý shluk blíž než clearAtr × ATR, any = existuje shluk na vlastní straně. Úrovně: vlastní strana proximal/distal/mid (long =
+// podpora: proximal top), opp_* = nejbližší protilehlý shluk (long = rezistence: opp_proximal bottom), above_* / below_* bez ohledu na stranu.
+export type Cluster={top:number;bottom:number;n:number;t:number};
+export function clusterPrices(pts:{p:number;t:number}[],tol:number,minTouches:number):Cluster[]{
+ const a=[...pts].sort((x,y)=>x.p-y.p||x.t-y.t),out:Cluster[]=[];let q=0;
+ while(q<a.length){let e=q;while(e+1<a.length&&a[e+1].p-a[q].p<=tol)e++;
+  if(e-q+1>=minTouches){let t=Infinity;for(let k=q;k<=e;k++)t=Math.min(t,a[k].t);out.push({top:a[e].p,bottom:a[q].p,n:e-q+1,t})}
+  q=e+1}
+ return out;
+}
+export type SrParams={swingN:number;minTouches:number;tolAtr:number;lookback:number;atrPeriod:number;source:string;mode:string;clearAtr:number};
+export function srCluster(s:Series,p:SrParams):Out{
+ const keys=['proximal','distal','mid','opp_proximal','opp_distal','opp_mid','above_top','above_bottom','above_mid','below_top','below_bottom','below_mid'];
+ const o=newOut(s.n,keys,true),a=atrOf(s,p.atrPeriod),zL:ZRef[][]=new Array(s.n).fill(NO_ZONES),zS:ZRef[][]=new Array(s.n).fill(NO_ZONES);o.zones={L:zL,S:zS};
+ const nA=new Float64Array(s.n).fill(NaN),nB=new Float64Array(s.n).fill(NaN);o.nums={touchesAbove:nA,touchesBelow:nB};
+ const sw=swings(s.h,s.l,p.swingN).filter(w=>p.source==='both'||(p.source==='highs')===w.high).sort((x,y)=>x.conf-y.conf||x.i-y.i);
+ let k=0;const act:Swing[]=[];let withSup=0,withRes=0,atL=0,atS=0,maxN=0;
+ const ref=(c:Cluster,sup:boolean):ZRef=>sup?{proximal:c.top,distal:c.bottom,t:s.t[Math.max(0,Math.min(s.n-1,c.t))]}:{proximal:c.bottom,distal:c.top,t:s.t[Math.max(0,Math.min(s.n-1,c.t))]};
+ for(let i=0;i<s.n;i++){
+  while(k<sw.length&&sw[k].conf<=i)act.push(sw[k++]);
+  for(let q=act.length-1;q>=0;q--)if(act[q].i<i-p.lookback)act.splice(q,1);
+  if(!(a[i]>0)||act.length<p.minTouches)continue;
+  const tol=p.tolAtr*a[i],cl=clusterPrices(act.map(w=>({p:w.price,t:w.i})),tol,p.minTouches);if(!cl.length)continue;
+  const c=s.c[i];let below:Cluster|null=null,above:Cluster|null=null;const sup:ZRef[]=[],res:ZRef[]=[];
+  for(const x of cl){const m=(x.top+x.bottom)/2;maxN=Math.max(maxN,x.n);
+   if(m<=c){sup.push(ref(x,true));if(!below||m>(below.top+below.bottom)/2)below=x}
+   else{res.push(ref(x,false));if(!above||m<(above.top+above.bottom)/2)above=x}}
+  zL[i]=sup.length?sup:NO_ZONES;zS[i]=res.length?res:NO_ZONES;
+  const put=(lv:Levels,pre:'above'|'below',x:Cluster)=>{lv[`${pre}_top`]![i]=x.top;lv[`${pre}_bottom`]![i]=x.bottom;lv[`${pre}_mid`]![i]=(x.top+x.bottom)/2};
+  for(const lv of [o.lvL,o.lvS]){if(above)put(lv,'above',above);if(below)put(lv,'below',below)}
+  if(above)nA[i]=above.n;if(below)nB[i]=below.n;if(below)withSup++;if(above)withRes++;
+  // vlastní strana: at = dotčený shluk (nejbližší k close), jinak nejbližší podpora (long) / rezistence (short)
+  let ownL:Cluster|null=below,ownS:Cluster|null=above;
+  if(p.mode==='at'){ownL=null;ownS=null;let dl=Infinity,ds=Infinity;
+   for(const x of cl){const d=Math.abs((x.top+x.bottom)/2-c);
+    if(s.l[i]<=x.top+tol&&s.l[i]>=x.bottom-tol&&c>=x.bottom-tol&&d<dl){dl=d;ownL=x}
+    if(s.h[i]>=x.bottom-tol&&s.h[i]<=x.top+tol&&c<=x.top+tol&&d<ds){ds=d;ownS=x}}
+   o.L[i]=ownL?1:0;o.S[i]=ownS?1:0;if(ownL)atL++;if(ownS)atS++}
+  else if(p.mode==='clear'){const lim=p.clearAtr*a[i];o.L[i]=!above||above.bottom-c>lim?1:0;o.S[i]=!below||c-below.top>lim?1:0}
+  else{o.L[i]=below?1:0;o.S[i]=above?1:0}
+  if(ownL){o.lvL.proximal![i]=ownL.top;o.lvL.distal![i]=ownL.bottom;o.lvL.mid![i]=(ownL.top+ownL.bottom)/2;o.tL![i]=s.t[ownL.t]}
+  if(ownS){o.lvS.proximal![i]=ownS.bottom;o.lvS.distal![i]=ownS.top;o.lvS.mid![i]=(ownS.top+ownS.bottom)/2;o.tS![i]=s.t[ownS.t]}
+  if(above){o.lvL.opp_proximal![i]=above.bottom;o.lvL.opp_distal![i]=above.top;o.lvL.opp_mid![i]=(above.top+above.bottom)/2}
+  if(below){o.lvS.opp_proximal![i]=below.top;o.lvS.opp_distal![i]=below.bottom;o.lvS.opp_mid![i]=(below.top+below.bottom)/2}
+ }
+ o.stats={swingsUsed:sw.length,barsWithSupport:withSup,barsWithResistance:withRes,...(p.mode==='at'?{atSupport:atL,atResistance:atS}:{}),maxTouches:maxN};
+ return o;
+}
+
+// ---- retracement mezi dvěma úrovněmi jiných podmínek: úroveň(x) = b − x × (b − a) (a = počátek, b = konec pohybu; 0 = b, 1 = a).
+// Platí jen když obě odkazované podmínky platí na svíčce i pro danou stranu; orient by_side = u short se a a b prohodí.
+// mode exists = úrovně jsou, in_band = close v pásmu from–to, touched = rozsah svíčky zasáhl pásmo. Směr: long b > a, short b < a.
+export function retraceBetween(s:Series,A:Out,aKey:string,Bo:Out,bKey:string,p:{ratio:number;from:number;to:number;orient:string;mode:string}):Out{
+ const o=newOut(s.n,['level','proximal','distal','mid','extreme'],true);let both=0,valid=0,pass=0;
+ for(const side of [1,-1] as const){
+  const AL=side>0?A.L:A.S,BL=side>0?Bo.L:Bo.S,av=((side>0?A.lvL:A.lvS) as Record<string,Float64Array>)[aKey],bv=((side>0?Bo.lvL:Bo.lvS) as Record<string,Float64Array>)[bKey];
+  const lv=side>0?o.lvL:o.lvS,R=side>0?o.L:o.S,T=side>0?o.tL!:o.tS!,bt=side>0?Bo.tL:Bo.tS;if(!av||!bv)continue;
+  for(let i=0;i<s.n;i++){if(!AL[i]||!BL[i])continue;both++;
+   let a=av[i],b=bv[i];if(p.orient==='by_side'&&side<0)[a,b]=[b,a];
+   if(!Number.isFinite(a)||!Number.isFinite(b)||!(side*(b-a)>0))continue;valid++;
+   const f=(x:number)=>b-x*(b-a),pr=f(p.from),di=f(p.to),hi=Math.max(pr,di),lo=Math.min(pr,di);
+   lv.level![i]=f(p.ratio);lv.proximal![i]=pr;lv.distal![i]=di;lv.mid![i]=f(.5);lv.extreme![i]=a;T[i]=bt?.[i]??NaN;
+   const ok=p.mode==='in_band'?s.c[i]<=hi&&s.c[i]>=lo:p.mode==='touched'?s.l[i]<=hi&&s.h[i]>=lo:true;
+   if(ok){R[i]=1;pass++}
+  }
+ }
+ o.stats={bothRefsBars:both,validBars:valid,passBars:pass};
+ return o;
+}
+
+// ---- spouštěcí svíčka: long = close > open, tělo ≥ bodyAtr × ATR (0 = bez podmínky), beyondPrev = close nad high předchozí svíčky
+export function isTrigger(s:Series,a:ArrayLike<number>,i:number,side:1|-1,p:{bodyAtr:number;beyondPrev:boolean}):boolean{
+ if(side>0?!(s.c[i]>s.o[i]):!(s.c[i]<s.o[i]))return false;
+ if(p.bodyAtr>0&&!(a[i]>0&&Math.abs(s.c[i]-s.o[i])>=p.bodyAtr*a[i]))return false;
+ if(p.beyondPrev){if(i<1)return false;if(side>0?!(s.c[i]>s.h[i-1]):!(s.c[i]<s.l[i-1]))return false}
+ return true;
+}
+
 // ---- zarovnání jiné řady podle času: index poslední svíčky, která byla při čase T UZAVŘENÁ (t + ms ≤ T); −1 = žádná
 export function closedAt(times:ArrayLike<number>,ms:number,T:number):number{
  let lo=0,hi=times.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(times[m]+ms<=T){a=m;lo=m+1}else hi=m-1}return a;
@@ -482,6 +589,25 @@ export function relStrength(s:Series,other:Series,anchorT:Float64Array,min:numbe
   const rs=(s.c[i]/s.o[ai]-1)*100-(other.c[j]/other.o[aj]-1)*100;
   o.L[i]=rs>=min&&rs>0?1:0;o.S[i]=rs<=-min&&rs<0?1:0;
  }
+ return o;
+}
+// ---- nejsilnější / nejslabší trh skupiny: výkon od open svíčky kotvy (otevření seance / dne) do close poslední svíčky UZAVŘENÉ při
+// zavření svíčky i; long jen nejsilnější trh (o minLead % před druhým), short jen nejslabší. Méně než 2 trhy s daty = bez dat (unknown).
+export function rsBest(s:Series,others:Series[],anchorT:Float64Array,minLead:number):Out{
+ const o=newOut(s.n,[]);o.unknown=new Uint8Array(s.n);let grp=0,best=0,worst=0;
+ // výkon jiného trhu: svíčka, která v čase kotvy začala (open kotvy), až po poslední uzavřenou do T
+ const perf=(x:Series,T:number,a:number):number=>{const j=closedAt(x.t,x.ms,T),aj=closedAt(x.t,0,a+1);
+  if(aj<0||j<aj||x.t[aj]<a-x.ms||!(x.o[aj]>0))return NaN;return (x.c[j]/x.o[aj]-1)*100};
+ for(let i=0;i<s.n;i++){
+  const T=s.t[i]+s.ms,a=anchorT[i];if(Number.isNaN(a)){o.unknown[i]=1;continue}
+  const ai=closedAt(s.t,0,a+1);if(ai<0||!(s.o[ai]>0)){o.unknown[i]=1;continue}
+  const me=(s.c[i]/s.o[ai]-1)*100;let hi=-Infinity,lo=Infinity,n=0;
+  for(const x of others){const v=perf(x,T,a);if(!Number.isFinite(v))continue;n++;if(v>hi)hi=v;if(v<lo)lo=v}
+  if(!n){o.unknown[i]=1;continue}grp++;
+  if(me>hi&&me-hi>=minLead){o.L[i]=1;best++}
+  if(me<lo&&lo-me>=minLead){o.S[i]=1;worst++}
+ }
+ o.stats={groupBars:grp,strongestBars:best,weakestBars:worst};
  return o;
 }
 export function dayAnchor(s:Series,data:DataTf):Float64Array{
