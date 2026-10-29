@@ -3,7 +3,8 @@
 import {pragueOffsetMs} from '../journal/format.ts';
 import {TFS} from './candles.ts';
 import {APPEARANCE_DEFAULT,readAppearance,type Appearance} from './appearance.ts';
-export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann','vprofile'] as const;
+import {parseZoneMeta,type ZoneMeta} from './zones.ts';
+export const DRAW_TYPES=['trend','hline','rect','fib','text','measure','ray','hray','touch','path','brush','channel','long','short','prange','trange','fibext','pitchfork','gann','vprofile','zone','eqhl','fvg','mss'] as const;
 export type DrawType=typeof DRAW_TYPES[number];
 export const DRAW_COLORS=['brand','bull','bear','amber','muted','fg'] as const;
 export type NamedColor=typeof DRAW_COLORS[number];
@@ -56,13 +57,17 @@ export type DrawStyle={
  // volume profile: počet řádků, value area (%), strana a šířka histogramu (% rozsahu), POC a hranice value area
  vr?:number;va?:number;vs?:VpSide;vw?:number;vpoc?:boolean;vva?:boolean;
 };
-// hide = skrytá (strom objektů), lock = zamčená (nejde posunout ani měnit body)
-export type Drawing={id:string;type:DrawType;a:Anchor[];color:DrawColor;text?:string;ray?:boolean;s?:DrawStyle;tfs?:string[];hide?:true;lock?:true};
+// hide = skrytá (strom objektů), lock = zamčená (nejde posunout ani měnit body); otf = TF, na kterém kresba vznikla;
+// z = vrstva (0 pozadí, 2 popředí, bez klíče hlavní); zn = metadata zóny (jen typ zone); text = poznámka
+export type Drawing={id:string;type:DrawType;a:Anchor[];color:DrawColor;text?:string;ray?:boolean;s?:DrawStyle;tfs?:string[];hide?:true;lock?:true;otf?:string;z?:0|2;zn?:ZoneMeta};
 export const MAX_DRAWINGS=200,MAX_TEXT=200,MAX_POINTS=300,MAX_PATH=100,MAX_TOTAL_POINTS=20000;
 // počet kotev: pevný, nebo rozsah [min,max] (lomená čára, štětec)
-export const ANCHORS:Record<DrawType,number|[number,number]>={trend:2,hline:1,rect:2,fib:2,text:1,measure:2,ray:2,hray:1,touch:1,path:[2,MAX_PATH],brush:[2,MAX_POINTS],channel:3,long:3,short:3,prange:2,trange:2,fibext:3,pitchfork:3,gann:2,vprofile:2};
+export const ANCHORS:Record<DrawType,number|[number,number]>={trend:2,hline:1,rect:2,fib:2,text:1,measure:2,ray:2,hray:1,touch:1,path:[2,MAX_PATH],brush:[2,MAX_POINTS],channel:3,long:3,short:3,prange:2,trange:2,fibext:3,pitchfork:3,gann:2,vprofile:2,zone:2,eqhl:2,fvg:2,mss:2};
 export const anchorRange=(t:DrawType):[number,number]=>{const n=ANCHORS[t];return typeof n==='number'?[n,n]:n};
-export const DRAW_LABELS:Record<DrawType,string>={trend:'Trendová čára',hline:'Horizontála',rect:'Obdélník / zóna',fib:'Fibonacci',text:'Text',measure:'Měření',ray:'Paprsek',hray:'Horizontální paprsek',touch:'Úroveň do dotyku',path:'Lomená čára',brush:'Štětec',channel:'Paralelní kanál',long:'Long pozice',short:'Short pozice',prange:'Cenový rozsah',trange:'Časový rozsah',fibext:'Fibonacci extension',pitchfork:'Andrewsovy vidle',gann:'Gannova mřížka',vprofile:'Volume profile (rozsah)'};
+export const DRAW_LABELS:Record<DrawType,string>={trend:'Trendová čára',hline:'Horizontála',rect:'Obdélník / zóna',fib:'Fibonacci',text:'Text',measure:'Měření',ray:'Paprsek',hray:'Horizontální paprsek',touch:'Úroveň do dotyku',path:'Lomená čára',brush:'Štětec',channel:'Paralelní kanál',long:'Long pozice',short:'Short pozice',prange:'Cenový rozsah',trange:'Časový rozsah',fibext:'Fibonacci extension',pitchfork:'Andrewsovy vidle',gann:'Gannova mřížka',vprofile:'Volume profile (rozsah)',zone:'Zóna nabídky / poptávky',eqhl:'Equal highs / lows',fvg:'FVG (ruční box)',mss:'MSS (ruční značka)'};
+// ruční značky likvidity: jen anotace, ne ověřený setup
+export const MANUAL_TYPES:readonly DrawType[]=['eqhl','fvg','mss'];
+export const MANUAL_NOTE='ruční značka ≠ ověřený setup';
 export const COLOR_LABELS:Record<NamedColor,string>={brand:'Modrá',bull:'Zelená',bear:'Červená',amber:'Oranžová',muted:'Šedá',fg:'Text'};
 export const FIB_LEVELS=[0,.236,.382,.5,.618,.786,1];
 export const FIB_EXT_LEVELS=[0,.618,1,1.272,1.618,2,2.618];
@@ -81,13 +86,13 @@ const anchorOk=(a:unknown):a is Anchor=>!!a&&typeof a==='object'&&num((a as Anch
 
 // --- schopnosti stylu podle typu (co nabídnout v panelu) ---
 export type Caps={line:boolean;fill:boolean;border:boolean;extend:boolean;risk:boolean;levels:boolean;mid:boolean;label:boolean;arrow:boolean;vp:boolean};
-const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange','fibext','pitchfork','gann','vprofile'];
+const LINEISH:DrawType[]=['trend','ray','hline','hray','touch','path','brush','channel','fib','prange','trange','fibext','pitchfork','gann','vprofile','eqhl','mss'];
 export function capsOf(t:DrawType):Caps{
  return {
-  line:LINEISH.includes(t)||t==='rect'||t==='long'||t==='short',
-  fill:['rect','channel','fib','text','long','short','prange','trange','fibext','pitchfork','gann','vprofile'].includes(t),
-  border:['rect','long','short','text'].includes(t),
-  extend:['trend','ray','channel','fib','rect','fibext','pitchfork','vprofile'].includes(t),
+  line:LINEISH.includes(t)||t==='rect'||t==='long'||t==='short'||t==='zone'||t==='fvg',
+  fill:['rect','channel','fib','text','long','short','prange','trange','fibext','pitchfork','gann','vprofile','zone','fvg'].includes(t),
+  border:['rect','long','short','text','zone','fvg'].includes(t),
+  extend:['trend','ray','channel','fib','rect','fibext','pitchfork','vprofile','zone','fvg'].includes(t),
   risk:t==='long'||t==='short',
   levels:t==='fib'||t==='fibext',
   mid:t==='channel',
@@ -101,12 +106,12 @@ export type FullStyle={lw:1|2|3|4;ls:LineStyleName;op:number;fill:boolean;border
 export const defaultLevels=(t:DrawType):FibLevel[]=>t==='fib'?FIB_DEFAULT:t==='fibext'?FIB_EXT_DEFAULT:[];
 // výchozí styl doplněný o uložené hodnoty (staré kresby: čáry 2 px, zóna s výplní i okrajem 1 px, text bez pozadí; pozice bez okraje)
 export function styleOf(d:Pick<Drawing,'type'|'color'|'ray'|'s'>):FullStyle{
- const s=d.s||{},boxy=d.type==='rect'||d.type==='long'||d.type==='short';
+ const s=d.s||{},boxy=d.type==='rect'||d.type==='long'||d.type==='short'||d.type==='zone'||d.type==='fvg';
  return {
   lw:s.lw??(boxy?1:2),ls:s.ls??'solid',op:s.op??1,
-  fill:s.fill??d.type!=='text',border:s.border??d.type==='rect',bc:s.bc??d.color,
+  fill:s.fill??d.type!=='text',border:s.border??(d.type==='rect'||d.type==='zone'),bc:s.bc??d.color,
   ta:s.ta??(d.type==='text'?'middle':'top'),ts:s.ts??'M',tc:s.tc??d.color,
-  extL:s.extL??false,extR:s.extR??(d.ray===true||d.type==='ray'||d.type==='pitchfork'),
+  extL:s.extL??false,extR:s.extR??(d.ray===true||d.type==='ray'||d.type==='pitchfork'||d.type==='zone'),
   risk:s.risk??null,tags:s.tags??false,
   lv:s.lv??defaultLevels(d.type),lb:s.lb??'both',pct:s.pct??false,
   mid:s.mid??true,midp:s.midp??.5,midc:s.midc??d.color,
@@ -198,6 +203,9 @@ export function parseDrawings(input:unknown):Parsed{
   const st=parseStyle(d.s);if(!st.ok)return st;if(st.s)x.s=st.s;
   if(d.hide!==undefined&&d.hide!==true||d.lock!==undefined&&d.lock!==true)return {ok:false,error:'Neplatné skrytí nebo zámek kresby.'};
   if(d.hide===true)x.hide=true;if(d.lock===true)x.lock=true;
+  if(d.otf!==undefined&&d.otf!==null){if(typeof d.otf!=='string'||!TF_RE.test(d.otf))return {ok:false,error:'Neplatný časový rámec vzniku kresby.'};x.otf=d.otf}
+  if(d.z!==undefined&&d.z!==null){if(d.z!==0&&d.z!==2)return {ok:false,error:'Neplatná vrstva kresby.'};x.z=d.z}
+  if(type==='zone'){const zn=parseZoneMeta(d.zn);if(!zn)return {ok:false,error:'Neplatná data zóny.'};x.zn=zn}
   if(d.tfs!==undefined&&d.tfs!==null){
    if(!Array.isArray(d.tfs)||!d.tfs.length||d.tfs.length>12||!d.tfs.every(v=>typeof v==='string'&&TF_RE.test(v))||new Set(d.tfs).size!==d.tfs.length)return {ok:false,error:'Neplatné časové rámce kresby.'};
    x.tfs=[...d.tfs] as string[];
@@ -333,8 +341,9 @@ export function lookOf(d:Drawing):Look{
 export function applyLook(d:Drawing,look:Look|null|undefined):Drawing{
  if(!look)return d;
  const x:Drawing={id:d.id,type:d.type,a:d.a,color:look.color};
- if(d.ray)x.ray=d.ray;
- if(look.s)x.s={...look.s};
+ if(d.ray)x.ray=d.ray;if(d.otf)x.otf=d.otf;if(d.z!==undefined)x.z=d.z;if(d.zn)x.zn={...d.zn};
+ // hladiny Fibonacciho se kopírují (šablona / preset pak kresbu nesdílí a jejich změna ji nepřepíše)
+ if(look.s){x.s={...look.s};if(look.s.lv)x.s.lv=look.s.lv.map(l=>({...l}))}
  const text=d.type==='text'?d.text||look.text:look.text??d.text;if(text)x.text=text;
  if(look.tfs)x.tfs=[...look.tfs];
  if(isPos(d.type)&&look.rr&&d.a.length===3)x.a=withRR(d.type as 'long'|'short',d.a,look.rr);
@@ -488,7 +497,7 @@ export function moveHandle(d:Drawing,index:number,a:Anchor):Drawing{
 export type Edge='top'|'bottom'|'left'|'right'|'base'|'parallel';
 export function edgesOf(t:DrawType):Edge[]{
  switch(t){
-  case 'rect':case 'gann':case 'fib':case 'long':case 'short':return ['top','bottom','left','right'];
+  case 'rect':case 'gann':case 'fib':case 'long':case 'short':case 'zone':case 'fvg':return ['top','bottom','left','right'];
   case 'prange':return ['top','bottom'];
   case 'trange':return ['left','right'];
   case 'channel':return ['base','parallel'];
@@ -652,7 +661,7 @@ export function edgeHandles(s:Shape):{edge:Edge;pt:Pt}[]{
  for(const e of edges){
   if((e==='top'||e==='bottom')&&x1-x0>=EDGE_MIN)out.push({edge:e,pt:{x:cx,y:e==='top'?y0:y1}});
   if(e==='left'&&!s.extL&&y1-y0>=EDGE_MIN)out.push({edge:e,pt:{x:x0,y:cy}});
-  if(e==='right'&&!(s.extR&&(s.type==='rect'||s.type==='fib'))&&y1-y0>=EDGE_MIN)out.push({edge:e,pt:{x:x1,y:cy}});
+  if(e==='right'&&!(s.extR&&(s.type==='rect'||s.type==='fib'||s.type==='zone'||s.type==='fvg'))&&y1-y0>=EDGE_MIN)out.push({edge:e,pt:{x:x1,y:cy}});
  }
  return out;
 }
@@ -674,7 +683,7 @@ export function hitShape(s:Shape,p:Pt,w:number,h:number,tol=6,edges=false):Hit|n
    const off=channelOffset(a,b,s.pts[2]??b),[x,y]=extendSeg(a,b,w,h,extL,extR),x2={x:x.x,y:x.y+off},y2={x:y.x,y:y.y+off};
    return body(seg(x,y)||seg(x2,y2)||inPoly(p,[x,y,y2,x2]));
   }
-  case 'rect':{
+  case 'rect':case 'zone':case 'fvg':{
    const r=rectOf(a,b);if(extL){r.w+=r.x;r.x=0}if(extR)r.w=Math.max(r.w,w-r.x);
    return body(inBox(p,r,tol));
   }
@@ -702,6 +711,8 @@ export function hitShape(s:Shape,p:Pt,w:number,h:number,tol=6,edges=false):Hit|n
   }
   case 'gann':return body(inBox(p,rectOf(a,b),tol));
   case 'vprofile':return body(!!s.box&&inBox(p,s.box,tol));
+  case 'eqhl':return body(seg(a,b)||seg({x:a.x,y:(a.y+b.y)/2},{x:b.x,y:(a.y+b.y)/2}));
+  case 'mss':return body(seg(a,{x:b.x,y:a.y})||seg(a,b));
  }
 }
 // nejvyšší zasažená kresba (poslední nakreslená je nahoře)
@@ -722,3 +733,39 @@ export function measureLines(m:Measure,price:(v:number)=>string){
  const sign=signOf(m.dp);
  return [`${sign}${price(Math.abs(m.dp))} (${sign}${pctFmt(m.pct)} %)`,`${m.bars} ${candlesWord(m.bars)} · ${fmtDuration(m.ms)}`];
 }
+
+// --- šablony Fibonacciho: volitelná šablona třetin (0,333 / 0,5 / 0,666) se zápornými extenzemi vedle výchozích hladin ---
+// šablona se do kresby zapíše jako explicitní seznam hladin (s.lv) – pozdější změna šablony ani výchozích hladin existující kresby nepřepíše
+export const FIB_THIRDS:FibLevel[]=levelList([0,.333,.5,.666,1,-.272,-.618,-1],[-.5,-1.618,-2]);
+export type FibTemplate={id:string;name:string;tool:'fib';levels:FibLevel[]};
+export const FIB_TEMPLATES:FibTemplate[]=[{id:'tpl-thirds',name:'Třetiny 0,333 / 0,5 / 0,666 + záporné',tool:'fib',levels:FIB_THIRDS}];
+// vestavěné presety (nejdou smazat ani přepsat): šablony Fibonacciho jako vzhled s pevným seznamem hladin
+export const BUILTIN_PRESETS:Preset[]=FIB_TEMPLATES.map(t=>({id:t.id,name:t.name,tool:t.tool,color:'amber',s:{lv:t.levels.map(l=>({...l}))}}));
+export const isBuiltin=(id:string)=>BUILTIN_PRESETS.some(p=>p.id===id);
+
+// --- vrstvy (pořadí kreslení): pozadí, hlavní, popředí; v rámci vrstvy pořadí nakreslení ---
+export const LAYERS=[{z:0,label:'Pozadí'},{z:1,label:'Hlavní'},{z:2,label:'Popředí'}] as const;
+export const layerOf=(d:Pick<Drawing,'z'>)=>d.z??1;
+export function byLayer<T extends Pick<Drawing,'z'>>(list:T[]):T[]{return list.map((d,i)=>({d,i})).sort((x,y)=>layerOf(x.d)-layerOf(y.d)||x.i-y.i).map(x=>x.d)}
+// hromadné akce v seznamu objektů
+export type Bulk={op:'hide'|'show'|'lock'|'unlock'|'delete'}|{op:'layer';z:0|1|2};
+export function bulk(list:Drawing[],ids:readonly string[],b:Bulk):Drawing[]{
+ const set=new Set(ids);
+ if(b.op==='delete')return list.filter(d=>!set.has(d.id));
+ return list.map(d=>{
+  if(!set.has(d.id))return d;const n={...d};
+  if(b.op==='hide')n.hide=true;else if(b.op==='show')delete n.hide;
+  else if(b.op==='lock')n.lock=true;else if(b.op==='unlock')delete n.lock;
+  else if(b.op==='layer'){if(b.z===1)delete n.z;else n.z=b.z}
+  return n;
+ });
+}
+// kopie kresby: nové ID, odemčená, viditelná; zóna bez propojeného scénáře/alertu a archivu, vzniká teď
+export function duplicateOf(d:Drawing,id:string,now:number):Drawing{
+ const n:Drawing={...d,id,a:d.a.map(a=>({...a}))};delete n.lock;delete n.hide;
+ if(d.s)n.s={...d.s};
+ if(d.zn){const z={...d.zn,at:now};delete z.scn;delete z.al;delete z.arch;n.zn=z}
+ return n;
+}
+// equal highs / lows: popisek podle toho, zda je úroveň u high (EQH) nebo low (EQL) svíčky prvního bodu
+export function eqLabel(p:number,bar:{high:number;low:number}|null|undefined){if(!bar)return 'EQ';return Math.abs(p-bar.high)<=Math.abs(p-bar.low)?'EQH':'EQL'}

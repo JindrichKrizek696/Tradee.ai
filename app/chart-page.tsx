@@ -1,6 +1,6 @@
 'use client';
 // Graf trhu na celou stránku: stejný MarketChart jako v detailu trhu, jen vysoký, s přepínačem trhu a živou cenou. Podklady (skóre, kalendář) se berou stejně jako v aplikaci.
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft} from 'lucide-react';
 import initialReport from '@/data/fundamentals.json';
 import ffMacro from '@/data/ff-macro.json';
@@ -23,39 +23,63 @@ import {useLive,LiveChange,LiveBadge,fmtPrice} from './live';
 import {MobileNav} from './nav-bar';
 import {useNav} from './nav-prefs';
 import {levelsFromDrawing} from '@/lib/strategy/scenario';
+import {readView,updateTab,viewKey,VIEW_DEFAULT,type ChartView,type Tab} from '@/lib/chart/workspace';
+import type {Drawing} from '@/lib/chart/drawings';
+import {zoneEdges,type ZoneMeta} from '@/lib/chart/zones';
+import {ChartTabs,useWorkspace,restoreDrawings,fetchDrawings} from './market-chart-tabs';
 import './mt.css';
 import './markets.css';
 const initialMarket={...core,prices:{...core.prices,...expanded.prices},legacy:expanded.legacy,refresh:{attemptedAt:expanded.refresh.attemptedAt,issues:[...core.refresh.issues,...expanded.refresh.issues]}} as MarketData;
 const slugOf=(id:string)=>id.replace(/\//g,'-');
-const list=instruments.filter(i=>i.group!=='currency');
+const list=instruments.filter(i=>i.group!=='currency'),IDS=list.map(i=>i.id);
 export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  usePalette();
  const {nav}=useNav();
  let key=slug;try{key=decodeURIComponent(slug)}catch{}
- const item=list.find(i=>slugOf(i.id)===key);
+ const urlItem=list.find(i=>slugOf(i.id)===key);
  const [data,setData]=useState({...initialReport,ffMacro,tePmi,retailOfficial} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState<HistoryLike>({snapshots:[]});
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
  // vlastník vidí v grafu i vrstvu Simulace z Laboratoře (ostatním se data simulace nikdy nežádají)
  const [owner,setOwner]=useState(false);
  useEffect(()=>{let live=true;fetch('/api/watchlist',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{user?:{owner?:boolean}}>:null).then(j=>{if(live)setOwner(j?.user?.owner===true)}).catch(()=>{});return()=>{live=false}},[]);
+ // pracovní plocha: záložky (trh + TF + rozvržení) uložené k účtu; první záložka podle adresy
+ const W=useWorkspace(IDS,{instrument:urlItem?.id??null,tf,view:localView});
+ const {ws,setWs}=W,tab=ws.tabs.find(t=>t.id===ws.active)??null;
+ const item=list.find(i=>i.id===(tab?.instrument??urlItem?.id));
  const quotes=useLive(),calendar=useMemo(()=>mergeCalendar(calendarAuto.events as AutoEvent[],data.events,data.sources),[data]);
  const method=item?marketScore(data,market,item.id).method:'',quote=item?quotes?.quotes[item.id]:undefined;
- const go=(id:string)=>{location.href='/graf/'+slugOf(id)};
- // přepínač trhu: našeptávač – píšeš a pod polem se nabízí odpovídající trhy (šipky, Enter, Esc, myš)
+ // adresa sleduje aktivní záložku (bez načtení stránky)
+ useEffect(()=>{if(!tab)return;const u='/graf/'+encodeURIComponent(slugOf(tab.instrument))+'?tf='+(tab.view.type==='footprint'?tab.view.fpTf:tab.view.tf);if(location.pathname+location.search!==u)history_replace(u)},[tab]);
+ // přepnutí trhu v záložce: bez záložek (chyba načtení) klasicky přes adresu
+ const go=(id:string)=>{if(tab)setWs(w=>updateTab(w,tab.id,{instrument:id}));else location.href='/graf/'+slugOf(id)};
+ const onView=useCallback((v:ChartView)=>{const id=tabRef.current;if(!id)return;setWs(w=>{const t=w.tabs.find(x=>x.id===id);return !t||viewKey(t.view)===viewKey(v)?w:updateTab(w,id,{view:v})})},[setWs]);
+ const tabRef=useRef<string|null>(null);useEffect(()=>{tabRef.current=tab?.id??null});
+ // poslední kresby aktivního trhu (snímek do nedávno zavřených bez dalšího dotazu)
+ const live=useRef<{instrument:string;list:Drawing[]}|null>(null);
+ const onDrawings=useCallback((instrument:string,l:Drawing[])=>{live.current={instrument,list:l}},[]);
+ const snapshot=async(t:Tab)=>live.current&&live.current.instrument===t.instrument&&t.id===ws.active?live.current.list:fetchDrawings(t.instrument);
  const picker=<MarketPicker current={item?.id} onPick={go}/>;
- // stránka na celou výšku okna: horní lišta + karta grafu, která vyplní zbytek (bez posouvání stránky; i v samostatném okně na druhém monitoru)
- return <div className="mt-page score-v2 tradee mc-page">
-  <header className="mt-top mc-page-top"><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
+ const nameOf=(id:string)=>list.find(i=>i.id===id)?.name??id;
+ const focus=!!tab?.view.focus;
+ // stránka na celou výšku okna: horní lišta, záložky a karta grafu, která vyplní zbytek (bez posouvání stránky; i v samostatném okně na druhém monitoru)
+ return <div className={'mt-page score-v2 tradee mc-page'+(focus?' mc-page-focus':'')}>
+  {!focus&&<header className="mt-top mc-page-top"><a href={item?'/#analyzer':'/'} className="mt-back"><ArrowLeft size={16}/> Zpět do Tradee</a>
    {item&&<div className="mc-page-live"><h1>{item.name}</h1><DataSourceBadge id={item.id} compact/>{quote&&<><strong>{fmtPrice(quote.price)}</strong><LiveChange pct={quote.changePct}/><LiveBadge live={quotes} quote={quote}/></>}<ScenarioFromChart instrument={item.id}/></div>}
-  </header>
+  </header>}
+  {W.ready&&ws.tabs.length>0&&!focus&&<ChartTabs ws={ws} layouts={W.layouts} save={W.save} error={W.error} dirty={W.dirty} name={nameOf} onChange={setWs} onLayouts={W.saveLayouts} onRetry={W.retry}
+   picker={pick=><MarketPicker onPick={pick}/>} snapshot={snapshot} onRestored={(t,d)=>restoreDrawings(t.instrument,d)}/>}
   <main className="mt-main mc-page-main">
-   {item?<div className="mc-full"><MarketChart key={item.id} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill initialTf={tf} headExtra={picker} owner={owner}/></div>
+   {!W.ready?<div className="mc-full"><section className="s-card mc mc-fill" aria-busy="true"><div className="mc-skeleton" aria-label="Načítám záložky grafu"><i/><i/><i/><i/><i/><i/><i/><i/></div></section></div>
+   :item&&tab?<div className="mc-full"><MarketChart key={tab.id+':'+tab.instrument} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill view={tab.view} onView={onView} onDrawings={onDrawings} headExtra={picker} owner={owner}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
   {/* na telefonu stejná lišta dole jako v aplikaci (graf patří k Analýze trhů); výška grafu s ní počítá (--bnav v CSS) */}
   <MobileNav nav={nav} view="analyzer"/>
  </div>;
 }
+// výchozí pohled nové záložky: poslední pohled grafu v prohlížeči
+function localView():ChartView{try{return readView(JSON.parse(localStorage.getItem('tradee.chart')||'null'))}catch{return VIEW_DEFAULT}}
+const history_replace=(u:string)=>{try{window.history.replaceState(window.history.state,'',u)}catch{}};
 
 function MarketPicker({current,onPick}:{current?:string;onPick:(id:string)=>void}){
  const [q,setQ]=useState(''),[open,setOpen]=useState(false),[act,setAct]=useState(0),box=useRef<HTMLDivElement>(null);
@@ -83,9 +107,12 @@ function MarketPicker({current,onPick}:{current?:string;onPick:(id:string)=>void
 
 // „Nový scénář“ z grafu: když je v grafu vybraná kresba (obdélník = zóna vstupu, pozice long/short = vstup, stop, cíl a směr, vodorovná čára = cena), úrovně se předvyplní
 function ScenarioFromChart({instrument}:{instrument:string}){
- const [sel,setSel]=useState<{type:string;a:{p:number}[]}|null>(null);
- useEffect(()=>{const f=(e:Event)=>{const d=(e as CustomEvent<{instrument:string;drawing:{type:string;a:{p:number}[]}|null}>).detail;if(d?.instrument===instrument)setSel(d.drawing)};addEventListener('tradee:drawing-selected',f);return()=>removeEventListener('tradee:drawing-selected',f)},[instrument]);
- const lv=levelsFromDrawing(sel),q=new URLSearchParams({novy:instrument});
+ const [sel,setSel]=useState<{type:string;a:{p:number}[];zn?:ZoneMeta}|null>(null);
+ useEffect(()=>{const f=(e:Event)=>{const d=(e as CustomEvent<{instrument:string;drawing:{type:string;a:{p:number}[];zn?:ZoneMeta}|null}>).detail;if(d?.instrument===instrument)setSel(d.drawing)};addEventListener('tradee:drawing-selected',f);return()=>removeEventListener('tradee:drawing-selected',f)},[instrument]);
+ // zóna: vstup v zóně jako u obdélníku, směr podle druhu (poptávka long, nabídka short), zneplatnění na distální hraně
+ const zone=sel?.type==='zone'&&sel.zn&&sel.a.length>=2?{...levelsFromDrawing({type:'rect',a:sel.a})!,bias:sel.zn.k==='demand'?'long' as const:'short' as const}:null;
+ if(zone&&sel?.zn)zone.levels={...zone.levels,invalidation:zoneEdges(sel.zn.k,sel.a).distal};
+ const lv=zone??levelsFromDrawing(sel),q=new URLSearchParams({novy:instrument});
  if(lv){const L=lv.levels;if(lv.bias)q.set('bias',lv.bias);if(L.entryFrom!==null)q.set('ez',String(L.entryFrom));if(L.entryTo!==null&&L.entryTo!==L.entryFrom)q.set('ez2',String(L.entryTo));if(L.invalidation!==null)q.set('inv',String(L.invalidation));if(L.targets.length)q.set('tp',L.targets.join(';'))}
  return <a className="mc-chip mc-scn" href={'/scenare?'+q} title={lv?'Nový scénář s úrovněmi z vybrané kresby':'Nový scénář (vyber v grafu obdélník, pozici nebo čáru a úrovně se předvyplní)'}>{lv?'Nový scénář z kresby':'Nový scénář'}</a>;
 }

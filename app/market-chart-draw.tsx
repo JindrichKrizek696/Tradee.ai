@@ -2,11 +2,12 @@
 // Kreslení v grafu trhu: nástroje ve skupinách, výběr a tažení kreseb, panel stylu, ukládání per uživatel × trh (/api/chart/drawings).
 import {Fragment,useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import type {IChartApi,ISeriesApi,Logical,SeriesType} from 'lightweight-charts';
-import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2,Star,GripVertical,ChartBarDecreasing,Lock,LockOpen,Eye,X} from 'lucide-react';
+import {MousePointer2,TrendingUp,Minus,RectangleHorizontal,AlignVerticalDistributeCenter,Type,Ruler,Magnet,Eraser,Trash2,MoveUpRight,MoveRight,ArrowRightToLine,Waypoints,Brush,Equal,SquareArrowUp,SquareArrowDown,MoveVertical,MoveHorizontal,Pin,Settings2,EyeOff,GitFork,Grid3x3,Rows4,Undo2,Redo2,Star,GripVertical,ChartBarDecreasing,Lock,LockOpen,Eye,X,SquareStack,EqualApproximately,ScanLine,Zap,Copy,Archive,ArchiveRestore,BellPlus,ClipboardList,BringToFront,SendToBack} from 'lucide-react';
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,type ChartTf} from '@/lib/chart/layers';
-import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,numInput,fibLabel,arrowEnds,arrowOf,shiftMode,lockDir,lockAnchor,toggleFav,favFrac,favStep,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,createdOf,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
+import {COLOR_LABELS,DRAW_COLORS,DRAW_LABELS,MAX_DRAWINGS,MAX_FIB_LEVELS,defaultLevels,sameLevels,nextLevel,levelInput,numInput,fibLabel,arrowEnds,arrowOf,shiftMode,lockDir,lockAnchor,toggleFav,favFrac,favStep,type FibLevel,type FullStyle,RR_MAX,RR_MIN,isHex,type NamedColor,applyLook,emptyHistory,emptyPrefs,lookOf,parsePrefs,record,redoStep,rrOf,undoStep,withRR,MAX_PRESETS,MAX_PRESET_NAME,type DrawPrefs,type History,type Look,type Preset,createdOf,MAX_PATH,MAX_TEXT,capsOf,firstTouch,fromChartTime,logicalOf,measure,measureLines,moveHandle,moveEdge,type Edge,newId,parseDrawings,pipSize,positionFrom,priceRangeLine,simplifyMax,snapPrice,styleOf,timeOfLogical,timeRangeLine,toggleTf,translate,visibleOn,BUILTIN_PRESETS,isBuiltin,bulk,duplicateOf,eqLabel,layerOf,LAYERS,MANUAL_TYPES,MANUAL_NOTE,type Bulk,type Anchor,type DrawColor,type DrawStyle,type DrawType,type Drawing,type Pt} from '@/lib/chart/drawings';
 import {DrawingsPrimitive,type DrawPalette} from './chart-drawings';
+import {evalZone,zoneEdges,zoneKindFor,stateText,htfLabel,htfVisible,nestZones,zoneScenario,zoneAlert,ZONE_RULES,ZONE_STATES,ZONE_KINDS,type ZoneEval,type ZoneMeta,type ZoneRule} from '@/lib/chart/zones';
 import {volumeProfile,barsBetween,type Profile} from '@/lib/chart/volume-profile';
 import {TFS} from '@/lib/chart/candles';
 import {fmtPrice} from './live';
@@ -27,12 +28,15 @@ const TOOL_META:Record<DrawType,{Icon:Icon;hint:string}>={
  channel:{Icon:Equal,hint:'3 body'},fib:{Icon:AlignVerticalDistributeCenter,hint:'2 body'},rect:{Icon:RectangleHorizontal,hint:'2 rohy'},brush:{Icon:Brush,hint:'kresli tahem'},
  long:{Icon:SquareArrowUp,hint:'vstup a stop-loss'},short:{Icon:SquareArrowDown,hint:'vstup a stop-loss'},
  fibext:{Icon:Rows4,hint:'3 body: impuls a korekce'},pitchfork:{Icon:GitFork,hint:'3 body: počátek a dva vrcholy'},gann:{Icon:Grid3x3,hint:'2 rohy'},
+ zone:{Icon:SquareStack,hint:'2 rohy zóny, druh podle polohy vůči ceně'},eqhl:{Icon:EqualApproximately,hint:'2 vrcholy nebo dna · ruční značka'},fvg:{Icon:ScanLine,hint:'2 rohy mezery · ruční značka'},mss:{Icon:Zap,hint:'úroveň a svíčka prolomení · ruční značka'},
  measure:{Icon:Ruler,hint:'2 body, neukládá se'},vprofile:{Icon:ChartBarDecreasing,hint:'začátek a konec rozsahu'},prange:{Icon:MoveVertical,hint:'2 body'},trange:{Icon:MoveHorizontal,hint:'2 body'},text:{Icon:Type,hint:'1 bod'},
 };
 export const TOOL_GROUPS:{id:string;label:string;tools:DrawType[]}[]=[
  {id:'lines',label:'Čáry',tools:['trend','ray','hline','hray','touch','path']},
  {id:'channels',label:'Kanály a vidle',tools:['channel','pitchfork']},
  {id:'fib',label:'Fibonacci a Gann',tools:['fib','fibext','gann']},
+ {id:'zones',label:'Zóny',tools:['zone']},
+ {id:'liq',label:'Likvidita (ruční značky)',tools:['eqhl','fvg','mss']},
  {id:'shapes',label:'Tvary',tools:['rect','brush']},
  {id:'pos',label:'Pozice',tools:['long','short']},
  {id:'measure',label:'Měření',tools:['measure','prange','trange']},
@@ -42,7 +46,7 @@ export const TOOL_GROUPS:{id:string;label:string;tools:DrawType[]}[]=[
 const LAST_KEY='tradee.chart.tools';
 const ONE_CLICK=new Set<DrawType>(['hline','hray','touch']);
 const needOf=(t:DrawType)=>t==='path'?MAX_PATH:t==='channel'||t==='fibext'||t==='pitchfork'?3:2;
-const drawHint=(t:DrawType)=>ONE_CLICK.has(t)||t==='text'?'klikni do grafu':t==='brush'?'kresli tahem myši nebo prstu':t==='path'?'klikej body, dvojklik nebo Enter dokončí':t==='channel'?'klikni dva body čáry a třetí pro šířku kanálu':t==='fibext'?'klikni začátek a konec impulsu a pak bod korekce':t==='pitchfork'?'klikni počátek a pak dva vrcholy (horní a dolní)':t==='gann'?'klikni dva protilehlé rohy (nebo táhni)':t==='long'||t==='short'?'klikni vstup a pak stop-loss (nebo táhni), cíl se nastaví na R:R 2':t==='vprofile'?'klikni začátek a konec časového rozsahu (nebo táhni)':'klikni na dva body (nebo táhni)';
+const drawHint=(t:DrawType)=>ONE_CLICK.has(t)||t==='text'?'klikni do grafu':t==='brush'?'kresli tahem myši nebo prstu':t==='path'?'klikej body, dvojklik nebo Enter dokončí':t==='channel'?'klikni dva body čáry a třetí pro šířku kanálu':t==='fibext'?'klikni začátek a konec impulsu a pak bod korekce':t==='pitchfork'?'klikni počátek a pak dva vrcholy (horní a dolní)':t==='gann'?'klikni dva protilehlé rohy (nebo táhni)':t==='long'||t==='short'?'klikni vstup a pak stop-loss (nebo táhni), cíl se nastaví na R:R 2':t==='vprofile'?'klikni začátek a konec časového rozsahu (nebo táhni)':t==='zone'?'klikni dva rohy zóny (báze); pod cenou poptávka, nad cenou nabídka':t==='mss'?'klikni prolomenou úroveň a pak svíčku prolomení · '+MANUAL_NOTE:t==='eqhl'||t==='fvg'?'klikni dva body · '+MANUAL_NOTE:'klikni na dva body (nebo táhni)';
 const SAVE_TEXT:Record<Exclude<Save,'idle'>,string>={saving:'Ukládám kresby…',saved:'Uloženo',error:'Kresby se nepodařilo uložit',loaderror:'Kresby se nepodařilo načíst'};
 const css=(name:string,fallback:string)=>getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback;
 // barvu z CSS (i color-mix, var) převést na #rrggbb / rgba() přes plátno, aby šla průhlednost
@@ -58,7 +62,8 @@ const created=(id:string)=>{const t=createdOf(id);return t===null?'':new Date(t)
 const touchLabel=(sec:number,tf:ChartTf)=>new Date(sec*1000).toLocaleString('cs-CZ',{timeZone:'UTC',day:'numeric',month:'numeric',...(tf==='D1'||tf==='W1'||tf==='MN'?{year:'numeric'}:{hour:'2-digit',minute:'2-digit'}) as Intl.DateTimeFormatOptions});
 
 // treeOpen / onTreeClose / treeExtra = panel Objekty v grafu (strom objektů); treeExtra = sekce indikátorů z grafu
-export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,tick,treeOpen=false,onTreeClose,treeExtra}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<SeriesType>|null>;ver:number;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:ChartTf;tfList:readonly ChartTf[];instrument:string;tick:number;treeOpen?:boolean;onTreeClose?:()=>void;treeExtra?:React.ReactNode}){
+// htf = zóny vyššího TF na nižším TF; name = název trhu (seznam objektů); onDrawings = aktuální kresby trhu nahoru (snímek při zavření záložky)
+export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,tick,treeOpen=false,onTreeClose,treeExtra,htf=true,name,onDrawings}:{chart:RefObject<IChartApi|null>;series:RefObject<ISeriesApi<SeriesType>|null>;ver:number;el:RefObject<HTMLDivElement|null>;bars:Bar[];tf:ChartTf;tfList:readonly ChartTf[];instrument:string;tick:number;treeOpen?:boolean;onTreeClose?:()=>void;treeExtra?:React.ReactNode;htf?:boolean;name?:string;onDrawings?:(instrument:string,list:Drawing[])=>void}){
  const [tool,setTool]=useState<Tool>('cursor');
  const [drawings,setDrawings]=useState<Drawing[]>([]),[temp,setTemp]=useState<Drawing|null>(null),[selected,setSelected]=useState<string|null>(null);
  const [magnet,setMagnet]=useState(false),[color,setColor]=useState<DrawColor>('brand');
@@ -72,14 +77,21 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  // presety a výchozí vzhled nástrojů (načtou se jednou; při chybě platí vestavěné výchozí hodnoty)
  const [prefs,setPrefs]=useState<DrawPrefs>(emptyPrefs),[prefsState,setPrefsState]=useState<'loading'|'ok'|'loaderror'|'error'>('loading');
  const [presetSel,setPresetSel]=useState<Partial<Record<DrawType,string>>>({});
- const S=useRef({tool,drawings,temp,selected,magnet,color,bars,times:[] as number[],tf,instrument,prefs,presetSel});
  const times=useMemo(()=>bars.map(b=>b.time),[bars]);
- useLayoutEffect(()=>{S.current={tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument,prefs,presetSel}});
+ // zóny: stav z ceny (svíčky aktuálního TF, čas UTC) a vnoření do zón vyššího TF
+ const zbars=useMemo(()=>bars.map(b=>({t:fromChartTime(b.time),h:b.high,l:b.low,c:b.close})),[bars]);
+ const zev=useMemo(()=>{const m=new Map<string,ZoneEval>();for(const d of drawings)if(d.type==='zone'&&d.zn&&d.a.length===2)m.set(d.id,evalZone(d.zn,zoneEdges(d.zn.k,d.a),Math.max(d.a[0].t,d.a[1].t),zbars));return m},[drawings,zbars]);
+ const parents=useMemo(()=>nestZones(drawings.flatMap(d=>{if(d.type!=='zone'||!d.zn)return [];const e=zoneEdges(d.zn.k,d.a);return [{id:d.id,tf:d.otf,hi:e.hi,lo:e.lo,par:d.zn.par}]})),[drawings]);
+ const S=useRef({tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument,prefs,presetSel,zev});
+ useLayoutEffect(()=>{S.current={tool,drawings,temp,selected,magnet,color,bars,times,tf,instrument,prefs,presetSel,zev}});
+ useEffect(()=>{onDrawings?.(instrument,drawings)},[drawings,instrument,onDrawings]);
  // profil účtu pro loty v nástroji long/short (Účty a riziko)
  const risk=useRisk(),riskPref=useProfilePref(),RK=useRef({data:risk.data,pref:riskPref});
  useLayoutEffect(()=>{RK.current={data:risk.data,pref:riskPref}});
  // vzhled nové kresby: zvolený preset nástroje, jinak uživatelův výchozí, jinak nic (vestavěné hodnoty)
- const lookFor=(t:DrawType):Look|null=>{const st=S.current,id=st.presetSel[t];return (id&&st.prefs.presets.find(p=>p.id===id&&p.tool===t))||st.prefs.defaults[t]||null};
+ const lookFor=(t:DrawType):Look|null=>{const st=S.current,id=st.presetSel[t];return (id&&[...BUILTIN_PRESETS,...st.prefs.presets].find(p=>p.id===id&&p.tool===t))||st.prefs.defaults[t]||null};
+ // nová kresba: TF vzniku; zóna dostane druh podle ceny, pravidlo dotyk a čas vzniku
+ const stamp=(d:Drawing):Drawing=>{const st=S.current,last=st.bars.length?st.bars[st.bars.length-1].close:null;const x:Drawing={...d,otf:st.tf};if(x.type==='zone'&&!x.zn)x.zn={k:zoneKindFor(x.a,last),rule:'touch',at:Date.now()};return x};
  const draft=useRef<Draft|null>(null),drag=useRef<Drag|null>(null),panning=useRef(false);
  const dirty=useRef(false),loaded=useRef<string|null>(null),pending=useRef<{instrument:string;drawings:Drawing[]}|null>(null);
  const menuRef=useRef<HTMLDivElement>(null);
@@ -111,6 +123,8 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
     return {x:ax.x0+ax.dx*i,label:'dotyk '+touchLabel(st.bars[i].time,st.tf)};
    },
    size:(w,h)=>setArea({w,h}),
+   zone:d=>{if(!d.zn)return null;const ev=S.current.zev.get(d.id);return {state:ev?stateText(ev):ZONE_STATES.waiting,htf:htfLabel(d.otf,S.current.tf),muted:ev?.state==='invalid'||ev?.state==='archived',kind:d.zn.k}},
+   eq:d=>eqLabel(d.a[0].p,S.current.bars[Math.round(conv.toL(d.a[0].t))]),
    sizing:d=>chartSizing(d,RK.current.data,RK.current.pref,S.current.instrument),
    // volume profile rozsahu ze svíček mezi kotvami (cache: stejné svíčky, rozsah a nastavení = stejný profil)
    profile:d=>{
@@ -130,7 +144,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  useEffect(()=>{prim.update()},[risk.data,riskPref,prim]);
  // připojení primitiva k sérii svíček
  useEffect(()=>{const s=series.current,pr=prim;s?.attachPrimitive(pr);pr.update();return()=>{try{s?.detachPrimitive(pr)}catch{}}},[series,ver]);
- useEffect(()=>{const pr=prim;pr.drawings=drawings;pr.temp=temp;pr.selected=selected;pr.tf=tf;pr.update()},[drawings,temp,selected,times,tf]);
+ useEffect(()=>{const pr=prim;pr.drawings=drawings;pr.temp=temp;pr.selected=selected;pr.tf=tf;pr.htf=htf;pr.update()},[drawings,temp,selected,times,tf,htf,zev]);
  // po přepnutí TF zrušit výběr kresby, která na něm není vidět
  useEffect(()=>{setSelected(id=>{const d=id?S.current.drawings.find(x=>x.id===id):null;return d&&!visibleOn(d,tf)?null:id})},[tf]);
  // barvy z palety a motivu (překreslit při změně)
@@ -154,7 +168,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
  const restore=(v:Drawing[])=>{lastGroup.current=null;dirty.current=true;setDrawings(v);setUndoVer(n=>n+1);setSelected(id=>id&&(v.some(d=>d.id===id)||S.current.temp?.id===id)?id:null)};
  const undo=()=>{if(drag.current||draft.current)cancel();const r=undoStep(hist.current,S.current.drawings);if(!r)return;setHist(r.h);restore(r.value)};
  const redo=()=>{if(drag.current||draft.current)cancel();const r=redoStep(hist.current,S.current.drawings);if(!r)return;setHist(r.h);restore(r.value)};
- const build=(dr:Draft):Drawing=>applyLook({id:dr.id,type:dr.type,color:dr.color,a:(dr.type==='long'||dr.type==='short')?positionFrom(dr.type,dr.pts[0],dr.pts[1]??dr.pts[0]):dr.pts},dr.look);
+ const build=(dr:Draft):Drawing=>applyLook(stamp({id:dr.id,type:dr.type,color:dr.color,a:(dr.type==='long'||dr.type==='short')?positionFrom(dr.type,dr.pts[0],dr.pts[1]??dr.pts[0]):dr.pts}),dr.look);
  const finish=(d:Drawing)=>{
   draft.current=null;prim.draft=null;setTool('cursor');
   if(d.type==='measure'){setTemp(d);setSelected(d.id);return}
@@ -217,7 +231,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    if(st.tool!=='cursor'){
     stop(e);const a=st.tool==='brush'?freeAt(p):anchorAt(p);if(!a)return;
     const look=lookFor(st.tool);
-    if(ONE_CLICK.has(st.tool)){finish(applyLook({id:newId(),type:st.tool,a:[a],color:st.color},look));return}
+    if(ONE_CLICK.has(st.tool)){finish(applyLook(stamp({id:newId(),type:st.tool,a:[a],color:st.color}),look));return}
     if(st.tool==='text'){setTool('cursor');setEdit({x:p.x,y:p.y,anchor:a,text:look?.text||'',look});return}
     const d:Draft={id:newId(),type:st.tool,color:st.color,pts:st.tool==='brush'?[a]:[a,a],fixed:1,need:needOf(st.tool),x:p.x,y:p.y,placed:false,lastDown:Date.now(),px:st.tool==='brush'?[p]:undefined,look};
     draft.current=d;render(d);return;
@@ -350,16 +364,17 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    fetch('/api/chart/prefs',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefs:{presets:next.presets,defaults:next.defaults,fav:next.fav,tfFav:next.tfFav}})}).then(r=>{if(!r.ok)throw Error();setPrefsState('ok')}).catch(()=>setPrefsState('error'));
   },500);
  };
- const presetsOf=(t:DrawType)=>prefs.presets.filter(p=>p.tool===t);
- const presetName=(t:Tool)=>{if(t==='cursor')return null;const id=presetSel[t];return id?prefs.presets.find(p=>p.id===id&&p.tool===t)?.name??null:null};
+ // presety nástroje: vestavěné šablony (Fibonacci třetiny) a uživatelovy
+ const presetsOf=(t:DrawType)=>[...BUILTIN_PRESETS,...prefs.presets].filter(p=>p.tool===t);
+ const presetName=(t:Tool)=>{if(t==='cursor')return null;const id=presetSel[t];return id?presetsOf(t).find(p=>p.id===id)?.name??null:null};
  const savePreset=(d:Drawing,name:string)=>{
   const n=name.trim().slice(0,MAX_PRESET_NAME);if(!n)return;
   const same=prefs.presets.find(p=>p.tool===d.type&&p.name.toLowerCase()===n.toLowerCase());
   const p:Preset={...lookOf(d),id:same?.id??newId(),name:n,tool:d.type};
-  if(!same&&prefs.presets.length>=MAX_PRESETS)return;
+  if(!same&&prefs.presets.length>=MAX_PRESETS)return;if(isBuiltin(p.id))return;
   changePrefs({...prefs,presets:same?prefs.presets.map(x=>x.id===same.id?p:x):[...prefs.presets,p]});
  };
- const deletePreset=(id:string)=>{changePrefs({...prefs,presets:prefs.presets.filter(p=>p.id!==id)});setPresetSel(m=>Object.fromEntries(Object.entries(m).filter(([,v])=>v!==id)))};
+ const deletePreset=(id:string)=>{if(isBuiltin(id))return;changePrefs({...prefs,presets:prefs.presets.filter(p=>p.id!==id)});setPresetSel(m=>Object.fromEntries(Object.entries(m).filter(([,v])=>v!==id)))};
  const setDefault=(d:Drawing)=>changePrefs({...prefs,defaults:{...prefs.defaults,[d.type]:lookOf(d)}});
  const resetDefault=(t:DrawType)=>{const defaults={...prefs.defaults};delete defaults[t];changePrefs({...prefs,defaults})};
  // oblíbené nástroje (hvězdička v nabídce skupiny a u vybrané kresby) a poloha jejich plovoucího panelu
@@ -376,11 +391,33 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   if(!d.hide&&visibleOn(d,tf)){setTool('cursor');setSelected(id)}
  };
  const moveFav=(x:number,y:number)=>changePrefs({...prefs,fav:{...prefs.fav,x,y}});
+ // hromadné akce v seznamu objektů a kopie kresby (posun o 3 svíčky doprava, ať se nepřekrývá)
+ const doBulk=(ids:string[],b:Bulk)=>{if(!ids.length)return;if(b.op==='delete'&&!window.confirm(`Smazat vybrané kresby (${ids.length})? Vrátit je půjde tlačítkem Zpět (${UNDO_KEY}).`))return;commit(bulk(drawings,ids,b));if(b.op==='delete'||b.op==='hide')setSelected(x=>x&&ids.includes(x)?null:x)};
+ const duplicate=(id:string)=>{
+  const d=drawings.find(x=>x.id===id);if(!d)return;
+  if(drawings.length>=MAX_DRAWINGS){setSave('error');setSaveError(`Na jednom trhu může být nejvýš ${MAX_DRAWINGS} kreseb.`);return}
+  const c=duplicateOf(d,newId(),Date.now()),moved=d.type==='hline'?c:translate(c,3,0,conv.toL,t=>Math.round(conv.fromL(t)));
+  commit([...drawings,moved]);setSelected(moved.id);
+ };
+ // zóna: scénář (POST /api/scenarios) a alert na dotyk proximální hrany (POST /api/alerts); ID se uloží do zóny
+ const [zoneMsg,setZoneMsg]=useState<{id:string;text:string;err?:boolean;href?:string}|null>(null);
+ const zonePatch=(id:string,p:Partial<ZoneMeta>)=>{const list=S.current.drawings;commit(list.map(d=>{if(d.id!==id||!d.zn)return d;const zn={...d.zn,...p} as ZoneMeta;for(const k of Object.keys(zn))if((zn as Record<string,unknown>)[k]===undefined)delete (zn as Record<string,unknown>)[k];return {...d,zn}}))};
+ const post=async(url:string,body:unknown)=>{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({})) as Record<string,unknown>;if(!r.ok)throw new Error(typeof j.error==='string'?j.error:'Nepodařilo se uložit.');return j};
+ const zoneScenarioCreate=async(d:Drawing)=>{
+  if(!d.zn)return;setZoneMsg({id:d.id,text:'Zakládám scénář…'});
+  try{const j=await post('/api/scenarios',zoneScenario(instrument,d.zn.k,zoneEdges(d.zn.k,d.a),d.otf,fmtPrice)) as {scenario?:{id?:string}};const sid=j.scenario?.id;if(sid)zonePatch(d.id,{scn:sid});setZoneMsg({id:d.id,text:'Scénář založen',href:'/scenare'+(sid?'#'+sid:'')})}
+  catch(e){setZoneMsg({id:d.id,text:e instanceof Error?e.message:'Scénář se nepodařilo založit.',err:true})}
+ };
+ const zoneAlertCreate=async(d:Drawing)=>{
+  if(!d.zn)return;setZoneMsg({id:d.id,text:'Nastavuji alert…'});
+  try{const j=await post('/api/alerts',zoneAlert(instrument,d.zn.k,zoneEdges(d.zn.k,d.a),d.otf,fmtPrice)) as {alert?:{id?:string};warnings?:string[]};const aid=j.alert?.id;if(aid&&/^al_[a-z0-9]{1,40}$/.test(aid))zonePatch(d.id,{al:aid});setZoneMsg({id:d.id,text:'Alert na dotyk zóny nastaven'+(j.warnings?.length?' · '+j.warnings[0]:''),href:'/alerty'})}
+  catch(e){setZoneMsg({id:d.id,text:e instanceof Error?e.message:'Alert se nepodařilo nastavit.',err:true})}
+ };
 
  // úpravy vybrané kresby
  const current=selected?(temp?.id===selected?temp:drawings.find(d=>d.id===selected))??null:null;
  // vybraná kresba pro „Nový scénář“ na stránce grafu (úrovně z obdélníku / pozice / čáry) – jako událost okna, graf o scénářích neví
- useEffect(()=>{try{window.dispatchEvent(new CustomEvent('tradee:drawing-selected',{detail:{instrument,drawing:current?{type:current.type,a:current.a}:null}}))}catch{}},[current,instrument]);
+ useEffect(()=>{try{window.dispatchEvent(new CustomEvent('tradee:drawing-selected',{detail:{instrument,drawing:current?{type:current.type,a:current.a,zn:current.zn}:null}}))}catch{}},[current,instrument]);
  const patch=(p:Partial<Drawing>,group?:string)=>{if(!current)return;const next={...current,...p};for(const k of Object.keys(next))if((next as Record<string,unknown>)[k]===undefined)delete (next as Record<string,unknown>)[k];if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d),group&&group+':'+current.id)};
  const patchStyle=(p:Partial<DrawStyle>,group?:string)=>{if(!current)return;const s:DrawStyle={...current.s,...p};for(const k of Object.keys(s))if((s as Record<string,unknown>)[k]===undefined)delete (s as Record<string,unknown>)[k];patch({s:Object.keys(s).length?s:undefined},group)};
  const applyPreset=(p:Preset)=>{if(!current)return;const next=applyLook(current,p);if(temp?.id===current.id)setTemp(next);else commit(drawings.map(d=>d.id===current.id?next:d));setUndoVer(n=>n+1)};
@@ -390,7 +427,7 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
   const e=edit;setEdit(null);if(!e)return;const v=text.trim().slice(0,MAX_TEXT);
   if(e.id){if(v)commit(drawings.map(d=>d.id===e.id?{...d,text:v}:d));return}
   if(!v)return;if(drawings.length>=MAX_DRAWINGS){setSave('error');setSaveError(`Na jednom trhu může být nejvýš ${MAX_DRAWINGS} kreseb.`);return}
-  const d:Drawing=applyLook({id:newId(),type:'text',a:[e.anchor],color,text:v},e.look);commit([...drawings,d]);setSelected(d.id);
+  const d:Drawing=applyLook(stamp({id:newId(),type:'text',a:[e.anchor],color,text:v}),e.look);commit([...drawings,d]);setSelected(d.id);
  };
  const clearAll=()=>{if(!drawings.length&&!temp)return;if(!window.confirm(`Smazat všechny kresby na tomto trhu (${drawings.length})? Vrátit je půjde tlačítkem Zpět (${UNDO_KEY}).`))return;setTemp(null);setSelected(null);commit([])};
  // preset: undefined = ponechat zvolený, null = bez presetu, id = použít preset pro další kresby nástroje
@@ -449,39 +486,99 @@ export function useChartDrawings({chart,series,ver,el,bars,tf,tfList,instrument,
    {current.type!=='measure'&&<button type="button" className={'mc-tool sm'+(styleOpen?' on':'')} aria-expanded={styleOpen} aria-controls="mc-style" aria-label="Styl a text kresby" data-tip="Styl, text, viditelnost" onClick={()=>setStyleOpen(o=>!o)}><Settings2 size={15} aria-hidden/></button>}
    {!isTemp&&<button type="button" className={'mc-tool sm'+(current.lock?' on':'')} aria-pressed={!!current.lock} aria-label={current.lock?'Odemknout kresbu':'Zamknout kresbu'} data-tip={current.lock?'Odemknout (zamčenou kresbu nejde posunout)':'Zamknout (nepůjde posunout)'} onClick={()=>flag(current.id,'lock')}>{current.lock?<Lock size={15} aria-hidden/>:<LockOpen size={15} aria-hidden/>}</button>}
    <button type="button" className={'mc-tool sm mc-fav-toggle'+(isFav(current.type)?' on':'')} aria-pressed={isFav(current.type)} aria-label={(isFav(current.type)?'Odebrat z oblíbených: ':'Přidat do oblíbených: ')+DRAW_LABELS[current.type]} data-tip={isFav(current.type)?'Odebrat nástroj z oblíbených':'Nástroj do oblíbených'} onClick={()=>toggleFavorite(current.type)}><Star size={15} fill={isFav(current.type)?'currentColor':'none'} aria-hidden/></button>
+   {!isTemp&&<button type="button" className="mc-tool sm" aria-label="Duplikovat kresbu" data-tip="Duplikovat" onClick={()=>duplicate(current.id)}><Copy size={15} aria-hidden/></button>}
+   {!isTemp&&<button type="button" className="mc-tool sm" aria-label="Do popředí" data-tip={'Vrstva: '+LAYERS[layerOf(current)].label+' → popředí'} disabled={layerOf(current)===2} onClick={()=>doBulk([current.id],{op:'layer',z:layerOf(current)===0?1:2})}><BringToFront size={15} aria-hidden/></button>}
+   {!isTemp&&<button type="button" className="mc-tool sm" aria-label="Do pozadí" data-tip={'Vrstva: '+LAYERS[layerOf(current)].label+' → pozadí'} disabled={layerOf(current)===0} onClick={()=>doBulk([current.id],{op:'layer',z:layerOf(current)===2?1:0})}><SendToBack size={15} aria-hidden/></button>}
+   {MANUAL_TYPES.includes(current.type)&&<span className="mc-sel-manual">{MANUAL_NOTE}</span>}
    {isTemp&&<button type="button" className="mc-chip" onClick={pin}><Pin size={13} aria-hidden/> Připnout</button>}
    <button type="button" className="mc-tool sm danger" aria-label="Smazat kresbu" data-tip="Smazat (Delete)" onClick={()=>remove(current.id)}><Trash2 size={15} aria-hidden/></button>
+   {current.type==='zone'&&current.zn&&!isTemp&&!styleOpen&&<span className="mc-sel-zone">{(()=>{const ev=zev.get(current.id);return ev?stateText(ev):ZONE_STATES.waiting})()}{htfLabel(current.otf,tf)?' · '+htfLabel(current.otf,tf):''}</span>}
+   {current.type==='zone'&&current.zn&&!isTemp&&styleOpen&&<ZoneRows d={current} ev={zev.get(current.id)} parent={parents.get(current.id)} zones={drawings.filter(x=>x.type==='zone'&&x.id!==current.id)} tf={tf} htf={htf} msg={zoneMsg?.id===current.id?zoneMsg:null} onPatch={p=>zonePatch(current.id,p)} onScenario={()=>zoneScenarioCreate(current)} onAlert={()=>zoneAlertCreate(current)}/>}
    {styleOpen&&current.type!=='measure'&&<StylePanel key={current.id+':'+undoVer} d={current} market={instrument} tf={tf} tfList={tfList} onPatch={patch} onStyle={patchStyle} focusRR={rrFocus?.id===current.id?rrFocus.n:0} onFocusedRR={()=>setRrFocus(null)} colors={prefs.colors} presets={presetsOf(current.type)} hasDefault={!!prefs.defaults[current.type]} canSave={prefs.presets.length<MAX_PRESETS||presetsOf(current.type).length>0} prefsOk={prefsState==='ok'||prefsState==='error'} onSavePreset={n=>savePreset(current,n)} onDeletePreset={deletePreset} onApplyPreset={applyPreset} onSetDefault={()=>setDefault(current)} onResetDefault={()=>resetDefault(current.type)}/>}
   </div>}
   {edit&&<TextInput key={edit.id||edit.x+':'+edit.y} edit={edit} onDone={saveText} onCancel={()=>setEdit(null)}/>}
   {area&&prefs.fav.tools.length>0&&<FavBar tools={prefs.fav.tools} x={prefs.fav.x} y={prefs.fav.y} area={area} tool={tool} disabled={disabled} presetName={presetName} onPick={t=>pickTool(t)} onMove={moveFav}/>}
   {tool!=='cursor'&&<div className="mc-draw-hint" role="status">{DRAW_LABELS[tool]}{presetName(tool)?' · preset „'+presetName(tool)+'“':''}: {drawHint(tool)} · Ctrl/Alt + tah posune graf · Esc zruší</div>}
  </>;
- const tree=treeOpen?<ObjectTree drawings={drawings} tf={tf} selected={selected} extra={treeExtra} onFocus={focusDrawing} onFlag={flag} onRemove={remove} onClearAll={clearAll} onClose={()=>onTreeClose?.()}/>:null;
+ const tree=treeOpen?<ObjectTree drawings={drawings} tf={tf} htf={htf} selected={selected} extra={treeExtra} market={name||instrument} zev={zev} parents={parents} onFocus={focusDrawing} onFlag={flag} onRemove={remove} onClearAll={clearAll} onBulk={doBulk} onDuplicate={duplicate} onClose={()=>onTreeClose?.()}/>:null;
  const status=<>{save!=='idle'&&<span className={'mc-saved'+(save==='error'||save==='loaderror'?' err':'')} role="status">{SAVE_TEXT[save]}{save==='error'&&saveError?': '+saveError:''}</span>}
   {prefsState==='error'&&<span className="mc-saved err" role="status">Presety se nepodařilo uložit</span>}</>;
- return {toolbar,overlay,status,tree,drawing:tool!=='cursor',count:drawings.length,tfFav:prefs.tfFav,toggleTfFav};
+ return {toolbar,overlay,status,tree,drawing:tool!=='cursor',count:drawings.length,tfFav:prefs.tfFav,toggleTfFav,current:current&&!isTemp?current:null,drawings};
 }
 
-// Objekty v grafu (jako strom objektů v TradingView): indikátory (z grafu) a všechny kresby trhu od nejnovější – najít, skrýt, zamknout, smazat
-function ObjectTree({drawings,tf,selected,extra,onFocus,onFlag,onRemove,onClearAll,onClose}:{drawings:Drawing[];tf:ChartTf;selected:string|null;extra?:React.ReactNode;onFocus:(id:string)=>void;onFlag:(id:string,k:'hide'|'lock')=>void;onRemove:(id:string)=>void;onClearAll:()=>void;onClose:()=>void}){
+// Objekty v grafu (jako strom objektů v TradingView): indikátory (z grafu) a všechny kresby trhu od nejnovější – najít, skrýt, zamknout, smazat, duplikovat;
+// u kresby trh, TF vzniku, vrstva, souřadnice, poznámka, u zóny stav a rodič; zaškrtnuté kresby hromadně skrýt / zamknout / smazat / přesunout do vrstvy
+const anchorText=(d:Drawing)=>d.a.slice(0,3).map(a=>fmtPrice(a.p)+' @ '+new Date(a.t).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})).join(' → ')+(d.a.length>3?' … ('+d.a.length+' bodů)':'');
+function ObjectTree({drawings,tf,htf,selected,extra,market,zev,parents,onFocus,onFlag,onRemove,onClearAll,onBulk,onDuplicate,onClose}:{drawings:Drawing[];tf:ChartTf;htf:boolean;selected:string|null;extra?:React.ReactNode;market:string;zev:Map<string,ZoneEval>;parents:Map<string,string>;onFocus:(id:string)=>void;onFlag:(id:string,k:'hide'|'lock')=>void;onRemove:(id:string)=>void;onClearAll:()=>void;onBulk:(ids:string[],b:Bulk)=>void;onDuplicate:(id:string)=>void;onClose:()=>void}){
  const list=[...drawings].sort((a,b)=>(createdOf(b.id)??0)-(createdOf(a.id)??0));
+ const [pick,setPick]=useState<string[]>([]),[open,setOpen]=useState<string|null>(null);
+ const ids=pick.filter(id=>drawings.some(d=>d.id===id)),all=ids.length===drawings.length&&drawings.length>0;
+ const act=(b:Bulk)=>{onBulk(ids,b);if(b.op==='delete')setPick([])};
  return <aside className="mc-tree" aria-label="Objekty v grafu" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();onClose()}}}>
   <div className="mc-tree-head"><b>Objekty v grafu</b><button type="button" className="mc-tool sm" aria-label="Zavřít objekty" data-tip="Zavřít" onClick={onClose}><X size={15} aria-hidden/></button></div>
   {extra}
-  <div className="mc-tree-sec"><span>Kresby</span><em>{drawings.length}</em>{drawings.length>0&&<button type="button" className="mc-tree-clear" onClick={onClearAll}>Smazat vše</button>}</div>
-  {list.length?<ul className="mc-tree-list">{list.map(d=>{const {Icon}=TOOL_META[d.type],off=!visibleOn(d,tf),name=DRAW_LABELS[d.type],when=created(d.id);
-   const meta=[when,d.tfs?'jen '+d.tfs.join(', '):'',off?'skryto na '+tf:''].filter(Boolean).join(' · ');
+  <div className="mc-tree-sec"><label className="mc-tree-all"><input type="checkbox" checked={all} disabled={!drawings.length} aria-label="Vybrat všechny kresby" onChange={e=>setPick(e.target.checked?drawings.map(d=>d.id):[])}/></label><span>Kresby</span><em>{drawings.length}</em>{drawings.length>0&&<button type="button" className="mc-tree-clear" onClick={onClearAll}>Smazat vše</button>}</div>
+  {ids.length>0&&<div className="mc-tree-bulk" role="toolbar" aria-label={'Hromadné akce ('+ids.length+')'}>
+   <span>{ids.length} vybráno</span>
+   <button type="button" className="mc-chip" onClick={()=>act({op:'hide'})}>Skrýt</button>
+   <button type="button" className="mc-chip" onClick={()=>act({op:'show'})}>Zobrazit</button>
+   <button type="button" className="mc-chip" onClick={()=>act({op:'lock'})}>Zamknout</button>
+   <button type="button" className="mc-chip" onClick={()=>act({op:'unlock'})}>Odemknout</button>
+   <select className="mc-chip mc-type" aria-label="Přesunout do vrstvy" value="" onChange={e=>{const z=Number(e.target.value);if(z===0||z===1||z===2)act({op:'layer',z})}}><option value="" disabled>Do vrstvy…</option>{LAYERS.map(l=><option key={l.z} value={l.z}>{l.label}</option>)}</select>
+   <button type="button" className="mc-chip danger" onClick={()=>act({op:'delete'})}>Smazat</button>
+  </div>}
+  {list.length?<ul className="mc-tree-list">{list.map(d=>{const {Icon}=TOOL_META[d.type],off=!visibleOn(d,tf)||(d.type==='zone'&&!htfVisible(d.otf,tf,htf)),name=DRAW_LABELS[d.type],when=created(d.id),ev=zev.get(d.id),par=parents.get(d.id),pd=par?drawings.find(x=>x.id===par):undefined;
+   const meta=[when,d.otf?'vznik '+d.otf:'',d.tfs?'jen '+d.tfs.join(', '):'',layerOf(d)!==1?LAYERS[layerOf(d)].label.toLowerCase():'',off?'skryto na '+tf:''].filter(Boolean).join(' · ');
+   const exp=open===d.id;
    return <li key={d.id} className={'mc-tree-row'+(selected===d.id?' on':'')+(d.hide||off?' dim':'')}>
+    <input type="checkbox" className="mc-tree-pick" checked={ids.includes(d.id)} aria-label={'Vybrat: '+name} onChange={e=>setPick(p=>e.target.checked?[...p,d.id]:p.filter(x=>x!==d.id))}/>
     <button type="button" className="mc-tree-main" onClick={()=>onFocus(d.id)} title="Najít v grafu a vybrat">
      <i className="mc-tree-ic" style={{color:swatchBg(d.color)}}><Icon size={15} strokeWidth={1.8} aria-hidden/></i>
-     <span><b>{name}</b>{d.text&&<small className="mc-tree-note">{d.text}</small>}{meta&&<small>{meta}</small>}</span>
+     <span><b>{name}{ev?' · '+stateText(ev):''}</b>{d.text&&<small className="mc-tree-note">{d.text}</small>}{meta&&<small>{meta}</small>}{MANUAL_TYPES.includes(d.type)&&<small>{MANUAL_NOTE}</small>}</span>
     </button>
+    <button type="button" className={'mc-tool sm'+(exp?' on':'')} aria-expanded={exp} aria-label={'Podrobnosti: '+name} data-tip="Podrobnosti" onClick={()=>setOpen(o=>o===d.id?null:d.id)}><ClipboardList size={14} aria-hidden/></button>
+    <button type="button" className="mc-tool sm" aria-label={'Duplikovat: '+name} data-tip="Duplikovat" onClick={()=>onDuplicate(d.id)}><Copy size={14} aria-hidden/></button>
     <button type="button" className={'mc-tool sm'+(d.hide?' on':'')} aria-pressed={!!d.hide} aria-label={(d.hide?'Zobrazit: ':'Skrýt: ')+name} data-tip={d.hide?'Zobrazit':'Skrýt'} onClick={()=>onFlag(d.id,'hide')}>{d.hide?<EyeOff size={14} aria-hidden/>:<Eye size={14} aria-hidden/>}</button>
     <button type="button" className={'mc-tool sm'+(d.lock?' on':'')} aria-pressed={!!d.lock} aria-label={(d.lock?'Odemknout: ':'Zamknout: ')+name} data-tip={d.lock?'Odemknout':'Zamknout'} onClick={()=>onFlag(d.id,'lock')}>{d.lock?<Lock size={14} aria-hidden/>:<LockOpen size={14} aria-hidden/>}</button>
     <button type="button" className="mc-tool sm danger" aria-label={'Smazat: '+name} data-tip="Smazat" onClick={()=>onRemove(d.id)}><Trash2 size={14} aria-hidden/></button>
+    {exp&&<dl className="mc-tree-det">
+     <div><dt>ID</dt><dd>{d.id}</dd></div>
+     <div><dt>Trh</dt><dd>{market}</dd></div>
+     <div><dt>TF vzniku</dt><dd>{d.otf||'neuvedeno (starší kresba)'}</dd></div>
+     <div><dt>Body</dt><dd>{anchorText(d)}</dd></div>
+     <div><dt>Styl</dt><dd>{(isHex(d.color)?d.color:COLOR_LABELS[d.color as NamedColor])+' · čára '+styleOf(d).lw+' px · '+LAYERS[layerOf(d)].label.toLowerCase()}</dd></div>
+     {d.text&&<div><dt>Poznámka</dt><dd>{d.text}</dd></div>}
+     {d.zn&&<div><dt>Zóna</dt><dd>{ZONE_KINDS[d.zn.k]+' · pravidlo: '+ZONE_RULES[d.zn.rule]+(d.zn.rule==='pct'?' '+(d.zn.pct??50)+' %':'')+(pd?' · uvnitř '+(pd.otf||'')+' zóny':'')}</dd></div>}
+    </dl>}
    </li>})}</ul>:<p className="mc-tree-empty">Zatím žádné kresby. Nástroje jsou v liště vlevo.</p>}
  </aside>;
+}
+
+// zóna: druh, pravidlo mitigace, stav z ceny s historií, rodičovská zóna vyššího TF, archiv, scénář a alert
+const zoneWhen=(t:number)=>new Date(t).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+function ZoneRows({d,ev,parent,zones,tf,htf,msg,onPatch,onScenario,onAlert}:{d:Drawing;ev?:ZoneEval;parent?:string;zones:Drawing[];tf:ChartTf;htf:boolean;msg:{text:string;err?:boolean;href?:string}|null;onPatch:(p:Partial<ZoneMeta>)=>void;onScenario:()=>void;onAlert:()=>void}){
+ const z=d.zn!,e=zoneEdges(z.k,d.a),pz=parent?zones.find(x=>x.id===parent):undefined,[hist,setHist]=useState(false);
+ const htfL=htfLabel(d.otf,tf);
+ return <div className="mc-zone" role="group" aria-label="Zóna">
+  <div className="mc-row"><span>Stav</span><b className={'mc-zone-state '+(ev?.state??'waiting')}>{ev?stateText(ev):ZONE_STATES.waiting}</b>{htfL&&<em className="mc-zone-htf">{htfL}{!htf?' (skryté zóny vyššího TF)':''}</em>}{ev?.partial&&<small className="mc-hint">část historie je mimo načtené svíčky {tf}</small>}</div>
+  <div className="mc-row"><span>Hrany</span><small>proximální {fmtPrice(e.proximal)} · distální {fmtPrice(e.distal)} · vznik {zoneWhen(z.at)}{d.otf?' na '+d.otf:''}</small></div>
+  <div className="mc-row"><span>Druh</span><Seg label="Druh zóny" value={z.k} options={[['demand','Poptávka'],['supply','Nabídka']]} onPick={v=>onPatch({k:v})}/></div>
+  <div className="mc-row"><span>Mitigace</span><Seg label="Pravidlo mitigace" value={z.rule} options={[['touch','Dotyk'],['close','Zavření'],['pct','% průniku']]} onPick={(v:ZoneRule)=>onPatch({rule:v,pct:v==='pct'?z.pct??50:undefined})}/>
+   {z.rule==='pct'&&<><NumField className="mc-num" value={z.pct??50} label="Průnik v % hloubky zóny (1–100)" hint="Celé číslo 1 až 100" parse={t=>numInput(t,1,100,0)} onChange={v=>onPatch({pct:v})}/><em>%</em></>}
+   <small className="mc-hint">{ZONE_RULES[z.rule]}; zneplatnění = zavření svíčky za distální hranou (knot nestačí)</small>
+  </div>
+  <div className="mc-row"><span>Vyšší TF</span>{pz?<small>uvnitř {pz.otf||''} zóny {fmtPrice(Math.min(pz.a[0].p,pz.a[1].p))}–{fmtPrice(Math.max(pz.a[0].p,pz.a[1].p))}{z.par?' (ručně)':' (automaticky)'}</small>:<small>není uvnitř zóny vyššího TF</small>}
+   <select className="mc-chip mc-type" aria-label="Rodičovská zóna" value={z.par??''} onChange={e=>onPatch({par:e.target.value||undefined})}><option value="">Automaticky</option>{zones.map(x=><option key={x.id} value={x.id}>{(x.otf||'?')+' '+(x.zn?.k==='supply'?'nabídka':'poptávka')+' '+fmtPrice(Math.min(x.a[0].p,x.a[1].p))}</option>)}</select>
+  </div>
+  {ev&&ev.history.length>0&&<div className="mc-row mc-row-top"><span>Historie</span><button type="button" className="mc-chip" aria-expanded={hist} onClick={()=>setHist(h=>!h)}>{hist?'Skrýt':'Zobrazit'} ({ev.history.length})</button>
+   {hist&&<ol className="mc-zone-hist">{ev.history.map((h,i)=><li key={i}><time>{zoneWhen(h.t)}</time> {h.state==='mitigated'?'mitigována '+Math.round(h.depth*100)+' %':ZONE_STATES[h.state]}</li>)}</ol>}</div>}
+  <div className="mc-row mc-row-actions">
+   <button type="button" className="mc-chip" onClick={onScenario} disabled={!!z.scn} title={z.scn?'Scénář už je založený':'Založí scénář (long u poptávky, short u nabídky) se vstupem v zóně a zneplatněním na distální hraně'}><ClipboardList size={13} aria-hidden/> {z.scn?'Scénář založen':'Scénář ze zóny'}</button>
+   <button type="button" className="mc-chip" onClick={onAlert} disabled={!!z.al} title={z.al?'Alert už je nastavený':'Alert „dotyk“ na proximální hraně'}><BellPlus size={13} aria-hidden/> {z.al?'Alert nastaven':'Alert na dotyk'}</button>
+   <button type="button" className="mc-chip" onClick={()=>onPatch({arch:z.arch?undefined:Date.now()})}>{z.arch?<><ArchiveRestore size={13} aria-hidden/> Vrátit z archivu</>:<><Archive size={13} aria-hidden/> Archivovat</>}</button>
+   {msg&&<span className={'mc-note'+(msg.err?' err':'')} role="status">{msg.text}{msg.href&&<> · <a href={msg.href}>otevřít</a></>}</span>}
+  </div>
+ </div>;
 }
 
 // hvězdička oblíbeného nástroje v nabídce skupiny (šipkou doprava z nástroje)
@@ -638,7 +735,7 @@ function PresetRow({d,presets,hasDefault,canSave,prefsOk,onSavePreset,onDeletePr
  const close=()=>{setNaming(false);setName('');setTimeout(()=>openRef.current?.focus())};
  return <>
   {presets.length>0&&<div className="mc-row" role="group" aria-label="Presety nástroje"><span>Presety</span>
-   {presets.map(p=><span key={p.id} className="mc-preset"><button type="button" title={'Použít preset na tuto kresbu'} onClick={()=>{onApplyPreset(p)}}><i className="mc-preset-dot" style={{background:swatchBg(p.color)}} aria-hidden/>{p.name}</button><button type="button" className="mc-preset-x" aria-label={'Smazat preset '+p.name} title="Smazat preset" onClick={()=>onDeletePreset(p.id)}>×</button></span>)}
+   {presets.map(p=><span key={p.id} className="mc-preset"><button type="button" title={'Použít preset na tuto kresbu'} onClick={()=>{onApplyPreset(p)}}><i className="mc-preset-dot" style={{background:swatchBg(p.color)}} aria-hidden/>{p.name}</button>{!isBuiltin(p.id)&&<button type="button" className="mc-preset-x" aria-label={'Smazat preset '+p.name} title="Smazat preset" onClick={()=>onDeletePreset(p.id)}>×</button>}</span>)}
   </div>}
   <div className="mc-row mc-row-actions">
    {naming?<span className="mc-preset-name" role="group" aria-label="Název nového presetu">

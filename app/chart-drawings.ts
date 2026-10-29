@@ -1,9 +1,10 @@
 // Vykreslení kreseb grafu trhu jako primitiva série svíček (lightweight-charts v5 plugins API).
 // Souřadnice počítá komponenta (project); primitivum jen kreslí a pamatuje si tvary pro výběr myší.
 import type {ISeriesPrimitive,IPrimitivePaneView,IPrimitivePaneRenderer,ISeriesPrimitiveAxisView,SeriesAttachedParameter,PrimitiveHoveredItem,Time} from 'lightweight-charts';
-import {TEXT_PX,channelOffset,channelLine,touchLabelAt,arrowHead,arrowEnds,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
+import {TEXT_PX,channelOffset,channelLine,touchLabelAt,arrowHead,arrowEnds,dashOf,extendSeg,fibLevels,fibLabel,fibText,levelsOn,fibExtLevels,fibExtSpan,pitchfork,gannGrid,GANN_DIV,hasHandles,hitTest,edgeHandles,edgeCursor,positionLines,styleOf,visibleOn,colorOf,byLayer,type NamedColor,type Anchor,type Box,type DrawColor,type Drawing,type FullStyle,type Pt,type Shape} from '@/lib/chart/drawings';
 import {withAlpha} from '@/lib/chart/layers';
 import type {Profile} from '@/lib/chart/volume-profile';
+import {htfVisible} from '@/lib/chart/zones';
 
 export type DrawPalette=Record<NamedColor,string>&{bg:string;text:string};
 export type DrawEnv={
@@ -18,6 +19,10 @@ export type DrawEnv={
  profile?:(d:Drawing)=>Profile|null;
  // long/short: velikost pozice pro vybraný profil účtu („XAUUSD 0,5 lotu · riziko 200 USD“), null = nezobrazovat
  sizing?:(d:Drawing)=>string|null;
+ // zóna: stav („mitigována 40 %“), původ z vyššího TF („D1 zóna“), utlumená (zneplatněná / archiv); null = bez popisku
+ zone?:(d:Drawing)=>{state:string;htf:string|null;muted:boolean;kind:'supply'|'demand'}|null;
+ // equal highs / lows: EQH nebo EQL podle svíčky prvního bodu
+ eq?:(d:Drawing)=>string;
 };
 type CanvasRenderingTarget2D=Parameters<IPrimitivePaneRenderer['draw']>[0];
 type Item={id:string;d:Drawing;shape:Shape;st:FullStyle};
@@ -34,6 +39,8 @@ function pill(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r
 
 export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  drawings:Drawing[]=[];temp:Drawing|null=null;draft:Drawing|null=null;selected:string|null=null;tf='';
+ // zóny vyššího TF na nižším TF (přepínač v grafu)
+ htf=true;
  palette:DrawPalette={brand:'#245bff',bull:'#16a34a',bear:'#dc2626',amber:'#f59e0b',muted:'#6b7079',fg:'#0b0c0e',bg:'#fff',text:'#0b0c0e'};
  items:Item[]=[];size={w:0,h:0};
  private told={w:0,h:0};
@@ -62,7 +69,8 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
  // popisky pozice (cíl, stop, R:R a ceny na ose): u vybrané a právě kreslené, ostatní jen s volbou Popisky vždy
  private tagsOn(d:Drawing){return d.id===this.selected||d.id===this.draft?.id||styleOf(d).tags}
  // kresby viditelné na aktuálním TF a neskryté (+ dočasné měření a rozkreslená kresba)
- all(){return [...this.drawings.filter(d=>!d.hide&&(!this.tf||visibleOn(d,this.tf))),...(this.temp?[this.temp]:[]),...(this.draft?[this.draft]:[])]}
+ // pořadí podle vrstev (pozadí → hlavní → popředí); zóny vyššího TF jen se zapnutým přepínačem
+ all(){return [...byLayer(this.drawings.filter(d=>!d.hide&&(!this.tf||visibleOn(d,this.tf))&&(d.type!=='zone'||!this.tf||htfVisible(d.otf,this.tf,this.htf)))),...(this.temp?[this.temp]:[]),...(this.draft?[this.draft]:[])]}
  // zásah pro kurzor knihovny (ruka/posun); výběr a tažení řeší komponenta přes hit()
  hitTest(x:number,y:number):PrimitiveHoveredItem|null{
   const h=this.hit({x,y},6);if(!h)return null;
@@ -173,11 +181,29 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time>{
     if(st.mid){const [m0,m1]=channelLine(p,q,off,st.midp);ctx.save();ctx.globalAlpha=st.op*.6;ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.strokeStyle=colorOf(P,st.midc);line(m0,m1);ctx.restore()}
     break;
    }
-   case 'rect':{
+   case 'rect':case 'zone':case 'fvg':{
     let x=Math.min(a.x,b.x),rw=Math.abs(a.x-b.x);const y=Math.min(a.y,b.y),rh=Math.abs(a.y-b.y);
     if(st.extL){rw+=x;x=0}if(st.extR)rw=Math.max(rw,w-x);
-    if(st.fill){ctx.fillStyle=withAlpha(c,.14);ctx.fillRect(x,y,rw,rh)}
-    if(st.border){ctx.strokeStyle=bc;ctx.strokeRect(x,y,rw,rh)}
+    const zi=d.type==='zone'?this.env.zone?.(d)??null:null;
+    if(zi?.muted)ctx.globalAlpha=st.op*.45;
+    if(st.fill){ctx.fillStyle=withAlpha(c,d.type==='fvg'?.1:.14);ctx.fillRect(x,y,rw,rh)}
+    if(d.type==='fvg'){ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=bc;ctx.strokeRect(x,y,rw,rh);ctx.restore()}
+    else if(st.border){ctx.strokeStyle=bc;ctx.strokeRect(x,y,rw,rh)}
+    // zóna: proximální hrana plnou čarou, distální čárkovaně; popisek druh · stav (· původ z vyššího TF)
+    if(zi){
+     const yp=zi.kind==='demand'?y:y+rh,yd=zi.kind==='demand'?y+rh:y;ctx.save();ctx.lineWidth=Math.max(1.5,lw);ctx.setLineDash([]);line({x,y:yp},{x:x+rw,y:yp});ctx.lineWidth=1;ctx.setLineDash([4,3]);line({x,y:yd},{x:x+rw,y:yd});ctx.restore();
+     ctx.setLineDash([]);ctx.font='600 11px '+FAMILY;ctx.fillStyle=c;
+     label([zi.kind==='demand'?'Poptávka':'Nabídka',zi.htf,zi.state].filter(Boolean).join(' · '),Math.max(4,x)+4,zi.kind==='demand'?y-3:y+rh+3,'left',zi.kind==='demand'?'bottom':'top');
+    }
+    if(d.type==='fvg'){ctx.setLineDash([]);ctx.font='600 11px '+FAMILY;ctx.fillStyle=c;label('FVG · ruční',Math.max(4,x)+4,y-3)}
+    break;
+   }
+   case 'eqhl':case 'mss':{
+    // equal highs/lows: čárkovaná čára mezi body na průměrné ceně, popisek EQH/EQL; MSS: úroveň prolomení od prvního bodu ke svíčce prolomení
+    ctx.setLineDash([5,4]);
+    if(d.type==='eqhl'){const y=(a.y+b.y)/2;line({x:a.x,y},{x:b.x,y});ctx.setLineDash([]);for(const p of [a,b]){ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,Math.PI*2);ctx.fill()}
+     ctx.font='600 11px '+FAMILY;label((this.env.eq?.(d)??'EQ')+' · ruční',(a.x+b.x)/2,y-4,'center','bottom')}
+    else{line(a,{x:b.x,y:a.y});ctx.setLineDash([]);ctx.beginPath();ctx.arc(b.x,a.y,3,0,Math.PI*2);ctx.fill();ctx.font='600 11px '+FAMILY;label('MSS · ruční',(a.x+b.x)/2,a.y+(b.y>=a.y?-4:4),'center',b.y>=a.y?'bottom':'top')}
     break;
    }
    case 'fib':{
