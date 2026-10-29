@@ -83,3 +83,18 @@
 .rp-stats small{font-weight:400;color:var(--t-muted)}
 .rp-decisions{margin-top:10px;font-size:13px}
 @media (max-width:900px){.rp-cols{grid-template-columns:1fr}.rp-charts.n2,.rp-charts.n3,.rp-charts.n4{grid-template-columns:1fr}.rp-chart{height:300px}.rp-top,.rp-main{padding-left:16px;padding-right:16px}}
+
+/* Formulář replaye: přebít starý globální styl label/input (tmavá pole, labely pod sebou) a hezčí zaškrtávátka */
+.rp-form label.rp-check,.rp-form .rp-checks label{flex-direction:row;align-items:center;justify-content:flex-start;text-align:left;color:var(--t-fg);font-size:14px;gap:8px}
+.rp-form .rp-checks{gap:8px}
+.rp-form .rp-checks label{padding:7px 12px;border:1px solid var(--t-border);border-radius:999px;background:var(--t-surface);cursor:pointer;transition:border-color .15s,background .15s}
+.rp-form .rp-checks label:has(input:checked){border-color:var(--t-brand);background:var(--t-accent-soft)}
+.rp-form .rp-checks label small{margin-left:2px}
+.rp-form .rp-check{padding:10px 12px;border:1px solid var(--t-border);border-radius:12px;background:var(--t-surface);line-height:1.6}
+.rp-form .rp-num{width:76px;height:32px;padding:0 8px;border:1px solid var(--t-border);border-radius:8px;background:var(--t-surface-2,var(--t-surface));color:var(--t-fg);font:inherit;text-align:center}
+.rp-form input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:18px;height:18px;margin:0;border:1.5px solid var(--t-border-strong,#9aa3b2);border-radius:5px;background:var(--t-surface);display:inline-grid;place-content:center;cursor:pointer;transition:background .15s,border-color .15s}
+.rp-form input[type=checkbox]::after{content:'';width:10px;height:6px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px) scale(0);transition:transform .12s}
+.rp-form input[type=checkbox]:checked{background:var(--t-brand);border-color:var(--t-brand)}
+.rp-form input[type=checkbox]:checked::after{transform:rotate(-45deg) translate(1px,-1px) scale(1)}
+.rp-form input[type=checkbox]:focus-visible{outline:2px solid var(--t-focus-ring,var(--t-brand));outline-offset:2px}
+.rp-form input[type=checkbox]:disabled{opacity:.4;cursor:default}
