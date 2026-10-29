@@ -12,7 +12,7 @@
  .nv-stage .t-nav::before,.nv-stage .t-nav::after{content:'';position:absolute;top:0;width:calc(var(--notch-r) + 1px);height:var(--notch-r);pointer-events:none}
  .nv-stage .t-nav::before{left:calc(-1*var(--notch-r));background:radial-gradient(circle at 0 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
  .nv-stage .t-nav::after{right:calc(-1*var(--notch-r));background:radial-gradient(circle at 100% 100%,transparent calc(var(--notch-r) - .5px),var(--notch) var(--notch-r))}
- .nv-stage .t-nav button.active{background:var(--t-surface);box-shadow:0 0 0 1px var(--t-border)}
+ .nv-stage .t-nav:not(.has-pill) button.active{background:var(--t-surface);box-shadow:0 0 0 1px var(--t-border)}
 }
 @media(max-width:760px){.nv-stage .t-nav button svg{display:none}.nv-stage .t-nav button{padding:0 10px;font-size:13px}}
 .nv-stage .t-nav button{pointer-events:none}
