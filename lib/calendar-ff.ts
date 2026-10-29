@@ -1,7 +1,7 @@
 // ForexFactory odhady a předchozí hodnoty: parsování oficiálního exportu a párování s událostmi kalendáře.
 import type {CalendarEvent} from './calendar.ts';
 export type FFRow={at:string;currency:string;title:string;impact:string;forecast:string|null;previous:string|null};
-export type FFMatch={forecast:string|null;previous:string|null;ffTitle:string;impact:string};
+export type FFMatch={forecast:string|null;previous:string|null;ffTitle:string;impact:string;ffAt:string;currency:string};
 
 const CURRENCIES=['USD','EUR','GBP','JPY','CHF','AUD','NZD','CAD','CNY'];
 const clean=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():null;
@@ -87,7 +87,7 @@ export function matchFF(events:CalendarEvent[],rows:FFRow[],toleranceMin=10):Rec
    const pref=concept&&PREFER[concept]&&x.r.title.toLowerCase().includes(PREFER[concept])?1:0;
    if(!best||score>best.score||(score===best.score&&(pref>best.pref||(pref===best.pref&&diff<best.diff))))best={r:x.r,score,diff,pref};
   }
-  if(best)out[e.id]={forecast:best.r.forecast,previous:best.r.previous,ffTitle:best.r.title,impact:best.r.impact};
+  if(best)out[e.id]={forecast:best.r.forecast,previous:best.r.previous,ffTitle:best.r.title,impact:best.r.impact,ffAt:best.r.at,currency:best.r.currency};
  }
  return out;
 }
@@ -97,7 +97,7 @@ export function applyFF(events:CalendarEvent[],matches:Record<string,FFMatch>):C
  return events.map(e=>{
   const m=matches[e.id];
   if(!m)return e;
-  return {...e,forecast:m.forecast,previous:e.previous||m.previous||null};
+  return {...e,forecast:m.forecast,previous:e.previous||m.previous||null,...(m.ffAt?{ff:{title:m.ffTitle,currency:m.currency,at:m.ffAt,impact:m.impact}}:{})};
  });
 }
 

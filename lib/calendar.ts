@@ -1,7 +1,9 @@
 // Kalendář událostí: sloučení kostry ze skriptu (data/calendar.json) a ověřených událostí agenta (fundamentals.json → events).
 export type Category='macro'|'central-bank'|'exchange'|'commodity'|'crypto'|'equity'|'politics';
 export type Signal=1|2|3;
-export type CalendarEvent={id:string;at:string;timeKnown:boolean;title:string;category:Category;markets:string[];kind?:string;signal:Signal;global:boolean;verified:boolean;source:string;watch?:string;consensus?:string|null;forecast?:string|null;previous?:string|null;actual?:string|null;verifiedAt?:string};
+export type CalendarEvent={id:string;at:string;timeKnown:boolean;title:string;category:Category;markets:string[];kind?:string;signal:Signal;global:boolean;verified:boolean;source:string;watch?:string;consensus?:string|null;forecast?:string|null;previous?:string|null;actual?:string|null;verifiedAt?:string;ff?:FFRef};
+// Spárovaný řádek ForexFactory (měna, titul a čas v exportu, dopad) – klíč do historie kalendáře.
+export type FFRef={title:string;currency:string;at:string;impact:string};
 export type AutoEvent={id:string;at:string;timeKnown:boolean;title:string;category:Category;markets:string[];kind?:string;source:string;origin?:string};
 export type CuratedEvent={id:string;at:string;title:string;source:string;timeKnown:boolean;currency?:string;importance?:string;watch?:string;consensus?:string|null;actual?:string|null;category?:Category;markets?:string[];kind?:string;signal?:Signal;global?:boolean;previous?:string|null;verifiedAt?:string};
 export type Filters={categories:Category[];markets:string[];signals:Signal[];showGlobal:boolean;hidePast:boolean};

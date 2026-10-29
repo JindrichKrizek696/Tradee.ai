@@ -3,7 +3,9 @@ import {Fragment,useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'r
 import {Globe2,RotateCcw,SlidersHorizontal} from 'lucide-react';
 import {pairs} from '@/lib/score-engine';
 import {categories,marketLabels,marketGroups,signalLabels,defaultFilters,filterEvents,flaggedMarkets,readFilters,relative,sourceUrl,TIMEZONES,DEFAULT_TZ,isTz,resolveTz,tzOffset,type CalendarEvent,type Category,type Filters,type Signal} from '@/lib/calendar';
-import {forecastLine} from '@/lib/calendar-ff';
+import {forecastLine,type FFRow} from '@/lib/calendar-ff';
+import {filterExtra,ffOnlyEvents} from '@/lib/calendar-hist';
+import {useCalendarHist,histFor,FeedBanner,useExtraFilters,usePositionMarkets,ExtraFilterRow,HistDetail,IndicatorHistory} from './calendar-hist-ui';
 import {useOpenRequest} from './open-request';
 import {NoTradeWindows} from './journal/no-trade-windows';
 const KEY='tradee.calendar.filters',TZ_KEY='tradee.calendar.tz';
@@ -45,18 +47,23 @@ function EventDetail({e,flags,now,zone}:{e:CalendarEvent;flags:Record<string,str
  </div>;
 }
 
-export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEvent[];now:number;flags:Record<string,string>;generatedAt:string}){
+type Obs={value:string|null;period?:string|null;sourceUrl?:string|null;checkedAt?:string|null;note?:string|null};
+export function CalendarPage({events:base,now,flags,generatedAt,ffRows=[],ffGeneratedAt=null,observations}:{events:CalendarEvent[];now:number;flags:Record<string,string>;generatedAt:string;ffRows?:FFRow[];ffGeneratedAt?:string|null;observations?:Record<string,Record<string,Obs>>}){
  // Kalendář se vykreslí až po přepnutí pohledu v prohlížeči, localStorage je tedy dostupné hned.
  const [f,setF]=useState<Filters>(()=>{let raw:string|null=null;try{raw=localStorage.getItem(KEY)}catch{}return readFilters(raw)}),[open,setOpen]=useState<string|null>(null),[panel,setPanel]=useState(false),nowLine=useRef<HTMLDivElement>(null),scrolled=useRef(false),filters=useRef<HTMLDivElement>(null),[stuck,setStuck]=useState(false),[pin,setPin]=useState<string|null>(null);
  // událost vybraná ve vyhledávání: rozbalit, ukázat i přes filtry a odjet na ni (místo čáry „teď“)
  useOpenRequest('event',id=>{scrolled.current=true;setPin(id);setOpen(id)});
  useEffect(()=>{if(!pin)return;const t=setTimeout(()=>{const el=document.querySelector<HTMLElement>(`[data-ev="${CSS.escape(pin)}"]`);if(!el)return;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('c-flash');setTimeout(()=>el.classList.remove('c-flash'),2200)},60);return()=>clearTimeout(t)},[pin]);
  const {pick,zone}=useCalendarTz();
+ // historie (0040), filtry dopadu / „jen moje“, trhy otevřených pozic, volitelně i další události z ForexFactory
+ const [xf,setXf]=useExtraFilters(),posMarkets=usePositionMarkets(),[indicator,setIndicator]=useState<{currency:string;title:string}|null>(null);
+ const events=useMemo(()=>{if(!xf.ffAll)return base;const keys=new Set(base.flatMap(e=>e.ff?[e.ff.currency+'|'+e.ff.title+'|'+e.ff.at]:[]));return [...base,...ffOnlyEvents(ffRows,keys)].sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id))},[base,ffRows,xf.ffAll]);
+ const hist=useCalendarHist(base);
  // přilepené filtry dostanou nad sebou kryt s pozadím stránky (calendar.css), aby nad nimi neprojížděly události
  useEffect(()=>{const on=()=>{const el=filters.current,s=el&&getComputedStyle(el);setStuck(!!s&&s.position==='sticky'&&el!.getBoundingClientRect().top<=parseFloat(s.top)+.5)};on();addEventListener('scroll',on,{passive:true});addEventListener('resize',on);return()=>{removeEventListener('scroll',on);removeEventListener('resize',on)}},[]);
  const update=(next:Filters)=>{setF(next);try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}};
  const mine=useMemo(()=>flaggedMarkets(flags),[flags]);
- const shown=useMemo(()=>{const s=filterEvents(events,f,now);return !pin||s.some(e=>e.id===pin)?s:events.filter(e=>e.id===pin||s.includes(e))},[events,f,now,pin]);
+ const shown=useMemo(()=>{const s=filterExtra(filterEvents(events,f,now),xf,mine,posMarkets);return !pin||s.some(e=>e.id===pin)?s:events.filter(e=>e.id===pin||s.includes(e))},[events,f,now,pin,xf,mine,posMarkets]);
  const firstFuture=shown.find(e=>Date.parse(e.at)>=now);
  // Při otevření skoč na čáru „teď“ – nahoře je jinak týden proběhlých událostí.
  useEffect(()=>{if(!scrolled.current&&nowLine.current){scrolled.current=true;nowLine.current.scrollIntoView({block:'start'})}},[firstFuture?.id]);
@@ -74,20 +81,22 @@ export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEven
  const all=(on:boolean,set:(on:boolean)=>void)=><button type="button" className="c-fall" onClick={()=>set(!on)}>{on?'zrušit vše':'vybrat vše'}</button>;
  return <div className="c-page">
   <div className="t-page-head c-head">
-   <div><h1>Kalendář</h1><p>{events.length} událostí · aktualizováno {stamp(generatedAt,zone)}</p></div>
+   <div><h1>Kalendář</h1><p>{events.length} událostí · aktualizováno {stamp(generatedAt,zone)} · <a href="/makro">Katalog makro řad</a></p></div>
    <label className="c-tz"><Globe2 size={15} aria-hidden="true"/>Časové pásmo<select value={pick} onChange={x=>pickTz(x.target.value)}>{TIMEZONES.map(([id,l])=><option key={id} value={id}>{l} ({tzOffset(id,now)})</option>)}</select></label>
   </div>
-  <NoTradeWindows events={events} mine={mine} now={now} zone={zone}/>
+  <FeedBanner h={hist} generatedAt={ffGeneratedAt} now={now} zone={zone}/>
+  <NoTradeWindows events={base} mine={mine} now={now} zone={zone}/>
   <button type="button" className="c-filter-toggle" aria-expanded={panel} onClick={()=>setPanel(!panel)}><SlidersHorizontal size={16}/>Filtry</button>
   <div ref={filters} className={'c-filters'+(panel?' open':'')+(stuck?' stuck':'')}>
    <div className="c-frow"><span className="c-flab">Síla</span><div className="c-fopts">{([1,2,3] as Signal[]).map(s=>chip(f.signals.includes(s),<><SignalBars signal={s}/>{signalLabels[s]}</>,()=>update({...f,signals:toggle(f.signals,s)}),'s'+s))}</div></div>
    <div className="c-frow"><span className="c-flab">Skupiny</span><div className="c-fopts">{allCats.map(c=>chip(f.categories.includes(c),categories[c],()=>update({...f,categories:toggle(f.categories,c)}),c))}</div>{all(f.categories.length===allCats.length,on=>update({...f,categories:on?allCats:[]}))}</div>
    <div className="c-frow"><span className="c-flab">Trhy</span><div className="c-fopts">{marketGroups.map(([g,ms])=><span key={g} className="c-fgroup"><small>{g}</small>{ms.map(m=>chip(f.markets.includes(m),marketLabels[m],()=>update({...f,markets:toggle(f.markets,m)}),m))}</span>)}</div>{all(f.markets.length===allMarkets.length,on=>update({...f,markets:on?allMarkets:[]}))}</div>
+   <ExtraFilterRow f={xf} update={setXf} positions={posMarkets.size}/>
    <div className="c-frow c-fbar">
     <label className="c-switch"><input type="checkbox" checked={f.showGlobal} onChange={x=>update({...f,showGlobal:x.target.checked})}/>vždy ukázat <AllTag/></label>
     <label className="c-switch"><input type="checkbox" checked={f.hidePast} onChange={x=>update({...f,hidePast:x.target.checked})}/>skrýt proběhlé</label>
     <span className="c-fcount">zobrazeno <b>{shown.length}</b> z {events.length}</span>
-    {filterKey(f)!==filterKey(defaultFilters)&&<button type="button" className="c-reset" onClick={()=>update(defaultFilters)}><RotateCcw size={13}/>Výchozí filtry</button>}
+    {(filterKey(f)!==filterKey(defaultFilters)||xf.mine!=='all'||xf.impacts.length<3||xf.ffAll)&&<button type="button" className="c-reset" onClick={()=>{update(defaultFilters);setXf({impacts:['High','Medium','Low'],mine:'all',ffAll:false})}}><RotateCcw size={13}/>Výchozí filtry</button>}
    </div>
   </div>
   {shown.length?<div className="c-list">{[...days].map(([d,list])=><Fragment key={d}>
@@ -96,10 +105,11 @@ export function CalendarPage({events,now,flags,generatedAt}:{events:CalendarEven
    {list.map(e=><Fragment key={e.id}>
     {nowInside&&e.id===firstFuture!.id&&nowMark}
     <EventRow e={e} now={now} mine={mine} open={open===e.id} onToggle={()=>setOpen(open===e.id?null:e.id)}/>
-    {open===e.id&&<EventDetail e={e} flags={flags} now={now} zone={zone}/>}
+    {open===e.id&&<><EventDetail e={e} flags={flags} now={now} zone={zone}/>{e.ff&&<HistDetail e={e} hist={histFor(e,hist)} changes={hist?.changes??[]} zone={zone} now={now} onHistory={()=>e.ff&&setIndicator({currency:e.ff.currency,title:e.ff.title})}/>}</>}
    </Fragment>)}
    {!nowInside&&d===today&&quiet}
-  </Fragment>)}{!firstFuture&&!days.has(today)&&todayBlock}</div>:<div className="t-card c-empty"><p>Filtrům neodpovídá žádná událost.</p><button type="button" className="c-chip on" onClick={()=>update(defaultFilters)}>Zrušit filtry</button></div>}
+  </Fragment>)}{!firstFuture&&!days.has(today)&&todayBlock}</div>:<div className="t-card c-empty"><p>Filtrům neodpovídá žádná událost.</p><button type="button" className="c-chip on" onClick={()=>{update(defaultFilters);setXf({impacts:['High','Medium','Low'],mine:'all',ffAll:false})}}>Zrušit filtry</button></div>}
+  {indicator&&<IndicatorHistory ff={indicator} ffRows={ffRows} observations={observations} zone={zone} now={now} onClose={()=>setIndicator(null)}/>}
   <p className="c-note"><span className="c-ver">✓</span> ověřeno agentem · <span className="c-ver c-no">○</span> zatím jen termín z oficiálního kalendáře · <AllTag/> hýbe všemi trhy · <span className="c-tag c-mine">sleduješ</span> týká se trhu s tvou vlaječkou · Odhady: ForexFactory</p>
  </div>;
 }

@@ -90,6 +90,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'p:pravidla',group:'page',icon:ShieldCheck,title:'Pravidla a strategie',keywords:'disciplína risk riziko',boost:3,run:href('/pravidla')},
    {id:'p:ucty',group:'page',icon:Wallet,title:'Účty a riziko',subtitle:'Profily účtů',keywords:'účet challenge funded prop drawdown denní ztráta limit konzistence poplatek',boost:3,run:href('/ucty')},
    {id:'p:kalkulacka',group:'page',icon:Calculator,title:'Kalkulačka pozice',keywords:'loty lot kontrakty velikost pozice riziko position size',boost:3,run:href('/kalkulacka')},
+   {id:'p:makro',group:'page',icon:Landmark,title:'Katalog makro řad',subtitle:'Zdroje, jednotky, poslední hodnoty a příští vydání',keywords:'makro řady cpi inflace nezaměstnanost nfp hdp gdp maloobchod retail pmi sazba zdroj revize katalog',boost:2,run:href('/makro')},
    {id:'p:scenare',group:'page',icon:ShieldCheck,title:'Scénáře',subtitle:'Plán obchodu, vynechané obchody',keywords:'scénář plán hypotéza vynechaný obchod no trade pauza',boost:3,run:href('/scenare')},
    {id:'p:strategie',group:'page',icon:ShieldCheck,title:'Strategie (playbook)',subtitle:'Podmínky, verze, vstupní modely',keywords:'strategie playbook podmínky verze setup trigger invalidace',boost:3,run:href('/strategie')},
    {id:'p:alerty',group:'page',icon:Bell,title:'Alerty',subtitle:'Cenové alerty',keywords:'alert upozornění notifikace hlídání ceny cena skóre zvonek',boost:3,run:href('/alerty')},
