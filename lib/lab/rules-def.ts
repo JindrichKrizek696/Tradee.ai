@@ -1,10 +1,16 @@
 // Laboratoř · Strategie: schéma definice pravidlové strategie (JSON v DB lab_strategy_defs, nikdy v kódu) a její validace.
 // Lehký modul bez závislostí (používá ho i stránka). Engine: lib/lab/strat-engine.ts, stavební bloky: lib/lab/strat-blocks.ts.
 //
-// Definice = {name, version, markets[], data:'D1'|'H1', tf:{context,zone,entry}, conditions[], entry, stop, targets, management, risk,
-//  filters, costs?, variants?}. Každá podmínka je obecný blok (BLOCKS) s parametry a rolí 'required' / 'optional'.
+// Definice = {name, version, markets[], data:'D1'|'H1', tf:{context,zone,entry}, conditions[], anyOf?, entry, stop, targets, management, risk,
+//  filters, costs?, variants?}. Každá podmínka je obecný blok (BLOCKS) s parametry a rolí 'required' / 'optional' / 'info'
+//  (info = jen zdroj úrovní, např. cílové zóny – signál neblokuje a do hodnocení se nepočítá).
+// Skupiny NEBO (schéma 2, zpětně kompatibilní): povinné podmínky se stejným `group` tvoří skupinu, ze které musí platit aspoň jedna;
+//  totéž zapíše `anyOf: [[id, id…], …]` (každý vnitřní seznam = jedna skupina, normalizuje se na group 'or1', 'or2' …).
+//  Vstup / stop smí odkazovat na id skupiny = úroveň PRVNÍ splněné podmínky skupiny (v pořadí definice).
+// ZMĚNY CHOVÁNÍ (schéma 2): zone / order_block s atrMode 'auto' (výchozí) na vyšším TF agregovaném z H1 měří impulz proti ATR
+//  z rozsahu svíček (high − low, bez gapů přes noc); D1 data a TF = data beze změny. Ostatní nové parametry mají výchozí hodnotu = staré chování.
 // Validace vrací seznam chyb ve tvaru „cesta: zpráva“ – zprávy NIKDY neopakují hodnoty z definice (logy a výpisy nesmí nést pravidla).
-export const DEF_SCHEMA_VERSION=1;
+export const DEF_SCHEMA_VERSION=2;
 export type Tf='H1'|'H4'|'D1'|'W1'|'MN';
 export const TFS:Tf[]=['H1','H4','D1','W1','MN'];
 export const TF_RANK:Record<Tf,number>={H1:0,H4:1,D1:2,W1:3,MN:4};
@@ -34,6 +40,11 @@ export type BlockId='trend_swing'|'ma'|'atr_regime'|'zone'|'order_block'|'nested
  'session_range'|'sweep'|'mss'|'engulfing'|'pin_bar'|'rel_strength'|'news_blackout'|'cot_index'|'seasonality'|'dxy_trend';
 const LEVEL_SRC=['prev_day','asia','london','ny','swing'] as const;
 const STATUS=['fresh','fresh_or_touched','valid'] as const;
+// ATR pro impulz zóny: true = klasický true range (s gapy), range = high − low svíčky (bez gapů), auto = range na vyšším TF agregovaném z H1, jinak true
+const ATR_MODE=['auto','true','range'] as const;
+// TF pro premium/discount: same = TF podmínky
+const PD_TF=['same','context','zone','entry','H1','H4','D1','W1','MN'] as const;
+export const ZONE_BLOCKS=['zone','order_block','fvg'] as const;
 export const BLOCKS:Record<BlockId,{label:string;levels:LevelKey[];params:Record<string,ParamSpec>;needs?:'cot'|'news'|'other'|'dxy'|'d1'}>={
  trend_swing:{label:'Trend ze swingů (HH+HL / LH+LL)',levels:['high','low'],params:{n:{t:'int',min:1,max:10,def:2}}},
  ma:{label:'Klouzavý průměr',levels:['level'],params:{kind:{t:'enum',values:['ema','sma'],def:'ema'},period:{t:'int',min:2,max:400,def:50},mode:{t:'enum',values:['price','slope'],def:'price'},slopeBars:{t:'int',min:1,max:50,def:5}}},
@@ -42,13 +53,19 @@ export const BLOCKS:Record<BlockId,{label:string;levels:LevelKey[];params:Record
   impulseK:{t:'num',min:.1,max:10,def:1.5},atrPeriod:{t:'int',min:2,max:100,def:14},maxBase:{t:'int',min:1,max:10,def:3},baseBodyRatio:{t:'num',min:.05,max:1,def:.5},
   swingN:{t:'int',min:1,max:10,def:2},requireBreak:{t:'bool',def:true},proximal:{t:'enum',values:['body','wick'],def:'body'},maxAge:{t:'int',min:1,max:5000,def:200},
   status:{t:'enum',values:STATUS,def:'fresh'},mitigation:{t:'enum',values:['wick','close'],def:'wick'},maxMitigationPct:{t:'num',min:0,max:100,def:50},
-  invalidate:{t:'enum',values:['close','wick'],def:'close'},maxDistAtr:{t:'num',min:0,max:100,def:0}}},
+  invalidate:{t:'enum',values:['close','wick'],def:'close'},maxDistAtr:{t:'num',min:0,max:100,def:0},atrMode:{t:'enum',values:ATR_MODE,def:'auto'}}},
  order_block:{label:'Order block',levels:['proximal','distal','mid'],params:{
   impulseK:{t:'num',min:.1,max:10,def:1.5},atrPeriod:{t:'int',min:2,max:100,def:14},lookback:{t:'int',min:1,max:10,def:3},swingN:{t:'int',min:1,max:10,def:2},
   requireBreak:{t:'bool',def:true},proximal:{t:'enum',values:['body','wick'],def:'wick'},maxAge:{t:'int',min:1,max:5000,def:200},status:{t:'enum',values:STATUS,def:'fresh'},
-  mitigation:{t:'enum',values:['wick','close'],def:'wick'},maxMitigationPct:{t:'num',min:0,max:100,def:50},invalidate:{t:'enum',values:['close','wick'],def:'close'},maxDistAtr:{t:'num',min:0,max:100,def:0}}},
- nested_zone:{label:'Zóna nižšího TF uvnitř zóny vyššího TF',levels:['proximal','distal','mid'],params:{inner:{t:'ref'},outer:{t:'ref'},mode:{t:'enum',values:['contain','overlap'],def:'contain'}}},
- premium_discount:{label:'Premium / discount v posledním swingu',levels:['high','low','mid'],params:{swingN:{t:'int',min:1,max:10,def:2},discount:{t:'num',min:0,max:1,def:.5},premium:{t:'num',min:0,max:1,def:.5}}},
+  mitigation:{t:'enum',values:['wick','close'],def:'wick'},maxMitigationPct:{t:'num',min:0,max:100,def:50},invalidate:{t:'enum',values:['close','wick'],def:'close'},maxDistAtr:{t:'num',min:0,max:100,def:0},
+  atrMode:{t:'enum',values:ATR_MODE,def:'auto'}}},
+ nested_zone:{label:'Zóna nižšího TF uvnitř zóny vyššího TF',levels:['proximal','distal','mid'],params:{inner:{t:'ref'},outer:{t:'ref'},mode:{t:'enum',values:['contain','overlap'],def:'contain'},
+  // pairs: nearest = jen vybraná (nejbližší) zóna každé podmínky (původní chování), all = všechny aktivní zóny vnitřní × všechny aktivní vnější;
+  // containment: full = celá vnitřní uvnitř, proximal_inside = proximální hrana vnitřní uvnitř vnější, overlap = překryv, auto = podle mode
+  pairs:{t:'enum',values:['nearest','all'],def:'nearest'},containment:{t:'enum',values:['auto','full','proximal_inside','overlap'],def:'auto'}}},
+ premium_discount:{label:'Premium / discount v posledním swingu',levels:['high','low','mid'],params:{swingN:{t:'int',min:1,max:10,def:2},discount:{t:'num',min:0,max:1,def:.5},premium:{t:'num',min:0,max:1,def:.5},
+  // rozsah = poslední potvrzený swing na rangeTf (jen uzavřené svíčky), pozice = close poslední uzavřené svíčky evalTf; same = TF podmínky
+  rangeTf:{t:'enum',values:PD_TF,def:'same'},evalTf:{t:'enum',values:PD_TF,def:'same'}}},
  fvg:{label:'Fair value gap (3 svíčky)',levels:['proximal','distal','mid'],params:{minAtr:{t:'num',min:0,max:10,def:0},atrPeriod:{t:'int',min:2,max:100,def:14},maxAge:{t:'int',min:1,max:5000,def:50},maxFillPct:{t:'num',min:0,max:100,def:50}}},
  fib_band:{label:'Fibonacci pásmo posledního impulzu',levels:['proximal','distal','mid','extreme'],params:{swingN:{t:'int',min:1,max:10,def:2},from:{t:'num',min:0,max:1,def:.5},to:{t:'num',min:0,max:1.5,def:.786}}},
  round_number:{label:'Kulaté číslo',levels:['level'],params:{step:{t:'num',min:1e-6,max:1e6,def:.005},maxDistAtr:{t:'num',min:0,max:10,def:.25},atrPeriod:{t:'int',min:2,max:100,def:14}}},
@@ -67,7 +84,8 @@ export const BLOCKS:Record<BlockId,{label:string;levels:LevelKey[];params:Record
 };
 export const BLOCK_IDS=Object.keys(BLOCKS) as BlockId[];
 
-export type Condition={id:string;block:BlockId;params:Record<string,number|string|boolean>;role:'required'|'optional';tf:TfRef};
+export type Role='required'|'optional'|'info';
+export type Condition={id:string;block:BlockId;params:Record<string,number|string|boolean>;role:Role;tf:TfRef;group?:string};
 export type Leg={from:string;key:LevelKey;share:number};
 export type LevelRef={from:string;key:LevelKey};
 export type StrategyDef={
@@ -75,7 +93,9 @@ export type StrategyDef={
  conditions:Condition[];
  entry:{type:'limit'|'market_on_close';from:string|null;key:LevelKey;validBars:number;side:'both'|'long'|'short';legs:Leg[]|null};
  stop:{from:string;key:LevelKey;atrK:number;pct:number;atrPeriod:number;minAtrK:number}; // from = id podmínky | 'entry' | 'signal_bar'
- targets:{type:'r'|'swing'|'level';r:number;from:string|null;key:LevelKey;swingN:number;minRR:number;obstacle:LevelRef|null;partial:{atR:number;pct:number;moveToBE:boolean}|null};
+ // type 'zone' = proximální hrana nejbližší protilehlé zóny podmínky `from` (zone / order_block / fvg; long → nabídka nad vstupem, short → poptávka pod);
+ // když žádná není nebo má R:R pod minRR → fallback: none = bez obchodu, r = k R, swing = protilehlý swing
+ targets:{type:'r'|'swing'|'level'|'zone';r:number;from:string|null;key:LevelKey;swingN:number;minRR:number;obstacle:LevelRef|null;partial:{atR:number;pct:number;moveToBE:boolean}|null;fallback:'none'|'r'|'swing'};
  management:{beAtR:number|null;timeExitBars:number|null;timeExitClock:{tz:string;at:string}|null;ambiguity:'conservative'|'optimistic'};
  risk:{basePct:number;byRating:{min:number;pct:number}[];minRating:number};
  filters:{sessions:SessionId[];sessionDefs:Partial<Record<SessionId,SessionDef>>;maxTradesPerDay:number|null;maxTradesPerWeek:number|null;stopAfterLosses:number|null;
@@ -98,7 +118,7 @@ export function validateDef(raw:unknown):DefCheck{
  const errs:string[]=[],E=(p:string,m:string)=>{if(errs.length<60)errs.push(`${p}: ${m}`)};
  if(!isO(raw))return {ok:false,errors:['definice: musí být JSON objekt']};
  try{if(JSON.stringify(raw).length>DEF_LIMITS.jsonBytes)return {ok:false,errors:[`definice: větší než ${DEF_LIMITS.jsonBytes} znaků`]}}catch{return {ok:false,errors:['definice: nejde serializovat']}}
- const known=['name','version','markets','data','tf','conditions','entry','stop','targets','management','risk','filters','costs','variants','schema'];
+ const known=['name','version','markets','data','tf','conditions','anyOf','entry','stop','targets','management','risk','filters','costs','variants','schema'];
  for(const k of Object.keys(raw))if(!known.includes(k))E(k,'neznámé pole');
  const num=(p:string,v:unknown,min:number,max:number,def:number|null,int=false):number=>{
   if(v===undefined||v===null){if(def===null){E(p,'chybí');return min}return def}
@@ -129,12 +149,14 @@ export function validateDef(raw:unknown):DefCheck{
   if(raw.conditions.length>DEF_LIMITS.conditions)E('conditions',`nejvýš ${DEF_LIMITS.conditions}`);
   raw.conditions.slice(0,DEF_LIMITS.conditions).forEach((c,i)=>{
    const p=`conditions[${i}]`;if(!isO(c)){E(p,'musí být objekt');return}
-   for(const k of Object.keys(c))if(!['id','block','params','role','tf','note'].includes(k))E(p+'.'+k,'neznámé pole');
+   for(const k of Object.keys(c))if(!['id','block','params','role','tf','note','group'].includes(k))E(p+'.'+k,'neznámé pole');
    const id=typeof c.id==='string'?c.id:'c'+(i+1);
    if(c.id!==undefined&&(typeof c.id!=='string'||!ID.test(c.id)))E(p+'.id','id = písmeno + písmena/číslice/_/- (max 32)');
    if(conds.some(x=>x.id===id))E(p+'.id','duplicitní id');
    const block=en(p+'.block',c.block,BLOCK_IDS,null);
-   const role=en(p+'.role',c.role,['required','optional'] as const,'required');
+   const role=en(p+'.role',c.role,['required','optional','info'] as const,'required');
+   let group:string|undefined;
+   if(c.group!==undefined&&c.group!==null){if(typeof c.group!=='string'||!ID.test(c.group))E(p+'.group','id skupiny = písmeno + písmena/číslice/_/- (max 32)');else if(role!=='required')E(p+'.group','skupina NEBO jen u povinné podmínky');else group=c.group}
    const tfr=en(p+'.tf',c.tf,['context','zone','entry',...TFS] as const,'entry') as TfRef;
    if(TF_RANK[tfOf(tfr)]<TF_RANK[tf.entry])E(p+'.tf','nesmí být nižší než tf.entry');
    if(data==='D1'&&TF_RANK[tfOf(tfr)]<TF_RANK.D1)E(p+'.tf','D1 data nemají nižší TF než D1');
@@ -153,20 +175,37 @@ export function validateDef(raw:unknown):DefCheck{
    if(block==='cot_index'&&(params.low as number)>(params.high as number))E(p+'.params','low musí být ≤ high');
    if(block==='fib_band'&&(params.from as number)>(params.to as number))E(p+'.params','from musí být ≤ to');
    if(block==='premium_discount'&&(params.discount as number)>(params.premium as number))E(p+'.params','discount musí být ≤ premium');
+   if(block==='premium_discount'){const own=tfOf(tfr),r=params.rangeTf==='same'?own:tfOf(params.rangeTf as TfRef),e=params.evalTf==='same'?own:tfOf(params.evalTf as TfRef);
+    if(TF_RANK[r]<TF_RANK[e])E(p+'.params.rangeTf','rozsah nesmí být z nižšího TF než vyhodnocení');
+    if(TF_RANK[e]<TF_RANK[tf.entry]||TF_RANK[r]<TF_RANK[tf.entry])E(p+'.params','TF nesmí být nižší než tf.entry')}
    if(BLOCKS[block]?.needs&&tfOf(tfr)!==tf.entry)E(p+'.tf','blok s externími daty se vyhodnocuje jen na tf.entry');
    if(block==='session_range'&&data==='D1')E(p+'.block','seance potřebují data H1');
    if(block==='sweep'||block==='mss'){const lv=block==='sweep'?params.level:params.sweepLevel;if(data==='D1'&&(lv==='asia'||lv==='london'||lv==='ny'))E(p+'.params','úroveň seance potřebuje data H1')}
-   conds.push({id,block,params,role,tf:tfr});
+   conds.push({id,block,params,role,tf:tfr,...(group?{group}:{})});
   });
+  // anyOf: [[id…],[id…]] → skupiny 'or1', 'or2' … (každá podmínka nejvýš v jedné skupině)
+  if(raw.anyOf!==undefined&&raw.anyOf!==null){
+   if(!Array.isArray(raw.anyOf)||raw.anyOf.length>10)E('anyOf','seznam do 10 skupin (každá = seznam id podmínek)');
+   else raw.anyOf.forEach((g,gi)=>{const p=`anyOf[${gi}]`;if(!Array.isArray(g)||g.length<2||g.length>DEF_LIMITS.conditions){E(p,'skupina = seznam aspoň 2 id podmínek');return}
+    const gid='or'+(gi+1);if(conds.some(c=>c.id===gid)){E(p,'id podmínky koliduje se jménem skupiny');return}
+    g.forEach((id,k)=>{const c=conds.find(x=>x.id===id);if(!c){E(`${p}[${k}]`,'neznámá podmínka');return}
+     if(c.role!=='required')E(`${p}[${k}]`,'skupina NEBO jen z povinných podmínek');else if(c.group)E(`${p}[${k}]`,'podmínka už je v jiné skupině');else c.group=gid})});
+  }
   // reference (nested_zone) jen na dřívější podmínky se zónou
   conds.forEach((c,i)=>{if(c.block!=='nested_zone')return;for(const k of ['inner','outer']){const r=conds.findIndex(x=>x.id===c.params[k]);
    if(r<0||r>=i)E(`conditions[${i}].params.${k}`,'musí odkazovat na dřívější podmínku');else if(!['zone','order_block','fvg'].includes(conds[r].block))E(`conditions[${i}].params.${k}`,'odkaz musí být zóna / order block / FVG')}});
   if(!conds.some(c=>c.role==='required'))E('conditions','aspoň jedna podmínka musí být required');
  }
+ const groups=groupsOf(conds);
+ for(const [g,m] of groups){if(conds.some(c=>c.id===g))E('conditions','id skupiny NEBO koliduje s id podmínky');if(m.length<2)E('conditions','skupina NEBO potřebuje aspoň 2 podmínky')}
  const condIds=new Set(conds.map(c=>c.id));
+ // úroveň z podmínky, nebo ze skupiny NEBO (úroveň musí dávat každý člen skupiny)
  const levelOf=(p:string,from:unknown,key:unknown,allowSpecial:string[]=[]):{from:string;key:LevelKey}=>{
   const f=typeof from==='string'?from:'';
-  if(!allowSpecial.includes(f)){if(!condIds.has(f))E(p+'.from','neznámá podmínka');else{const c=conds.find(x=>x.id===f)!,k=en(p+'.key',key,LEVEL_KEYS,null);if(!BLOCKS[c.block].levels.includes(k))E(p+'.key','blok tuto úroveň nedává');return {from:f,key:k}}}
+  if(!allowSpecial.includes(f)){
+   const members=groups.get(f);
+   if(members){const k=en(p+'.key',key,LEVEL_KEYS,null);if(!members.every(i=>BLOCKS[conds[i].block].levels.includes(k)))E(p+'.key','některý blok skupiny tuto úroveň nedává');return {from:f,key:k}}
+   if(!condIds.has(f))E(p+'.from','neznámá podmínka');else{const c=conds.find(x=>x.id===f)!,k=en(p+'.key',key,LEVEL_KEYS,null);if(!BLOCKS[c.block].levels.includes(k))E(p+'.key','blok tuto úroveň nedává');return {from:f,key:k}}}
   return {from:f,key:en(p+'.key',key,LEVEL_KEYS,'level')};
  };
  // vstup
@@ -191,17 +230,20 @@ export function validateDef(raw:unknown):DefCheck{
  if(stop.from==='entry'&&!(stop.atrK>0))E('stop.atrK','u stopu od vstupu musí být > 0');
  // cíle
  const to=isO(raw.targets)?raw.targets:(E('targets','chybí objekt'),{} as O);
- for(const k of Object.keys(to))if(!['type','r','from','key','swingN','minRR','obstacle','partial'].includes(k))E('targets.'+k,'neznámé pole');
- const ttype=en('targets.type',to.type,['r','swing','level'] as const,'r');
+ for(const k of Object.keys(to))if(!['type','r','from','key','swingN','minRR','obstacle','partial','fallback'].includes(k))E('targets.'+k,'neznámé pole');
+ const ttype=en('targets.type',to.type,['r','swing','level','zone'] as const,'r');
  let tfrom:string|null=null,tkey:LevelKey='level';
  if(ttype==='level'){const lv=levelOf('targets',to.from,to.key);tfrom=lv.from;tkey=lv.key}
+ if(ttype==='zone'){const c=conds.find(x=>x.id===to.from);if(!c)E('targets.from','neznámá podmínka');else if(!(ZONE_BLOCKS as readonly string[]).includes(c.block))E('targets.from','cíl zóna potřebuje podmínku zone / order_block / fvg');else tfrom=c.id;tkey='proximal'}
+ const fallback=en('targets.fallback',to.fallback,['none','r','swing'] as const,'none');
+ if(fallback!=='none'&&ttype!=='zone')E('targets.fallback','jen u cíle typu zone');
  let obstacle:LevelRef|null=null;
  if(to.obstacle!==undefined&&to.obstacle!==null){if(!isO(to.obstacle))E('targets.obstacle','musí být objekt');else obstacle=levelOf('targets.obstacle',to.obstacle.from,to.obstacle.key)}
  let partial:StrategyDef['targets']['partial']=null;
  if(to.partial!==undefined&&to.partial!==null){if(!isO(to.partial))E('targets.partial','musí být objekt');else{
   partial={atR:num('targets.partial.atR',to.partial.atR,.1,20,null),pct:num('targets.partial.pct',to.partial.pct,1,99,null),moveToBE:to.partial.moveToBE===undefined?true:to.partial.moveToBE===true};
   if(to.partial.moveToBE!==undefined&&typeof to.partial.moveToBE!=='boolean')E('targets.partial.moveToBE','musí být true/false')}}
- const targets={type:ttype,r:num('targets.r',to.r,.1,50,2),from:tfrom,key:tkey,swingN:num('targets.swingN',to.swingN,1,10,2,true),minRR:num('targets.minRR',to.minRR,0,50,0),obstacle,partial};
+ const targets={type:ttype,r:num('targets.r',to.r,.1,50,2),from:tfrom,key:tkey,swingN:num('targets.swingN',to.swingN,1,10,2,true),minRR:num('targets.minRR',to.minRR,0,50,0),obstacle,partial,fallback};
  if(partial&&ttype==='r'&&partial.atR>=targets.r)E('targets.partial.atR','musí být menší než targets.r');
  // řízení
  const mo=isO(raw.management)?raw.management:{};if(raw.management!==undefined&&!isO(raw.management))E('management','musí být objekt');
@@ -284,14 +326,18 @@ export function parseDefJson(text:string):DefCheck{
  return validateDef(raw);
 }
 // obecný popis (bez parametrů) – pro seznam, poznámky simulace a shrnutí
+// skupiny NEBO: id → indexy členů (v pořadí definice)
+export function groupsOf(conds:Pick<Condition,'group'>[]):Map<string,number[]>{
+ const m=new Map<string,number[]>();conds.forEach((c,i)=>{if(!c.group)return;const a=m.get(c.group);if(a)a.push(i);else m.set(c.group,[i])});return m;
+}
 export const condLabel=(c:Pick<Condition,'block'|'tf'>,def:Pick<StrategyDef,'tf'>)=>`${BLOCKS[c.block].label} (${c.tf==='context'||c.tf==='zone'||c.tf==='entry'?def.tf[c.tf]:c.tf})`;
 export function defOutline(def:StrategyDef):string[]{
- const req=def.conditions.filter(c=>c.role==='required').length,opt=def.conditions.length-req;
+ const req=def.conditions.filter(c=>c.role==='required').length,opt=def.conditions.filter(c=>c.role==='optional').length,info=def.conditions.length-req-opt,gr=groupsOf(def.conditions).size;
  return [
   `Data ${def.data} (kontext ${def.tf.context}, zóny ${def.tf.zone}, vstup ${def.tf.entry}); trhů ${def.markets.length}.`,
-  `Podmínek ${def.conditions.length}: povinných ${req}, volitelných ${opt} (hodnocení = počet splněných volitelných).`,
+  `Podmínek ${def.conditions.length}: povinných ${req}${gr?` (z toho ${gr} ${gr===1?'skupina':'skupiny'} NEBO)`:''}, volitelných ${opt}${info?`, jen úrovně ${info}`:''} (hodnocení = počet splněných volitelných).`,
   `Vstup ${def.entry.type==='limit'?`limitem na úrovni podmínky, platnost ${def.entry.validBars} svíček${def.entry.legs?`, ${def.entry.legs.length} nohy se sdíleným stopem`:''}`:'na zavření signální svíčky'}; stop ${def.stop.from==='entry'?'od vstupu':'od úrovně'}${def.stop.atrK?` ± ${def.stop.atrK} × ATR`:''}${def.stop.pct?` ± ${def.stop.pct} % vzdálenosti`:''}.`,
-  `Cíl ${def.targets.type==='r'?def.targets.r+' R':def.targets.type==='swing'?'protilehlý swing':'úroveň podmínky'}${def.targets.minRR?`, min. R:R ${def.targets.minRR}`:''}${def.targets.partial?`, částečný výstup ${def.targets.partial.pct} % na ${def.targets.partial.atR} R${def.targets.partial.moveToBE?' + stop na BE':''}`:''}${def.management.beAtR?`, BE od ${def.management.beAtR} R`:''}${def.management.timeExitBars?`, časový výstup po ${def.management.timeExitBars} svíčkách`:''}${def.management.timeExitClock?', časový výstup v daný čas':''}.`,
+  `Cíl ${def.targets.type==='r'?def.targets.r+' R':def.targets.type==='swing'?'protilehlý swing':def.targets.type==='zone'?`nejbližší protilehlá zóna${def.targets.fallback!=='none'?` (jinak ${def.targets.fallback==='r'?def.targets.r+' R':'swing'})`:''}`:'úroveň podmínky'}${def.targets.minRR?`, min. R:R ${def.targets.minRR}`:''}${def.targets.partial?`, částečný výstup ${def.targets.partial.pct} % na ${def.targets.partial.atR} R${def.targets.partial.moveToBE?' + stop na BE':''}`:''}${def.management.beAtR?`, BE od ${def.management.beAtR} R`:''}${def.management.timeExitBars?`, časový výstup po ${def.management.timeExitBars} svíčkách`:''}${def.management.timeExitClock?', časový výstup v daný čas':''}.`,
   `Riziko ${def.risk.basePct} %${def.risk.byRating.length?' (podle hodnocení)':''}${def.filters.sessions.length?`; vstupy jen v seancích ${def.filters.sessions.map(s=>SESSION_LABELS[s]).join(', ')}`:''}${def.filters.maxTradesPerDay?`; max ${def.filters.maxTradesPerDay} obchodů/den`:''}${def.filters.news?'; bez vstupu kolem důležitých zpráv':''}.`,
  ];
 }

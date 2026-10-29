@@ -62,6 +62,14 @@ export function series(bars:Bar[],tf:Tf):Series{
  return {tf,n:bars.length,t:F(b=>b.t),o:F(b=>b.o),h:F(b=>b.h),l:F(b=>b.l),c:F(b=>b.c),ms:TF_MS[tf],get:<T,>(k:string,make:()=>T)=>{let v=cache.get(k) as T|undefined;if(v===undefined){v=make();cache.set(k,v)}return v}};
 }
 export const atrOf=(s:Series,p=14)=>s.get('atr:'+p,()=>atrW(s.h,s.l,s.c,p));
+// ATR z rozsahu svíčky (high − low, bez gapů mezi svíčkami), stejné Wilderovo vyhlazení jako atrOf. Indexy z H1 svíček seance mají přes noc
+// gapy – agregovaná H4/D1 svíčka má true range nafouknutý gapem, ale tělo jen z obchodní doby → impulz proti true ATR skoro nevznikne.
+export const rangeAtrOf=(s:Series,p=14)=>s.get('ratr:'+p,()=>{const n=s.n,r=new Float64Array(n).fill(NaN);if(n<p)return r;
+ let a=0;for(let i=0;i<p;i++)a+=s.h[i]-s.l[i];a/=p;r[p-1]=a;for(let i=p;i<n;i++){a=(a*(p-1)+(s.h[i]-s.l[i]))/p;r[i]=a}return r});
+export type AtrMode='true'|'range';
+export const atrByMode=(s:Series,p:number,mode:string|undefined)=>mode==='range'?rangeAtrOf(s,p):atrOf(s,p);
+// atrMode 'auto': range na vyšším TF agregovaném z H1 (tam gapy přes noc dominují), jinak klasický true range (D1 data a TF = data beze změny)
+export function resolveAtrMode(mode:string|undefined,tf:Tf,data:DataTf):AtrMode{return mode==='true'||mode==='range'?mode:data==='H1'&&tf!=='H1'?'range':'true'}
 export const emaOf=(s:Series,p:number)=>s.get('ema:'+p,()=>emaF(s.c,p));
 export const smaOf=(s:Series,p:number)=>s.get('sma:'+p,()=>smaF(s.c,p));
 
@@ -97,7 +105,10 @@ export function structure(s:Series,N:number):Structure{
 export type Levels=Partial<Record<'proximal'|'distal'|'mid'|'level'|'extreme'|'high'|'low',Float64Array>>;
 // unknown = blok nemohl být vyhodnocen (chybí data); tL/tS = čas (ms) události, ze které úroveň pochází (vznik zóny, sweep, MSS, FVG,
 // formace) – jen pro stopu obchodu; stats = diagnostika detektoru za celou historii (počty, rozložení mitigace) – jen počty, žádné parametry
-export type Out={L:Uint8Array;S:Uint8Array;lvL:Levels;lvS:Levels;unknown?:Uint8Array;tL?:Float64Array;tS?:Float64Array;stats?:Record<string,number>};
+// zones = všechny aktivní (vybratelné) zóny na svíčce i podle strany – pro vnoření všech zón a cíl „zóna“ (zone / order_block / fvg)
+export type ZRef={proximal:number;distal:number;t:number};
+export const NO_ZONES:ZRef[]=[];
+export type Out={L:Uint8Array;S:Uint8Array;lvL:Levels;lvS:Levels;unknown?:Uint8Array;tL?:Float64Array;tS?:Float64Array;stats?:Record<string,number>;zones?:{L:ZRef[][];S:ZRef[][]}};
 export function newOut(n:number,keys:string[],times=false):Out{
  const mk=()=>Object.fromEntries(keys.map(k=>[k,new Float64Array(n).fill(NaN)])) as Levels;
  const o:Out={L:new Uint8Array(n),S:new Uint8Array(n),lvL:mk(),lvS:mk()};
@@ -106,7 +117,8 @@ export function newOut(n:number,keys:string[],times=false):Out{
 }
 // počet nalezených swingů (fraktál N) – diagnostika bloků nad strukturou
 export const swingCount=(s:Series,N:number)=>s.get('swcount:'+N,()=>{const w=swings(s.h,s.l,N);return {highs:w.filter(x=>x.high).length,lows:w.filter(x=>!x.high).length}});
-// rozložení mitigace (max. průnik do zóny / mezery v %) do košů po 25 %
+// rozložení mitigace do košů po 25 %: zóny = hloubka průniku při PRVNÍM dotyku (zneplatnění při prvním dotyku se počítá zvlášť),
+// FVG = max. vyplnění mezery
 export const MIT_BUCKETS=['mit0_25','mit25_50','mit50_75','mit75_100','mit100'] as const;
 export const mitBucket=(pct:number)=>MIT_BUCKETS[pct>=100?4:pct>=75?3:pct>=50?2:pct>=25?1:0];
 
@@ -137,11 +149,11 @@ export function atrRegime(s:Series,p:{period:number;avg:number;op:string;k:numbe
 // ---- zóny nabídky / poptávky a order blocky
 export type Zone={id:number;side:1|-1;proximal:number;distal:number;created:number;baseFrom:number;baseTo:number};
 export type ZoneStatus='fresh'|'touched'|'mitigated'|'invalidated';
-export type ZoneParams={impulseK:number;atrPeriod:number;swingN:number;requireBreak:boolean;proximal:string;maxBase?:number;baseBodyRatio?:number;lookback?:number};
-// impulz na svíčce i: tělo ≥ k × ATR(i) a (requireBreak) zavření za posledním potvrzeným swingem → zóna z base svíček (zone) nebo
+export type ZoneParams={impulseK:number;atrPeriod:number;swingN:number;requireBreak:boolean;proximal:string;maxBase?:number;baseBodyRatio?:number;lookback?:number;atrMode?:string};
+// impulz na svíčce i: tělo ≥ k × ATR(i) (atrMode 'range' = ATR z high − low bez gapů, jinak true range) a (requireBreak) zavření za posledním potvrzeným swingem → zóna z base svíček (zone) nebo
 // z poslední opačné svíčky (order block). Zóna je známá na zavření impulzní svíčky.
 export function findZones(s:Series,p:ZoneParams,kind:'zone'|'ob'):Zone[]{
- const a=atrOf(s,p.atrPeriod),st=structure(s,p.swingN),out:Zone[]=[];
+ const a=atrByMode(s,p.atrPeriod,p.atrMode),st=structure(s,p.swingN),out:Zone[]=[];
  for(let i=1;i<s.n;i++){
   const body=Math.abs(s.c[i]-s.o[i]);if(!(a[i]>0)||body<p.impulseK*a[i])continue;
   const side:1|-1=s.c[i]>s.o[i]?1:-1;
@@ -181,32 +193,41 @@ export function trackZone(z:Zone,s:Series,i:number,o:{mitigation:string;invalida
  const pct=Math.max(0,Math.min(100,deep*100));
  return {status:invalidAt>=0?'invalidated':touchedAt<0?'fresh':pct>=o.maxMitigationPct?'mitigated':'touched',pct:touchedAt<0?0:pct,touchedAt,invalidAt};
 }
-type ZoneSel={maxAge:number;status:string;mitigation:string;maxMitigationPct:number;invalidate:string;maxDistAtr:number;atrPeriod:number};
-// výběr zóny na každé svíčce: nejbližší platná zóna ve směru (poptávka pod cenou → long, nabídka nad cenou → short)
+type ZoneSel={maxAge:number;status:string;mitigation:string;maxMitigationPct:number;invalidate:string;maxDistAtr:number;atrPeriod:number;atrMode?:string};
+// výběr zóny na každé svíčce: nejbližší platná zóna ve směru (poptávka pod cenou → long, nabídka nad cenou → short);
+// zones = všechny vybratelné zóny svíčky (stejná pravidla stavu / vzdálenosti / strany jako výběr nejbližší)
 export function zoneBlock(s:Series,zones:Zone[],p:ZoneSel):Out{
- const o=newOut(s.n,['proximal','distal','mid'],true),a=atrOf(s,p.atrPeriod);
- type Live={z:Zone;deep:number;touched:boolean;dead:boolean};
+ const o=newOut(s.n,['proximal','distal','mid'],true),a=atrByMode(s,p.atrPeriod,p.atrMode);
+ const zL:ZRef[][]=new Array(s.n),zS:ZRef[][]=new Array(s.n);o.zones={L:zL,S:zS};
+ type Live={z:Zone;ref:ZRef;deep:number;touched:boolean;dead:boolean;first:number;firstInv:boolean;overMax:boolean};
  const live:Live[]=[];let k=0;const sorted=[...zones].sort((x,y)=>x.created-y.created);
- // diagnostika: kolik zón vzniklo, kolik se dočkalo dotyku dokud platily (čerstvé při dotyku), jak skončily, rozložení mitigace dotčených
+ // diagnostika: kolik zón vzniklo, kolik se dočkalo dotyku dokud platily (čerstvé při dotyku), jak skončily; rozložení mitigace = hloubka
+ // průniku při PRVNÍM dotyku (ne maximum za život – zneplatněná zóna by jinak vždy padla do 100 %); zneplatnění při prvním dotyku zvlášť.
+ // Součet: mit0_25 … mit100 + invalidatedAtFirstTouch = touchedFresh. exceededMaxMit = dotčené zóny, které za život překročily maxMitigationPct.
  const st:Record<string,number>={detected:zones.length,demand:zones.filter(z=>z.side>0).length,supply:zones.filter(z=>z.side<0).length,touchedFresh:0,invalidated:0,expired:0,aliveAtEnd:0};
  for(const b of MIT_BUCKETS)st[b]=0;
- const fin=(x:Live,how:'invalidated'|'expired'|'aliveAtEnd')=>{st[how]++;if(x.touched){st.touchedFresh++;st[mitBucket(Math.max(0,x.deep*100))]++}};
+ st.invalidatedAtFirstTouch=0;st.touchedInvalidated=0;st.exceededMaxMit=0;
+ const fin=(x:Live,how:'invalidated'|'expired'|'aliveAtEnd')=>{st[how]++;if(x.touched){st.touchedFresh++;if(how==='invalidated')st.touchedInvalidated++;if(x.overMax)st.exceededMaxMit++;
+  if(x.firstInv)st.invalidatedAtFirstTouch++;else st[mitBucket(Math.max(0,x.first*100))]++}};
  for(let i=0;i<s.n;i++){
   // aktualizace stavu existujících zón svíčkou i (zóna vzniklá na i se svíčkou i nesleduje)
   for(const x of live){if(x.dead)continue;const z=x.z,w=z.proximal-z.distal;
    const px=z.side>0?(p.mitigation==='close'?s.c[i]:s.l[i]):(p.mitigation==='close'?s.c[i]:s.h[i]),pen=(z.proximal-px)/w;
-   if(pen>=0)x.touched=true;if(pen>x.deep)x.deep=pen;
-   if(z.side>0?(p.invalidate==='wick'?s.l[i]:s.c[i])<z.distal:(p.invalidate==='wick'?s.h[i]:s.c[i])>z.distal)x.dead=true}
-  while(k<sorted.length&&sorted[k].created<=i)live.push({z:sorted[k++],deep:-Infinity,touched:false,dead:false});
+   const inv=z.side>0?(p.invalidate==='wick'?s.l[i]:s.c[i])<z.distal:(p.invalidate==='wick'?s.h[i]:s.c[i])>z.distal;
+   if(pen>=0&&!x.touched){x.touched=true;x.first=pen;x.firstInv=inv}
+   if(pen>x.deep)x.deep=pen;if(x.touched&&x.deep*100>=p.maxMitigationPct)x.overMax=true;
+   if(inv)x.dead=true}
+  while(k<sorted.length&&sorted[k].created<=i){const z=sorted[k++];live.push({z,ref:{proximal:z.proximal,distal:z.distal,t:s.t[z.baseFrom]},deep:-Infinity,touched:false,dead:false,first:NaN,firstInv:false,overMax:false})}
   for(let q=live.length-1;q>=0;q--)if(live[q].dead||i-live[q].z.created>p.maxAge){fin(live[q],live[q].dead?'invalidated':'expired');live.splice(q,1)}
-  let bl:Zone|null=null,bs:Zone|null=null;
+  let bl:Zone|null=null,bs:Zone|null=null,al:ZRef[]|null=null,as:ZRef[]|null=null;
   for(const x of live){
    const z=x.z,pct=x.touched?Math.max(0,x.deep*100):0,mit=x.touched&&pct>=p.maxMitigationPct;
    const ok=p.status==='fresh'?!x.touched:p.status==='fresh_or_touched'?!mit:true;if(!ok)continue;
    if(p.maxDistAtr>0&&a[i]>0&&Math.abs(s.c[i]-z.proximal)>p.maxDistAtr*a[i])continue;
-   if(z.side>0&&s.c[i]>=z.distal&&(!bl||z.proximal>bl.proximal))bl=z;
-   if(z.side<0&&s.c[i]<=z.distal&&(!bs||z.proximal<bs.proximal))bs=z;
+   if(z.side>0&&s.c[i]>=z.distal){(al??=[]).push(x.ref);if(!bl||z.proximal>bl.proximal)bl=z}
+   if(z.side<0&&s.c[i]<=z.distal){(as??=[]).push(x.ref);if(!bs||z.proximal<bs.proximal)bs=z}
   }
+  zL[i]=al??NO_ZONES;zS[i]=as??NO_ZONES;
   if(bl){o.L[i]=1;o.lvL.proximal![i]=bl.proximal;o.lvL.distal![i]=bl.distal;o.lvL.mid![i]=(bl.proximal+bl.distal)/2;o.tL![i]=s.t[bl.baseFrom]}
   if(bs){o.S[i]=1;o.lvS.proximal![i]=bs.proximal;o.lvS.distal![i]=bs.distal;o.lvS.mid![i]=(bs.proximal+bs.distal)/2;o.tS![i]=s.t[bs.baseFrom]}
  }
@@ -214,13 +235,20 @@ export function zoneBlock(s:Series,zones:Zone[],p:ZoneSel):Out{
  o.stats=st;
  return o;
 }
-// vnořená zóna: vnitřní (nižší TF) leží uvnitř vnější (vyšší TF) – contain = celá, overlap = překryv; úrovně = vnitřní zóna
+// vnořená zóna: vnitřní (nižší TF) vůči vnější (vyšší TF) – contain/full = celá uvnitř, proximal_inside = proximální hrana vnitřní uvnitř
+// vnější, overlap = překryv; úrovně = vnitřní zóna
 export function nestedOk(inner:{proximal:number;distal:number},outer:{proximal:number;distal:number},mode:string):boolean{
  const iLo=Math.min(inner.proximal,inner.distal),iHi=Math.max(inner.proximal,inner.distal),oLo=Math.min(outer.proximal,outer.distal),oHi=Math.max(outer.proximal,outer.distal);
  if([iLo,iHi,oLo,oHi].some(Number.isNaN))return false;
- return mode==='overlap'?iLo<=oHi&&iHi>=oLo:iLo>=oLo&&iHi<=oHi;
+ if(mode==='overlap')return iLo<=oHi&&iHi>=oLo;
+ if(mode==='proximal_inside')return inner.proximal>=oLo&&inner.proximal<=oHi;
+ return iLo>=oLo&&iHi<=oHi;
 }
-export function nestedBlock(n:number,inner:Out,outer:Out,mode:string):Out{
+// containment 'auto' = podle starého parametru mode (contain → full, overlap → overlap)
+export const nestedMode=(mode:string,containment?:string)=>!containment||containment==='auto'?(mode==='overlap'?'overlap':'full'):containment;
+// pairs 'all': každá aktivní vnitřní zóna proti každé aktivní vnější (výstup = splňující vnitřní zóna nejblíž ceně); 'nearest' = původní chování
+export function nestedBlock(n:number,inner:Out,outer:Out,mode:string,pairs='nearest'):Out{
+ if(pairs==='all'&&inner.zones&&outer.zones)return nestedAll(n,inner,outer,mode);
  const o=newOut(n,['proximal','distal','mid'],true);let both=0,nested=0;
  for(const [side,io,oo,lv] of [[1,inner.lvL,outer.lvL,o.lvL],[-1,inner.lvS,outer.lvS,o.lvS]] as const){
   const A=side>0?inner.L:inner.S,B=side>0?outer.L:outer.S,R=side>0?o.L:o.S;
@@ -234,6 +262,23 @@ export function nestedBlock(n:number,inner:Out,outer:Out,mode:string):Out{
  o.stats={bothActiveBars:both,nestedBars:nested};
  return o;
 }
+function nestedAll(n:number,inner:Out,outer:Out,mode:string):Out{
+ const o=newOut(n,['proximal','distal','mid'],true),zL:ZRef[][]=new Array(n).fill(NO_ZONES),zS:ZRef[][]=new Array(n).fill(NO_ZONES);o.zones={L:zL,S:zS};
+ let both=0,nested=0,pairs=0,hits=0;
+ for(const side of [1,-1] as const){
+  const A=side>0?inner.zones!.L:inner.zones!.S,Bz=side>0?outer.zones!.L:outer.zones!.S,R=side>0?o.L:o.S,lv=side>0?o.lvL:o.lvS,T=side>0?o.tL!:o.tS!,Z=side>0?zL:zS;
+  for(let i=0;i<n;i++){
+   const a=A[i]??NO_ZONES,b=Bz[i]??NO_ZONES;if(!a.length||!b.length)continue;both++;
+   let best:ZRef|null=null,ok:ZRef[]|null=null;
+   for(const x of a){pairs+=b.length;let m=false;for(const y of b)if(nestedOk(x,y,mode)){m=true;hits++}
+    if(!m)continue;(ok??=[]).push(x);if(!best||(side>0?x.proximal>best.proximal:x.proximal<best.proximal))best=x}
+   if(!best)continue;nested++;
+   R[i]=1;lv.proximal![i]=best.proximal;lv.distal![i]=best.distal;lv.mid![i]=(best.proximal+best.distal)/2;T[i]=best.t;Z[i]=ok!;
+  }
+ }
+ o.stats={bothActiveBars:both,nestedBars:nested,pairsChecked:pairs,pairsNested:hits};
+ return o;
+}
 
 // ---- premium / discount: pozice close v rozsahu posledního potvrzeného swing high a swing low (0 = low, 1 = high)
 export function pdPosition(close:number,hi:number,lo:number):number|null{return hi>lo?(close-lo)/(hi-lo):null}
@@ -242,6 +287,15 @@ export function premiumDiscount(s:Series,p:{swingN:number;discount:number;premiu
  for(let i=0;i<s.n;i++){const x=pdPosition(s.c[i],st.hi[i],st.lo[i]);if(x===null)continue;
   o.L[i]=x<=p.discount?1:0;o.S[i]=x>=p.premium?1:0;
   for(const lv of [o.lvL,o.lvS]){lv.high![i]=st.hi[i];lv.low![i]=st.lo[i];lv.mid![i]=(st.hi[i]+st.lo[i])/2}}
+ return o;
+}
+// premium / discount s rozsahem z jiného (vyššího) TF: na svíčce i vstupního TF rozsah = poslední potvrzený swing na rangeTf ze svíček
+// UZAVŘENÝCH do zavření svíčky i (rIdx = done), pozice = close poslední uzavřené svíčky evalTf (eIdx = done; vstupní TF = identita)
+export function premiumDiscountX(n:number,evalClose:ArrayLike<number>,eIdx:Int32Array,st:Structure,rIdx:Int32Array,p:{discount:number;premium:number}):Out{
+ const o=newOut(n,['high','low','mid']);
+ for(let i=0;i<n;i++){const e=eIdx[i],r=rIdx[i];if(e<0||r<0)continue;const hi=st.hi[r],lo=st.lo[r],x=pdPosition(evalClose[e],hi,lo);if(x===null)continue;
+  o.L[i]=x<=p.discount?1:0;o.S[i]=x>=p.premium?1:0;
+  for(const lv of [o.lvL,o.lvS]){lv.high![i]=hi;lv.low![i]=lo;lv.mid![i]=(hi+lo)/2}}
  return o;
 }
 // ---- fair value gap: býčí na i, když low[i] > high[i−2] (mezera [high[i−2], low[i]]); vyplnění = průnik ceny do mezery
@@ -255,7 +309,8 @@ export function findFvgs(s:Series,minAtr:number,atrPeriod:number):Gap[]{
  return out;
 }
 export function fvgBlock(s:Series,p:{minAtr:number;atrPeriod:number;maxAge:number;maxFillPct:number}):Out{
- const gaps=findFvgs(s,p.minAtr,p.atrPeriod),o=newOut(s.n,['proximal','distal','mid'],true);
+ const gaps=findFvgs(s,p.minAtr,p.atrPeriod),o=newOut(s.n,['proximal','distal','mid'],true),zL:ZRef[][]=new Array(s.n),zS:ZRef[][]=new Array(s.n);o.zones={L:zL,S:zS};
+ const refs=new Map<Gap,ZRef>(),ref=(g:Gap)=>{let r=refs.get(g);if(!r){r=g.side>0?{proximal:g.top,distal:g.bottom,t:s.t[g.i-1]}:{proximal:g.bottom,distal:g.top,t:s.t[g.i-1]};refs.set(g,r)}return r};
  type G={g:Gap;fill:number};const live:G[]=[];let k=0;
  const st:Record<string,number>={detected:gaps.length,bullish:gaps.filter(g=>g.side>0).length,bearish:gaps.filter(g=>g.side<0).length,filled:0,expired:0,aliveAtEnd:0};
  for(const b of MIT_BUCKETS)st[b]=0;
@@ -264,8 +319,9 @@ export function fvgBlock(s:Series,p:{minAtr:number;atrPeriod:number;maxAge:numbe
   for(const x of live){const g=x.g,w=g.top-g.bottom;const f=g.side>0?(g.top-s.l[i])/w:(s.h[i]-g.bottom)/w;if(f>x.fill)x.fill=f}
   while(k<gaps.length&&gaps[k].i<=i)live.push({g:gaps[k++],fill:0});
   for(let q=live.length-1;q>=0;q--)if(i-live[q].g.i>p.maxAge||live[q].fill>=1){fin(live[q],live[q].fill>=1?'filled':'expired');live.splice(q,1)}
-  let bl:Gap|null=null,bs:Gap|null=null;
-  for(const x of live){if(x.fill*100>p.maxFillPct)continue;const g=x.g;if(g.side>0&&(!bl||g.i>bl.i))bl=g;if(g.side<0&&(!bs||g.i>bs.i))bs=g}
+  let bl:Gap|null=null,bs:Gap|null=null,al:ZRef[]|null=null,as:ZRef[]|null=null;
+  for(const x of live){if(x.fill*100>p.maxFillPct)continue;const g=x.g;if(g.side>0){(al??=[]).push(ref(g));if(!bl||g.i>bl.i)bl=g}if(g.side<0){(as??=[]).push(ref(g));if(!bs||g.i>bs.i)bs=g}}
+  zL[i]=al??NO_ZONES;zS[i]=as??NO_ZONES;
   if(bl){o.L[i]=1;o.lvL.proximal![i]=bl.top;o.lvL.distal![i]=bl.bottom;o.lvL.mid![i]=(bl.top+bl.bottom)/2;o.tL![i]=s.t[bl.i-1]}
   if(bs){o.S[i]=1;o.lvS.proximal![i]=bs.bottom;o.lvS.distal![i]=bs.top;o.lvS.mid![i]=(bs.top+bs.bottom)/2;o.tS![i]=s.t[bs.i-1]}
  }
@@ -455,8 +511,18 @@ export function cotIndexFn(rows:CotRow[],weeks:number):(T:number)=>number|undefi
 }
 // trh → index: komodita / měna vlastní řada; FX pár = (base − quote + 100)/2, USD strana chybí (proxy) → druhá měna (u USD báze obráceně)
 export type CotSrc=Record<string,CotRow[]>;
+// MAPOVÁNÍ trh → řada COT v lab_cot (sloupec market; plní scripts/lab-cot-history.mjs). Kandidáti v pořadí – použije se první, která má data.
+//  Indexy (CFTC TFF gpe5-46if, skupina leveraged): ^NDX / NQ=F → 'NQ' (E-mini NASDAQ-100, kód 209742, od 2006) → záloha 'NQ_CONS'
+//   (NASDAQ-100 Consolidated 20974+, od 2010); ^GSPC / ES=F → 'ES' (E-mini S&P 500, 13874A, od 2006) → záloha 'ES_CONS' (S&P 500 Consolidated 13874+).
+//  Komodity (Disaggregated 72hh-3qpy, skupina managedMoney): GC=F / XAU/USD → 'GC=F' (088691), SI=F / XAG/USD → 'SI=F' (084691), CL=F → 'CL=F' (067651).
+//  Měny (TFF, leveraged): vlastní kód měny (EUR, JPY …), FX pár viz níže. Ostatní trhy = řada pod vlastním id (jinak COT chybí).
+export const COT_SERIES:Record<string,string[]>={'^NDX':['NQ','NQ_CONS'],'NQ=F':['NQ','NQ_CONS'],'^GSPC':['ES','ES_CONS'],'ES=F':['ES','ES_CONS'],
+ 'GC=F':['GC=F'],'XAU/USD':['GC=F'],'SI=F':['SI=F'],'XAG/USD':['SI=F'],'CL=F':['CL=F']};
+export const cotSeriesKey=(src:CotSrc,inst:string):string|null=>(COT_SERIES[inst]??[inst]).find(k=>src[k]?.length)??null;
 export function cotForMarket(src:CotSrc,inst:string,weeks:number):((T:number)=>number|undefined)|null{
- const one=(k:string)=>src[k]?.length?cotIndexFn(src[k],weeks):null,m=inst.match(/^([A-Z]{3})\/([A-Z]{3})$/);
+ const one=(k:string)=>src[k]?.length?cotIndexFn(src[k],weeks):null;
+ if(COT_SERIES[inst]){const k=cotSeriesKey(src,inst);return k?one(k):null}
+ const m=inst.match(/^([A-Z]{3})\/([A-Z]{3})$/);
  if(!m)return one(inst);
  const a=m[1]==='USD'?null:one(m[1]),b=m[2]==='USD'?null:one(m[2]);
  if(a&&b)return T=>{const x=a(T),y=b(T);return x===undefined||y===undefined?undefined:(x-y+100)/2};

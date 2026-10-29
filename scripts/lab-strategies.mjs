@@ -83,10 +83,13 @@ let failed=0;const diagAll=[];
 const pc=(a,b)=>b?` (${(a/b*100).toFixed(1)} %)`:'';
 function printDiag(dg){
  const t=dg.total;console.log(`  diagnostika od ${dg.from||'začátku'} · svíček ${t.bars} · všechny povinné ${t.allRequired}${pc(t.allRequired,t.bars)}`);
- const worst=t.conds.filter(c=>c.firstFail!==null).reduce((a,c)=>!a||c.firstFail>a.firstFail?c:a,null);
+ const groups=t.groups??[];
+ const worst=[...t.conds.filter(c=>c.firstFail!==null),...groups].reduce((a,c)=>!a||c.firstFail>a.firstFail?c:a,null);
  for(const c of t.conds){
-  const req=c.role==='required';
-  console.log(`   ${req?'P':'V'} ${c.id.padEnd(12)} ${c.block.padEnd(17)} ${c.tf.padEnd(3)} platí ${String(c.true).padStart(7)}${pc(c.true,t.bars)}`+(req?` · trychtýř ${String(c.funnel).padStart(7)} · první selhání ${String(c.firstFail).padStart(7)}${c===worst?'  ← úzké hrdlo':''}`:' · volitelná')+(c.unknown?` · bez dat ${c.unknown}`:''));
+  const g=c.group?groups.find(x=>x.id===c.group):null;
+  if(g&&g.members[0]===c.id)console.log(`   P ${g.id.padEnd(12)} ${'skupina NEBO'.padEnd(17)}     platí ${String(g.true).padStart(7)}${pc(g.true,t.bars)} · trychtýř ${String(g.funnel).padStart(7)} · první selhání ${String(g.firstFail).padStart(7)}${g===worst?'  ← úzké hrdlo':''} (${g.members.join(' | ')})`);
+  const req=c.role==='required'&&!c.group;
+  console.log(`   ${c.group?' |':req?'P':c.role==='info'?'I':'V'} ${c.id.padEnd(12)} ${c.block.padEnd(17)} ${c.tf.padEnd(3)} platí ${String(c.true).padStart(7)}${pc(c.true,t.bars)}`+(req?` · trychtýř ${String(c.funnel).padStart(7)} · první selhání ${String(c.firstFail).padStart(7)}${c===worst?'  ← úzké hrdlo':''}`:c.group?` · člen ${c.group}`:c.role==='info'?' · jen úrovně':' · volitelná')+(c.unknown?` · bez dat ${c.unknown}`:''));
   if(c.stats)console.log('       detektor: '+Object.entries(c.stats).map(([k,v])=>`${k} ${v}`).join(' · '));
  }
  const s=t.stages;

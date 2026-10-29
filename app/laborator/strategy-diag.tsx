@@ -7,7 +7,7 @@ import {createChart,CandlestickSeries,LineSeries,LineStyle,createSeriesMarkers,t
 import {fmtNum} from '@/lib/journal/format';
 import {chartTime,snapper,pricePrecision} from '@/lib/journal/chart-data';
 import {BLOCKS} from '@/lib/lab/rules-def';
-import type {StratDiag,CondDiag,Stages,SampleTrade,StrategyRunResult,SegMetrics} from '@/lib/lab/strat-engine';
+import type {StratDiag,CondDiag,GroupDiag,Stages,SampleTrade,StrategyRunResult,SegMetrics} from '@/lib/lab/strat-engine';
 
 const pct=(a:number,b:number)=>b>0?fmtNum(a/b*100,1)+' %':'–';
 const int=(v:number|null|undefined)=>v===null||v===undefined?'–':fmtNum(v,0);
@@ -17,8 +17,10 @@ const dt=(t:number,h1:boolean)=>new Date(t).toLocaleString('cs-CZ',h1?{day:'nume
 const px=(v:number|null|undefined)=>v===null||v===undefined||!Number.isFinite(v)?'–':fmtNum(v,v>=100?2:5);
 
 // popisky statistik detektorů (klíče z lib/lab/strat-blocks.ts)
+// zóny: koše mitigace = hloubka při PRVNÍM dotyku (od strat-v2; starší výsledky = maximum za život)
 const STAT_LABELS:Record<string,string>={detected:'nalezeno',demand:'poptávka',supply:'nabídka',bullish:'býčích',bearish:'medvědích',touchedFresh:'dotčeno, dokud platily',
  invalidated:'zneplatněno',expired:'vypršelo (stáří)',aliveAtEnd:'platí na konci',filled:'vyplněno',mit0_25:'mitigace 0–25 %',mit25_50:'25–50 %',mit50_75:'50–75 %',mit75_100:'75–100 %',mit100:'100 % a víc',
+ invalidatedAtFirstTouch:'zneplatněno hned při 1. dotyku',touchedInvalidated:'dotčené a zneplatněné',exceededMaxMit:'dotčené nad max. mitigací',pairsChecked:'porovnaných párů zón',pairsNested:'vnořených párů',
  swingHighs:'swing high',swingLows:'swing low',structureBreaks:'průrazů swingu',withDisplacement:'s displacementem',mssEvents:'MSS (se všemi podmínkami)',
  levelKnownBars:'svíček se známou úrovní',wickBeyondLow:'knot pod úrovní',wickBeyondHigh:'knot nad úrovní',sweepsLong:'sweepů long',sweepsShort:'sweepů short',
  patternsLong:'formací long',patternsShort:'formací short',bothActiveBars:'svíček s oběma zónami',nestedBars:'svíček s vnořením'};
@@ -27,20 +29,24 @@ const STAT_LABELS:Record<string,string>={detected:'nalezeno',demand:'poptávka',
 export function DiagPanel({diag}:{diag:StratDiag}){
  const [mk,setMk]=useState('');
  const d=mk?diag.markets.find(m=>m.id===mk)??diag.total:diag.total;
- const req=d.conds.filter(c=>c.role==='required'),worst=req.reduce<CondDiag|null>((a,c)=>!a||(c.firstFail??0)>(a.firstFail??0)?c:a,null);
+ const groups=d.groups??[];
+ // úzké hrdlo = povinná jednotka (podmínka mimo skupinu, nebo skupina NEBO) s nejvíc prvními selháními
+ const units:(CondDiag|GroupDiag)[]=[...d.conds.filter(c=>c.role==='required'&&!c.group),...groups];
+ const worst=units.reduce<CondDiag|GroupDiag|null>((a,c)=>!a||(c.firstFail??0)>(a.firstFail??0)?c:a,null);
  const s=d.stages,lim=diag.entryType==='limit';
  return <div className="lb-diag">
   <div className="lb-form"><label>Trh<select className="lb-select" value={mk} onChange={e=>setMk(e.target.value)}><option value="">Všechny trhy ({diag.markets.length})</option>{diag.markets.map(m=><option key={m.id} value={m.id}>{m.id}</option>)}</select></label>
    <span className="lb-hint">Svíčky od {diag.from||'začátku dat'} (období IS + OOS) · {int(d.bars)} svíček · všechny povinné podmínky splněné {int(d.allRequired)}× ({pct(d.allRequired,d.bars)})</span></div>
   <h4 className="lb-h4">Trychtýř podmínek (v pořadí definice)</h4>
-  <ol className="lb-funnel">{d.conds.map(c=>{const isReq=c.role==='required',bn=isReq&&c===worst&&(c.firstFail??0)>0;
-   return <li key={c.id} className={bn?'lb-bottleneck':''}>
-    <div className="lb-fn-head"><b>{c.id}</b><span>{blockLabel(c.block)} · {c.tf}{isReq?'':' · volitelná'}</span>{bn&&<span className="lb-badge no">úzké hrdlo</span>}</div>
+  <ol className="lb-funnel">{d.conds.flatMap(c=>{const g=c.group?groups.find(x=>x.id===c.group):undefined,isReq=c.role==='required'&&!c.group,bn=isReq&&c===worst&&(c.firstFail??0)>0;
+   const head=g&&g.members[0]===c.id?[<GroupRow key={'g:'+g.id} g={g} bars={d.bars} bn={g===worst&&g.firstFail>0}/>]:[];
+   return [...head,<li key={c.id} className={bn?'lb-bottleneck':''} style={c.group?{marginLeft:'1.5rem'}:undefined}>
+    <div className="lb-fn-head"><b>{c.id}</b><span>{blockLabel(c.block)} · {c.tf}{c.group?` · NEBO (skupina ${c.group})`:c.role==='optional'?' · volitelná':c.role==='info'?' · jen úrovně':''}</span>{bn&&<span className="lb-badge no">úzké hrdlo</span>}</div>
     <div className="lb-bar" title={`platí ${c.true} z ${d.bars}`}><i style={{width:`${d.bars?c.true/d.bars*100:0}%`}}/></div>
     {isReq&&<div className="lb-bar cum" title={`kumulativně ${c.funnel}`}><i style={{width:`${d.bars?(c.funnel??0)/d.bars*100:0}%`}}/></div>}
     <small>platí {int(c.true)} ({pct(c.true,d.bars)}; long {int(c.trueL)}, short {int(c.trueS)}, úseků {int(c.onsets)}){isReq?<> · kumulativně {int(c.funnel)} ({pct(c.funnel??0,d.bars)}) · první nesplněná {int(c.firstFail)}×</>:null}{c.unknown?<> · bez dat {int(c.unknown)}</>:null}</small>
-   </li>})}</ol>
-  <p className="lb-hint">Horní pruh = jak často podmínka platí sama, spodní = kumulativně se všemi předchozími povinnými. „První nesplněná“ = u kolika svíček právě tahle podmínka zastavila signál – nejvyšší číslo je úzké hrdlo.</p>
+   </li>]})}</ol>
+  <p className="lb-hint">Horní pruh = jak často podmínka platí sama, spodní = kumulativně se všemi předchozími povinnými. „První nesplněná“ = u kolika svíček právě tahle podmínka zastavila signál – nejvyšší číslo je úzké hrdlo. Skupina NEBO je v trychtýři jeden krok (stačí jeden člen); členové pod ní ukazují, jak často platí každý sám.</p>
   <h4 className="lb-h4">Fáze vstupu</h4>
   <Waterfall s={s} lim={lim}/>
   {d.conds.some(c=>c.stats)&&<><h4 className="lb-h4">Detektory (celá historie)</h4>
@@ -49,6 +55,14 @@ export function DiagPanel({diag}:{diag:StratDiag}){
      <td className="lb-wrap">{Object.entries(c.stats!).map(([k,v])=><span key={k} className={'lb-stat'+(v===0&&(k==='detected'||k==='mssEvents'||k.startsWith('sweeps')||k.startsWith('patterns'))?' zero':'')}>{STAT_LABELS[k]??k} <b>{int(v)}</b></span>)}</td></tr>)}</tbody></table></div>
    <p className="lb-hint">Detektor, který skoro nic nenajde (nula zón / sweepů / MSS), je nejčastější příčina prázdného trychtýře.</p></>}
  </div>;
+}
+function GroupRow({g,bars,bn}:{g:GroupDiag;bars:number;bn:boolean}){
+ return <li className={bn?'lb-bottleneck':''}>
+  <div className="lb-fn-head"><b>{g.id}</b><span>skupina NEBO ({g.members.join(' ∨ ')}) – stačí jeden člen</span>{bn&&<span className="lb-badge no">úzké hrdlo</span>}</div>
+  <div className="lb-bar" title={`platí ${g.true} z ${bars}`}><i style={{width:`${bars?g.true/bars*100:0}%`}}/></div>
+  <div className="lb-bar cum" title={`kumulativně ${g.funnel}`}><i style={{width:`${bars?g.funnel/bars*100:0}%`}}/></div>
+  <small>platí aspoň jeden člen {int(g.true)} ({pct(g.true,bars)}; long {int(g.trueL)}, short {int(g.trueS)}, úseků {int(g.onsets)}) · kumulativně {int(g.funnel)} ({pct(g.funnel,bars)}) · první nesplněná {int(g.firstFail)}×</small>
+ </li>;
 }
 function Waterfall({s,lim}:{s:Stages;lim:boolean}){
  const top=Math.max(1,s.allRequired);

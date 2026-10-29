@@ -7,7 +7,7 @@
 import {readFileSync} from 'node:fs';
 import * as B from '../lib/lab/strat-blocks.ts';
 import {validateDef,parseDefJson,applyOverrides,defRuns,BLOCKS,BLOCK_IDS,defOutline} from '../lib/lab/rules-def.ts';
-import {prepare,compile,simulate,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32,condFunnel,buildDiag,mergeDiag,pickSamples,STAGE_KEYS} from '../lib/lab/strat-engine.ts';
+import {prepare,compile,simulate,planAt,signalAt,SKIP_RR,SKIP_NO_ZONE,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32,condFunnel,buildDiag,mergeDiag,pickSamples,STAGE_KEYS} from '../lib/lab/strat-engine.ts';
 import {versionPlan,importDef,saveDef,saveRun,getRun,listDefs} from '../lib/lab/strat-store.ts';
 import {ruleVariant,paperStep,checkExit,isRuleVariant,isVariantId,RULE_VARIANT_IDS} from '../lib/lab/paper.ts';
 import {labGate} from '../lib/lab/access.ts';
@@ -503,7 +503,7 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
  const st=buildDiag(dLim,[prepare('EUR/USD',eu,'H1')],[compile(dLim,prepare('EUR/USD',eu,'H1'),ctx)],[{...Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}],-Infinity).total.conds;
  const z=st.find(c=>c.id==='z2').stats,mss=st.find(c=>c.id==='mss').stats,sw=st.find(c=>c.id==='sw').stats,fv=st.find(c=>c.id==='fvg').stats;
  const mit=z.mit0_25+z.mit25_50+z.mit50_75+z.mit75_100+z.mit100;
- check('detektor zón: nalezeno = zneplatněno + vypršelo + platí na konci; rozložení mitigace = dotčené',z.detected>0&&z.detected===z.invalidated+z.expired+z.aliveAtEnd&&mit===z.touchedFresh&&z.demand+z.supply===z.detected,z);
+ check('detektor zón: nalezeno = zneplatněno + vypršelo + platí na konci; rozložení mitigace (1. dotyk) + zneplatněné při 1. dotyku = dotčené',z.detected>0&&z.detected===z.invalidated+z.expired+z.aliveAtEnd&&mit+z.invalidatedAtFirstTouch===z.touchedFresh&&z.demand+z.supply===z.detected&&z.touchedInvalidated<=z.invalidated,z);
  check('detektor MSS: swingy ≥ průrazy ≥ s displacementem ≥ události; sweep: knot za úrovní ≥ sweepy',mss.swingHighs>0&&mss.structureBreaks>=mss.withDisplacement&&mss.withDisplacement>=mss.mssEvents&&sw.wickBeyondLow>=sw.sweepsLong&&sw.sweepsLong+sw.sweepsShort>0,{mss,sw});
  check('detektor FVG: nalezeno = vyplněno + vypršelo + platí na konci',fv.detected>0&&fv.detected===fv.filled+fv.expired+fv.aliveAtEnd,fv);
  // výsledek běhu: diagnostika u každé varianty, ukázkové obchody IS + OOS se stopou, obchody bez stopy
@@ -552,6 +552,129 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
  check('úprava staré verze v editoru: nová verze v3 (max + 1), v1 i v2 zůstávají',e1.changed&&e1.version===3&&(await listDefs(db,uid)).length===3);
  const e2=await saveDef(db,uid,e1.id,{...raw,targets:{type:'r',r:4}},Date.UTC(2024,0,6));
  check('uložení beze změny obsahu: stejná verze',!e2.changed&&e2.id===e1.id&&e2.version===3);
+}
+
+
+// ======================= 17) opravy enginu: ATR bez gapů, COT pro indexy, statistiky zón při 1. dotyku
+{
+ // H1 svíčky jen v seanci (14–19 UTC), každý den gap +1 % přes noc; běžný den = malá těla (base), každý 5. den impulz těly +0,15 % × 6
+ const h1=[];let p=100;
+ for(let d=0;d<80;d++){p*=1.01;const imp=d%5===4;
+  for(let k=0;k<6;k++){const o=p,c=imp?o*1.0015:o*(k%2?.9995:1.0005);h1.push({t:Date.UTC(2023,0,2)+d*DAY+(14+k)*H,o,h:Math.max(o,c)*1.0004,l:Math.min(o,c)*.9996,c});p=c}}
+ const ag=B.aggregate(h1,H,B.tfKey('D1','H1')),d1=B.series(ag.bars,'D1'),tr=B.atrOf(d1,5),rg=B.rangeAtrOf(d1,5),L=d1.n-1;
+ check('ATR z rozsahu (high − low) je bez gapů: na D1 z H1 seance výrazně menší než true range ATR',ag.bars.length===80&&rg[L]>0&&tr[L]>2*rg[L],{tr:tr[L],rg:rg[L]});
+ const zp={impulseK:1.5,atrPeriod:5,swingN:2,requireBreak:false,proximal:'body',maxBase:2,baseBodyRatio:.5};
+ const zr=B.findZones(d1,{...zp,atrMode:'range'},'zone'),zt=B.findZones(d1,{...zp,atrMode:'true'},'zone');
+ check('impulz proti ATR bez gapů najde poptávkové zóny, proti true range ATR (nafouknutý gapy) žádné',zr.filter(z=>z.side>0).length>=10&&zt.length===0,{range:zr.length,tr:zt.length});
+ check('atrMode auto: range jen na vyšším TF z H1; H1 → H1 a D1 data beze změny (true)',B.resolveAtrMode('auto','D1','H1')==='range'&&B.resolveAtrMode('auto','H4','H1')==='range'&&B.resolveAtrMode('auto','H1','H1')==='true'&&B.resolveAtrMode('auto','D1','D1')==='true'&&B.resolveAtrMode('true','D1','H1')==='true');
+ const gd=(mode)=>{const v=validateDef({name:'gap-test',version:1,markets:['^NDX'],data:'H1',tf:{context:'D1',zone:'D1',entry:'H1'},
+   conditions:[{id:'z',block:'zone',tf:'zone',params:{impulseK:1.5,atrPeriod:5,requireBreak:false,maxBase:2,status:'valid',...(mode?{atrMode:mode}:{})}}],entry:{type:'market_on_close'},stop:{from:'z',key:'distal'},targets:{type:'r',r:2}});
+  return compile(v.def,prepare('^NDX',h1,'H1'),{}).outs[0].stats.detected};
+ check('engine: zóna na D1 z H1 dat – výchozí (auto) detekuje, explicitní atrMode true ne (staré chování dostupné)',gd(null)>=10&&gd('true')===0&&gd('range')===gd(null),{auto:gd(null),tr:gd('true')});
+ // COT: indexy přes mapování na řady TFF (E-mini, záloha Consolidated), komodity podle id
+ const rows=Array.from({length:30},(_,k)=>{const d=new Date(Date.UTC(2023,0,3)+k*7*DAY).toISOString().slice(0,10);return {date:d,availableAt:B.cotAvailableAt(d),net:k}}),T=rows[29].availableAt;
+ check('COT mapování: ^NDX → NQ, ^GSPC → ES, záloha Consolidated, GC=F podle id, bez řady null',B.cotForMarket({NQ:rows},'^NDX',10)?.(T)===100&&B.cotForMarket({ES:rows},'^GSPC',10)?.(T)===100&&B.cotForMarket({NQ_CONS:rows},'^NDX',10)?.(T)===100
+  &&B.cotSeriesKey({NQ:rows,NQ_CONS:rows},'^NDX')==='NQ'&&B.cotForMarket({'GC=F':rows},'GC=F',10)?.(T)===100&&B.cotForMarket({'GC=F':rows},'XAU/USD',10)?.(T)===100&&B.cotForMarket({},'^NDX',10)===null&&B.cotForMarket({ES:rows},'^NDX',10)===null);
+ const cotSrc=src('scripts/lab-cot-history.mjs');
+ check('lab-cot-history: stahuje indexy z TFF (E-mini NQ 209742, ES 13874A, Consolidated 20974+ / 13874+) pod klíči mapování',/NQ:'209742'/.test(cotSrc)&&/ES:'13874A'/.test(cotSrc)&&/NQ_CONS:'20974\+'/.test(cotSrc)&&/ES_CONS:'13874\+'/.test(cotSrc));
+ const ndef=validateDef({name:'cot-ix',version:1,markets:['^NDX'],data:'D1',tf:{context:'D1',zone:'D1',entry:'D1'},conditions:[{id:'c',block:'cot_index',params:{weeks:10,high:50}}],entry:{type:'market_on_close'},stop:{from:'entry',atrK:1},targets:{type:'r',r:2}}).def;
+ const nb=walk(400,4,Date.UTC(2023,0,2,21),DAY,.004,15000),co=compile(ndef,prepare('^NDX',nb,'D1'),{cot:{NQ:rows}}).outs[0];
+ check('cot_index pro ^NDX přes engine: hodnoty existují (dřív vždy bez dat)',co.unknown.some(x=>x===0)&&co.L.some(x=>x===1));
+ // statistiky zón: hloubka při 1. dotyku (ne maximum za život), zneplatnění při 1. dotyku zvlášť
+ const zone={id:0,side:1,proximal:1,distal:.9,created:0,baseFrom:0,baseTo:0},zs={maxAge:50,status:'valid',mitigation:'wick',maxMitigationPct:50,invalidate:'close',maxDistAtr:0,atrPeriod:2};
+ const s1=B.zoneBlock(S(mk([[1.05,1.06,1.04,1.05],[1.05,1.06,1.02,1.04],[1.03,1.04,.98,1.02],[1.02,1.03,.85,.86]])),[zone],zs).stats;
+ check('histogram mitigace: zóna dotčená do 20 % a později zneplatněná patří do 0–25 % (ne do 100 %), zneplatnění zvlášť',s1.mit0_25===1&&s1.mit100===0&&s1.invalidated===1&&s1.touchedInvalidated===1&&s1.invalidatedAtFirstTouch===0&&s1.exceededMaxMit===1&&s1.touchedFresh===1,s1);
+ const s2=B.zoneBlock(S(mk([[1.05,1.06,1.04,1.05],[1.03,1.04,.85,.86]])),[zone],zs).stats;
+ check('histogram mitigace: zneplatnění už při 1. dotyku = vlastní počet, do košů nejde',s2.invalidatedAtFirstTouch===1&&MITS(s2)===0&&s2.touchedFresh===1,s2);
+}
+function MITS(x){return x.mit0_25+x.mit25_50+x.mit50_75+x.mit75_100+x.mit100}
+
+// ======================= 18) nové možnosti: vnoření všech zón, PD z vyššího TF, cíl zóna, skupiny NEBO
+{
+ // vnoření všech aktivních zón: vnitřní A (nejblíž ceně, mimo), B (proximální hrana uvnitř), C (celá uvnitř); vnější O1 + O2 (vybraná nejbližší)
+ const zr=(p,d)=>({proximal:p,distal:d,t:0}),A=zr(1,.98),Bz=zr(.955,.89),C=zr(.95,.92),O1=zr(.96,.9),O2=zr(1.2,1.1);
+ const mkO=(z,sel)=>{const o=B.newOut(1,['proximal','distal','mid'],true);o.L[0]=1;o.lvL.proximal[0]=sel.proximal;o.lvL.distal[0]=sel.distal;o.zones={L:[z],S:[[]]};return o};
+ const inner=mkO([A,Bz,C],A),outer=mkO([O2,O1],O2),run=(m,pairs='all')=>B.nestedBlock(1,inner,outer,m,pairs);
+ const f=run('full'),pi=run('proximal_inside'),ov=run('overlap'),nr=run('full','nearest');
+ check('vnoření všech zón: full → C, proximal_inside → B (nejblíž ceně), overlap → B; nearest (staré) nic',f.L[0]===1&&f.lvL.proximal[0]===.95&&pi.L[0]===1&&pi.lvL.proximal[0]===.955&&ov.lvL.proximal[0]===.955&&nr.L[0]===0&&f.stats.pairsChecked===6&&pi.stats.pairsNested===2,{f:f.stats,pi:pi.stats});
+ check('vnoření: containment auto = podle mode (contain → full, overlap → overlap)',B.nestedMode('contain','auto')==='full'&&B.nestedMode('overlap')==='overlap'&&B.nestedMode('contain','proximal_inside')==='proximal_inside');
+ // validace: nové parametry jen jako volby, staré definice beze změny
+ const VB={name:'nest-pd',version:1,markets:['EUR/USD'],data:'H1',tf:{context:'D1',zone:'H4',entry:'H1'},entry:{type:'market_on_close'},stop:{from:'entry',atrK:1},targets:{type:'r',r:2}};
+ const okN=validateDef({...VB,conditions:[{id:'a',block:'zone'},{id:'b',block:'zone',tf:'zone'},{id:'n',block:'nested_zone',params:{inner:'a',outer:'b',pairs:'all',containment:'proximal_inside'}}]});
+ const badN=validateDef({...VB,conditions:[{id:'a',block:'zone'},{id:'b',block:'zone',tf:'zone'},{id:'n',block:'nested_zone',params:{inner:'a',outer:'b',containment:'inside'}}]});
+ const badPd=validateDef({...VB,conditions:[{id:'p',block:'premium_discount',tf:'zone',params:{rangeTf:'H1',evalTf:'D1'}}]});
+ check('validace: nested pairs/containment a PD rangeTf/evalTf; rozsah z nižšího TF než vyhodnocení = chyba',okN.ok&&okN.def.conditions[2].params.pairs==='all'&&!badN.ok&&!badPd.ok&&badPd.errors.some(e=>/rangeTf/.test(e)),[badN.errors,badPd.errors]);
+ const old=validateDef({...VB,conditions:[{id:'a',block:'zone'},{id:'n2',block:'premium_discount'}]});
+ check('stará definice bez nových polí: výchozí = staré chování (pairs nearest, containment auto, PD same, cíl fallback none, žádné skupiny)',old.ok&&old.def.conditions[1].params.rangeTf==='same'&&old.def.conditions[0].params.atrMode==='auto'&&old.def.targets.fallback==='none'&&old.def.conditions.every(c=>c.group===undefined));
+ // cíl „zóna“: nejbližší protilehlá zóna za vstupem, minRR a fallback
+ const TD=(t)=>validateDef({name:'zone-target',version:1,markets:['EUR/USD'],data:'D1',tf:{context:'D1',zone:'D1',entry:'D1'},conditions:[{id:'x',block:'zone'},{id:'tz',block:'zone',role:'info'}],
+  entry:{type:'market_on_close'},stop:{from:'x',key:'distal'},targets:{type:'zone',from:'tz',...t}});
+ const pm=prepare('EUR/USD',mk(flat(5)),'D1'),cpT=(zs)=>{const x=B.newOut(5,['proximal','distal','mid'],true),tz=B.newOut(5,['proximal','distal','mid'],true);x.L[4]=1;x.lvL.distal[4]=.98;
+  tz.zones={L:Array(5).fill([]),S:Array(5).fill([])};tz.zones.S[4]=zs;return {outs:[x,tz],req:[0],opt:[],idx:new Map([['x',0],['tz',1]])}};
+ const zsA=[zr(1.1,1.12),zr(1.03,1.05),zr(.99,1.01)];
+ const p1=planAt(TD({minRR:1}).def,pm,cpT(zsA),4,1,0,[0]),p2=planAt(TD({minRR:2}).def,pm,cpT(zsA),4,1,0,[0]),p3=planAt(TD({minRR:2,fallback:'r',r:2}).def,pm,cpT(zsA),4,1,0,[0]);
+ const p4=planAt(TD({}).def,pm,cpT([]),4,1,0,[0]),p5=planAt(TD({fallback:'swing'}).def,pm,cpT([]),4,1,0,[0]);
+ check('cíl zóna: nejbližší nabídka NAD vstupem (1,03; zóna pod vstupem se ignoruje), R:R 1,5',near(p1.target,1.03)&&near(p1.rr,1.5)&&!p1.targetFallback,p1);
+ check('cíl zóna: R:R pod minRR bez fallbacku = bez obchodu; fallback r = 2 R; bez zóny = chybí cílová zóna',p2.skip===SKIP_RR&&near(p3.target,1.04)&&p3.targetFallback==='r'&&p4.skip===SKIP_NO_ZONE&&p5.skip==='chybí protilehlý swing',{p2,p3,p4,p5});
+ check('validace cíle zóna: from musí být zóna / OB / FVG; fallback jen u typu zone; role info',!TD({from:'nope'}).ok&&!validateDef({...TD({}).def,conditions:[{id:'x',block:'zone'},{id:'tz',block:'ma',role:'info'}]}).ok&&!validateDef({...TD({}).def,targets:{type:'r',r:2,fallback:'r'}}).ok&&TD({}).def.conditions[1].role==='info');
+ // skupiny NEBO: a ∧ (b ∨ c) ∧ d
+ const GD={name:'or-groups',version:1,markets:['EUR/USD'],data:'D1',tf:{context:'D1',zone:'D1',entry:'D1'},
+  conditions:[{id:'a',block:'ma'},{id:'b',block:'zone',group:'g'},{id:'c',block:'order_block',group:'g'},{id:'d',block:'atr_regime'}],
+  entry:{type:'limit',from:'g',key:'proximal',side:'long'},stop:{from:'g',key:'distal'},targets:{type:'r',r:2}};
+ const gv=validateDef(GD),av=validateDef({...GD,conditions:GD.conditions.map(({group,...c})=>c),anyOf:[['b','c']],entry:{...GD.entry,from:'or1'},stop:{from:'or1',key:'distal'}});
+ check('skupiny: group i anyOf jsou platné (anyOf → group or1), vstup/stop ze skupiny',gv.ok&&av.ok&&av.def.conditions[1].group==='or1'&&av.def.conditions[2].group==='or1'&&av.def.anyOf===undefined,[gv.errors,av.errors]);
+ const gb=(x)=>validateDef({...GD,...x});
+ check('skupiny: chyby – volitelný člen, skupina s 1 členem, podmínka ve dvou skupinách, úroveň kterou člen nedává',!gb({conditions:[GD.conditions[0],{...GD.conditions[1],role:'optional'},GD.conditions[2],GD.conditions[3]]}).ok
+  &&!gb({conditions:[GD.conditions[0],GD.conditions[1],{id:'c',block:'order_block'},GD.conditions[3]]}).ok
+  &&!validateDef({...av.def,anyOf:[['b','c'],['c','d']]}).ok&&!gb({entry:{...GD.entry,key:'level'}}).ok);
+ const n=10,pmG=prepare('EUR/USD',mk(flat(n)),'D1'),cp=compile(gv.def,pmG,{});
+ cp.outs=[0,1,2,3].map(()=>B.newOut(n,['proximal','distal','mid'],true));
+ for(let i=0;i<=7;i++)cp.outs[0].L[i]=1;cp.outs[1].L[2]=cp.outs[1].L[3]=1;cp.outs[2].L[4]=cp.outs[2].L[5]=cp.outs[2].L[9]=1;for(let i=3;i<=9;i++)cp.outs[3].L[i]=1;
+ cp.outs[1].lvL.proximal[4]=1.5;cp.outs[2].lvL.proximal[4]=1.01;cp.outs[2].lvL.distal[4]=.99;
+ const s4=signalAt(gv.def,cp,4),s2=signalAt(gv.def,cp,2),p=planAt(gv.def,pmG,cp,4,1,0,s4.sat);
+ check('skupina NEBO: stačí jeden člen (svíčka 4 = c), bez člena skupiny ne (svíčka 2: d chybí); splnění = jen splněný člen',s4.side===1&&s4.sat.join()==='0,2,3'&&s2.side===0&&cp.units.map(u=>u.join('+')).join()==='0,1+2,3',s4);
+ check('úroveň ze skupiny = první SPLNĚNÝ člen (c 1,01, ne b 1,5)',p.legs?.[0].L===1.01&&p.stop===.99,p);
+ const fu=condFunnel(gv.def,cp,pmG),g=fu.groups[0],[a,b,c,d]=fu.conds;
+ check('trychtýř se skupinou: a 8 → (b∨c) 4 → d 3; první selhání a 2, skupina 4, d 1; Σ = svíčky',a.funnel===8&&g.funnel===4&&d.funnel===3&&fu.allRequired===3&&a.firstFail===2&&g.firstFail===4&&d.firstFail===1&&a.firstFail+g.firstFail+d.firstFail+fu.allRequired===fu.bars,{a,g,d});
+ check('trychtýř se skupinou: členové bez funnel, se jménem skupiny; skupina platí 5×, 2 úseky; součet trhů sčítá skupiny',b.funnel===null&&c.firstFail===null&&b.group==='g'&&g.true===5&&g.onsets===2&&g.members.join()==='b,c'
+  &&mergeDiag([{...fu,stages:newSt()},{...fu,stages:newSt()}]).groups[0].firstFail===8);
+}
+function newSt(){return Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}
+
+// ======================= 19) nové možnosti přes engine: bez pohledu do budoucna, živá nastavení = backtest
+{
+ const ND={name:'zone-swing-or',version:1,markets:['EUR/USD'],data:'H1',tf:{context:'D1',zone:'H4',entry:'H1'},
+  conditions:[
+   {id:'z2',block:'zone',group:'g',params:{impulseK:.6,requireBreak:false,status:'valid',maxBase:2,baseBodyRatio:.7}},
+   {id:'ob',block:'order_block',group:'g',params:{impulseK:.6,requireBreak:false,status:'valid'}},
+   {id:'zH',block:'zone',role:'info',tf:'zone',params:{impulseK:.6,requireBreak:false,status:'valid',maxBase:2,baseBodyRatio:.7,maxAge:500}},
+   {id:'nz',block:'nested_zone',role:'optional',params:{inner:'z2',outer:'zH',pairs:'all',containment:'proximal_inside'}},
+   {id:'pd',block:'premium_discount',role:'optional',params:{rangeTf:'D1'}},
+   {id:'pd4',block:'premium_discount',role:'optional',tf:'zone',params:{rangeTf:'context'}},
+  ],
+  entry:{type:'limit',from:'g',key:'proximal',validBars:6},stop:{from:'g',key:'distal',atrK:.1},targets:{type:'zone',from:'zH',minRR:1,fallback:'r',r:2}};
+ const v=validateDef(ND);check('definice s novými možnostmi je platná',v.ok,v.errors);
+ const def=v.def,full=prepare('EUR/USD',eu,'H1'),cf=compile(def,full,{});
+ const zj=(o,k)=>o.zones?JSON.stringify([o.zones.L.slice(0,k),o.zones.S.slice(0,k)]):'';
+ let bad=null;
+ for(const cut of [700,2222,4100]){const ct=compile(def,prepare('EUR/USD',eu.slice(0,cut),'H1'),{});
+  def.conditions.forEach((c,k)=>{if(bad)return;const d=sameOut(cf.outs[k],ct.outs[k],cut)??(zj(cf.outs[k],cut)!==zj(ct.outs[k],cut)?'zones':null);if(d)bad=`${c.id} řez ${cut}: ${d}`})}
+ check('useknutí budoucích svíček nemění vnoření všech zón, PD z vyššího TF ani seznamy zón',bad===null,bad);
+ const fired=def.conditions.filter((c,k)=>!cf.outs[k].L.some(x=>x)&&!cf.outs[k].S.some(x=>x)).map(c=>c.id);
+ check('nové bloky na náhodné řadě aspoň jednou platí',fired.length===0,fired);
+ // PD: rozsah z D1 (jen uzavřené svíčky), pozice = close H1 svíčky
+ const d1a=B.aggregate(eu,H,B.tfKey('D1','H1')),st=B.structure(B.series(d1a.bars,'D1'),2),pdO=cf.outs[4];let pdBad=0,pdN=0;
+ for(let i=0;i<eu.length;i++){const k=d1a.done[i];if(k<0)continue;const x=B.pdPosition(eu[i].c,st.hi[k],st.lo[k]);if(x===null)continue;pdN++;if((pdO.L[i]===1)!==(x<=.5)||pdO.lvL.high[i]!==st.hi[k])pdBad++}
+ check('PD z vyššího TF: rozsah posledního potvrzeného D1 swingu z uzavřených dnů, pozice = close H1',pdN>1000&&pdBad===0,{pdN,pdBad});
+ const sim=simulate(def,[full],[cf],{},{diagFrom:-Infinity,trace:true}),dg=buildDiag(def,[full],[cf],sim.stages,-Infinity),t=dg.total;
+ check('engine se skupinou a cílem zóna: obchody, trychtýř (Σ první selhání podmínek a skupin + povinné = svíčky)',sim.trades.length>5&&t.groups.length===1&&t.conds.filter(c=>c.firstFail!==null).reduce((a,c)=>a+c.firstFail,0)+t.groups[0].firstFail+t.allRequired===t.bars&&t.allRequired===t.stages.allRequired,{n:sim.trades.length,g:t.groups});
+ check('stopa: cíl zóna nese from (nebo fallback r)',sim.trades.every(tr=>tr.trace.target.type==='zone'&&(tr.trace.target.fallback==='r'?tr.trace.target.from===null:tr.trace.target.from==='zH'))&&sim.trades.some(tr=>!tr.trace.target.fallback));
+ // živá nastavení (agent R…) = plán backtestu na stejné svíčce
+ let n=0,diff=0;
+ for(let cut=1500;cut<eu.length;cut+=97){const now=eu[cut-1].t+H+1,ls=liveSetups(def,'EUR/USD',eu.slice(0,cut),{},now);
+  for(const su of ls){const i=Array.prototype.indexOf.call(full.E.t,su.sigT-H);const sg=signalAt(def,cf,i);const pl=sg.side?planAt(def,full,cf,i,sg.side,sg.rating,sg.sat):{skip:'x'};n++;
+   if('skip' in pl||pl.side!==su.side||pl.stop!==su.stop||pl.target!==su.target||pl.legs[0].L!==su.legs[0].L)diff++}}
+ check(`živá nastavení (agent R…) = backtest: stejný signál, vstup, stop i cíl zóna (${n} nastavení)`,n>3&&diff===0,{n,diff});
 }
 
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše v pořádku');

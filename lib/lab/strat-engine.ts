@@ -2,7 +2,9 @@
 // testy scripts/check-lab-strategies.mjs. Žádná konkrétní strategie v kódu – jen bloky (lib/lab/strat-blocks.ts) a mechanika obchodu.
 //
 // SIGNÁL: podmínky se vyhodnotí na zavření svíčky i (vyšší TF jen z uzavřených svíček, viz strat-blocks.ts). Strana long/short platí,
-// když jsou splněné všechny 'required' podmínky; hodnocení = počet splněných 'optional'. Platí-li obě strany zároveň, signál se zahodí.
+// když jsou splněné všechny 'required' podmínky mimo skupiny a z každé skupiny NEBO aspoň jedna; hodnocení = počet splněných 'optional'
+// ('info' = jen zdroj úrovní). Platí-li obě strany zároveň, signál se zahodí. Backtest i živí agenti R… (liveSetups → lib/lab/paper.ts)
+// používají stejné signalAt + planAt.
 //
 // PROVEDENÍ (na jednom místě):
 //  • Limit: příkaz na úrovni podmínky, platí `validBars` svíček po signální. Open za úrovní = plnění za open (gap). Při plnění uvnitř
@@ -11,7 +13,7 @@
 //  • Plnění = mid ± ½ výchozího spreadu backtestu (lib/backtest/rules.ts spreadPrice) × costs.spreadMult; R = (výstup − vstup)/(vstup − plnění SL)
 //    → zásah původního SL = přesně −1 R na nohu; komise = costs.commissionR odečtená z R.
 //  • Stop = úroveň (nebo vstup / signální svíčka) ∓ atrK × ATR ∓ pct % vzdálenosti vstup–úroveň, nejméně minAtrK × ATR.
-//    Cíl = k R / protilehlý potvrzený swing / úroveň podmínky; R:R pod minRR → bez obchodu; překážka mezi vstupem a cílem blíž než
+//    Cíl = k R / protilehlý potvrzený swing / úroveň podmínky / proximální hrana nejbližší protilehlé zóny (fallback k R / swing / bez obchodu); R:R pod minRR → bez obchodu; překážka mezi vstupem a cílem blíž než
 //    max(minRR, 1) R → bez obchodu.
 //  • V jedné svíčce: gap přes SL/TP na open → výstup za open; SL i TP v rozsahu → SL (ambiguity 'conservative'; 'optimistic' = TP).
 //    Částečný výstup pct % na TP1 (atR) a stop na BE platí od DALŠÍ svíčky; BE od +beAtR R také od další svíčky.
@@ -23,13 +25,13 @@
 //    od chvíle, kdy byla známá (výstup uvnitř svíčky = konec svíčky). Vstupní okna seancí a zprávy se kontrolují v čase vstupu.
 //  • In-sample / out-of-sample podle času vstupu: D1 IS 2015–2022, OOS od 2023 (data před 2015 jen na zahřátí); H1 posledních 30 % období.
 //  • Hranice náhody: stejné vstupy (časy i ceny plnění), náhodný směr se zrcadleným stopem a cílem; medián nejlepšího OOS průměru R.
-import {BLOCKS,DEFAULT_SESSIONS,defRuns,condLabel,type StrategyDef,type Condition,type Tf,type LevelKey,type SessionId,type SessionDef,type BlockId} from './rules-def.ts';
+import {BLOCKS,DEFAULT_SESSIONS,defRuns,condLabel,groupsOf,type StrategyDef,type Condition,type Tf,type LevelKey,type SessionId,type SessionDef,type BlockId,type Role} from './rules-def.ts';
 import * as B from './strat-blocks.ts';
 import {spreadPrice,DEFAULT_RULES} from '../backtest/rules.ts';
 import {MIN_OOS_TRADES,MIN_OOS_PF,IS_FROM,OOS_FROM,median} from './sweep-grid.ts';
 import {zoned as zonedAt} from '../market-hours.ts';
 
-export const STRAT_VERSION='strat-v1';
+export const STRAT_VERSION='strat-v2'; // v2: ATR bez gapů (auto), statistiky zón při 1. dotyku, skupiny NEBO, cíl zóna
 const DAY=B.DAY;
 type Side=1|-1;
 
@@ -68,10 +70,12 @@ function mapOut(o:B.Out,done:Int32Array):B.Out{
  for(let i=0;i<n;i++){const k=done[i];if(k<0){if(m.unknown)m.unknown[i]=1;continue}
   m.L[i]=o.L[k];m.S[i]=o.S[k];if(m.unknown)m.unknown[i]=o.unknown![k];if(m.tL){m.tL[i]=o.tL![k];m.tS![i]=o.tS![k]}
   for(const key of keys){(m.lvL as Record<string,Float64Array>)[key][i]=(o.lvL as Record<string,Float64Array>)[key][k];(m.lvS as Record<string,Float64Array>)[key][i]=(o.lvS as Record<string,Float64Array>)[key][k]}}
+ if(o.zones){const zl:B.ZRef[][]=new Array(n),zs:B.ZRef[][]=new Array(n);for(let i=0;i<n;i++){const k=done[i];zl[i]=k<0?B.NO_ZONES:o.zones.L[k]??B.NO_ZONES;zs[i]=k<0?B.NO_ZONES:o.zones.S[k]??B.NO_ZONES}m.zones={L:zl,S:zs}}
  return m;
 }
 export const sessionsOf=(def:StrategyDef):Record<SessionId,SessionDef>=>({...DEFAULT_SESSIONS,...def.filters.sessionDefs});
-const tfOf=(def:StrategyDef,c:Condition):Tf=>c.tf==='context'||c.tf==='zone'||c.tf==='entry'?def.tf[c.tf]:c.tf;
+const tfRef=(def:StrategyDef,r:string):Tf=>r==='context'||r==='zone'||r==='entry'?def.tf[r]:r as Tf;
+const tfOf=(def:StrategyDef,c:Condition):Tf=>tfRef(def,c.tf);
 
 // jedna podmínka na sérii jejího TF (výstup zarovnaný na svíčky vstupního TF)
 function blockOut(def:StrategyDef,c:Condition,pm:PM,ctx:Ctx,prev:Map<string,B.Out>):B.Out{
@@ -83,7 +87,7 @@ function blockOut(def:StrategyDef,c:Condition,pm:PM,ctx:Ctx,prev:Map<string,B.Ou
  const E=pm.E;let out:B.Out;
  if(c.block==='nested_zone'){
   const a=prev.get(String(c.params.inner)),b=prev.get(String(c.params.outer));
-  return a&&b?B.nestedBlock(E.n,a,b,String(c.params.mode)):B.newOut(E.n,['proximal','distal','mid']);
+  return a&&b?B.nestedBlock(E.n,a,b,B.nestedMode(String(c.params.mode),c.params.containment as string|undefined),String(c.params.pairs??'nearest')):B.newOut(E.n,['proximal','distal','mid']);
  }
  const needs=BLOCKS[c.block].needs;
  if(needs){
@@ -99,13 +103,22 @@ function blockOut(def:StrategyDef,c:Condition,pm:PM,ctx:Ctx,prev:Map<string,B.Ou
   }
   pm.cache.set(key,out);return out;
  }
+ // premium/discount s rozsahem z jiného TF než vyhodnocení: počítá se rovnou na svíčkách vstupního TF (jen uzavřené svíčky obou TF)
+ if(c.block==='premium_discount'){
+  const rTf=!P.rangeTf||P.rangeTf==='same'?tf:tfRef(def,P.rangeTf),eTf=!P.evalTf||P.evalTf==='same'?tf:tfRef(def,P.evalTf);
+  if(rTf!==eTf){const r=tfData(pm,rTf),e=tfData(pm,eTf),sc=B.swingCount(r.s,P.swingN);
+   out=B.premiumDiscountX(E.n,e.s.c,e.done,B.structure(r.s,P.swingN),r.done,P);out.stats={swingHighs:sc.highs,swingLows:sc.lows};
+   pm.cache.set(key,out);return out}
+  if(rTf!==tf){const {s,done}=tfData(pm,rTf),raw=B.premiumDiscount(s,P);out=rTf===pm.data?raw:mapOut(raw,done);pm.cache.set(key,out);return out}
+ }
  const {s,done}=tfData(pm,tf);
  let raw:B.Out;
  switch(c.block){
   case 'trend_swing':raw=B.trendSwing(s,P.n);break;
   case 'ma':raw=B.maBlock(s,P);break;
   case 'atr_regime':raw=B.atrRegime(s,P);break;
-  case 'zone':case 'order_block':raw=B.zoneBlock(s,s.get('zones:'+c.block+JSON.stringify([P.impulseK,P.atrPeriod,P.swingN,P.requireBreak,P.proximal,P.maxBase,P.baseBodyRatio,P.lookback]),()=>B.findZones(s,P,c.block==='zone'?'zone':'ob')),P);break;
+  case 'zone':case 'order_block':{const Z={...P,atrMode:B.resolveAtrMode(P.atrMode,tf,pm.data)};
+   raw=B.zoneBlock(s,s.get('zones:'+c.block+JSON.stringify([Z.impulseK,Z.atrPeriod,Z.swingN,Z.requireBreak,Z.proximal,Z.maxBase,Z.baseBodyRatio,Z.lookback,Z.atrMode]),()=>B.findZones(s,Z,c.block==='zone'?'zone':'ob')),Z);break}
   case 'premium_discount':raw=B.premiumDiscount(s,P);break;
   case 'fvg':raw=B.fvgBlock(s,P);break;
   case 'fib_band':raw=B.fibBand(s,P);break;
@@ -121,30 +134,52 @@ function blockOut(def:StrategyDef,c:Condition,pm:PM,ctx:Ctx,prev:Map<string,B.Ou
  out=tf===pm.data?raw:mapOut(raw,done);
  pm.cache.set(key,out);return out;
 }
-export type Compiled={outs:B.Out[];req:number[];opt:number[];idx:Map<string,number>};
+// req = všechny povinné podmínky (i členové skupin); units = povinné jednotky v pořadí definice: [k] = samostatná podmínka,
+// [k1,k2…] = skupina NEBO (stačí jeden člen); groups = id skupiny → členové
+export type Compiled={outs:B.Out[];req:number[];opt:number[];idx:Map<string,number>;units?:number[][];groups?:Map<string,number[]>};
 export function compile(def:StrategyDef,pm:PM,ctx:Ctx):Compiled{
  const outs:B.Out[]=[],byId=new Map<string,B.Out>(),idx=new Map<string,number>();
  def.conditions.forEach((c,k)=>{const o=blockOut(def,c,pm,ctx,byId);outs.push(o);byId.set(c.id,o);idx.set(c.id,k)});
- return {outs,req:def.conditions.map((c,k)=>c.role==='required'?k:-1).filter(k=>k>=0),opt:def.conditions.map((c,k)=>c.role==='optional'?k:-1).filter(k=>k>=0),idx};
+ const req=def.conditions.map((c,k)=>c.role==='required'?k:-1).filter(k=>k>=0),groups=groupsOf(def.conditions);
+ return {outs,req,opt:def.conditions.map((c,k)=>c.role==='optional'?k:-1).filter(k=>k>=0),idx,units:unitsOf(def,req),groups};
 }
-// signál na svíčce i: strana (nebo 0), hodnocení a seznam splněných podmínek
+function unitsOf(def:StrategyDef,req:number[]):number[][]{
+ const g=groupsOf(def.conditions),out:number[][]=[],seen=new Set<string>();
+ for(const k of req){const id=def.conditions[k].group;if(!id){out.push([k]);continue}if(seen.has(id))continue;seen.add(id);out.push(g.get(id)!)}
+ return out;
+}
+const unitsOfCp=(def:StrategyDef,cp:Compiled)=>cp.units??unitsOf(def,cp.req);
+const passes=(cp:Compiled,k:number,side:Side,i:number)=>(side>0?cp.outs[k].L:cp.outs[k].S)[i]===1;
+// signál na svíčce i: strana (nebo 0), hodnocení a seznam splněných podmínek (u skupin NEBO jen splnění členové)
 export function signalAt(def:StrategyDef,cp:Compiled,i:number):{side:Side|0;rating:number;sat:number[];both:boolean}{
  // bez dat: zprávy mimo pokrytí kalendáře blok sám nastaví jako splněný (L/S = 1); COT, sezonalita, DXY a relativní síla bez dat NEPLATÍ
- const ok=(side:Side)=>cp.req.every(k=>(side>0?cp.outs[k].L:cp.outs[k].S)[i]===1);
+ const units=unitsOfCp(def,cp);
+ const ok=(side:Side)=>units.every(u=>u.some(k=>passes(cp,k,side,i)));
  const L=def.entry.side!=='short'&&ok(1),S=def.entry.side!=='long'&&ok(-1);
  if(L&&S)return {side:0,rating:0,sat:[],both:true};
  if(!L&&!S)return {side:0,rating:0,sat:[],both:false};
- const side:Side=L?1:-1,sat=[...cp.req];let rating=0;
+ const side:Side=L?1:-1,sat=units.flatMap(u=>u.length===1?u:u.filter(k=>passes(cp,k,side,i)));let rating=0;
  for(const k of cp.opt)if((side>0?cp.outs[k].L:cp.outs[k].S)[i]===1&&cp.outs[k].unknown?.[i]!==1){rating++;sat.push(k)} // volitelná bez dat se do hodnocení nepočítá
  return {side,rating,sat:sat.sort((a,b)=>a-b),both:false};
 }
+// úroveň podmínky, nebo skupiny NEBO (= první splněný člen skupiny v pořadí definice)
 const levelOf=(cp:Compiled,from:string,key:LevelKey,side:Side,i:number):number=>{
- const k=cp.idx.get(from);if(k===undefined)return NaN;const lv=(side>0?cp.outs[k].lvL:cp.outs[k].lvS)[key];return lv?lv[i]:NaN;
+ let k=cp.idx.get(from);
+ if(k===undefined){const g=cp.groups?.get(from);if(!g)return NaN;k=g.find(q=>passes(cp,q,side,i));if(k===undefined)return NaN}
+ const lv=(side>0?cp.outs[k].lvL:cp.outs[k].lvS)[key];return lv?lv[i]:NaN;
 };
+// cíl „zóna“: proximální hrana nejbližší protilehlé aktivní zóny podmínky `from` za vstupem (long → nabídka nad vstupem, short → poptávka pod)
+export function zoneTarget(cp:Compiled,from:string,side:Side,avg:number,i:number):number|null{
+ const k=cp.idx.get(from);if(k===undefined)return null;const z=cp.outs[k].zones;if(!z)return null;
+ let best:number|null=null;for(const x of (side>0?z.S:z.L)[i]??B.NO_ZONES){const d=side*(x.proximal-avg);if(d>0&&(best===null||d<side*(best-avg)))best=x.proximal}
+ return best;
+}
+export const SKIP_NO_ZONE='chybí cílová zóna';
 export function riskPctOf(def:StrategyDef,rating:number):number{let p=def.risk.basePct;for(const x of def.risk.byRating)if(rating>=x.min)p=x.pct;return p}
 
 // ---- plán obchodu ze signálu (úrovně vstupu, stop, cíl, TP1) – sdílí backtest i živá simulace
-export type Plan={side:Side;legs:{L:number;share:number}[];stop:number;ref:number;target:number|null;tp1:number|null;risk:number;rr:number|null;rating:number;riskPct:number;sat:number[]};
+export type Plan={side:Side;legs:{L:number;share:number}[];stop:number;ref:number;target:number|null;tp1:number|null;risk:number;rr:number|null;rating:number;riskPct:number;sat:number[];
+ targetFallback?:'r'|'swing'}; // cíl zóna nenalezen / pod minRR → použitý fallback
 export type PlanSkip={skip:string};
 export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rating:number,sat:number[],entryOverride?:number):Plan|PlanSkip{
  const E=pm.E,a=B.atrOf(E,def.stop.atrPeriod)[i];
@@ -164,16 +199,24 @@ export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rati
  if(def.stop.minAtrK>0){for(const l of legs)if(side*(l.L-stop)<def.stop.minAtrK*a)stop=l.L-side*def.stop.minAtrK*a}
  if(legs.some(l=>!(side*(l.L-stop)>0)))return {skip:'stop na špatné straně vstupu'};
  const risk=side*(avg-stop);
- let target:number|null;
- if(def.targets.type==='r')target=avg+side*def.targets.r*risk;
- else if(def.targets.type==='swing'){const st=B.structure(E,def.targets.swingN);target=side>0?st.hi[i]:st.lo[i];if(!Number.isFinite(target)||!(side*(target-avg)>0))return {skip:'chybí protilehlý swing'}}
- else{target=levelOf(cp,def.targets.from!,def.targets.key,side,i);if(!Number.isFinite(target)||!(side*(target-avg)>0))return {skip:'cíl na špatné straně'}}
+ let target:number|null=null,ttype:'r'|'swing'|'level'|'zone'=def.targets.type,fallback=false;
+ if(ttype==='zone'){
+  // nejbližší protilehlá zóna; chybí-li nebo je R:R pod minRR → fallback (none = bez obchodu)
+  const z=zoneTarget(cp,def.targets.from!,side,avg,i),fb=def.targets.fallback??'none';
+  if(z!==null&&!(def.targets.minRR>0&&side*(z-avg)/risk<def.targets.minRR))target=z;
+  else if(fb==='none')return {skip:z===null?SKIP_NO_ZONE:SKIP_RR};
+  else{ttype=fb;fallback=true;target=null}
+ }
+ if(ttype==='r')target=avg+side*def.targets.r*risk;
+ else if(ttype==='swing'){const st=B.structure(E,def.targets.swingN);target=side>0?st.hi[i]:st.lo[i];if(!Number.isFinite(target)||!(side*(target-avg)>0))return {skip:'chybí protilehlý swing'}}
+ else if(ttype==='level'){target=levelOf(cp,def.targets.from!,def.targets.key,side,i);if(!Number.isFinite(target)||!(side*(target-avg)>0))return {skip:'cíl na špatné straně'}}
+ if(target===null)return {skip:SKIP_NO_ZONE};
  const rr=side*(target-avg)/risk;
  if(def.targets.minRR>0&&rr<def.targets.minRR)return {skip:SKIP_RR};
  if(def.targets.obstacle){const ob=levelOf(cp,def.targets.obstacle.from,def.targets.obstacle.key,side,i);
   if(Number.isFinite(ob)&&side*(ob-avg)>0&&side*(target-ob)>0&&side*(ob-avg)/risk<Math.max(def.targets.minRR,1))return {skip:SKIP_OBSTACLE}}
  const tp1=def.targets.partial?avg+side*def.targets.partial.atR*risk:null;
- return {side,legs,stop,ref,target,tp1,risk,rr,rating,riskPct:riskPctOf(def,rating),sat};
+ return {side,legs,stop,ref,target,tp1,risk,rr,rating,riskPct:riskPctOf(def,rating),sat,...(fallback?{targetFallback:ttype as 'r'|'swing'}:{})};
 }
 
 // ---- portfolio limity (sdílí backtest i živá simulace)
@@ -204,9 +247,9 @@ export function clockDeadline(tz:string,at:string,from:number):number{
 
 // ---- stopa obchodu: která podmínka dala jakou úroveň a kdy (čas události bloku), plánovaný vstup / stop / cíl – pro ukázkové obchody v grafu.
 // Jen id podmínek, názvy bloků, ceny a časy – žádné parametry definice.
-export type TraceCond={id:string;block:BlockId;role:'required'|'optional';t:number|null;lv:Partial<Record<LevelKey,number>>};
+export type TraceCond={id:string;block:BlockId;role:Role;t:number|null;lv:Partial<Record<LevelKey,number>>};
 export type Trace={sigBarT:number;legs:{L:number;share:number;from:string|null;key:LevelKey|null}[];stop:{price:number;ref:number;from:string;key:LevelKey|null};
- target:{price:number|null;type:string;from:string|null;key:LevelKey|null};tp1:number|null;conds:TraceCond[]};
+ target:{price:number|null;type:string;from:string|null;key:LevelKey|null;fallback?:string};tp1:number|null;conds:TraceCond[]};
 export function traceOf(def:StrategyDef,cp:Compiled,i:number,pl:Plan,sigBarT:number):Trace{
  const side=pl.side;
  const conds=pl.sat.map(k=>{const c=def.conditions[k],o=cp.outs[k],lv:Partial<Record<LevelKey,number>>={};
@@ -214,9 +257,9 @@ export function traceOf(def:StrategyDef,cp:Compiled,i:number,pl:Plan,sigBarT:num
   const tt=(side>0?o.tL:o.tS)?.[i];return {id:c.id,block:c.block,role:c.role,t:tt!==undefined&&Number.isFinite(tt)?tt:null,lv}});
  const e=def.entry,legs=e.type==='market_on_close'?[{L:pl.legs[0].L,share:1,from:null,key:null}]
   :e.legs?pl.legs.map((l,q)=>({L:l.L,share:l.share,from:e.legs![q].from,key:e.legs![q].key})):[{L:pl.legs[0].L,share:1,from:e.from,key:e.key}];
- const special=def.stop.from==='entry'||def.stop.from==='signal_bar',lvlT=def.targets.type==='level';
+ const special=def.stop.from==='entry'||def.stop.from==='signal_bar',lvlT=(def.targets.type==='level'||def.targets.type==='zone')&&!pl.targetFallback;
  return {sigBarT,legs,stop:{price:pl.stop,ref:pl.ref,from:def.stop.from,key:special?null:def.stop.key},
-  target:{price:pl.target,type:def.targets.type,from:lvlT?def.targets.from:null,key:lvlT?def.targets.key:null},tp1:pl.tp1,conds};
+  target:{price:pl.target,type:def.targets.type,from:lvlT?def.targets.from:null,key:lvlT?def.targets.key:null,...(pl.targetFallback?{fallback:pl.targetFallback}:{})},tp1:pl.tp1,conds};
 }
 
 // ---- fáze vstupu (diagnostika): co se stalo se svíčkami, kde platily všechny povinné podmínky. Součty (test check-lab-strategies.mjs):
@@ -228,7 +271,7 @@ export type Stages={bars:number;allRequired:number;both:number;busy:number;setup
 export const STAGE_KEYS:(keyof Stages)[]=['bars','allRequired','both','busy','setups','skipRating','skipRR','skipObstacle','skipLevel','placed','blockSession','blockNews','blockFull','blockTrades','blockLoss','expired','pendingAtEnd','opened'];
 export const newStages=():Stages=>Object.fromEntries(STAGE_KEYS.map(k=>[k,0])) as Stages;
 export const SKIP_RATING='hodnocení pod minimem',SKIP_RR='R:R pod minimem',SKIP_OBSTACLE='překážka před cílem';
-const planSkipKey=(m:string):keyof Stages=>m===SKIP_RR?'skipRR':m===SKIP_OBSTACLE?'skipObstacle':m===SKIP_RATING?'skipRating':'skipLevel';
+const planSkipKey=(m:string):keyof Stages=>m===SKIP_RR?'skipRR':m===SKIP_OBSTACLE?'skipObstacle':m===SKIP_RATING?'skipRating':'skipLevel'; // chybí cílová zóna → skipLevel
 // portfolioBlock → druh: plno (maxOpen), limit počtu obchodů, ztrátové stopky (stop-den, denní / týdenní limit ztráty)
 export const blockKind=(m:string):'blockFull'|'blockTrades'|'blockLoss'=>m.startsWith('plno')?'blockFull':m.startsWith('limit')?'blockTrades':'blockLoss';
 
@@ -357,35 +400,45 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
 //  true = svíček, kdy podmínka platí (long nebo short podle entry.side), onsets = začátky souvislých úseků platnosti,
 //  funnel[k] = svíček, kdy pro některou stranu platí všechny POVINNÉ podmínky až po k-tou (cond1 ∧ … ∧ condk),
 //  firstFail[k] = svíček, kdy k-tá povinná podmínka byla PRVNÍ nesplněná (u lepší strany) = úzké hrdlo.
-//  Součet: bars = Σ firstFail + allRequired; funnel poslední povinné = allRequired. Volitelné podmínky trychtýř neovlivňují (funnel/firstFail = null).
-//  stats = diagnostika detektoru bloku za celou historii (počty nalezených zón / swingů / sweepů / MSS / FVG …).
-export type CondDiag={id:string;block:BlockId;role:'required'|'optional';tf:Tf;trueL:number;trueS:number;true:number;onsets:number;unknown:number;
- funnel:number|null;firstFail:number|null;stats:Record<string,number>|null};
-export type FunnelOut={bars:number;allRequired:number;conds:CondDiag[]};
+//  Skupina NEBO je v trychtýři JEDEN krok (na místě prvního člena): funnel/firstFail má skupina (groups[]), členové mají funnel/firstFail null
+//  a pole group; true/onsets skupiny = svíčky, kdy platí aspoň jeden člen.
+//  Součet: bars = Σ firstFail (podmínky + skupiny) + allRequired; funnel poslední povinné jednotky = allRequired. Volitelné / info podmínky
+//  trychtýř neovlivňují (funnel/firstFail = null). stats = diagnostika detektoru bloku za celou historii (zóny / swingy / sweepy / MSS / FVG …).
+export type CondDiag={id:string;block:BlockId;role:Role;tf:Tf;trueL:number;trueS:number;true:number;onsets:number;unknown:number;
+ funnel:number|null;firstFail:number|null;stats:Record<string,number>|null;group?:string};
+export type GroupDiag={id:string;members:string[];trueL:number;trueS:number;true:number;onsets:number;funnel:number;firstFail:number};
+export type FunnelOut={bars:number;allRequired:number;conds:CondDiag[];groups:GroupDiag[]};
 export function condFunnel(def:StrategyDef,cp:Compiled,pm:PM,from=-Infinity):FunnelOut{
  const E=pm.E,K=def.conditions.length,useL=def.entry.side!=='short',useS=def.entry.side!=='long';
+ const units=unitsOfCp(def,cp),isGroup=(u:number[])=>u.length>1||!!def.conditions[u[0]].group;
  const conds:CondDiag[]=def.conditions.map((c,k)=>({id:c.id,block:c.block,role:c.role,tf:tfOf(def,c),trueL:0,trueS:0,true:0,onsets:0,unknown:0,
-  funnel:c.role==='required'?0:null,firstFail:c.role==='required'?0:null,stats:cp.outs[k].stats?{...cp.outs[k].stats}:null}));
+  funnel:c.role==='required'&&!c.group?0:null,firstFail:c.role==='required'&&!c.group?0:null,stats:cp.outs[k].stats?{...cp.outs[k].stats}:null,...(c.group?{group:c.group}:{})}));
+ const gUnits=units.filter(isGroup),groups:GroupDiag[]=gUnits.map(u=>({id:def.conditions[u[0]].group??def.conditions[u[0]].id,members:u.map(k=>def.conditions[k].id),trueL:0,trueS:0,true:0,onsets:0,funnel:0,firstFail:0}));
+ const gOf=new Map(gUnits.map((u,q)=>[u,groups[q]]));const gPrev=new Uint8Array(groups.length);
  let bars=0,all=0;const prev=new Uint8Array(K);
  for(let i=0;i<E.n;i++){
   const cur=new Uint8Array(K);
   for(let k=0;k<K;k++){const o=cp.outs[k],l=useL&&o.L[i]===1,s=useS&&o.S[i]===1;cur[k]=l||s?1:0;
    if(E.t[i]<from)continue;const d=conds[k];if(l)d.trueL++;if(s)d.trueS++;if(cur[k]){d.true++;if(!prev[k])d.onsets++}if(o.unknown?.[i])d.unknown++}
   prev.set(cur);
+  gUnits.forEach((u,q)=>{const l=useL&&u.some(k=>cur[k]&&cp.outs[k].L[i]===1),s=useS&&u.some(k=>cur[k]&&cp.outs[k].S[i]===1),on=l||s?1:0;
+   if(E.t[i]>=from){const g=groups[q];if(l)g.trueL++;if(s)g.trueS++;if(on){g.true++;if(!gPrev[q])g.onsets++}}gPrev[q]=on});
   if(E.t[i]<from)continue;bars++;
   let best=0;
-  for(const side of [1,-1] as const){if(side>0?!useL:!useS)continue;let q=0;for(;q<cp.req.length;q++){const o=cp.outs[cp.req[q]];if((side>0?o.L:o.S)[i]!==1)break}if(q>best)best=q}
-  for(let q=0;q<best;q++)conds[cp.req[q]].funnel!++;
-  if(best<cp.req.length)conds[cp.req[best]].firstFail!++;else all++;
+  for(const side of [1,-1] as const){if(side>0?!useL:!useS)continue;let q=0;for(;q<units.length;q++){if(!units[q].some(k=>passes(cp,k,side,i)))break}if(q>best)best=q}
+  const at=(u:number[]):{funnel:number|null;firstFail:number|null}=>gOf.get(u)??conds[u[0]];
+  for(let q=0;q<best;q++)at(units[q]).funnel!++;
+  if(best<units.length)at(units[best]).firstFail!++;else all++;
  }
- return {bars,allRequired:all,conds};
+ return {bars,allRequired:all,conds,groups};
 }
-export type MarketDiag={id:string;bars:number;allRequired:number;conds:CondDiag[];stages:Stages};
+export type MarketDiag={id:string;bars:number;allRequired:number;conds:CondDiag[];groups?:GroupDiag[];stages:Stages}; // groups chybí u starších výsledků
 export type StratDiag={from:string;entryType:'limit'|'market_on_close';total:Omit<MarketDiag,'id'>;markets:MarketDiag[]};
 const addRec=(a:Record<string,number>,b:Record<string,number>)=>{for(const [k,v] of Object.entries(b))a[k]=(a[k]||0)+v};
 export function mergeDiag(ms:Omit<MarketDiag,'id'>[]):Omit<MarketDiag,'id'>{
- const out:Omit<MarketDiag,'id'>={bars:0,allRequired:0,conds:[],stages:newStages()};
+ const out:Omit<MarketDiag,'id'>={bars:0,allRequired:0,conds:[],groups:[],stages:newStages()};
  for(const m of ms){out.bars+=m.bars;out.allRequired+=m.allRequired;addRec(out.stages,m.stages);
+  (m.groups??[]).forEach((g,k)=>{const o=out.groups![k];if(!o){out.groups![k]={...g,members:[...g.members]};return}for(const f of ['trueL','trueS','true','onsets','funnel','firstFail'] as const)o[f]+=g[f]});
   m.conds.forEach((c,k)=>{const o=out.conds[k];if(!o){out.conds[k]={...c,stats:c.stats?{...c.stats}:null};return}
    for(const f of ['trueL','trueS','true','onsets','unknown'] as const)o[f]+=c[f];
    if(o.funnel!==null)o.funnel+=c.funnel!;if(o.firstFail!==null)o.firstFail+=c.firstFail!;

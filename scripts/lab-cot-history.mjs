@@ -1,12 +1,16 @@
 // Laboratoř: historie týdenního COT z CFTC (Socrata) → tabulka lab_cot (jen pro studii signálů vlastníka).
-// Měny: TFF Futures Only (gpe5-46if), skupiny leveraged + assetManagers. Komodity: Disaggregated Futures Only (72hh-3qpy),
+// Měny a akciové indexy: TFF Futures Only (gpe5-46if), skupiny leveraged + assetManagers. Komodity: Disaggregated Futures Only (72hh-3qpy),
 // skupiny managedMoney + producers. Stejné kódy kontraktů jako scripts/refresh-score-data.py a refresh-expanded-data.py.
 // Spuštění (VPS, jednou a pak klidně týdně): node --experimental-strip-types scripts/lab-cot-history.mjs [--dry] [--since 2006-01-01] [--owner-email x@y]
 // Bez --owner-email se vlastník hledá podle OWNER_EMAIL v prostředí; user_id je jen pro jednotnost (data nejsou osobní).
 import {readFileSync,existsSync} from 'node:fs';
 const args=process.argv.slice(2),dry=args.includes('--dry'),opt=k=>{const i=args.indexOf(k);return i>=0?args[i+1]:undefined};
 const since=opt('--since')||'2006-01-01';
-const TFF={CAD:'090741',JPY:'097741',EUR:'099741',AUD:'232741',USD:'098662',NZD:'112741',GBP:'096742',CHF:'092741'};
+// Indexy (klíče = řady mapování trh → COT v lib/lab/strat-blocks.ts COT_SERIES: ^NDX → NQ, ^GSPC → ES): E-mini NASDAQ-100 (209742) a E-mini
+// S&P 500 (13874A) mají v TFF historii od 2006; Consolidated (20974+, 13874+, od 2010) jsou záloha. Ostatní moduly hledají COT podle id trhu
+// (^NDX …), tyhle klíče je proto neovlivní.
+const TFF={CAD:'090741',JPY:'097741',EUR:'099741',AUD:'232741',USD:'098662',NZD:'112741',GBP:'096742',CHF:'092741',
+ NQ:'209742',ES:'13874A',NQ_CONS:'20974+',ES_CONS:'13874+'};
 const DISAGG={'GC=F':'088691','SI=F':'084691','CL=F':'067651'};
 const TFF_GROUPS={leveraged:['lev_money_positions_long','lev_money_positions_short','lev_money_positions_spread'],assetManagers:['asset_mgr_positions_long','asset_mgr_positions_short','asset_mgr_positions_spread']};
 const DIS_GROUPS={managedMoney:['m_money_positions_long_all','m_money_positions_short_all','m_money_positions_spread'],producers:['prod_merc_positions_long','prod_merc_positions_short',null]};
