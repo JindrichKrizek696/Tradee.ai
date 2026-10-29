@@ -24,6 +24,8 @@ export function RiskStatus({profile,compact}:{profile:ClientProfile;compact?:boo
 /** Dlaždice Dashboardu: limity všech aktivních profilů (nebo odkaz na založení). */
 export function AccountRiskCard({style}:{style?:React.CSSProperties}){
  const {data,error}=useRisk(),list=activeProfiles(data);
+ // Na dashboardu jen když má uživatel profil účtu (prázdná výzva patří do /ucty a průvodce)
+ if(data&&!list.length)return null;
  return <section className="d-card rk-card" style={style} aria-labelledby="rk-card-h">
   <div className="d-head"><h2 id="rk-card-h">Limity účtů</h2><a className="d-meta" href="/ucty">Účty a riziko</a></div>
   {error&&!data?<p className="rk-muted">{error}</p>:!data?<p className="rk-muted">Načítám…</p>:!list.length?<div className="rk-empty"><Wallet size={18}/><p>Založ si profil účtu (osobní, challenge nebo funded) a uvidíš tu zbývající denní ztrátu a drawdown. <a href="/ucty">Založit profil</a></p></div>

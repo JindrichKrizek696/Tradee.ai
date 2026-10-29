@@ -133,7 +133,6 @@ export function Dashboard({rows,flags,history,data,market,now,userName,greet,ope
    <OpenPositionsCard account={account} style={tile(1)} shared={op}/>
    <DisciplineTile now={now} account={account} period={period} from={range.from} to={range.to} rev={rev} style={tile(2)}/>
    <RiskTile account={account} style={tile(3)} shared={op}/>
-   <AccountRiskCard style={tile(3)}/>
    <ActiveScenarios style={tile(3)}/>
    <SessionTile style={tile(3)}/>
 
@@ -208,6 +207,7 @@ export function Dashboard({rows,flags,history,data,market,now,userName,greet,ope
     </>}
     {recent.length>0&&<div className="d-recent"><h3>Poslední obchody</h3><ul>{recent.map(t=><li key={t.id}><span className="d-name"><b>{t.instrument}</b><small>{day(t.date+'T12:00:00Z')}{t.note?' · '+t.note:''}</small></span><em className={tone(t.pnl)}>{fmtMoney(t.pnl,currency)}</em></li>)}</ul></div>}
    </section>
+   <AccountRiskCard style={{...tile(9),gridColumn:'1 / -1'}}/>
   </div>
 
   <div className="d-notches">
