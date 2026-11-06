@@ -11,6 +11,8 @@ import {parseDefJson,BLOCKS,BLOCK_IDS} from '@/lib/lab/rules-def';
 import type {StrategyRunResult,RunSummary,SegMetrics} from '@/lib/lab/strat-engine';
 import {EquityChart} from '../journaling/backtest/equity-chart';
 import {DiagPanel,SamplesPanel,CompareVersions,type VersionRun} from './strategy-diag';
+import {StrategyCharts,type Related} from './strategy-charts';
+import {siblingNames} from '@/lib/lab/strat-stats';
 import {familyInfo,NO_SOURCE,cleanSource} from '@/lib/lab/sim-labels';
 import {FamBadge} from './sim-badge';
 const RULE_FAM={cls:familyInfo('rule').cls,familyLabel:familyInfo('rule').label};
@@ -80,6 +82,9 @@ export function StrategiesTab(){
   try{const [a,b]=await Promise.all([ca,cb].map(id=>call<Detail>('/api/laborator/strategies?id='+encodeURIComponent(id))));
    setCmp({a:{id:a.def.id,version:a.def.version,run:a.run},b:{id:b.def.id,version:b.def.version,run:b.run}})}
   catch(e){setMsg((e as Error).message)}finally{setCmpBusy(false)}}
+ // příbuzné definice (stejný základ názvu: „x“, „x-volna“, „x-prisna“) – poslední verze každé
+ const related=useMemo<Related[]>(()=>{if(!detail)return [];const names=siblingNames(detail.def.name,groups.map(g=>g[0].name));
+  return groups.filter(g=>names.includes(g[0].name)).map(g=>({id:g[0].id,name:g[0].name,version:g[0].version,hasRun:!!g[0].run}))},[detail,groups]);
  const curve=useMemo(()=>v&&v.equity.length?[{label:v.name,cls:'a' as const,points:[{t:v.equity[0][0]-1,equity:100},...v.equity.map(([t,e])=>({t,equity:e}))]}]:[],[v]);
  if(missing)return <section className="mt-card"><h2>Strategie</h2><p className="mt-alert">Tabulky strategií zatím neexistují – na VPS je potřeba spustit migraci 0035_lab_strategy_defs.sql.</p></section>;
  return <>
@@ -131,6 +136,8 @@ export function StrategiesTab(){
        {res.chance?.median!=null&&<tr className="lb-edge"><td>Hranice náhody (OOS průměr R)</td><td></td><td>{rr(res.chance.median)}</td><td></td></tr>}</tbody></table></div>
      <h3 className="lb-h3">Equity (riziko podle definice, start 100)</h3>
      {curve.length?<EquityChart series={curve} fmt={x=>fmtNum(x,1)}/>:<p className="mt-empty">Bez obchodů.</p>}
+     <h3 className="lb-h3">Grafy a statistiky{res.variants.length>1?` · ${v.name}`:''}</h3>
+     <StrategyCharts key={detail.run!.id} res={res} vi={vi} defId={detail.def.id} name={detail.def.name} related={related} recompute={cmd('--id '+detail.def.id)}/>
      <h3 className="lb-h3">Po trzích</h3>
      <div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>IS obch.</th><th>IS průměr R</th><th>OOS obch.</th><th>OOS průměr R</th><th>OOS PF</th><th>Celkem R</th></tr></thead>
       <tbody>{v.perMarket.map(m=><tr key={m.id} className={m.all.trades?'':'lb-dim'}><td>{m.id}</td><td>{m.is.trades}</td><td className={sgn(m.is.avgR)}>{rr(m.is.avgR)}</td><td>{m.oos.trades}</td><td className={sgn(m.oos.avgR)}>{rr(m.oos.avgR)}</td><td>{n2(m.oos.pf)}</td><td className={sgn(m.all.totalR)}>{rr(m.all.totalR)}</td></tr>)}</tbody></table></div>

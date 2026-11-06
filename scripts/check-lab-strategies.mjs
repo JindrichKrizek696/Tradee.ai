@@ -537,6 +537,7 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
  const r=runStrategy(def,[{id:'EUR/USD',bars:eu},{id:'GBP/USD',bars:gu}],ctx,{shuffles:1,seed:3,now:Date.UTC(2024,0,1)}),v=r.variants[0];
  check('běh: diagnostika u každé varianty (fáze od začátku IS), trychtýř po trzích',r.variants.every(x=>x.diag&&x.diag.markets.length===2&&x.diag.from===r.from)&&stageSums(v.diag.total.stages,true).length===0);
  check('běh: ukázkové obchody (≤ 50) z IS i OOS se stopou; seznam obchodů stopu nenese',v.samples.length>0&&v.samples.length<=50&&v.samples.some(t=>t.seg==='is')&&v.samples.some(t=>t.seg==='oos')&&v.samples.every(t=>t.trace&&(t.seg==='is')===(t.entryT<Date.parse(r.split+'T00:00:00Z')))&&v.trades.every(t=>!t.trace));
+ check('běh: kompaktní záznamy obchodů (tx) u každé varianty = všechny obchody od začátku IS, MAE ≥ 0 a MFE ≥ 0',r.variants.every(x=>x.tx&&x.tx.v===1&&x.tx.rows.length===x.metrics.all.trades)&&v.tx.rows.every(q=>q[7]>=0&&q[8]>=0&&q[6]>=1)&&r.version==='strat-v5',[r.version,r.variants.map(x=>[x.tx?.rows.length,x.metrics.all.trades]),v.tx.rows.filter(q=>!(q[7]>=0&&q[8]>=0&&q[6]>=1)).slice(0,3)]);
  const mkT=(e)=>({entryT:e,r:0});
  const ps=pickSamples([...Array.from({length:100},(_,k)=>mkT(k)),...Array.from({length:10},(_,k)=>mkT(1000+k))],500,50);
  check('výběr ukázek: 50 = 40 IS + všech 10 OOS, rovnoměrně',ps.length===50&&ps.filter(t=>t.seg==='oos').length===10&&ps.filter(t=>t.seg==='is').length===40&&ps[1].entryT===2);
@@ -934,6 +935,65 @@ function newSt(){return Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}
  const r1=paperStep({...base,ruleSetups:{'EUR/USD':[su]}}),r2=paperStep({...base,ruleSetups:{'EUR/USD':[{...su,widenToMin:true}]}}),r3=paperStep({...base,ruleSetups:{'EUR/USD':[{...su,stop:1.09}]}});
  check('živý agent R: stop pod minimem → bez obchodu; widenToMin → stop na minimu od skutečného vstupu; daleký stop beze změny',
   r1.opens.length===0&&r1.skipped.some(k=>k.reason===SKIP_MIN_STOP)&&r2.opens.length===1&&near(r2.opens[0].entry-r2.opens[0].sl,.002,1e-12)&&r3.opens.length===1&&r3.opens[0].sl===1.09,[r1.skipped,r2.opens.map(t=>[t.entry,t.sl])]);
+}
+
+// ======================= 28) grafy a statistiky strategií: MAE / MFE a držení v enginu, kompaktní záznamy obchodů, čisté statistiky (lib/lab/strat-stats.ts)
+{
+ const SS=await import('../lib/lab/strat-stats.ts');
+ const {tradeRows,TX_COLS}=await import('../lib/lab/strat-engine.ts');
+ // vstup 1,00 (close svíčky 5), SL 0,99 (1 R = 0,01), cíl 2 R = 1,02: svíčka 6 přežije (MAE 0,6 R, MFE 0,8 R), svíčka 7 zasáhne cíl
+ const a=sim1([...flat(6),[1,1.008,.994,1.0],[1,1.025,.999,1.02],[1,1,1,1]]),t=a.trades[0];
+ check('engine: MAE / MFE v R od vstupu, svíčka se zásahem cíle jen cenou výstupu; držení ve svíčkách',a.trades.length===1&&near(t.r,2)&&near(t.mae,.6,1e-9)&&near(t.mfe,2,1e-9)&&t.bars===2,t);
+ const b=sim1([...flat(6),[1,1.004,.985,.99],[1,1,1,1]]),u=b.trades[0];
+ check('engine: zásah SL → MAE přesně 1 R (knot pod stopem se nepočítá), MFE z přežité části',b.trades.length===1&&near(u.r,-1)&&near(u.mae,1,1e-9)&&near(u.mfe,0,1e-9)&&u.bars===1,u);
+ const tx=tradeRows([{...t,market:'EUR/USD',entryT:Date.UTC(2024,0,8,9),exitT:Date.UTC(2024,0,9,9)},{...u,market:'GBP/USD',side:-1,entryT:Date.UTC(2024,0,10,14),exitT:Date.UTC(2024,0,10,15)}]);
+ const dx=SS.decodeTx(tx,Date.UTC(2024,0,10));
+ check('kompaktní záznamy: trhy jako index, čas v minutách, OOS podle času vstupu; dekódování vrátí stejné hodnoty',TX_COLS.length===tx.rows[0].length&&tx.markets.join()==='EUR/USD,GBP/USD'&&dx.length===2&&dx[0].market==='EUR/USD'&&dx[0].entryT===Date.UTC(2024,0,8,9)&&near(dx[0].r,2)&&dx[0].reason==='tp'&&!dx[0].oos&&dx[1].oos&&dx[1].side===-1&&dx[1].reason==='sl'&&near(dx[1].mae,1)&&dx[1].bars===1,dx);
+ check('kompaktní záznamy: nejvýš max posledních obchodů; starší běh bez tx = prázdný seznam',tradeRows(Array.from({length:10},(_,k)=>({...t,entryT:k*60000,exitT:k*60000})),4).rows.map(r=>r[2]).join()==='6,7,8,9'&&SS.decodeTx(undefined,0).length===0&&SS.decodeTx({v:2,rows:[]},0).length===0);
+ // statistiky na ruční řadě R
+ const rs=[1,2,-1,-1,-1,3,-1,.5,0,2];
+ const st=SS.rStats(rs);
+ check('expectancy = win rate × průměrná výhra + (1 − win rate) × průměrná ztráta = průměr R; payoff',near(st.expectancy,rs.reduce((a,b)=>a+b,0)/rs.length,1e-12)&&st.wins===5&&st.losses===5&&near(st.winRate,50)&&near(st.avgWin,1.7)&&near(st.avgLoss,-.8)&&near(st.payoff,1.7/.8,1e-12),st);
+ const sd=Math.sqrt(rs.reduce((a,r)=>a+(r-.45)**2,0)/9);
+ check('SQN = √min(n,100) × průměr / výběrová sm. odchylka; nulový rozptyl nebo 1 obchod = null',near(SS.sqn(rs),Math.sqrt(10)*.45/sd,1e-12)&&SS.sqn([1,1,1])===null&&SS.sqn([2])===null&&near(SS.sqn(Array(400).fill(0).map((_,k)=>k%2?1:-.5)),10*.25/SS.stdev(Array(400).fill(0).map((_,k)=>k%2?1:-.5)),1e-12));
+ check('série: nejdelší řada výher / proher (0 R = ztráta)',JSON.stringify(SS.streaks(rs))==='{"maxWins":2,"maxLosses":3}'&&JSON.stringify(SS.streaks([]))==='{"maxWins":0,"maxLosses":0}'&&SS.streaks([.5,0,0,-1,2]).maxLosses===3);
+ const D=86400000,pts=SS.equityR(rs.map((r,k)=>({exitT:k*D,r})));
+ const dd=SS.ddDuration(pts);
+ check('drawdown pod vodou a nejdelší drawdown (obchody i čas; od maxima po vyrovnání)',near(pts[9].cum,4.5)&&near(Math.min(...SS.underwater(pts).map(p=>p.dd)),-3)&&dd.trades===4&&dd.ms===4*D&&dd.recovered&&dd.from===D&&near(SS.maxDrawdown(rs),-3),dd);
+ const dd2=SS.ddDuration(SS.equityR([1,-1,-1,.5].map((r,k)=>({exitT:k*D,r}))));
+ check('nejdelší drawdown: nevyrovnaný do konce dat',dd2.trades===3&&!dd2.recovered&&dd2.ms===3*D&&SS.ddDuration([]).trades===0,dd2);
+ const h=SS.histogram([-1,-.9,-.5,0,.2,.49,.5,2.1],.5);
+ check('histogram po 0,5 R: koše zarovnané, prázdné uprostřed zůstávají',h.map(b=>b.lo).join()==='-1,-0.5,0,0.5,1,1.5,2'&&h.map(b=>b.n).join()==='2,1,3,1,0,0,1'&&SS.histogram([]).length===0,h);
+ check('percentil: podíl menších + polovina shodných',SS.percentileOf([1,2,3,4],3)===62.5&&SS.percentileOf([1,2,3,4],10)===100&&SS.percentileOf([],1)===null);
+ const mo=SS.monthly([{exitT:Date.UTC(2023,0,5),r:1},{exitT:Date.UTC(2023,0,25),r:-.5},{exitT:Date.UTC(2023,11,31,23),r:2},{exitT:Date.UTC(2024,1,1),r:-1}]);
+ check('měsíce: součet R podle roku × měsíce výstupu (UTC), prázdné měsíce null, součet roku',mo.length===2&&mo[0].year===2023&&mo[0].months[0]===.5&&mo[0].counts[0]===2&&mo[0].months[11]===2&&mo[0].months[1]===null&&mo[0].total===2.5&&mo[0].trades===3&&mo[1].months[1]===-1,mo);
+ // rozpady, seance, den, držení
+ const gr=SS.breakdown([{r:1,m:'A'},{r:-1,m:'A'},{r:2,m:'B'}],x=>({key:x.m,label:x.m}));
+ check('rozpad: obchody, win rate, průměr a součet R po skupinách',gr.length===2&&gr[0].key==='A'&&gr[0].trades===2&&gr[0].winRate===50&&gr[0].avgR===0&&gr[1].totalR===2);
+ check('seance vstupu: Tokio / Londýn / překryv Londýn + New York / mimo seance (letní čas)',SS.sessionOf(Date.UTC(2024,0,10,2)).key==='asia'&&SS.sessionOf(Date.UTC(2024,0,10,10)).key==='london'&&SS.sessionOf(Date.UTC(2024,0,10,14)).key==='london+ny'&&SS.sessionOf(Date.UTC(2024,6,10,20)).key==='ny'&&SS.sessionOf(Date.UTC(2024,0,10,23)).key==='off'&&SS.sessionOf(Date.UTC(2024,0,13,10)).key==='off');
+ check('obchodní den od 17:00 New York, hodina v Praze, koše držení',SS.tradingDay(Date.UTC(2024,0,10,12))===2&&SS.tradingDay(Date.UTC(2024,0,10,23))===3&&SS.hourPrague(Date.UTC(2024,0,10,12))===13&&SS.hourPrague(Date.UTC(2024,6,10,12))===14&&SS.holdBucket(1).order===0&&SS.holdBucket(5).label==='4–6'&&SS.holdBucket(500).order===SS.HOLD_BUCKETS.length-1);
+ const ro=SS.rolling([1,2,3,4],2);
+ check('klouzavá expectancy: průměr posledních w obchodů, prvních w−1 bez hodnoty',ro[0]===null&&ro[1]===1.5&&ro[2]===2.5&&ro[3]===3.5&&SS.rolling([1],20)[0]===null);
+ // Monte Carlo: deterministické se seedem, konec stejný ve všech pořadích, pásma seřazená
+ const big=Array.from({length:120},(_,k)=>k%3===0?2:-.8),m1=SS.monteCarlo(big,{runs:300,seed:7}),m2=SS.monteCarlo(big,{runs:300,seed:7}),m3=SS.monteCarlo(big,{runs:300,seed:8});
+ const tot=big.reduce((a,b)=>a+b,0);
+ check('Monte Carlo: stejný seed = stejný výsledek, jiný seed jiné drawdowny',JSON.stringify(m1)===JSON.stringify(m2)&&JSON.stringify(m1.dd)!==JSON.stringify(m3.dd)&&m1.dd.length===300);
+ check('Monte Carlo: konečný součet R stejný ve všech pořadích, pásma p5 ≤ p50 ≤ p95, max. DD ≤ 0 a ne mělčí než u nejlepšího pořadí',near(m1.final.p5,tot,1e-9)&&near(m1.final.p95,tot,1e-9)&&m1.p5.every((x,q)=>x<=m1.p50[q]+1e-12&&m1.p50[q]<=m1.p95[q]+1e-12)&&m1.dd.every(x=>x<=0)&&m1.ddP.p5<=m1.ddP.p50&&m1.ddP.p50<=m1.ddP.p95&&m1.idx[m1.idx.length-1]===119&&SS.monteCarlo([]).final===null);
+ // MAE / MFE postřehy
+ const mm=[{r:2,mae:.9,mfe:2.2},{r:1.5,mae:.1,mfe:1.6},{r:1,mae:.85,mfe:1},{r:.5,mae:.2,mfe:.6},{r:-1,mae:1,mfe:1.3},{r:-1,mae:1,mfe:.1},{r:-1,mae:1,mfe:0},{r:-1,mae:1,mfe:.5}];
+ const ins=SS.maeMfeInsights(mm),byId=Object.fromEntries(ins.map(x=>[x.id,x]));
+ check('MAE/MFE: podíl výher, které šly nejdřív −0,8 R; ztráty, které byly +1 R v zisku; ztráty bez +0,2 R; zachycení zisku',byId.deepWinners.share===50&&/50 % výherních obchodů \(2 z 4\)/.test(byId.deepWinners.text)&&byId.lostRunners.share===25&&byId.neverWorked.share===50&&near(byId.capture.share,(2/2.2+1.5/1.6+1+.5/.6)/4*100,1e-9)&&SS.maeMfeInsights([]).length===0,ins);
+ // příbuzné definice podle přípony názvu
+ const names=['alfa','alfa-volna','alfa-prisna','alfa-volna-x','alfabet','beta','beta-volna','gama-1'];
+ check('příbuzné definice: název ↔ název-přípona, sourozenci se stejným základem, ne jiné názvy se stejným začátkem',SS.siblingNames('alfa',names).join()==='alfa-prisna,alfa-volna'&&SS.siblingNames('alfa-volna',names).join()==='alfa,alfa-prisna,alfa-volna-x'&&SS.siblingNames('beta',names).join()==='beta-volna'&&SS.siblingNames('alfabet',names).length===0&&SS.siblingNames('gama-1',names).length===0,[SS.siblingNames('alfa',names),SS.siblingNames('alfa-volna',names)]);
+ // živě vs test
+ const dr=SS.drift([1,-1,1,-1,1,-1,1,-1],{avgR:.5,winRate:50,sd:1});
+ check('odchylka živě vs test: z = rozdíl průměru / (sd / √n); málo obchodů = few',near(dr.z,-.5*Math.sqrt(8),1e-12)&&dr.level==='watch'&&SS.drift(Array(8).fill(-1),{avgR:.5,winRate:50,sd:1}).level==='off'&&dr.diffWin===0&&SS.drift([1,1],{avgR:.5,winRate:50,sd:1}).level==='few'&&SS.drift([.4,.6,.5,.5,.5],{avgR:.5,winRate:100,sd:1}).level==='ok',dr);
+ // UI a API: grafy jen přes route s labUser, žádné vlastní volání mimo /api/laborator/strategies
+ const ui=src('app/laborator/strategy-charts.tsx'),tab=src('app/laborator/strategies-tab.tsx'),rt=src('app/api/laborator/strategies/route.ts');
+ check('UI: grafy a statistiky v detailu strategie (equity, drawdown, náhoda, R, měsíce, rozpady, MAE/MFE, Monte Carlo, srovnání, živě), starší běh = přepočítej pro grafy',
+  /<StrategyCharts /.test(tab)&&/přepočítej pro grafy/.test(ui)&&['Overview','Dist','TimeSec','Groups','Mc','Compare','Live','Scatter'].every(k=>new RegExp('function '+k+'\\(').test(ui))&&/runs:1000/.test(ui)&&!/fetch\('(?!\/api\/laborator\/strategies)/.test(ui));
+ check('API: ?eq= a ?live= až po labUser, ověřená id, data podle u.id',/if\(eq!==null\)/.test(rt)&&/if\(live!==null\)/.test(rt)&&/ids\.every\(x=>ID\.test\(x\)\)/.test(rt)&&/ID\.test\(live\)/.test(rt)&&rt.indexOf('if(eq!==null)')>rt.indexOf('labUser(req)'));
 }
 
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše v pořádku');

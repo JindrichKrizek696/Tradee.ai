@@ -1,22 +1,44 @@
 // Laboratoř · Strategie (jen vlastník, lab_strategy_defs / lab_strategy_runs). GET = seznam definic (každá verze = řádek) s posledním
 // výsledkem (bez vedlejších efektů), ?id= = jedna verze (JSON text) + poslední výsledek (s diagnostikou a ukázkovými obchody),
-// ?bars=<trh>&tf=D1|H1&from=&to= = svíčky z archivu (market_bars) kolem ukázkového obchodu, nejvýš 600 svíček.
+// ?bars=<trh>&tf=D1|H1&from=&to= = svíčky z archivu (market_bars) kolem ukázkového obchodu, nejvýš 600 svíček,
+// ?eq=<id>,<id>… = křivky v R a klíčové metriky posledních běhů víc verzí / příbuzných definic (srovnání verzí, nejvýš 12),
+// ?live=<id> = agenti R… spuštění z kterékoli verze téhož názvu: jejich equity a obchody (živě vs test).
 // Výpočet běží mimo web (scripts/lab-strategies.mjs na VPS).
 // POST (jen z vlastní stránky: sameOrigin + sec-fetch-site): {action:'save',id?,text} = uložit / upravit definici (validace, nová verze
 // při změně obsahu), {action:'simulate',id} = „Pustit do simulace“ → agent R01…R120 s neměnnou kopií aktuální verze,
 // {action:'delete',id,confirm:'SMAZAT'} = smazat definici a její běhy (agenti R… zůstávají – mají vlastní kopii).
 import {db,sameOrigin} from '@/lib/server';
 import {labUser,labFailed,labNotFound,LAB_HEADERS} from '@/lib/lab/http';
-import {listDefs,getDef,saveDef,deleteDef,latestRuns,getRun,setSourceLabel} from '@/lib/lab/strat-store';
-import {createRuleVariant,listAccounts} from '@/lib/lab/paper-store';
+import {listDefs,getDef,saveDef,deleteDef,latestRuns,getRun,setSourceLabel,listVersions} from '@/lib/lab/strat-store';
+import {createRuleVariant,listAccounts,listTrades,equitySeries} from '@/lib/lab/paper-store';
+import {decodeTx,equityR,thin} from '@/lib/lab/strat-stats';
 import {refreshSummary} from '@/lib/lab/store';
 import {isRuleVariant} from '@/lib/lab/paper';
 import {defOutline,parseDefJson} from '@/lib/lab/rules-def';
 import {loadBars} from '@/lib/bars/query';
-const ID=/^[0-9a-f-]{36}$/,MARKET=/^[A-Za-z0-9^=\/.\-]{1,16}$/,BARS_MAX=600;
+const ID=/^[0-9a-f-]{36}$/,MARKET=/^[A-Za-z0-9^=\/.\-]{1,16}$/,BARS_MAX=600,EQ_MAX=12;
 const bad=(error:string,errors?:string[])=>Response.json({error,errors},{status:400,headers:LAB_HEADERS});
 export async function GET(req:Request){try{const u=await labUser(req);if(u instanceof Response)return u;const d=db();
- const q=new URL(req.url).searchParams,id=q.get('id'),mk=q.get('bars');
+ const q=new URL(req.url).searchParams,id=q.get('id'),mk=q.get('bars'),eq=q.get('eq'),live=q.get('live');
+ if(eq!==null){
+  const ids=[...new Set(eq.split(','))].slice(0,EQ_MAX);if(!ids.length||!ids.every(x=>ID.test(x)))return labNotFound();
+  const curves=await Promise.all(ids.map(async x=>{const def=await getDef(d,u.id,x);if(!def)return null;const run=await getRun(d,u.id,x).catch(()=>null);
+   const split=run?Date.parse(run.result.split+'T00:00:00Z'):0;
+   return {id:def.id,name:def.name,version:def.version,run:run?{id:run.id,version:run.version,created:run.created,chance:run.result.chance?.median??null,
+    variants:run.result.variants.map(v=>({name:v.name,metrics:v.metrics,robust:v.robust,curve:v.tx?thin(equityR(decodeTx(v.tx,split)),300).map(p=>[p.t,Math.round(p.cum*1000)/1000]):null}))}:null}}));
+  return Response.json({curves:curves.filter(Boolean)},{headers:LAB_HEADERS});
+ }
+ if(live!==null){
+  if(!ID.test(live))return labNotFound();
+  const def=await getDef(d,u.id,live);if(!def)return labNotFound();
+  const vers=new Map((await listVersions(d,u.id,def.name)).map(x=>[x.id,x.version]));
+  const accs=(await listAccounts(d,u.id).catch(()=>[])).filter(a=>isRuleVariant(a.variant)&&a.rule&&vers.has(a.rule.origin.defId));
+  const agents=await Promise.all(accs.map(async a=>{const [eqs,trades]=await Promise.all([equitySeries(d,u.id,a.variant),listTrades(d,u.id,{variant:a.variant})]);
+   return {variant:a.variant,defId:a.rule!.origin.defId,version:a.rule!.def.version,active:a.active,started:a.started,startEquity:a.startEquity,
+    equity:thin(eqs,400).map(p=>[p.t,Math.round(p.equity*100)/100]),
+    trades:trades.filter(t=>!t.voidReason).map(t=>({instrument:t.instrument,direction:t.direction,opened:t.opened,closed:t.closed,r:t.r,pnlCzk:t.pnlCzk,exitReason:t.exitReason}))}}));
+  return Response.json({agents},{headers:LAB_HEADERS});
+ }
  if(mk!==null){
   const tf=q.get('tf'),from=Number(q.get('from')),to=Number(q.get('to'));
   if(!MARKET.test(mk)||(tf!=='D1'&&tf!=='H1')||!Number.isFinite(from)||!Number.isFinite(to)||to<=from)return bad('Neplatný dotaz na svíčky.');

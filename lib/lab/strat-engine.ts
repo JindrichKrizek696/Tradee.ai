@@ -38,7 +38,7 @@ import {spreadPrice,DEFAULT_RULES} from '../backtest/rules.ts';
 import {MIN_OOS_TRADES,MIN_OOS_PF,IS_FROM,OOS_FROM,median} from './sweep-grid.ts';
 import {zoned as zonedAt} from '../market-hours.ts';
 
-export const STRAT_VERSION='strat-v4'; // v2: ATR bez gapů (auto), statistiky zón při 1. dotyku, skupiny NEBO, cíl zóna; v3: nové bloky a možnosti (staré definice beze změny); v4: minimální vzdálenost stopu
+export const STRAT_VERSION='strat-v5'; // v2: ATR bez gapů (auto), statistiky zón při 1. dotyku, skupiny NEBO, cíl zóna; v3: nové bloky a možnosti (staré definice beze změny); v4: minimální vzdálenost stopu; v5: kompaktní záznamy obchodů (MAE/MFE, držení) pro grafy
 const DAY=B.DAY;
 type Side=1|-1;
 
@@ -355,12 +355,13 @@ export const blockKind=(m:string):'blockFull'|'blockTrades'|'blockLoss'=>m.start
 
 // ---- simulace (jeden průchod časem přes trhy)
 export type Trade={market:string;side:Side;sigT:number;entryT:number;exitT:number;r:number;reason:'sl'|'be'|'tp'|'time'|'end';rating:number;riskPct:number;legs:number;partial:boolean;
- entry?:number;stop?:number;target?:number|null;exit?:number;trace?:Trace}; // entry = průměr plněných nohou (mid), stop = původní stop, exit = mid výstupu
+ entry?:number;stop?:number;target?:number|null;exit?:number;trace?:Trace;mae?:number;mfe?:number;bars?:number}; // entry = průměr plněných nohou (mid), stop = původní stop, exit = mid výstupu
+// mae / mfe = největší nepříznivý / příznivý pohyb od průměrného vstupu v násobcích původního rizika (|vstup − stop|, mid), bars = svíček v pozici
 // moc = noha market_on_close (when = index podmínky potvrzení, −1 = bez), spent = pokus proběhl; cancelAfter = poslední svíčka (od signální) pro plnění
 type Leg={L:number;share:number;filled:boolean;fill:number;mid:number;moc:boolean;when:number;spent:boolean;cancelAfter:number;cancelAtTp1:boolean};
 type Pos={side:Side;fillSide:Side;sig:number;sigT:number;legs:Leg[];stop:number;orig:number;target:number|null;tp1:number|null;risk:number;entryIdx:number;entryT:number;
  partialDone:boolean;pendingBE:boolean;rating:number;riskPct:number;partR:number;deadline:number;active:boolean;expires:number;type:'limit'|'market_on_close';h:HistTrade|null;
- inWin:boolean;trace:Trace|null;atClose?:boolean}; // atClose = pozici otevřela MOC noha (držení se počítá jako u market_on_close)
+ inWin:boolean;trace:Trace|null;atClose?:boolean;mae:number;mfe:number;held:number}; // atClose = pozici otevřela MOC noha (držení se počítá jako u market_on_close)
 export type SimOut={trades:Trade[];skips:Record<string,number>;signals:number;unknown:Record<string,number>;stages?:Stages[]};
 // diagFrom = sbírat fáze vstupu pro signální svíčky od tohoto času (null/undefined = bez diagnostiky); trace = stopa u každého obchodu
 export type SimOpts={flipSeed?:number|null;to?:number;diagFrom?:number|null;trace?:boolean};
@@ -375,11 +376,12 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
  const newsBlocked=(pm:PM,t:number)=>!!newsF&&ctx.news?.(pm.id,t,newsF.minutes,newsF.minSignal)===true;
  const close=(m:number,mid:number,exitT:number,knownAt:number,reason:Trade['reason'])=>{
   const p=pos[m]!,pm=pms[m],hs=pm.hs*cost,side=p.side;
+  excursion(p,mid,mid);
   let r=p.partR;const rem=p.partialDone?1-(def.targets.partial!.pct/100):1;
   for(const l of p.legs)if(l.filled){const ru=side*(l.fill-(p.orig-side*hs));r+=l.share*rem*side*((mid-side*hs)-l.fill)/ru}
   const filledShare=p.legs.reduce((s,l)=>s+(l.filled?l.share:0),0);r-=commR*filledShare;
   const entry=p.legs.reduce((s,l)=>s+(l.filled?l.mid*l.share:0),0)/filledShare;
-  const t:Trade={market:pm.id,side,sigT:p.sigT,entryT:p.entryT,exitT,r,reason,rating:p.rating,riskPct:p.riskPct,legs:p.legs.filter(l=>l.filled).length,partial:p.partialDone,entry,stop:p.orig,target:p.target,exit:mid};
+  const t:Trade={market:pm.id,side,sigT:p.sigT,entryT:p.entryT,exitT,r,reason,rating:p.rating,riskPct:p.riskPct,legs:p.legs.filter(l=>l.filled).length,partial:p.partialDone,entry,stop:p.orig,target:p.target,exit:mid,mae:rd(p.mae,2),mfe:rd(p.mfe,2),bars:p.held};
   if(p.trace)t.trace=p.trace;trades.push(t);
   if(p.h){p.h.knownAt=knownAt;p.h.r=r}openCount--;pos[m]=null;
  };
@@ -387,10 +389,14 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   for(const l of p.legs)if(l.filled){const ru=side*(l.fill-(p.orig-side*hs));p.partR+=l.share*pct*side*((mid-side*hs)-l.fill)/ru}
   p.partialDone=true;if(def.targets.partial!.moveToBE)p.pendingBE=true};
  const be=(p:Pos)=>{const f=p.legs.filter(l=>l.filled),sh=f.reduce((s,l)=>s+l.share,0);return f.reduce((s,l)=>s+l.mid*l.share,0)/sh};
+ // MAE / MFE: pohyb proti / ve směru pozice od průměrného vstupu (mid) v R původního stopu; svíčka se započte celá jen když pozice přežila
+ // všechny výstupy (svíčka se zásahem SL / cíle přispívá jen cenou výstupu – pořadí high/low neznáme, konzervativně)
+ const excursion=(p:Pos,lo:number,hi:number)=>{const e=be(p),u=Math.abs(e-p.orig);if(!(u>0))return;
+  const adv=p.side>0?(e-lo)/u:(hi-e)/u,fav=p.side>0?(hi-e)/u:(e-lo)/u;if(adv>p.mae)p.mae=adv;if(fav>p.mfe)p.mfe=fav};
  const fillLeg=(m:number,l:Leg,mid:number)=>{const p=pos[m]!,hs=pms[m].hs*cost;l.filled=true;l.mid=mid;l.fill=mid+p.side*hs};
  // výstupy na svíčce i (u pozice z této svíčky jen SL – voláno zvlášť)
  const exits=(m:number,i:number)=>{
-  const p=pos[m]!,E=pms[m].E,t=E.t[i],side=p.side;
+  const p=pos[m]!,E=pms[m].E,t=E.t[i],side=p.side;p.held++;
   if(p.pendingBE){p.stop=be(p);p.pendingBE=false}
   if(p.deadline&&t>=p.deadline){close(m,E.o[i],t,t,'time');return}
   const st=p.stop,beR=st!==p.orig?'be':'sl';
@@ -404,6 +410,7 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   if(hitTp){close(m,p.target!,t,t+E.ms,'tp');return}
   if(hitSl){close(m,st,t,t+E.ms,beR);return} // optimistic: TP1 dřív, pak SL
   if(def.management.beAtR&&p.stop===p.orig&&!p.pendingBE){const lvl=be(p)+side*def.management.beAtR*p.risk;if(side>0?E.h[i]>=lvl:E.l[i]<=lvl)p.pendingBE=true}
+  excursion(p,E.l[i],E.h[i]);
  };
  const atClose=(m:number,i:number)=>{
   const p=pos[m];if(!p||!p.active)return;const E=pms[m].E;
@@ -430,7 +437,8 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
     open(m,p,t,atOpen?E.o[i]:l.L,k,i);
     if(rnd)mirror(m,p);
     // v téže svíčce jen SL (gap plnění = celá svíčka)
-    if(atOpen)exits(m,i);else{const st=p.stop;if(p.side>0?E.l[i]<=st:E.h[i]>=st){if(cons){close(m,st,t,t+E.ms,'sl');return}}}
+    if(atOpen)exits(m,i);else{p.held=1;const st=p.stop;if(p.side>0?E.l[i]<=st:E.h[i]>=st){if(cons){close(m,st,t,t+E.ms,'sl');return}}
+     if(pos[m]){const e=be(p);excursion(p,p.side>0?E.l[i]:e,p.side>0?e:E.h[i])}} // svíčka plnění: jen nepříznivý pohyb (příznivý mohl být před plněním)
     if(!pos[m])return;
    }else{fillLeg(m,l,atOpen?E.o[i]:l.L)}
   }
@@ -471,7 +479,7 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   const p:Pos={side:pl.side,fillSide:pl.side,sig:i,sigT:T,legs:pl.legs.map((l,q)=>{const d=def.entry.legs?.[q];return {L:l.L,share:l.share,filled:false,fill:NaN,mid:NaN,moc:d?.type==='market_on_close',
     when:d?.when?cp.idx.get(d.when)??-1:-1,spent:false,cancelAfter:d?.cancelAfterBars??def.entry.validBars,cancelAtTp1:!!d?.cancelAtTp1}}),stop:pl.stop,orig:pl.stop,target:pl.target,tp1:pl.tp1,risk:pl.risk,
    entryIdx:-1,entryT:NaN,partialDone:false,pendingBE:false,rating:pl.rating,riskPct:pl.riskPct,partR:0,deadline:0,active:false,expires:i+def.entry.validBars,type:def.entry.type,h:null,
-   inWin:!!D,trace:o.trace?traceOf(def,cp,i,pl,E.t[i]):null};
+   inWin:!!D,trace:o.trace?traceOf(def,cp,i,pl,E.t[i]):null,mae:0,mfe:0,held:0};
   if(def.entry.type==='market_on_close'){
    const win=entryWindowOk(def,T);if(!win||newsBlocked(pm,T)){skip('mimo vstupní okno / zprávy');st(m,p,win?'blockNews':'blockSession');return}
    const blk=portfolioBlock(def.filters,hist,T,openCount);if(blk){skip(blk);st(m,p,blockKind(blk));return}
@@ -554,11 +562,24 @@ export function pickSamples(trades:Trade[],split:number,max=50):SampleTrade[]{
  return [...even(is,ki).map(t=>({...t,seg:'is' as const})),...even(oos,ko).map(t=>({...t,seg:'oos' as const}))];
 }
 
+// kompaktní záznamy obchodů pro grafy a statistiky v UI (lib/lab/strat-stats.ts): jeden řádek = TX_COLS, čas v minutách od epochy (UTC),
+// trh = index do markets, důvod = index do TX_REASONS. Úsek IS / OOS, seance, den a hodina se dopočítají z času vstupu. Nejvýš TX_MAX
+// posledních obchodů na variantu. Starší výsledky (do strat-v4) pole tx nemají → UI nabídne přepočet.
+export const TX_REASONS=['sl','be','tp','time','end'] as const;
+export const TX_COLS=['m','side','entryMin','exitMin','r','riskPct','bars','mae','mfe','reason'] as const;
+export const TX_MAX=6000;
+export type TradeRows={v:1;markets:string[];rows:number[][]};
+export function tradeRows(trades:Trade[],max=TX_MAX):TradeRows{
+ const markets:string[]=[],ix=new Map<string,number>(),mi=(id:string)=>{let k=ix.get(id);if(k===undefined){k=markets.length;markets.push(id);ix.set(id,k)}return k};
+ const rows=trades.slice(-max).map(t=>[mi(t.market),t.side,Math.round(t.entryT/60000),Math.round(t.exitT/60000),rd(t.r,3),rd(t.riskPct,3),t.bars??0,rd(t.mae??0,2),rd(t.mfe??0,2),Math.max(0,TX_REASONS.indexOf(t.reason))]);
+ return {v:1,markets,rows};
+}
+
 // ---- vyhodnocení: IS / OOS, trhy, křivka, varianty, hranice náhody, robustnost
 export type Metrics3={is:SegMetrics;oos:SegMetrics;all:SegMetrics};
 export type VariantResult={name:string;metrics:Metrics3;nb:number|null;robust:boolean;returnPct:number;maxDdPct:number;
  perMarket:({id:string}&Metrics3)[];equity:[number,number][];skips:Record<string,number>;signals:number;unknown:Record<string,number>;trades:Trade[];
- diag?:StratDiag;samples?:SampleTrade[]}; // diag a samples chybí u výsledků spočítaných před diagnostikou
+ diag?:StratDiag;samples?:SampleTrade[];tx?:TradeRows}; // diag a samples chybí u výsledků spočítaných před diagnostikou, tx před strat-v5
 export type StrategyRunResult={version:string;defName:string;defVersion:number;data:'D1'|'H1';computedAt:string;from:string;split:string;to:string;splitRule:string;
  markets:{id:string;bars:number;from:string|null;to:string|null}[];variants:VariantResult[];chance:{reps:number;seed:number;values:number[];median:number|null;max:number|null}|null;
  robustRule:string;notes:string[];warnings:string[];ms:number};
@@ -602,7 +623,7 @@ export function runStrategy(def:StrategyDef,markets:MarketIn[],ctx:Ctx,o:RunOpts
  const keep=o.keepTrades??400;
  const variants:VariantResult[]=evals.map(e=>({name:e.x.r.name,metrics:e.metrics,nb:nb===null?null:rd(nb),robust:isRobustRun(e.metrics,nb),returnPct:e.returnPct,maxDdPct:e.maxDdPct,perMarket:e.perMarket,
   equity:e.equity,skips:e.x.sim.skips,signals:e.x.sim.signals,unknown:e.x.sim.unknown,trades:e.trades.slice(-keep).map(t=>{const c={...t};delete c.trace;return c}),
-  diag:e.x.diag,samples:pickSamples(e.trades,sp.split,o.samples??50)}));
+  diag:e.x.diag,samples:pickSamples(e.trades,sp.split,o.samples??50),tx:tradeRows(e.trades)}));
  // hranice náhody: nejlepší OOS průměr R přes základ a varianty s náhodnými směry
  const reps=o.shuffles??20,seed=o.seed??42,vals:number[]=[];
  for(let k=0;k<reps;k++){
