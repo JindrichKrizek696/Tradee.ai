@@ -167,7 +167,7 @@ for(const V of variants){const step=results[V.id];if(!step){out.push(`${V.id} vy
 }
 // Uzavřené obchody → hned upozornění jen vlastníkovi (mail přes Resend + push na jeho odběry)
 // agenti populace (G…) se neposílají jednotlivě – 20 agentů by zahltilo schránku; jejich obchody jsou v týdenní analýze a v Laboratoři
-// agenti strategií (R…) stejně – až 40 agentů s částečnými výstupy; výsledky jsou v Laboratoři
+// agenti strategií (R…) stejně – až 120 agentů s částečnými výstupy; výsledky jsou v Laboratoři
 const closedNow=variants.filter(V=>!isAgentVariant(V.id)).filter(V=>!isRuleVariant(V.id)).flatMap(V=>(results[V.id]?.closes||[]).map(c=>({V,c,t:tradesOf[V.id].find(t=>t.id===c.id)})));
 if(closedNow.length&&!dry){
  try{

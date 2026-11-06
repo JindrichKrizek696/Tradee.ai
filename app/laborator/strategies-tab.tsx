@@ -1,7 +1,7 @@
 'use client';
 // Laboratoř · Strategie (jen vlastník): obecný engine pravidlových strategií – definice jsou JSON v DB (lab_strategy_defs), výsledky
 // počítá scripts/lab-strategies.mjs (IS / OOS, hranice náhody, varianty). Tady: seznam, výsledky, editor JSON s validací a „Pustit do
-// simulace“ (agent R01…R40 s neměnnou kopií verze), diagnostika (trychtýř podmínek, fáze vstupu, detektory), ukázkové obchody v grafu
+// simulace“ (agent R01…R120 s neměnnou kopií verze), diagnostika (trychtýř podmínek, fáze vstupu, detektory), ukázkové obchody v grafu
 // a porovnání verzí (každá verze = vlastní řádek se stejným názvem; staré verze a jejich běhy zůstávají). API /api/laborator/strategies
 // vrací ostatním 404.
 import {useCallback,useEffect,useMemo,useState} from 'react';

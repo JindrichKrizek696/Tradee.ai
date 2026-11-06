@@ -51,8 +51,8 @@ export const MAX_SWEEP_VARIANTS=20;
 export const SWEEP_VARIANT_IDS=Array.from({length:MAX_SWEEP_VARIANTS},(_,i)=>'S'+String(i+1).padStart(2,'0') as VariantId);
 export const isBaseVariant=(v:unknown):v is BaseVariantId=>typeof v==='string'&&(VARIANT_IDS as string[]).includes(v);
 export const isSweepVariant=(v:unknown):v is VariantId=>typeof v==='string'&&(SWEEP_VARIANT_IDS as string[]).includes(v);
-// R01…R40 = agenti pravidlových strategií (Laboratoř · Strategie): neměnná kopie definice z lab_strategy_defs v lab_paper_accounts.rules
-export const MAX_RULE_VARIANTS=40;
+// R01…R120 = agenti pravidlových strategií (Laboratoř · Strategie): neměnná kopie definice z lab_strategy_defs v lab_paper_accounts.rules
+export const MAX_RULE_VARIANTS=120; // R01…R99, R100…R120 (sloupec variant VARCHAR(4))
 export const RULE_VARIANT_IDS=Array.from({length:MAX_RULE_VARIANTS},(_,i)=>'R'+String(i+1).padStart(2,'0') as VariantId);
 export const isRuleVariant=(v:unknown):v is VariantId=>typeof v==='string'&&(RULE_VARIANT_IDS as string[]).includes(v);
 export const isVariantId=(v:unknown):v is VariantId=>isBaseVariant(v)||isSweepVariant(v)||isAgentVariant(v)||isRuleVariant(v);

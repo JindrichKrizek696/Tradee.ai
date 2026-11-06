@@ -400,7 +400,7 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
 
 // ======================= 12) živá simulace – agent R…
 {
- check('id agentů strategií: R01…R40, jiné ne; S/G/A dál platí',RULE_VARIANT_IDS.length===40&&isRuleVariant('R01')&&isRuleVariant('R40')&&!isRuleVariant('R41')&&!isRuleVariant('R1')&&isVariantId('R07')&&isVariantId('S01')&&isVariantId('G01')&&isVariantId('A'));
+ check('id agentů strategií: R01…R120, jiné ne; S/G/A dál platí',RULE_VARIANT_IDS.length===120&&isRuleVariant('R01')&&isRuleVariant('R120')&&!isRuleVariant('R121')&&!isRuleVariant('R1')&&isVariantId('R07')&&isVariantId('S01')&&isVariantId('G01')&&isVariantId('A'));
  const def=defOf({markets:['EUR/USD','GBP/USD'],targets:{type:'r',r:2,partial:{atR:1,pct:50,moveToBE:true}},risk:{basePct:1}});
  const V=ruleVariant('R01','11111111-2222-3333-4444-555555555555',def);
  check('varianta R: kind rule, verze v rules_version (≤ 20 znaků), trhy z definice, text bez parametrů',V.kind==='rule'&&V.rulesVersion==='rule-R01-v1'&&V.rulesVersion.length<=20&&V.markets.join()==='EUR/USD,GBP/USD'&&V.text.every(t=>!/impulseK/.test(t)));

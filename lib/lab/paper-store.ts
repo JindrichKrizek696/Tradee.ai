@@ -70,7 +70,7 @@ export async function createSweepVariant(d:Db,uid:string,now:number,combo:SweepC
  await addLog(d,uid,now,`Start simulace ${id} (${V.name}) ze sweepu: ${V.rules.startEquity.toLocaleString('cs-CZ')} Kč, pravidla ${V.rulesVersion}.`,id);
  return id;
 }
-// „Pustit do simulace“ ze Strategií: agent R01…R40 s NEMĚNNOU kopií definice (verze); stejná definice ve stejné verzi jen jednou
+// „Pustit do simulace“ ze Strategií: agent R01…R120 s NEMĚNNOU kopií definice (verze); stejná definice ve stejné verzi jen jednou
 export async function createRuleVariant(d:Db,uid:string,now:number,defId:string,def:StrategyDef,origin:Omit<RuleOrigin,'defId'|'version'>):Promise<VariantId>{
  const accs=(await listAccounts(d,uid)).filter(a=>isRuleVariant(a.variant));
  const dup=accs.find(a=>a.rule&&a.rule.origin.defId===defId&&a.rule.def.version===def.version);

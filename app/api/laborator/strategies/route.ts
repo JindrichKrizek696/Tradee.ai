@@ -3,7 +3,7 @@
 // ?bars=<trh>&tf=D1|H1&from=&to= = svíčky z archivu (market_bars) kolem ukázkového obchodu, nejvýš 600 svíček.
 // Výpočet běží mimo web (scripts/lab-strategies.mjs na VPS).
 // POST (jen z vlastní stránky: sameOrigin + sec-fetch-site): {action:'save',id?,text} = uložit / upravit definici (validace, nová verze
-// při změně obsahu), {action:'simulate',id} = „Pustit do simulace“ → agent R01…R40 s neměnnou kopií aktuální verze,
+// při změně obsahu), {action:'simulate',id} = „Pustit do simulace“ → agent R01…R120 s neměnnou kopií aktuální verze,
 // {action:'delete',id,confirm:'SMAZAT'} = smazat definici a její běhy (agenti R… zůstávají – mají vlastní kopii).
 import {db,sameOrigin} from '@/lib/server';
 import {labUser,labFailed,labNotFound,LAB_HEADERS} from '@/lib/lab/http';
