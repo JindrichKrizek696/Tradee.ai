@@ -129,7 +129,9 @@ export type StrategyDef={
  name:string;version:number;markets:string[];data:DataTf;tf:{context:Tf;zone:Tf;entry:Tf};
  conditions:Condition[];
  entry:{type:'limit'|'market_on_close';from:string|null;key:LevelKey;validBars:number;side:'both'|'long'|'short';legs:Leg[]|null};
- stop:{from:string;key:LevelKey;atrK:number;pct:number;atrPeriod:number;minAtrK:number}&Partial<LevelExpr>; // from = id podmínky | 'entry' | 'signal_bar' | 'expr' (op/of…)
+ stop:{from:string;key:LevelKey;atrK:number;pct:number;atrPeriod:number;minAtrK:number;
+  // minimální vzdálenost stopu (strat-engine.ts minStopDist): × výchozí spread (výchozí 3), × ATR14 vstupního TF (výchozí 0,25); widenToMin = posunout místo zahodit
+  minDistSpread?:number;minDistAtr?:number;widenToMin?:boolean}&Partial<LevelExpr>; // from = id podmínky | 'entry' | 'signal_bar' | 'expr' (op/of…)
  // type 'zone' = proximální hrana nejbližší protilehlé zóny podmínky `from` (zone / order_block / fvg; long → nabídka nad vstupem, short → poptávka pod);
  // když žádná není nebo má R:R pod minRR → fallback: none = bez obchodu, r = k R, swing = protilehlý swing
  targets:{type:'r'|'swing'|'level'|'zone'|'expr';r:number;from:string|null;key:LevelKey;swingN:number;minRR:number;obstacle:(LevelRef&{mode?:'between'})|null;
@@ -291,10 +293,13 @@ export function validateDef(raw:unknown):DefCheck{
  if(legs)legs.forEach((l,i)=>{if(l.cancelAfterBars!==undefined&&l.cancelAfterBars>entry.validBars)E(`entry.legs[${i}].cancelAfterBars`,'nesmí být větší než entry.validBars')});
  // stop
  const so=isO(raw.stop)?raw.stop:(E('stop','chybí objekt'),{} as O);
- for(const k of Object.keys(so))if(!['from','key','atrK','pct','atrPeriod','minAtrK',...EXPR_KEYS].includes(k))E('stop.'+k,'neznámé pole');
+ for(const k of Object.keys(so))if(!['from','key','atrK','pct','atrPeriod','minAtrK','minDistSpread','minDistAtr','widenToMin',...EXPR_KEYS].includes(k))E('stop.'+k,'neznámé pole');
  const sx=so.op!==undefined&&so.op!==null?exprOf('stop',so,['entry','signal_bar'],false):null;
  const sfrom=so.from===undefined?'entry':so.from,slv=sx?{from:'expr',key:'level' as LevelKey}:levelOf('stop',sfrom,so.key??'level',['entry','signal_bar']);
- const stop={from:slv.from,key:slv.key,atrK:num('stop.atrK',so.atrK,0,20,0),pct:num('stop.pct',so.pct,0,500,0),atrPeriod:num('stop.atrPeriod',so.atrPeriod,2,100,14,true),minAtrK:num('stop.minAtrK',so.minAtrK,0,20,0),...(sx??{})};
+ const stop={from:slv.from,key:slv.key,atrK:num('stop.atrK',so.atrK,0,20,0),pct:num('stop.pct',so.pct,0,500,0),atrPeriod:num('stop.atrPeriod',so.atrPeriod,2,100,14,true),minAtrK:num('stop.minAtrK',so.minAtrK,0,20,0),
+  ...(so.minDistSpread!==undefined&&so.minDistSpread!==null?{minDistSpread:num('stop.minDistSpread',so.minDistSpread,0,50,3)}:{}),
+  ...(so.minDistAtr!==undefined&&so.minDistAtr!==null?{minDistAtr:num('stop.minDistAtr',so.minDistAtr,0,10,.25)}:{}),
+  ...(so.widenToMin!==undefined&&so.widenToMin!==null?(typeof so.widenToMin==='boolean'?(so.widenToMin?{widenToMin:true}:{}):(E('stop.widenToMin','musí být true / false'),{})):{}),...(sx??{})};
  if(stop.from==='entry'&&!(stop.atrK>0))E('stop.atrK','u stopu od vstupu musí být > 0');
  // cíle
  const to=isO(raw.targets)?raw.targets:(E('targets','chybí objekt'),{} as O);
@@ -414,7 +419,7 @@ export function defOutline(def:StrategyDef):string[]{
  return [
   `Data ${def.data} (kontext ${def.tf.context}, zóny ${def.tf.zone}, vstup ${def.tf.entry}); trhů ${def.markets.length}.`,
   `Podmínek ${def.conditions.length}: povinných ${req}${gr?` (z toho ${gr} ${gr===1?'skupina':'skupiny'} NEBO)`:''}, volitelných ${opt}${info?`, jen úrovně ${info}`:''} (hodnocení = počet splněných volitelných).`,
-  `Vstup ${def.entry.type==='limit'?`limitem na úrovni podmínky, platnost ${def.entry.validBars} svíček${def.entry.legs?`, ${def.entry.legs.length} nohy se sdíleným stopem${def.entry.legs.some(l=>l.type==='market_on_close')?' (část na zavření svíčky po potvrzení)':''}`:''}`:'na zavření signální svíčky'}; stop ${def.stop.from==='entry'?'od vstupu':def.stop.from==='expr'?`jako ${def.stop.op==='max'?'maximum':'minimum'} z ${def.stop.of?.length??0} úrovní`:'od úrovně'}${def.stop.atrK?` ± ${def.stop.atrK} × ATR`:''}${def.stop.pct?` ± ${def.stop.pct} % vzdálenosti`:''}.`,
+  `Vstup ${def.entry.type==='limit'?`limitem na úrovni podmínky, platnost ${def.entry.validBars} svíček${def.entry.legs?`, ${def.entry.legs.length} nohy se sdíleným stopem${def.entry.legs.some(l=>l.type==='market_on_close')?' (část na zavření svíčky po potvrzení)':''}`:''}`:'na zavření signální svíčky'}; stop ${def.stop.from==='entry'?'od vstupu':def.stop.from==='expr'?`jako ${def.stop.op==='max'?'maximum':'minimum'} z ${def.stop.of?.length??0} úrovní`:'od úrovně'}${def.stop.atrK?` ± ${def.stop.atrK} × ATR`:''}${def.stop.pct?` ± ${def.stop.pct} % vzdálenosti`:''}; stop nejméně max(${String(def.stop.minDistSpread??3).replace('.',',')} × spread, ${String(def.stop.minDistAtr??.25).replace('.',',')} × ATR14 vstupního TF) od vstupu, jinak ${def.stop.widenToMin?'se posune na minimum':'bez obchodu'}.`,
   `Cíl ${def.targets.type==='r'?def.targets.r+' R':def.targets.type==='swing'?'protilehlý swing':def.targets.type==='zone'?`nejbližší protilehlá zóna${def.targets.fallback!=='none'?` (jinak ${def.targets.fallback==='r'?def.targets.r+' R':'swing'})`:''}`:def.targets.type==='expr'?`${def.targets.op==='max'?'maximum':'minimum'} z ${def.targets.of?.length??0} úrovní`:'úroveň podmínky'}${def.targets.minRR?`, min. R:R ${def.targets.minRR}`:''}${def.targets.partial?`, částečný výstup ${def.targets.partial.pct} % ${def.targets.partial.level?'na úrovni podmínky':`na ${def.targets.partial.atR} R`}${def.targets.partial.moveToBE?' + stop na BE':''}`:''}${def.management.beAtR?`, BE od ${def.management.beAtR} R`:''}${def.management.timeExitBars?`, časový výstup po ${def.management.timeExitBars} svíčkách`:''}${def.management.timeExitClock?', časový výstup v daný čas':''}.`,
   `Riziko ${def.risk.basePct} %${def.risk.byRating.length?' (podle hodnocení)':''}${def.filters.sessions.length?`; vstupy jen v seancích ${def.filters.sessions.map(s=>SESSION_LABELS[s]).join(', ')}`:''}${def.filters.maxTradesPerDay?`; max ${def.filters.maxTradesPerDay} obchodů/den`:''}${def.filters.news?'; bez vstupu kolem důležitých zpráv':''}.`,
  ];

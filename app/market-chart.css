@@ -654,3 +654,4 @@ select.mc-type.mc-tz{height:24px}
  .mc-zone-hist{margin-left:0}
  .mc-tree-det{margin-left:8px}
 }
+.mc-sim-legend>span{display:inline-flex;align-items:center;gap:4px}

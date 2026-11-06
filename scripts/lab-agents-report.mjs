@@ -21,7 +21,8 @@ try{const {latestKnownSummary}=await import('../lib/lab/known-store.ts');known=a
 try{const {getSweep}=await import('../lib/lab/sweep-store.ts');const {comboAt,comboKey,F}=await import('../lib/lab/sweep.ts');const s=await getSweep(d,uid);
  if(s)sweep={created:s.created,robust:s.result.robust.length,chance:s.result.chance?.median??null,top:s.result.robust.slice(0,5).map(i=>({key:comboKey(comboAt(i)),oosAvg:s.result.rows[i][F.oosAvg],oosN:s.result.rows[i][F.oosN]}))}}catch(e){console.warn('sweep:',e.code||e.message)}
 const open=[...all.flatMap(x=>x.open.map(t=>({...t,variant:x.variant}))),...data.open.map(t=>({...t,variant:t.variant}))];
-const md=buildAgentReport({now,agents:data.rows,trades:data.tradesOf,evolution,known,sweep,variants:all.map(x=>({id:x.variant,name:x.V.name,stats:x.stats,started:x.account?.started??null})),open});
+const defs=await import('../lib/lab/strat-store.ts').then(m=>m.defLabels(d,uid)).catch(()=>({}));
+const md=buildAgentReport({now,agents:data.rows,trades:data.tradesOf,evolution,known,sweep,variants:all.map(x=>({id:x.variant,name:x.V.name,stats:x.stats,started:x.account?.started??null,label:ps.simLabelOf(x.V,x.account,defs)})),open});
 writeFileSync(out,md);
 console.log(`lab-agents-report: ${md.length} znaků → ${out}`);
 process.exit(0);

@@ -6,21 +6,44 @@ import {validateDef,type StrategyDef} from './rules-def.ts';
 import {packJson,unpackJson} from './sweep-store.ts';
 import {runSummary,type StrategyRunResult,type RunSummary} from './strat-engine.ts';
 import {cotAvailableAt,type CotSrc} from './strat-blocks.ts';
+import {cleanSource,type DefLabel} from './sim-labels.ts';
 
 export const RUNS_KEEP=5,DEFS_MAX=300;
 const sqlNow=(t=Date.now())=>new Date(t).toISOString().slice(0,19).replace('T',' ');
 const iso=(s:unknown)=>typeof s==='string'&&/^\d{4}-\d\d-\d\d \d/.test(s)?s.replace(' ','T')+'Z':s instanceof Date?s.toISOString():String(s??'');
 const json=<T,>(s:unknown,def:T):T=>{if(typeof s!=='string'||!s)return def;try{return JSON.parse(s) as T}catch{return def}};
 
-export type DefRow={id:string;name:string;version:number;text:string;def:StrategyDef|null;errors:string[];created:string;updated:string;notes:string|null};
-type Row={id:string;name:string;version:number;def:string;created:string;updated:string;notes:string|null};
-const toDef=(r:Row):DefRow=>{const v=validateDef(json(r.def,null));return {id:r.id,name:r.name,version:Number(r.version),text:r.def,def:v.ok?v.def:null,errors:v.ok?[]:v.errors,created:iso(r.created),updated:iso(r.updated),notes:r.notes??null}};
+// sourceLabel = volitelný zdroj definice (sloupec source_label z migrace 0044; bez migrace null) – jen data vlastníka, v kódu žádné zdroje
+export type DefRow={id:string;name:string;version:number;text:string;def:StrategyDef|null;errors:string[];created:string;updated:string;notes:string|null;sourceLabel:string|null};
+type Row={id:string;name:string;version:number;def:string;created:string;updated:string;notes:string|null;source_label?:string|null};
+const toDef=(r:Row):DefRow=>{const v=validateDef(json(r.def,null));return {id:r.id,name:r.name,version:Number(r.version),text:r.def,def:v.ok?v.def:null,errors:v.ok?[]:v.errors,created:iso(r.created),updated:iso(r.updated),notes:r.notes??null,sourceLabel:cleanSource(r.source_label)}};
+const DEF_COLS='id,name,version,def,created,updated,notes';
+// dotaz se zdrojem; bez migrace 0044 (neznámý sloupec) stejný dotaz bez něj
+const isNoColumn=(e:unknown)=>/source_label|Unknown column|no such column/i.test(String((e as Error)?.message??e));
+async function defRows(d:Db,uid:string,rest:string,...args:unknown[]):Promise<Row[]>{
+ try{return (await d.prepare(`SELECT ${DEF_COLS},source_label FROM lab_strategy_defs WHERE user_id=?${rest}`).bind(uid,...args).all<Row>()).results}
+ catch(e){if(!isNoColumn(e))throw e;return (await d.prepare(`SELECT ${DEF_COLS} FROM lab_strategy_defs WHERE user_id=?${rest}`).bind(uid,...args).all<Row>()).results}
+}
 export async function listDefs(d:Db,uid:string):Promise<DefRow[]>{
- return (await d.prepare('SELECT id,name,version,def,created,updated,notes FROM lab_strategy_defs WHERE user_id=? ORDER BY updated DESC').bind(uid).all<Row>()).results.map(toDef);
+ return (await defRows(d,uid,' ORDER BY updated DESC')).map(toDef);
 }
 export async function getDef(d:Db,uid:string,id:string):Promise<DefRow|null>{
- const r=await d.prepare('SELECT id,name,version,def,created,updated,notes FROM lab_strategy_defs WHERE user_id=? AND id=?').bind(uid,id).first<Row>();
+ const q=(c:string)=>d.prepare(`SELECT ${c} FROM lab_strategy_defs WHERE user_id=? AND id=?`).bind(uid,id).first<Row>();
+ let r:Row|null;try{r=await q(DEF_COLS+',source_label')}catch(e){if(!isNoColumn(e))throw e;r=await q(DEF_COLS)}
  return r?toDef(r):null;
+}
+// zdroj definice (Strategie → „Zdroj“): prázdný = bez zdroje; platí pro jednu verzi (nová verze ho převezme při uložení)
+export async function setSourceLabel(d:Db,uid:string,id:string,label:unknown):Promise<boolean>{
+ const v=cleanSource(label);
+ try{return (await d.prepare('UPDATE lab_strategy_defs SET source_label=? WHERE user_id=? AND id=?').bind(v,uid,id).run()).meta.changes>0}
+ catch(e){if(isNoColumn(e))throw Error('Zdroj zatím nejde uložit – na VPS je potřeba spustit migraci 0044_lab_strategy_source.sql.');throw e}
+}
+// název, verze a zdroj po id definice (dohledání u agentů R… bez zdroje v kopii); jen lehký dotaz bez JSON definice
+export async function defLabels(d:Db,uid:string):Promise<Record<string,DefLabel>>{
+ type L={id:string;name:string;version:number;source_label?:string|null};let rows:L[];
+ try{rows=(await d.prepare('SELECT id,name,version,source_label FROM lab_strategy_defs WHERE user_id=?').bind(uid).all<L>()).results}
+ catch(e){if(!isNoColumn(e))throw e;rows=(await d.prepare('SELECT id,name,version FROM lab_strategy_defs WHERE user_id=?').bind(uid).all<L>()).results}
+ return Object.fromEntries(rows.map(r=>[r.id,{name:r.name,version:Number(r.version),sourceLabel:cleanSource(r.source_label)}]));
 }
 // VERZE: každá verze definice je vlastní řádek se stejným názvem (v1, v2, …). Změna obsahu (úprava v editoru i import se stejným názvem)
 // vloží NOVÝ řádek s verzí max+1 – staré verze i jejich běhy zůstávají (porovnání v1 vs v2), agenti R… mají vlastní neměnnou kopii.
@@ -34,20 +57,24 @@ export function versionPlan(existing:Pick<DefRow,'id'|'version'|'def'>[],nd:Stra
  return {action:'insert',version:latest.version+1};
 }
 export async function listVersions(d:Db,uid:string,name:string):Promise<DefRow[]>{
- return (await d.prepare('SELECT id,name,version,def,created,updated,notes FROM lab_strategy_defs WHERE user_id=? AND name=? ORDER BY version DESC').bind(uid,name).all<Row>()).results.map(toDef);
+ return (await defRows(d,uid,' AND name=? ORDER BY version DESC',name)).map(toDef);
 }
 // uložení (nová definice, nebo nová verze při změně obsahu): vrací id řádku verze a číslo verze; raw = objekt definice (validuje se tady znovu).
 // id = verze, ze které úprava vychází (musí existovat); nová verze patří k názvu z definice.
 export async function saveDef(d:Db,uid:string,id:string|null,raw:unknown,now=Date.now()):Promise<{id:string;version:number;changed:boolean}>{
  const v=validateDef(raw);if(!v.ok)throw Object.assign(new Error('Definice není platná.'),{errors:v.errors});
  const obj=raw as Record<string,unknown>;
- if(id){const old=await getDef(d,uid,id);if(!old)throw Error('Definice nenalezena.');if(old.def&&old.name===v.def.name&&sameContent(old.def,v.def))return {id,version:old.version,changed:false}}
- const plan=versionPlan(await listVersions(d,uid,v.def.name),v.def);
+ let old:DefRow|null=null;
+ if(id){old=await getDef(d,uid,id);if(!old)throw Error('Definice nenalezena.');if(old.def&&old.name===v.def.name&&sameContent(old.def,v.def))return {id,version:old.version,changed:false}}
+ const vers=await listVersions(d,uid,v.def.name),plan=versionPlan(vers,v.def);
  if(plan.action==='same')return {id:plan.id,version:plan.version,changed:false};
  const c=await d.prepare('SELECT COUNT(*) n FROM lab_strategy_defs WHERE user_id=?').bind(uid).first<{n:number}>();
  if(Number(c?.n)>=DEFS_MAX)throw Error(`Nejvýš ${DEFS_MAX} verzí definic – smaž staré verze.`);
  const nid=crypto.randomUUID(),version=plan.version;
  await d.prepare('INSERT INTO lab_strategy_defs(id,user_id,name,version,def,created,updated) VALUES(?,?,?,?,?,?,?)').bind(nid,uid,v.def.name,version,JSON.stringify({...obj,version},null,1),sqlNow(now),sqlNow(now)).run();
+ // zdroj převezme nová verze z nejnovější verze téhož názvu, která ho má (úprava, ze které vychází, má přednost)
+ const from=old?.sourceLabel??vers.find(x=>x.sourceLabel)?.sourceLabel??null;
+ if(from)await d.prepare('UPDATE lab_strategy_defs SET source_label=? WHERE user_id=? AND id=?').bind(from,uid,nid).run().catch(()=>null);
  return {id:nid,version,changed:true};
 }
 // import ze souboru: podle názvu – shodný obsah s poslední verzí = beze změny, jinak nová verze (nebo nová definice)

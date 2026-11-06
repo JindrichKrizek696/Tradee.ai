@@ -12,6 +12,8 @@ import type {BacktestSummary} from '@/lib/backtest/metrics';
 import type {EquityPoint,MarketResult} from '@/lib/backtest/engine';
 import type {PaperTrade,PaperStats,PaperEquityPoint,VariantId} from '@/lib/lab/paper';
 import {ENTRY_LABELS,EXIT_LABELS as SWEEP_EXIT_LABELS,SET_LABELS,type SweepCombo} from '@/lib/lab/sweep-grid';
+import {voidLabel,voidTitle,simLabel,groupSims,filterSims,sourcesOf,SIM_FAMILIES,type RuleMeta,type SimFamily} from '@/lib/lab/sim-labels';
+import {FamBadge,FamLegend,SimName} from './sim-badge';
 import {SweepTab} from './sweep-tab';
 import {ForecastsTab} from './forecasts-tab';
 import {KnownTab} from './known-tab';
@@ -212,7 +214,8 @@ function Notes(){
 // ---------------- Simulace 100 000 Kč
 type PaperRow=Omit<PaperTrade,'partsAtEntry'>&{partsAtEntry?:unknown;mark:{price:number;r:number;pnlCzk:number;pct:number;at:number}|null};
 type SweepOriginRow={sweepId:string|null;combo:number;params:SweepCombo;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;nb:number|null;chance:number|null;at:string};
-type PaperVariantRow={id:VariantId;name:string;kind:string;rulesVersion:string;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[];sweep?:SweepOriginRow|null};
+type PaperVariantRow={id:VariantId;name:string;kind:string;rulesVersion:string;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[];sweep?:SweepOriginRow|null;rule?:RuleMeta|null};
+const labOf=(v:PaperVariantRow)=>simLabel({id:v.id,name:v.name,rule:v.rule});
 type PaperData={variant:VariantId;account:{startEquity:number;started:number;rulesVersion:string;active:boolean}|null;stats:PaperStats;equity:PaperEquityPoint[];open:PaperRow[];closed:PaperRow[];log:{at:number;text:string}[];rules:{version:string;name:string;text:string[]};variants:PaperVariantRow[];names:Record<string,string>;now:number};
 type VCls='a'|'b'|'c'|'d'|'e';
 const VARIANTS:{id:VariantId;cls:VCls;hint:string}[]=[{id:'A',cls:'a',hint:'všechny trhy, |skóre| ≥ 50'},{id:'B',cls:'b',hint:'jen FX páry'},{id:'C',cls:'c',hint:'proti nataženému trendu'},{id:'D',cls:'d',hint:'|skóre| ≥ 65, max 1 krypto'}];
@@ -231,7 +234,7 @@ const EXIT:Record<string,string>={sl:'SL',tp:'TP',time:'Čas',signal:'Signál',m
 const slug=(id:string)=>'/graf/'+encodeURIComponent(id.replace(/\//g,'-'));
 function Paper(){
  const [d,setD]=useState<PaperData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[openId,setOpenId]=useState<string|null>(null),[busy,setBusy]=useState(false);
- const [variant,setVariant]=useState<VariantId>('A');
+ const [variant,setVariant]=useState<VariantId>('A'),[fam,setFam]=useState<SimFamily|''>(''),[src,setSrc]=useState('');
  useEffect(()=>{try{const v=localStorage.getItem(VKEY);if(v&&isVid(v))setVariant(v as VariantId)}catch{}},[]);
  const pickVariant=(v:VariantId)=>{setVariant(v);setOpenId(null);try{localStorage.setItem(VKEY,v)}catch{}};
  const load=useCallback(()=>{call<PaperData>('/api/laborator/paper?variant='+variant).then(j=>{setD(j);setErr('')}).catch(e=>{const st=(e as HttpError).status;if(st===503)setMissing(true);else if(st===404&&variant!=='A')pickVariant('A');else setErr((e as Error).message)})},[variant]);
@@ -251,18 +254,26 @@ function Paper(){
  return <>
   <section className="mt-card">
    <h2>Porovnání variant</h2>
-   <p className="mt-lead">Virtuální účty po 100 000 Kč běží souběžně, každý podle jiných pravidel – A–D pevně, S01… z „Hledání prahů“. Každou neděli v 18:00 přijde souhrn týdne (push + e-mail).</p>
-   <div className="lb-scroll lb-compare-wrap"><table className="mt-table lb-table lb-compare"><thead><tr><th>Varianta</th><th>Equity</th><th>Výnos</th><th>Obchody</th><th>Win rate</th><th>Průměr R</th><th>Max. DD</th></tr></thead>
-    <tbody>{list.map(({id,cls,hint})=>{const v=d.variants.find(x=>x.id===id);if(!v)return null;const st=v.stats;return <tr key={id} className={id===variant?'on':''}>
-     <td><button className="lb-link lb-exp" onClick={()=>pickVariant(id)} aria-pressed={id===variant}><i className={'bt-dot '+cls}/>{id} – {v.name}</button><small>{v.started===null?'začne při příštím běhu':hint+' · od '+when(v.started)}</small></td>
+   <p className="mt-lead">Virtuální účty po 100 000 Kč běží souběžně, každý podle jiných pravidel. Rozdělené podle rodiny (u strategií z podkladů i podle zdroje), uvnitř podle celkového R. Každou neděli v 18:00 přijde souhrn týdne (push + e-mail).</p>
+   <FamLegend/>
+   {(()=>{const srcs=sourcesOf(d.variants,labOf);return <div className="lb-filters">
+    <select aria-label="Filtr rodiny" value={fam} onChange={e=>{setFam(e.target.value as SimFamily|'');if(e.target.value&&e.target.value!=='rule')setSrc('')}}><option value="">Všechny rodiny</option>{SIM_FAMILIES.map(f=><option key={f.id} value={f.id}>{f.label} ({f.range})</option>)}</select>
+    {srcs.length>0&&<select aria-label="Filtr zdroje" value={src} onChange={e=>{setSrc(e.target.value);if(e.target.value)setFam('rule')}}><option value="">Všechny zdroje</option>{srcs.map(x=><option key={x} value={x}>{x}</option>)}</select>}
+   </div>})()}
+   <div className="lb-scroll lb-compare-wrap"><table className="mt-table lb-table lb-compare"><thead><tr><th>Varianta</th><th>Equity</th><th>Výnos</th><th>Obchody</th><th>Win rate</th><th>Průměr R</th><th>Celkem R</th><th>Max. DD</th></tr></thead>
+    <tbody>{groupSims(filterSims(d.variants,labOf,{family:fam,source:src}),labOf,v=>v.stats.totalR).flatMap(g=>[<tr key={'f'+g.family} className="lb-famrow"><td colSpan={8}><span className={'lb-fam '+g.cls}>{g.familyLabel}</span> <small>{g.count}</small></td></tr>,
+     ...g.sources.flatMap(sg=>[...(g.family==='rule'?[<tr key={'s'+g.family+(sg.source??'')} className="lb-srcrow"><td colSpan={8}>Zdroj: {sg.source??'bez zdroje'}</td></tr>]:[]),
+      ...sg.items.map(v=>{const id=v.id,x=list.find(y=>y.id===id),cls=x?.cls??'e',hint=x?.hint??'',st=v.stats;return <tr key={id} className={id===variant?'on':''}>
+     <td><button className="lb-link lb-exp" onClick={()=>pickVariant(id)} aria-pressed={id===variant}><i className={'bt-dot '+cls}/><SimName l={labOf(v)}/></button><small>{v.started===null?'začne při příštím běhu':hint+' · od '+when(v.started)}</small></td>
      <td>{v.started===null?'–':fmtNum(Math.round(st.equity),0)+' Kč'}</td><td className={sgn(v.started===null?null:st.returnPct)}>{v.started===null?'–':pct(st.returnPct)}</td><td>{st.trades}{st.open?<small>+{st.open} otevř.</small>:null}</td>
-     <td>{st.winRate===null?'–':num(st.winRate,1)+' %'}</td><td className={sgn(st.avgR)}>{rr(st.avgR)}</td><td className={st.maxDrawdownPct<0?'neg':''}>{num(st.maxDrawdownPct,1)} %</td></tr>})}</tbody></table></div>
+     <td>{st.winRate===null?'–':num(st.winRate,1)+' %'}</td><td className={sgn(st.avgR)}>{rr(st.avgR)}</td><td className={sgn(st.totalR)}>{rr(st.totalR)}</td><td className={st.maxDrawdownPct<0?'neg':''}>{num(st.maxDrawdownPct,1)} %</td></tr>})])])}</tbody></table></div>
    {combined.length?<EquityChart series={combined} fmt={v=>fmtNum(Math.round(v),0)+' Kč'} base={100000}/>:<p className="mt-empty">Křivky se ukážou po prvním běhu.</p>}
   </section>
   <section className="mt-card">
    <div className="lb-variants" role="group" aria-label="Varianta simulace">{VARIANTS.map(({id,cls})=>{const v=d.variants.find(x=>x.id===id);return <button key={id} type="button" className={'mt-btn'+(id===variant?' on':'')} aria-pressed={id===variant} onClick={()=>pickVariant(id)}><i className={'bt-dot '+cls}/>{id}{v?' – '+v.name:''}</button>})}
-    {list.length>VARIANTS.length&&<select className={'lb-select'+(extraV(variant)?' on':'')} aria-label="Varianta ze sweepu nebo agent strategie" value={extraV(variant)?variant:''} onChange={e=>{if(e.target.value)pickVariant(e.target.value as VariantId)}}><option value="">Ze sweepu a strategií ({list.length-VARIANTS.length})…</option>{list.filter(x=>x.cls==='e').map(x=><option key={x.id} value={x.id}>{x.id} – {d.variants.find(v=>v.id===x.id)?.name}</option>)}</select>}</div>
-   <h2>Simulace {d.variant} – {d.rules.name}</h2>
+    {list.length>VARIANTS.length&&<select className={'lb-select'+(extraV(variant)?' on':'')} aria-label="Varianta ze sweepu nebo agent strategie" value={extraV(variant)?variant:''} onChange={e=>{if(e.target.value)pickVariant(e.target.value as VariantId)}}><option value="">Ze sweepu a strategií ({list.length-VARIANTS.length})…</option>{groupSims(d.variants.filter(v=>extraV(v.id)),labOf,v=>v.stats.totalR).flatMap(g=>g.sources.map(sg=><optgroup key={g.familyLabel+(sg.source??'')} label={g.familyLabel+(g.family==='rule'?' · '+(sg.source??'bez zdroje'):'')}>{sg.items.map(v=>{const l=labOf(v);return <option key={v.id} value={v.id}>{l.title}{l.version!==null?' v'+l.version:''}{l.direction?' · '+l.direction:''} ({v.id})</option>})}</optgroup>))}</select>}</div>
+   {(()=>{const cur=d.variants.find(v=>v.id===d.variant),l=cur?labOf(cur):simLabel({id:d.variant,name:d.rules.name});
+    return <h2>{l.title}{l.version!==null?` v${l.version}`:''} <FamBadge l={l}/> <small className="lb-sim-id">{d.variant}{l.family==='rule'?` · zdroj: ${l.source??'bez zdroje'}`:''}{l.direction?` · ${l.direction}`:''}</small></h2>})()}
    <p className="mt-lead">Virtuální účet, který každých 15 minut obchoduje podle pevných pravidel varianty – bez zásahu. Ke každému obchodu si zapíše, proč do něj šel, jak moc si byl jistý a jak dopadl.{d.account?` Start ${when(d.account.started)}, pravidla ${d.account.rulesVersion}.`:' Spustí se při příštím běhu po živých cenách.'}</p>
    {err&&<p className="mt-alert" role="alert">{err}</p>}
    <dl className="bt-tiles">{([
@@ -286,7 +297,7 @@ function Paper(){
   <section className="mt-card">
    <h2>Uzavřené obchody ({d.closed.length})</h2>
    {!d.closed.length?<p className="mt-empty">Zatím žádný uzavřený obchod.</p>:<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>Směr</th><th>Vstup → výstup</th><th>Důvod</th><th>R</th><th>Kč</th><th>% ceny</th><th>Jistota</th><th>Otevřeno → zavřeno</th></tr></thead>
-    <tbody>{d.closed.map(t=><Fragment key={t.id}><tr className={t.voidReason?'lb-dim':undefined} title={t.voidReason?'Otevřeno nebo zavřeno při zavřeném trhu – nepočítá se do zůstatku, statistik ani křivky.':undefined}>{mkt(t)}<td>{t.direction==='long'?'Long':'Short'}</td><td>{px(t.entry)} → {px(t.exit)}</td><td>{t.voidReason?<span className="lb-badge">neplatný – zavřený trh</span>:EXIT[t.exitReason??'']??'–'}</td><td className={sgn(t.r)}>{rr(t.r)}</td><td className={sgn(t.pnlCzk)}>{kc(t.pnlCzk)}</td><td>{t.pct===null?'–':pct(t.pct)}</td><td>{t.confidence} %</td><td>{when(t.opened)} → {when(t.closed)}</td></tr>{notes(t,9)}</Fragment>)}</tbody></table></div>}
+    <tbody>{d.closed.map(t=><Fragment key={t.id}><tr className={t.voidReason?'lb-dim':undefined} title={t.voidReason?voidTitle(t.voidReason):undefined}>{mkt(t)}<td>{t.direction==='long'?'Long':'Short'}</td><td>{px(t.entry)} → {px(t.exit)}</td><td>{t.voidReason?<span className="lb-badge">{voidLabel(t.voidReason)}</span>:EXIT[t.exitReason??'']??'–'}</td><td className={sgn(t.r)}>{rr(t.r)}</td><td className={sgn(t.pnlCzk)}>{kc(t.pnlCzk)}</td><td>{t.pct===null?'–':pct(t.pct)}</td><td>{t.confidence} %</td><td>{when(t.opened)} → {when(t.closed)}</td></tr>{notes(t,9)}</Fragment>)}</tbody></table></div>}
   </section>
   <section className="mt-card">
    <details className="lb-details"><summary>Deník simulace ({d.log.length})</summary>{!d.log.length?<p className="mt-empty">Prázdný.</p>:<ul className="lb-log">{d.log.map((l,i)=><li key={i}><time>{when(l.at)}</time> {l.text}</li>)}</ul>}</details>

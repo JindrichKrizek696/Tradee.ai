@@ -13,7 +13,7 @@ import {isAgentVariant,agentMarkets,genomeText,FAMILY_SHORT,AGENT_SET_GROUPS,AGE
 import {familyDef} from './known-grid.ts';
 import {isMarketOpen,closedBetween} from '../market-hours.ts';
 import {defOutline,type StrategyDef} from './rules-def.ts';
-import {portfolioBlock,entryWindowOk,clockDeadline,type LiveSetup,type HistTrade} from './strat-engine.ts';
+import {portfolioBlock,entryWindowOk,clockDeadline,SKIP_MIN_STOP,type LiveSetup,type HistTrade} from './strat-engine.ts';
 
 export const PAPER_RULES_VERSION='paper-v1';
 export const PAPER_RULES={
@@ -177,6 +177,8 @@ export type PaperTrade={
  voidReason?:string|null;
 };
 export const VOID_LABEL='neplatný – zavřený trh';
+export {voidLabel,VOID_TINY_STOP} from './sim-labels.ts';
+import {simLabel,simHead,type SimLabel} from './sim-labels.ts'; // odznak podle důvodu (zavřený trh / stop pod minimem – scripts/lab-void-tiny-stops.mjs)
 export const isVoid=(t:{voidReason?:string|null})=>!!t.voidReason;
 export const validTrades=<T extends {voidReason?:string|null}>(ts:T[]):T[]=>ts.filter(t=>!t.voidReason);
 export type PaperClose={id:string;closed:number;exit:number;exitReason:ExitReason;r:number;pnlCzk:number;pct:number;scoreAtExit:number|null;resultNote:string};
@@ -556,8 +558,11 @@ export function ruleStep(inp:PaperInput,V:PaperVariant):PaperStepResult{
    if(moc&&!leg.ready)continue; // MOC noha: vstup jen na svíčce potvrzení
    if(!moc&&leg.touched)continue;
    if(!moc&&su.type==='limit'&&!(sg>0?q.price<=leg.L:q.price>=leg.L)){if(su.legs.length===1)skip(`limit: čeká na ${fmtPx(leg.L)} (teď ${fmtPx(q.price)})`);continue}
-   const entry=q.price+sg*hs,sl=su.stop;
+   const entry=q.price+sg*hs;let sl=su.stop;
    if(!(sg*(entry-sl)>0)){skip('cena je za stopem');continue}
+   // minimální vzdálenost stopu (strat-engine.ts minStopDist z plánu) znovu proti skutečné ceně vstupu: blíž → bez obchodu (widenToMin = posun)
+   const md=su.minDist??0;
+   if(md>0&&sg*(entry-sl)<md){if(!su.widenToMin){skip(SKIP_MIN_STOP);continue}sl=entry-sg*md}
    const risk=Math.abs(entry-sl),totalCzk=balance*su.riskPct/100*leg.share,p=def.targets.partial;
    const rows:{tag:string;tp:number;share:number;beAtR:number|null}[]=p&&su.tp1!==null
     ?[{tag:'a',tp:su.tp1,share:p.pct/100,beAtR:def.management.beAtR},{tag:'b',tp:su.target??0,share:1-p.pct/100,beAtR:p.moveToBE?Math.abs(su.tp1-entry)/risk:def.management.beAtR}]
@@ -598,8 +603,9 @@ export function paperStats(all:PaperTrade[],startEquity:number,openPnl:number,eq
 }
 export type PaperStats=ReturnType<typeof paperStats>;
 const iso=(t:number)=>new Date(t).toISOString().slice(0,16).replace('T',' ');
-export function paperSummaryMd(x:{started:number|null;stats:PaperStats;open:(PaperTrade&{mark?:{price:number;r:number;pnlCzk:number}|null})[];closed:PaperTrade[];variant?:PaperVariant}):string{
- const V=x.variant??PAPER_VARIANTS.A,s=x.stats,xo=validTrades(x.open),xc=validTrades(x.closed),out=[`## Simulace 100 000 Kč · varianta ${V.id} – ${V.name} (paper trading)`,''];
+export function paperSummaryMd(x:{started:number|null;stats:PaperStats;open:(PaperTrade&{mark?:{price:number;r:number;pnlCzk:number}|null})[];closed:PaperTrade[];variant?:PaperVariant;label?:SimLabel}):string{
+ const V=x.variant??PAPER_VARIANTS.A,s=x.stats,xo=validTrades(x.open),xc=validTrades(x.closed),L=x.label??simLabel({id:V.id,name:V.name,rule:V.rule?{defId:V.rule.defId,name:V.rule.def.name,version:V.rule.def.version,side:V.rule.def.entry.side}:null});
+ const out=[`## Simulace 100 000 Kč · varianta ${simHead(L)} · rodina ${L.familyLabel} (paper trading)`,''];
  if(x.started===null){out.push('_Simulace ještě neběžela._','');return out.join('\n')}
  out.push(`Start ${iso(x.started)} UTC, pravidla ${V.rulesVersion}. Equity ${cz(round(s.equity,0),0)} Kč (${signed(s.returnPct,2)} %), otevřený P&L ${fmtCzk(s.openPnl)}, uzavřených ${s.trades}, win rate ${s.winRate===null?'–':cz(s.winRate,1)+' %'}, průměr ${s.avgR===null?'–':signed(s.avgR,2)+' R'}, max. drawdown ${cz(s.maxDrawdownPct,2)} %.`,'');
  out.push(`Pravidla ${V.id} (${V.rulesVersion}):`,...V.text.map(t=>'- '+t),'');

@@ -7,6 +7,8 @@ import {createChart,CrosshairMode,CandlestickSeries,BarSeries,LineSeries,AreaSer
 import {chartTime} from '@/lib/journal/chart-data';
 import {TF_SEC,SESSION_TFS,type ChartTf,withAlpha,newsLayer,newsMarkers,upcomingNews,eventCountry,newsReaction,type Reaction,tradeMarkers,sortMarkers,scoreBand,tradeResult,snapTo,type Marker} from '@/lib/chart/layers';
 import type {PaperTrade,VariantId} from '@/lib/lab/paper';
+import {simLabel,simHead,familyOrder,type SimLabel} from '@/lib/lab/sim-labels';
+import './laborator/sim-badge.css';
 import {scoreSeries,type HistoryLike} from '@/lib/dashboard';
 import {relative,type CalendarEvent} from '@/lib/calendar';
 import {forecastLine} from '@/lib/calendar-ff';
@@ -62,6 +64,8 @@ function toBars(list:Candle[]):Bar[]{
 }
 // varianty simulace A/B/C/D: barva značek a čar (A = barva značky, jako dřív)
 const PAPER_COLORS:Partial<Record<VariantId,[string,string]>>&{A:[string,string]}={A:['--t-brand','#7c3aed'],B:['--t-fg-2','#64748b'],C:['--mc-paper-c','#d97706'],D:['--mc-paper-d','#0891b2']};
+// barva značek varianty pro legendu (stejná jako značky v grafu)
+const simColorOf=(v:string)=>{const [c,f]=PAPER_COLORS[v as VariantId]??PAPER_COLORS.A;return `var(${c},${f})`};
 // denní a delší TF: popisky jen s datem, výřez podle délky svíčky
 const dailyUp=(tf:ChartTf)=>tf==='D1'||tf==='W1'||tf==='MN',VIEW_BARS:Partial<Record<ChartTf,number>>={D1:180,W1:150,MN:60};
 // barvu z CSS převést na #rrggbb / rgba() (kvůli průhlednosti)
@@ -153,7 +157,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
  // zprávy z kalendáře: otevřený detail (klik na značku) a hodiny po minutě (proběhlá zpráva se přesune z pásu dole nad svíčky)
  const [pop,setPop]=useState<Pop|null>(null),[clock,setClock]=useState(()=>Date.now()),strip=useRef<NewsStripPrimitive|null>(null);
  const [data,setData]=useState<Loaded>({status:'loading',candles:[],stale:false,updated:null}),[reload,setReload]=useState(0);
- const [trades,setTrades]=useState<ChartTrade[]>([]),[tradesError,setTradesError]=useState(false),[paper,setPaper]=useState<PaperChartTrade[]>([]);
+ const [trades,setTrades]=useState<ChartTrade[]>([]),[tradesError,setTradesError]=useState(false),[paper,setPaper]=useState<PaperChartTrade[]>([]),[paperLabels,setPaperLabels]=useState<Record<string,SimLabel>>({});
  const [hover,setHover]=useState<Bar|null>(null),[tip,setTip]=useState<Tip|null>(null),[tick,setTick]=useState(0),[ver,setVer]=useState(0);
  const [fp,setFp]=useState<Fp|null>(null),[fpMode,setFpMode]=useState(false);
  const {data:open}=useOpenPositions();
@@ -229,8 +233,12 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   return()=>ac.abort()},[instrument]);
  // simulace z Laboratoře: jen vlastník (ostatní endpoint ani nevolají; API by jim stejně vrátilo 404)
  useEffect(()=>{if(!lab)return;const ac=new AbortController();
-  fetch('/api/laborator/paper?instrument='+encodeURIComponent(instrument),{signal:ac.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{trades?:PaperChartTrade[]}>:Promise.reject()).then(j=>setPaper(j.trades||[])).catch(()=>{});
-  return()=>{ac.abort();setPaper([])}},[instrument,lab]);
+  fetch('/api/laborator/paper?instrument='+encodeURIComponent(instrument),{signal:ac.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{trades?:PaperChartTrade[];labels?:Record<string,SimLabel>}>:Promise.reject()).then(j=>{setPaper(j.trades||[]);setPaperLabels(j.labels||{})}).catch(()=>{});
+  return()=>{ac.abort();setPaper([]);setPaperLabels({})}},[instrument,lab]);
+ // označení účtů simulace (rodina, u R… definice, verze, zdroj, směr) – do tooltipu a legendy
+ const simLabFor=useCallback((v:string)=>paperLabels[v]??simLabel({id:v}),[paperLabels]);
+ const simLab=useRef<(v:string)=>SimLabel>(v=>simLabel({id:v})); // pro tooltip (handler grafu vzniká jednou)
+ useEffect(()=>{simLab.current=simLabFor},[simLabFor]);
 
  // graf: vytvoří se jednou, data a vrstvy se nastavují v dalších efektech
  useEffect(()=>{
@@ -247,7 +255,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    let text:string[]=[];
    if(id.startsWith('n:')){const e=L.news.get(id.slice(2)),now=Date.now();if(e){const country=eventCountry(e);text=[e.title,(country?country+' · ':'')+eventTime(e)+' · '+impact(e)+' zpráva'+(Date.parse(e.at)>now?' · '+relative(e.at,now):''),forecastLine(e),'Klikni pro detail a reakci trhu'].filter(Boolean)}}
    else if(id==='n+'){const hidden=hiddenUp(c,L.up);if(hidden.length)text=[(hidden.length===1?'Další zpráva':'Další zprávy ('+hidden.length+')')+' vpravo v budoucnosti',hidden[0].event.title+' · '+eventTime(hidden[0].event),'Klikni pro posun grafu na ni']}
-   else if(id.startsWith('p:')){const t=L.paper.get(id.slice(2));if(t)text=['Simulace '+(t.variant??'A')+' · '+(t.direction==='long'?'Long':'Short')+' · jistota '+t.confidence+' %','Vstup '+fmtPrice(t.entry)+' · SL '+fmtPrice(t.sl)+' · TP '+(t.tp>0?fmtPrice(t.tp):'–'),t.closed!==null?'Výstup '+(t.exit!==null?fmtPrice(t.exit):'–')+' ('+(PAPER_EXIT[t.exitReason??'']??'')+') · '+paperR(t.r??0)+' · '+paperKc(t.pnlCzk??0):t.mark?'Teď '+paperR(t.mark.r)+' · '+paperKc(t.mark.pnlCzk):'Otevřená pozice','Klikni pro detail v Laboratoři']}
+   else if(id.startsWith('p:')){const t=L.paper.get(id.slice(2));if(t){const sl=simLab.current(t.variant??'A');text=['Simulace '+simHead(sl)+' · '+sl.familyLabel,(t.direction==='long'?'Long':'Short')+' · jistota '+t.confidence+' %','Vstup '+fmtPrice(t.entry)+' · SL '+fmtPrice(t.sl)+' · TP '+(t.tp>0?fmtPrice(t.tp):'–'),t.closed!==null?'Výstup '+(t.exit!==null?fmtPrice(t.exit):'–')+' ('+(PAPER_EXIT[t.exitReason??'']??'')+') · '+paperR(t.r??0)+' · '+paperKc(t.pnlCzk??0):t.mark?'Teď '+paperR(t.mark.r)+' · '+paperKc(t.mark.pnlCzk):'Otevřená pozice','Klikni pro detail v Laboratoři']}}
    else if(id.startsWith('t:')){const t=L.trades.get(id.slice(2));if(t)text=[(t.side==='buy'?'Buy':t.side==='sell'?'Sell':'Ruční obchod')+' · '+tradeResult(t)+(t.r!==null?' · '+fmtMoney(t.pnl,t.currency):''),(t.openPrice!==null?'Vstup '+fmtPrice(t.openPrice):'')+(t.closePrice!==null?' → výstup '+fmtPrice(t.closePrice):''),'Klikni pro detail v Deníku'].filter(Boolean)}
    const w=el.current?.clientWidth||0;setTip(text.length?{x:p.point.x,y:p.point.y,flip:p.point.x>w*.6,lines:text,id}:null);
   });
@@ -710,6 +718,8 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    {data.stale&&bars.length>0&&<span className="mc-stale" role="status">Ceny mohou být zpožděné{data.updated?' · stav '+new Date(data.updated).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>}
    {tradesError&&layers.trades&&<span className="mc-stale">Obchody se nepodařilo načíst.</span>}
    {blocked&&<span className="mc-stale" role="status">Prohlížeč zablokoval nové okno – povol pro Tradee vyskakovací okna.</span>}
+   {lab&&layers.paper&&paper.length>0&&(()=>{const pv=prefs.paperVariant,vs=[...new Set(paper.map(t=>t.variant??'A'))].filter(v=>pv==='all'||v===pv).sort((a,b)=>familyOrder(a)-familyOrder(b)||a.localeCompare(b));
+    return vs.length?<span className="mc-legend mc-sim-legend" aria-label="Legenda simulace">{vs.map(v=>{const l=simLabFor(v);return <span key={v} title={l.text}><i className="mc-swatch" style={{background:simColorOf(v)}}/><span className={'lb-fam sm '+l.cls}>{l.familyLabel}</span>{simHead(l)}</span>})}</span>:null})()}
    {layers.news&&<span className="mc-legend mc-news-legend"><span><i className="mc-ndot high"/>silná zpráva</span><span><i className="mc-ndot mid"/>střední</span><span><i className="mc-nbadge">US</i>nadcházející dole · klik = detail a reakce trhu</span></span>}
    {layers.sessions&&sessOk&&sessSel.length>0&&<span className="mc-legend">{sessSel.map((id:SessionId)=><span key={id} title={SESSION_PRESETS[id].hint}><i className="mc-swatch" style={{background:SESSION_PRESETS[id].color}}/>{SESSION_PRESETS[id].label}</span>)}<span>čas trhu s letním časem</span></span>}
    {isFp&&fp?.error&&bars.length>0&&<span className="mc-stale" role="status">{fp.error} Zobrazuji poslední uložená data.</span>}

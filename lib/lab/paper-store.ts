@@ -5,6 +5,7 @@ import {PAPER_RULES,PAPER_VARIANTS,isVoid,VARIANT_IDS,SWEEP_VARIANT_IDS,RULE_VAR
 import {normalizeCombo,comboIndex,type SweepCombo} from './sweep.ts';
 import {validateGenome,type Genome} from './agents.ts';
 import {validateDef,type StrategyDef} from './rules-def.ts';
+import {simLabel,type RuleMeta,type DefLabel} from './sim-labels.ts';
 
 export const toSql=(ms:number,frac=false)=>{const s=new Date(ms).toISOString().replace('T',' ');return frac?s.slice(0,23):s.slice(0,19)};
 export const fromSql=(s:unknown)=>s===null||s===undefined?null:Date.parse(String(s).replace(' ','T')+(String(s).endsWith('Z')?'':'Z'));
@@ -16,7 +17,8 @@ export type SweepOrigin={sweepId:string|null;combo:number;params:SweepCombo;is:R
 // agent = genom a původ agenta populace G01… (rules.genome + rules.meta); u ostatních null
 export type AgentMeta={gen:number;parent:string|null;origin:string;retired?:string|null};
 // rule = agent pravidlové strategie R… (id a zmrazená verze definice + výsledek testu v době spuštění)
-export type RuleOrigin={defId:string;version:number;runId:string|null;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;chance:number|null;robust:boolean;at:string};
+// sourceLabel = zdroj definice v době spuštění (lab_strategy_defs.source_label; chybí u agentů spuštěných dřív → dohledá se podle defId)
+export type RuleOrigin={defId:string;version:number;runId:string|null;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;chance:number|null;robust:boolean;at:string;sourceLabel?:string|null};
 export type PaperAccount={variant:VariantId;startEquity:number;started:number;rulesVersion:string;active:boolean;sweep:SweepOrigin|null;agent:{genome:Genome;meta:AgentMeta}|null;rule:{def:StrategyDef;origin:RuleOrigin}|null};
 type AccRow={variant:string;start_equity:number;started:string;rules_version:string;active:number;rules:string|null};
 const toAcc=(r:AccRow):PaperAccount=>{const j=json<{sweep?:unknown;origin?:SweepOrigin;genome?:unknown;meta?:AgentMeta;rule?:{def?:unknown;origin?:RuleOrigin}}>(r.rules,{}),c=normalizeCombo(j.sweep),g=isAgentVariant(r.variant)?validateGenome(j.genome):null;
@@ -151,15 +153,23 @@ export async function paperAll(d:Db,uid:string,quotes:Quotes){
   return {variant:v,V,account,trades:mine,stats:paperStats(mine,start,openPnl,eq),equity:eq,open,closed};
  });
 }
+// označení agenta R… (lib/lab/sim-labels.ts simLabel): název a verze definice z neměnné kopie, zdroj z kopie (dohledání podle defId v API), směr
+export function ruleMetaOf(V:PaperVariant,acc:PaperAccount|null):RuleMeta|null{
+ if(!V.rule)return null;
+ return {defId:V.rule.defId,name:V.rule.def.name,version:V.rule.def.version,sourceLabel:acc?.rule?.origin.sourceLabel??null,side:V.rule.def.entry.side};
+}
+// označení účtu (rodina, u R… název definice, verze, zdroj z kopie nebo dohledaný podle defId, směr)
+export const simLabelOf=(V:PaperVariant,acc:PaperAccount|null,defs?:Record<string,DefLabel|undefined>|null)=>simLabel({id:V.id,name:V.name,rule:ruleMetaOf(V,acc)},defs);
 export async function paperView(d:Db,uid:string,quotes:Quotes,variant:VariantId='A'){
  const [all,log]=await Promise.all([paperAll(d,uid,quotes),listLog(d,uid,variant)]);
  const me=all.find(x=>x.variant===variant);
  if(!me)return null;
- const variants=all.map(({V,...x})=>({id:x.variant,name:V.name,kind:V.kind,rulesVersion:x.account?.rulesVersion??V.rulesVersion,started:x.account?.started??null,startEquity:x.account?.startEquity??V.rules.startEquity,stats:x.stats,equity:x.equity,sweep:x.account?.sweep??null}));
+ const variants=all.map(({V,...x})=>({id:x.variant,name:V.name,kind:V.kind,rulesVersion:x.account?.rulesVersion??V.rulesVersion,started:x.account?.started??null,startEquity:x.account?.startEquity??V.rules.startEquity,stats:x.stats,equity:x.equity,sweep:x.account?.sweep??null,
+  rule:ruleMetaOf(V,x.account)}));
  return {variant,V:me.V,account:me.account,stats:me.stats,equity:me.equity,open:me.open,closed:me.closed,log,variants};
 }
 export async function paperSummary(d:Db,uid:string,quotes:Quotes){
- const [all,weekly]=await Promise.all([paperAll(d,uid,quotes),lastWeekly(d,uid).catch(()=>null)]);
- const parts=all.map(x=>paperSummaryMd({started:x.account?.started??null,stats:x.stats,open:x.open,closed:x.closed,variant:x.V}));
+ const [all,weekly,defs]=await Promise.all([paperAll(d,uid,quotes),lastWeekly(d,uid).catch(()=>null),import('./strat-store.ts').then(m=>m.defLabels(d,uid)).catch(()=>({}))]);
+ const parts=all.map(x=>paperSummaryMd({started:x.account?.started??null,stats:x.stats,open:x.open,closed:x.closed,variant:x.V,label:simLabelOf(x.V,x.account,defs)}));
  return parts.join('\n')+(weekly?`\n## Poslední týdenní souhrn simulace (${toSql(weekly.at)} UTC)\n\n${weekly.text}\n`:'');
 }

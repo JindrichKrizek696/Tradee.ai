@@ -3,6 +3,7 @@
 import {paperStats,maxDrawdownPct,validTrades,signed,fmtCzk,type PaperTrade,type PaperEquityPoint,type PaperStats,type VariantId} from './paper.ts';
 import {fitnessOf,genomeText,canKill,MIN_TRADES_TO_KILL,type Genome} from './agents.ts';
 import {knownKey,type KnownCombo} from './known-grid.ts';
+import {simLabel,simHead,groupSims,familyLegend,familyInfo,NO_SOURCE,type SimLabel} from './sim-labels.ts';
 
 const WEEK=7*86400000;
 const r2=(v:number|null|undefined)=>v===null||v===undefined?'–':signed(v,2)+' R';
@@ -25,7 +26,7 @@ export {maxDrawdownPct};
 
 export type EvolutionRow={gen:number;at:number;agent:string;parent:string|null;genome:Genome|null;action:string;reason:string;fitness:number|null};
 export type KnownSumIn={family:string;label:string;skipped:string|null;key:string|null;robust:boolean;beatsChance:boolean;isAvg:number|null;oosAvg:number|null;oosN:number;oosPf:number|null;oosDd:number;chance:number|null};
-export type VariantSumIn={id:VariantId|string;name:string;stats:PaperStats;started:number|null};
+export type VariantSumIn={id:VariantId|string;name:string;stats:PaperStats;started:number|null;label?:SimLabel}; // label = rodina, u R… definice, verze, zdroj, směr
 export type ReportInput={now:number;agents:AgentRow[];trades:Record<string,PaperTrade[]>;evolution:EvolutionRow[];
  known:{created:string;rows:KnownSumIn[]}|null;sweep:{created:string;robust:number;chance:number|null;top:{key:string;oosAvg:number|null;oosN:number|null}[]}|null;
  variants:VariantSumIn[];open:(PaperTrade&{variant?:string;mark?:{r:number;pnlCzk:number}|null})[]};
@@ -33,7 +34,8 @@ const clip=(s:string,n=420)=>s.replace(/\s+/g,' ').trim().slice(0,n);
 // markdown report pro analytika: statistiky agentů, nejlepší/nejhorší obchody s „proč“, evoluce, sweep a známé strategie, A–D/S, otevřené pozice
 export function buildAgentReport(x:ReportInput):string{
  const out:string[]=[`# Týdenní podklady pro analýzu agentů – ${iso(x.now)} UTC`,'',
-  'Data jsou z papírového obchodování (virtuální účty 100 000 Kč, P&L = R × riziko). Malé vzorky: < 30 obchodů je statisticky slabé, < 8 = agent se teprve učí.',''];
+  'Data jsou z papírového obchodování (virtuální účty 100 000 Kč, P&L = R × riziko). Malé vzorky: < 30 obchodů je statisticky slabé, < 8 = agent se teprve učí.',
+  familyLegend()+` Žebříček níže = agenti G… (${familyInfo('evo').label}).`,''];
  const rows=rankAgents(x.agents),act=rows.filter(a=>a.active),arch=rows.filter(a=>!a.active);
  out.push(`## Žebříček aktivních agentů (${act.length})`,'','| # | agent | gen | rodič | týden R | týden Kč | obch. celkem | win % | průměr R | celkem R | DD % | fitness | genom |','|---|---|---|---|---|---|---|---|---|---|---|---|---|');
  act.forEach((a,i)=>out.push(`| ${i+1} | ${a.id}${a.learning?' (učí se)':''} | ${a.meta.gen} | ${a.meta.parent??'–'} | ${signed(a.weekR,2)} | ${fmtCzk(a.weekPnl)} | ${a.stats.trades} | ${a.stats.winRate??'–'} | ${a.stats.avgR??'–'} | ${a.stats.totalR} | ${a.stats.maxDrawdownPct} | ${a.fitness} | ${genomeText(a.genome)} |`));
@@ -56,12 +58,16 @@ export function buildAgentReport(x:ReportInput):string{
  out.push('## Hledání prahů (sweep technického kompozitu)','');
  if(!x.sweep)out.push('_Sweep ještě neproběhl._','');
  else{out.push(`Spočítáno ${x.sweep.created}: robustních ${x.sweep.robust}, hranice náhody ${x.sweep.chance??'–'} R.`);for(const t of x.sweep.top)out.push(`- ${t.key}: OOS ${t.oosN} obch., ${r2(t.oosAvg)}`);out.push('')}
- out.push('## Varianty simulace A–D a S… (srovnání)','','| varianta | od | obch. | win % | průměr R | celkem R | výnos % | DD % |','|---|---|---|---|---|---|---|---|');
- for(const v of x.variants)out.push(`| ${v.id} – ${v.name} | ${v.started===null?'neběží':iso(v.started).slice(0,10)} | ${v.stats.trades} | ${v.stats.winRate??'–'} | ${v.stats.avgR??'–'} | ${v.stats.totalR} | ${v.stats.returnPct} | ${v.stats.maxDrawdownPct} |`);
+ // skupiny podle rodiny a zdroje (Strategie z podkladů), uvnitř podle celkového R
+ out.push('## Varianty simulace A–D, S… a R… (srovnání podle rodiny a zdroje)','','| rodina | zdroj | varianta | od | obch. | win % | průměr R | celkem R | výnos % | DD % |','|---|---|---|---|---|---|---|---|---|---|');
+ const labOf=(v:VariantSumIn)=>v.label??simLabel({id:String(v.id),name:v.name});
+ for(const g of groupSims(x.variants,labOf,v=>v.stats.totalR))for(const sg of g.sources)for(const v of sg.items){const l=labOf(v);
+  out.push(`| ${g.familyLabel} | ${l.family==='rule'?sg.source??NO_SOURCE:'–'} | ${simHead(l)} | ${v.started===null?'neběží':iso(v.started).slice(0,10)} | ${v.stats.trades} | ${v.stats.winRate??'–'} | ${v.stats.avgR??'–'} | ${v.stats.totalR} | ${v.stats.returnPct} | ${v.stats.maxDrawdownPct} |`)}
  const open=validTrades(x.open);
  out.push('',`## Otevřené pozice (${open.length})`,'');
  if(!open.length)out.push('_Žádné._');
- for(const t of open)out.push(`- ${t.variant??'A'} · ${t.instrument} ${t.direction} od ${iso(t.opened)}${t.mark?` → ${r2(t.mark.r)} / ${fmtCzk(t.mark.pnlCzk)}`:''}: ${clip(t.why,200)}`);
+ const famOf=(v:string)=>{const l=x.variants.find(y=>y.id===v)?.label;return l?simHead(l)+' · '+l.familyLabel:simLabel({id:v}).familyLabel};
+ for(const t of open)out.push(`- ${t.variant??'A'} (${famOf(t.variant??'A')}) · ${t.instrument} ${t.direction} od ${iso(t.opened)}${t.mark?` → ${r2(t.mark.r)} / ${fmtCzk(t.mark.pnlCzk)}`:''}: ${clip(t.why,200)}`);
  return out.join('\n').trim()+'\n';
 }
 // krátký blok do „Shrnutí pro AI“

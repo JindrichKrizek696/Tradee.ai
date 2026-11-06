@@ -7,6 +7,8 @@ import {fmtNum} from '@/lib/journal/format';
 import {EquityChart,type Series} from '../journaling/backtest/equity-chart';
 import {familyDef} from '@/lib/lab/known-grid';
 import type {Genome} from '@/lib/lab/agents';
+import {voidLabel,simLabel} from '@/lib/lab/sim-labels';
+import {FamLegend,SimName} from './sim-badge';
 // popisky lokálně (lib/lab/agents.ts tahá engine a skóre – do prohlížeče ho nevozíme)
 const FAMILY_LABEL=(f:string)=>f==='score'?'Skóre Tradee':familyDef(f)?.label??f;
 const AGENT_SET_LABELS:Record<string,string>={fx:'FX páry',ci:'Komodity + indexy',all:'FX + komodity + indexy',crypto:'Krypto'};
@@ -25,24 +27,27 @@ const CLS:Series['cls'][]=['b','c','d','e','f'];
 async function call<T>(url:string):Promise<T>{const r=await fetch(url,{cache:'no-store'});const j=await r.json().catch(()=>({})) as {error?:string};if(!r.ok)throw Object.assign(new Error(j.error||'Načtení se nepovedlo.'),{status:r.status});return j as T}
 
 export function AgentsTab({initial}:{initial?:Data}={}){
- const [data,setData]=useState<Data|null>(initial??null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[sel,setSel]=useState<string|null>(null),[detail,setDetail]=useState<Detail|null>(null),[showEval,setShowEval]=useState(false);
+ const [data,setData]=useState<Data|null>(initial??null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[sel,setSel]=useState<string|null>(null),[detail,setDetail]=useState<Detail|null>(null),[showEval,setShowEval]=useState(false),[sort,setSort]=useState<'r'|'fit'>('r');
  const load=useCallback(()=>{call<Data>('/api/laborator/agents').then(j=>{setData(j);setErr('')}).catch(e=>{if((e as {status?:number}).status===503)setMissing(true);else setErr((e as Error).message)})},[]);
  useEffect(()=>{if(initial)return;load();const t=setInterval(()=>{if(document.visibilityState==='visible')load()},5*60000);return()=>clearInterval(t)},[load,initial]);
  useEffect(()=>{if(!sel){setDetail(null);return}setDetail(null);call<Detail>('/api/laborator/agents?agent='+encodeURIComponent(sel)).then(setDetail).catch(e=>setErr((e as Error).message))},[sel]);
  const series=useMemo(()=>{if(!data)return [];const out:Series[]=[];
-  if(data.bench.started!==null&&data.bench.equity.length)out.push({label:'A – benchmark',points:[{t:data.bench.started,equity:100000},...data.bench.equity],cls:'a'});
-  data.top.forEach((id,i)=>{const r=data.agents.find(a=>a.id===id);if(r?.equity)out.push({label:`${id} – ${FAMILY_LABEL(r.genome.family)}`,points:[{t:r.started,equity:100000},...r.equity],cls:CLS[i]})});
+  if(data.bench.started!==null&&data.bench.equity.length)out.push({label:'A – benchmark (Tradee skóre)',points:[{t:data.bench.started,equity:100000},...data.bench.equity],cls:'a'});
+  data.top.forEach((id,i)=>{const r=data.agents.find(a=>a.id===id);if(r?.equity)out.push({label:`${id} – ${FAMILY_LABEL(r.genome.family)} (evoluce)`,points:[{t:r.started,equity:100000},...r.equity],cls:CLS[i]})});
   // benchmark jen od startu populace, ať se křivky dají porovnat
   const from=Math.min(...data.agents.map(a=>a.started));if(Number.isFinite(from)&&out[0]?.cls==='a')out[0]={...out[0],points:out[0].points.filter(p=>p.t>=from-86400000)};
   return out.filter(s=>s.points.length>1)},[data]);
  if(missing)return <section className="mt-card"><p className="mt-alert">Agenti ještě nejdou – chybí migrace databáze (0030_lab_agents.sql).</p></section>;
  if(!data)return <section className="mt-card">{err?<p className="mt-alert" role="alert">{err}</p>:<p className="mt-empty">Načítám…</p>}</section>;
- const active=data.agents.filter(a=>a.active),archived=data.agents.filter(a=>!a.active),name=(id:string)=>data.names[id]||id;
+ // řazení: celkové R (výchozí) nebo fitness evoluce; # = pořadí podle fitness (rozhoduje evoluce)
+ const byR=(x:Row[])=>sort==='fit'?x:[...x].sort((p,q)=>q.stats.totalR-p.stats.totalR||p.id.localeCompare(q.id));
+ const fitRank=new Map(data.agents.filter(a=>a.active).map((a,i)=>[a.id,i+1]));
+ const active=byR(data.agents.filter(a=>a.active)),archived=byR(data.agents.filter(a=>!a.active)),name=(id:string)=>data.names[id]||id;
  const evo=data.evolution.filter(e=>showEval||e.action!=='evaluate');
- const head=<tr><th>#</th><th>Agent</th><th>Týden</th><th>Celkem</th><th>Obchody</th><th>Win rate</th><th>Průměr R</th><th>Max. DD</th><th>Fitness</th><th>Gen.</th><th>Rodič</th></tr>;
+ const head=<tr><th title="pořadí podle fitness">#</th><th>Agent</th><th>Týden</th><th>Celkem</th><th>Obchody</th><th>Win rate</th><th>Průměr R</th><th>Max. DD</th><th>Fitness</th><th>Gen.</th><th>Rodič</th></tr>;
  const row=(a:Row,i:number)=><Fragment key={a.id}><tr className={sel===a.id?'lb-sel':''}>
-  <td>{i+1}</td>
-  <td><button className="lb-link lb-exp" aria-expanded={sel===a.id} onClick={()=>setSel(s=>s===a.id?null:a.id)}>{sel===a.id?<ChevronDown size={14}/>:<ChevronRight size={14}/>}{a.id} – {FAMILY_LABEL(a.genome.family)}</button><small>{a.genomeText}</small>{a.learning&&<span className="lb-badge">učí se</span>}{a.active&&a.killable&&<span className="lb-badge no">k vyřazení</span>}</td>
+  <td>{a.active?fitRank.get(a.id)??i+1:i+1}</td>
+  <td><button className="lb-link lb-exp" aria-expanded={sel===a.id} onClick={()=>setSel(s=>s===a.id?null:a.id)}>{sel===a.id?<ChevronDown size={14}/>:<ChevronRight size={14}/>}<SimName l={simLabel({id:a.id,name:FAMILY_LABEL(a.genome.family)+(a.genome.v?' · '+a.genome.v:'')})}/></button><small>{a.genomeText}</small>{a.learning&&<span className="lb-badge">učí se</span>}{a.active&&a.killable&&<span className="lb-badge no">k vyřazení</span>}</td>
   <td className={sgn(a.weekR)}>{r2(a.weekR)}<small>{kc(a.weekPnl)} · {a.weekTrades} obch.</small></td>
   <td className={sgn(a.stats.returnPct)}>{kc(a.stats.equity-a.stats.startEquity)}<small>{fmtNum(a.stats.returnPct,2)} % · {r2(a.stats.totalR)}</small></td>
   <td>{a.stats.trades}{a.stats.open?<small>+{a.stats.open} otevř.</small>:null}</td><td>{a.stats.winRate===null?'–':fmtNum(a.stats.winRate,1)+' %'}</td>
@@ -55,7 +60,7 @@ export function AgentsTab({initial}:{initial?:Data}={}){
    <p className="lb-meta">Původ: {a.meta.origin||'–'}{a.meta.parent?` · rodič ${a.meta.parent}`:''}. Pravidla agenta se po založení nemění – změna = nový agent.</p>
    <ul className="lb-notes">{detail.agent.text.map(t=><li key={t}>{t}</li>)}</ul>
    {detail.trades.length>0&&<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Trh</th><th>Směr</th><th>Otevřeno</th><th>Zavřeno</th><th>Důvod</th><th>R</th><th>Kč</th></tr></thead>
-    <tbody>{detail.trades.slice(0,40).map(t=><tr key={t.id} title={t.why} className={t.voidReason?'lb-dim':undefined}><td>{name(t.instrument)}</td><td>{t.direction}</td><td>{when(t.opened)}</td><td>{t.closed===null?'otevřeno':when(t.closed)}</td><td>{t.voidReason?<span className="lb-badge">neplatný – zavřený trh</span>:t.exitReason??'–'}</td>
+    <tbody>{detail.trades.slice(0,40).map(t=><tr key={t.id} title={t.why} className={t.voidReason?'lb-dim':undefined}><td>{name(t.instrument)}</td><td>{t.direction}</td><td>{when(t.opened)}</td><td>{t.closed===null?'otevřeno':when(t.closed)}</td><td>{t.voidReason?<span className="lb-badge">{voidLabel(t.voidReason)}</span>:t.exitReason??'–'}</td>
      <td className={sgn(t.r??t.mark?.r??null)}>{r2(t.r??t.mark?.r??null)}</td><td className={sgn(t.pnlCzk??t.mark?.pnlCzk??null)}>{kc(t.pnlCzk??t.mark?.pnlCzk??null)}</td></tr>)}</tbody></table></div>}
    {detail.log.length>0&&<details className="lb-details"><summary>Deník agenta ({detail.log.length})</summary><ul className="lb-log">{detail.log.map((l,i)=><li key={i}><time>{when(l.at)}</time> {l.text}</li>)}</ul></details>}
   </div>}</td></tr>}
@@ -66,6 +71,9 @@ export function AgentsTab({initial}:{initial?:Data}={}){
    <p className="mt-lead">{active.length} aktivních agentů po 100 000 Kč obchoduje každých 15 minut, každý podle vlastního genomu (rodina strategie + parametry). V neděli v 18:15 evoluce: top 3 dostanou potomka s malou mutací, agent s aspoň 20 obchody a průměrem pod −0,1 R může být archivován. Fitness = R za týden + 0,5 × průměr R × √obchodů − penalizace DD nad 5 %.</p>
    {err&&<p className="mt-alert" role="alert">{err}</p>}
    {!data.agents.length?<p className="mt-empty">Populace ještě nevznikla. Na VPS: <code>node --experimental-strip-types scripts/lab-evolve.mjs --seed</code></p>:<>
+    <FamLegend only={['evo','score']}/>
+    <p className="lb-hint">Všichni agenti tady patří do rodiny „Známé strategie / evoluce“ (G…); A v grafu je benchmark z rodiny „Tradee skóre“. Agenti strategií z podkladů (R…) jsou v Simulaci.</p>
+    <div className="lb-filters"><select aria-label="Řazení agentů" value={sort} onChange={e=>setSort(e.target.value==='fit'?'fit':'r')}><option value="r">Řadit podle celkového R</option><option value="fit">Řadit podle fitness</option></select></div>
     <div className="lb-scroll"><table className="mt-table lb-table lb-compare"><thead>{head}</thead><tbody>{active.map(row)}</tbody></table></div>
     {series.length?<EquityChart series={series} fmt={v=>fmtNum(Math.round(v),0)+' Kč'} base={100000}/>:<p className="mt-empty">Křivky se ukážou po prvních bězích.</p>}
    </>}

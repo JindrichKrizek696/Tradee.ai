@@ -70,7 +70,7 @@ function GroupRow({g,bars,bn}:{g:GroupDiag;bars:number;bn:boolean}){
 function Waterfall({s,lim}:{s:Stages;lim:boolean}){
  const top=Math.max(1,s.allRequired);
  const rows:[string,number,'in'|'out'|'sub'][]=[['Všechny povinné podmínky splněné',s.allRequired,'in'],['− platí long i short zároveň',s.both,'out'],['− na trhu už běží pozice / příkaz',s.busy,'out'],
-  ['Nalezená nastavení',s.setups,'in'],['− hodnocení pod minimem',s.skipRating,'out'],['− R:R pod minimem',s.skipRR,'out'],['− překážka před cílem',s.skipObstacle,'out'],['− chybí úroveň / stop na špatné straně',s.skipLevel,'out'],
+  ['Nalezená nastavení',s.setups,'in'],['− hodnocení pod minimem',s.skipRating,'out'],['− R:R pod minimem',s.skipRR,'out'],['− překážka před cílem',s.skipObstacle,'out'],['− chybí úroveň / stop na špatné straně',s.skipLevel,'out'],['− skip: stop pod minimem',s.skipMinStop??0,'out'],
   [lim?'Zadané limitní příkazy':'Pokusy o vstup na close',s.placed,'in'],
   [lim?'· dotyků mimo vstupní okno seance':'− mimo vstupní okno seance',s.blockSession,lim?'sub':'out'],[lim?'· dotyků v okně zpráv':'− zprávy',s.blockNews,lim?'sub':'out'],
   ['− plno (max. otevřených pozic)',s.blockFull,'out'],['− limit obchodů za den / týden',s.blockTrades,'out'],['− ztrátové stopky (stop-den, denní / týdenní limit)',s.blockLoss,'out'],

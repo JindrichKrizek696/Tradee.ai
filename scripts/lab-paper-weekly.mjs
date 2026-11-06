@@ -33,7 +33,9 @@ if(!force&&!dry){const last=await ps.lastWeekly(d,uid);if(last&&now-last.at<20*3
 const {liveQuotes}=await import('../lib/live-store.ts');
 const quotes={};for(const [id,q] of Object.entries((await liveQuotes(d).catch(()=>({quotes:{}}))).quotes))quotes[id]={price:q.price,marketTime:q.marketTime};
 const all=await ps.paperAll(d,uid,quotes);
-const s=weeklySummary(all.map(x=>({id:x.variant,name:x.V.name,started:x.account?.started??null,startEquity:x.account?.startEquity??100000,stats:x.stats,equity:x.equity,trades:x.trades,open:x.open})),now);
+// označení účtů podle rodiny (u R… název definice, verze, zdroj a směr; zdroj starších agentů dohledaný podle defId)
+const defs=await import('../lib/lab/strat-store.ts').then(m=>m.defLabels(d,uid)).catch(()=>({}));
+const s=weeklySummary(all.map(x=>({id:x.variant,name:x.V.name,label:ps.simLabelOf(x.V,x.account,defs),started:x.account?.started??null,startEquity:x.account?.startEquity??100000,stats:x.stats,equity:x.equity,trades:x.trades,open:x.open})),now);
 
 if(dry){
  console.log('PUSH  ',s.pushTitle,'|',s.pushBody);

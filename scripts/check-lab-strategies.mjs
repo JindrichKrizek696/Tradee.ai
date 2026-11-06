@@ -8,8 +8,10 @@
 import {readFileSync} from 'node:fs';
 import * as B from '../lib/lab/strat-blocks.ts';
 import {validateDef,parseDefJson,applyOverrides,defRuns,BLOCKS,BLOCK_IDS,defOutline} from '../lib/lab/rules-def.ts';
+import {minStopOf,minStopDist,minStopAt,entryAtrAt,SKIP_MIN_STOP,MIN_STOP_K_SPREAD,MIN_STOP_K_ATR} from '../lib/lab/strat-engine.ts';
+import {spreadPrice,DEFAULT_RULES} from '../lib/backtest/rules.ts';
 import {prepare,compile,simulate,planAt,signalAt,SKIP_RR,SKIP_OBSTACLE,SKIP_NO_ZONE,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32,condFunnel,buildDiag,mergeDiag,pickSamples,STAGE_KEYS} from '../lib/lab/strat-engine.ts';
-import {versionPlan,importDef,saveDef,saveRun,getRun,listDefs} from '../lib/lab/strat-store.ts';
+import {versionPlan,importDef,saveDef,saveRun,getRun,listDefs,getDef,setSourceLabel,defLabels} from '../lib/lab/strat-store.ts';
 import {ruleVariant,paperStep,checkExit,isRuleVariant,isVariantId,RULE_VARIANT_IDS} from '../lib/lab/paper.ts';
 import {labGate} from '../lib/lab/access.ts';
 const fails=[];
@@ -491,7 +493,7 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
 {
  const stageSums=(s,lim)=>{const e=[];
   if(s.allRequired!==s.both+s.busy+s.setups)e.push('allRequired');
-  if(s.setups!==s.skipRating+s.skipRR+s.skipObstacle+s.skipLevel+s.placed)e.push('setups');
+  if(s.setups!==s.skipRating+s.skipRR+s.skipObstacle+s.skipLevel+s.skipMinStop+s.placed)e.push('setups');
   const tail=s.opened+s.blockFull+s.blockTrades+s.blockLoss+(lim?s.expired+s.pendingAtEnd:s.blockSession+s.blockNews);
   if(s.placed!==tail)e.push('placed');return e};
  const dLim=validateDef({...ALL_DEF,risk:{basePct:1,minRating:0},targets:{type:'r',r:2,minRR:0},filters:{maxTradesPerDay:1,maxOpen:1,stopAfterLosses:1,news:{minutes:30,minSignal:3}},markets:['EUR/USD','GBP/USD']}).def;
@@ -551,6 +553,7 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
   async all(){
    if(/FROM lab_strategy_defs WHERE user_id=\? AND name=\?/.test(sql))return {results:defs.filter(r=>r.user_id===p[0]&&r.name===p[1]).sort((a,b)=>b.version-a.version)};
    if(/FROM lab_strategy_defs WHERE user_id=\? ORDER BY/.test(sql))return {results:defs.filter(r=>r.user_id===p[0])};
+   if(/SELECT id,name,version,source_label FROM lab_strategy_defs WHERE user_id=\?$/.test(sql))return {results:defs.filter(r=>r.user_id===p[0])};
    if(/SELECT id FROM lab_strategy_runs WHERE user_id=\? AND def_id=\?/.test(sql))return {results:runs.filter(r=>r.user_id===p[0]&&r.def_id===p[1]).reverse()};
    throw Error('fake all: '+sql)},
   async first(){
@@ -559,7 +562,8 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
    if(/FROM lab_strategy_runs WHERE user_id=\? AND def_id=\? ORDER BY created DESC LIMIT 1/.test(sql))return runs.filter(r=>r.user_id===p[0]&&r.def_id===p[1]).at(-1)??null;
    throw Error('fake first: '+sql)},
   async run(){
-   if(/INSERT INTO lab_strategy_defs/.test(sql)){const [id,user_id,name,version,def,created,updated]=p;defs.push({id,user_id,name,version,def,created,updated,notes:null});return {meta:{changes:1}}}
+   if(/INSERT INTO lab_strategy_defs/.test(sql)){const [id,user_id,name,version,def,created,updated]=p;defs.push({id,user_id,name,version,def,created,updated,notes:null,source_label:null});return {meta:{changes:1}}}
+   if(/UPDATE lab_strategy_defs SET source_label=\? WHERE user_id=\? AND id=\?/.test(sql)){const r=defs.find(x=>x.user_id===p[1]&&x.id===p[2]);if(r)r.source_label=p[0];return {meta:{changes:r?1:0}}}
    if(/INSERT INTO lab_strategy_runs/.test(sql)){const [id,user_id,def_id,version,params,result,summary,created]=p;runs.push({id,user_id,def_id,version,params,result,summary,created});return {meta:{changes:1}}}
    if(/DELETE FROM lab_strategy_runs WHERE id=\?/.test(sql)){const k=runs.findIndex(r=>r.id===p[0]);if(k>=0)runs.splice(k,1);return {meta:{changes:k>=0?1:0}}}
    throw Error('fake run: '+sql)}})}}};
@@ -576,6 +580,12 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
  check('úprava staré verze v editoru: nová verze v3 (max + 1), v1 i v2 zůstávají',e1.changed&&e1.version===3&&(await listDefs(db,uid)).length===3);
  const e2=await saveDef(db,uid,e1.id,{...raw,targets:{type:'r',r:4}},Date.UTC(2024,0,6));
  check('uložení beze změny obsahu: stejná verze',!e2.changed&&e2.id===e1.id&&e2.version===3);
+ // zdroj definice (migrace 0044): uložení, očištění, převzetí novou verzí, dohledání podle id, cizí uživatel nic nezmění
+ const okL=await setSourceLabel(db,uid,e1.id,'  Podklad   X  '),foreign=await setSourceLabel(db,'u:2',e1.id,'Y');
+ const e3=await saveDef(db,uid,e1.id,{...raw,targets:{type:'r',r:5}},Date.UTC(2024,0,7)),labels=await defLabels(db,uid),g3=await getDef(db,uid,e3.id);
+ check('zdroj: uložení (očištěný), jen vlastník; nová verze převezme zdroj; defLabels po id',okL&&!foreign&&(await getDef(db,uid,e1.id)).sourceLabel==='Podklad X'&&e3.version===4&&g3.sourceLabel==='Podklad X'&&labels[e3.id]?.sourceLabel==='Podklad X'&&labels[i1.id]?.sourceLabel===null&&labels[e3.id].version===4,{labels,g3:g3?.sourceLabel});
+ await setSourceLabel(db,uid,e3.id,'');
+ check('zdroj: prázdný = bez zdroje',(await getDef(db,uid,e3.id)).sourceLabel===null);
 }
 
 
@@ -854,7 +864,7 @@ function newSt(){return Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}
  const pms=[full,prepare('GBP/USD',gu,'H1')],cps=[cf,compile(def,pms[1],ctxC)];
  const sim=simulate(def,pms,cps,ctxC,{diagFrom:-Infinity,trace:true}),dg=buildDiag(def,pms,cps,sim.stages,-Infinity),t=dg.total,s=t.stages;
  check(`engine se složenou definicí: obchody (${sim.trades.length}), některé se 2 nohami, některé s TP1; součty fází i trychtýře sedí`,sim.trades.length>10&&sim.trades.some(x=>x.legs===2)&&sim.trades.some(x=>x.partial)
-  &&s.placed===s.opened+s.expired+s.pendingAtEnd+s.blockFull+s.blockTrades+s.blockLoss&&s.setups===s.skipRating+s.skipRR+s.skipObstacle+s.skipLevel+s.placed&&t.allRequired===s.allRequired
+  &&s.placed===s.opened+s.expired+s.pendingAtEnd+s.blockFull+s.blockTrades+s.blockLoss&&s.setups===s.skipRating+s.skipRR+s.skipObstacle+s.skipLevel+s.skipMinStop+s.placed&&t.allRequired===s.allRequired
   &&t.conds.filter(c=>c.firstFail!==null).reduce((a,c)=>a+c.firstFail,0)+t.groups.reduce((a,g)=>a+g.firstFail,0)+t.allRequired===t.bars,{n:sim.trades.length,s});
  check('překážka between a min/max cíle se projeví (odmítnutí překážkou)',s.skipObstacle>0,s);
  const st=id=>t.conds.find(c=>c.id===id).stats;
@@ -883,6 +893,47 @@ function newSt(){return Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}
  check('UI: nápověda editoru zmiňuje nové bloky a možnosti, popisky detektorů nových bloků',/daily_bias/.test(ui)&&/sr_cluster/.test(ui)&&/market_on_close/.test(ui)&&/"op":"min"/.test(ui)&&/swingsUsed/.test(dgui)&&/strongestBars/.test(dgui)&&/bullDays/.test(dgui)&&/bothRefsBars/.test(dgui));
  const sc=src('scripts/lab-strategies.mjs'),pp=src('scripts/lab-paper.mjs');
  check('runner a cron simulace načtou svíčky trhů skupiny rs_best',/rs_best/.test(sc)&&/rs_best/.test(pp));
+}
+
+// ======================= 27) minimální vzdálenost stopu (stop min/max úrovní těsně u vstupu → nesmyslné R)
+{
+ // svíčky s rozsahem 0,01 → ATR14 = 0,01; signál long na svíčce 20, vstup 1,00 (close), výchozí minimum = max(3 × spread, 0,25 × 0,01) = 0,0025
+ const rows=Array.from({length:30},()=>[1,1.005,.995,1]);
+ const plan=(lv,def={})=>{const x=runHand(rows,{sig:20,lv,def});return {x,pl:planAt(x.def,x.pm,x.cp,20,1,0,[0])}};
+ const sp=spreadPrice('EUR/USD',1,DEFAULT_RULES),m0=Math.max(3*sp,.25*.01);
+ const a=plan({distal:.999});
+ check('min. stop: výchozí koeficienty 3 × spread a 0,25 × ATR14',MIN_STOP_K_SPREAD===3&&MIN_STOP_K_ATR===.25&&near(minStopOf({spread:sp,atr:.01}),m0)&&near(minStopOf({spread:sp,atr:null}),3*sp)&&near(minStopDist(a.x.def,a.x.pm,20,1),m0)&&near(entryAtrAt(a.x.def,a.x.pm,20),.01,1e-12),{sp,m0});
+ check('min. stop: stop 0,001 od vstupu (pod minimem) → bez obchodu „stop pod minimem“',a.pl.skip===SKIP_MIN_STOP&&SKIP_MIN_STOP==='stop pod minimem',a.pl);
+ const b=plan({distal:.99});
+ check('min. stop: stop 0,01 od vstupu → obchod, plán nese minimum',!('skip' in b.pl)&&near(b.pl.stop,.99)&&near(b.pl.minDist,m0),b.pl);
+ const c=plan({distal:.999},{stop:{from:'x',key:'distal',widenToMin:true}});
+ check('min. stop: widenToMin → stop posunutý přesně na minimum (R počítané z minima)',!('skip' in c.pl)&&near(1-c.pl.stop,m0,1e-12)&&near(c.pl.risk,m0,1e-12),c.pl);
+ const d=plan({distal:.999},{stop:{from:'x',key:'distal',minDistAtr:0,minDistSpread:0}});
+ check('min. stop: definice může minimum vypnout (minDistAtr 0, minDistSpread 0)',!('skip' in d.pl)&&near(d.pl.stop,.999),d.pl);
+ const e=plan({distal:.9985},{stop:{from:'x',key:'distal',minDistAtr:.1}});
+ check('min. stop: vlastní minDistAtr 0,1 (0,001 = 0,1 × ATR) pustí stop 0,0015',!('skip' in e.pl),e.pl);
+ // fáze vstupu: odmítnutí se počítá do skipMinStop a součty sedí
+ const x=runHand(rows,{sig:20,lv:{distal:.999}}),sim=simulate(x.def,[x.pm],[x.cp],{},{diagFrom:0}),st=sim.stages[0];
+ check('min. stop: fáze vstupu skipMinStop = 1, setups = skip… + placed, bez obchodu',STAGE_KEYS.includes('skipMinStop')&&st.skipMinStop===1&&st.setups===st.skipRating+st.skipRR+st.skipObstacle+st.skipLevel+st.skipMinStop+st.placed&&!sim.trades.length&&sim.skips[SKIP_MIN_STOP]===1,st);
+ // vyšší vstupní TF: ATR14 z uzavřených svíček H4 (H1 data)
+ const h1=walk(400,7,Date.UTC(2024,0,8),H,.002),pmh=prepare('EUR/USD',h1,'H1'),dh={data:'H1',tf:{context:'D1',zone:'H4',entry:'H4'},stop:{}};
+ const a4=entryAtrAt(dh,pmh,399),a1=entryAtrAt({...dh,tf:{...dh.tf,entry:'H1'}},pmh,399);
+ check('min. stop: ATR vstupního TF H4 z H1 dat (> ATR H1), krátká historie → jen spread',a4>a1&&a1>0&&entryAtrAt(dh,prepare('EUR/USD',h1.slice(0,8),'H1'),7)===null,{a4,a1});
+ // příklad chyby: USD/JPY stop 0,0036 od vstupu (R kolem 80) je pod 3 × spread
+ check('min. stop: USD/JPY stop 0,0036 od vstupu je pod minimem (3 × spread)',minStopOf({spread:spreadPrice('USD/JPY',150,DEFAULT_RULES),atr:null})>.0036);
+ // okamžik vstupu (scripts/lab-void-tiny-stops.mjs): jen svíčky dokončené před vstupem; bez definice D1 a výchozí koeficienty
+ const db=mk(rows),at=db[20].t+DAY;
+ check('min. stop při vstupu: svíčky do vstupu, bez definice D1 + výchozí koeficienty, bez svíček null',near(minStopAt(null,'EUR/USD',db,at,1),m0)&&near(minStopAt(x.def,'EUR/USD',db,at,1),m0)&&minStopAt(null,'EUR/USD',db,db[0].t,1)===null);
+ // validace polí stopu
+ const ok=validateDef({...BASE,stop:{from:'x',key:'distal',minDistAtr:.5,minDistSpread:2,widenToMin:true}}),bad=validateDef({...BASE,stop:{from:'x',key:'distal',widenToMin:'ano',minDistAtr:-1}});
+ check('min. stop: validace stop.minDistAtr / minDistSpread / widenToMin; staré definice beze změny',ok.ok&&ok.def.stop.minDistAtr===.5&&ok.def.stop.minDistSpread===2&&ok.def.stop.widenToMin===true&&!bad.ok&&bad.errors.some(m=>/widenToMin/.test(m))&&bad.errors.some(m=>/minDistAtr/.test(m))&&!('minDistAtr' in defOf().stop)&&!('widenToMin' in defOf().stop),bad);
+ // živá simulace: nastavení nese minimum, krok agenta R… kontroluje skutečnou cenu vstupu
+ const V=ruleVariant('R05','x',defOf()),now=Date.UTC(2024,0,10,12);
+ const su={key:'k9:1',side:1,type:'market_on_close',sigT:now-10*60000,legs:[{L:1.1,share:1}],stop:1.0995,target:1.12,tp1:null,risk:.0005,rating:0,riskPct:1,sat:['x'],expiresT:now+DAY,minDist:.002};
+ const base={now,startEquity:100000,trades:[],signals:{},quotes:{'EUR/USD':{price:1.1,marketTime:now-60000}},d1:{},news:[],variant:V};
+ const r1=paperStep({...base,ruleSetups:{'EUR/USD':[su]}}),r2=paperStep({...base,ruleSetups:{'EUR/USD':[{...su,widenToMin:true}]}}),r3=paperStep({...base,ruleSetups:{'EUR/USD':[{...su,stop:1.09}]}});
+ check('živý agent R: stop pod minimem → bez obchodu; widenToMin → stop na minimu od skutečného vstupu; daleký stop beze změny',
+  r1.opens.length===0&&r1.skipped.some(k=>k.reason===SKIP_MIN_STOP)&&r2.opens.length===1&&near(r2.opens[0].entry-r2.opens[0].sl,.002,1e-12)&&r3.opens.length===1&&r3.opens[0].sl===1.09,[r1.skipped,r2.opens.map(t=>[t.entry,t.sl])]);
 }
 
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše v pořádku');

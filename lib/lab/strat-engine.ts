@@ -13,6 +13,9 @@
 //  • Plnění = mid ± ½ výchozího spreadu backtestu (lib/backtest/rules.ts spreadPrice) × costs.spreadMult; R = (výstup − vstup)/(vstup − plnění SL)
 //    → zásah původního SL = přesně −1 R na nohu; komise = costs.commissionR odečtená z R.
 //  • Stop = úroveň (nebo vstup / signální svíčka) ∓ atrK × ATR ∓ pct % vzdálenosti vstup–úroveň, nejméně minAtrK × ATR.
+//    Minimální vzdálenost stopu (minStopDist) = max(minDistSpread × výchozí spread trhu, minDistAtr × ATR14 vstupního TF), výchozí 3 a 0,25:
+//    stop blíž ke kterékoli noze → bez obchodu („stop pod minimem“; výrazy min/max úrovní umí skončit těsně u vstupu → nesmyslné R),
+//    jen se stop.widenToMin:true se stop posune na minimum. Stejná kontrola v backtestu i živé simulaci (planAt → liveSetups → paper.ts ruleStep).
 //    Cíl = k R / protilehlý potvrzený swing / úroveň podmínky / proximální hrana nejbližší protilehlé zóny (fallback k R / swing / bez obchodu); R:R pod minRR → bez obchodu; překážka mezi vstupem a cílem blíž než
 //    max(minRR, 1) R → bez obchodu.
 //  • V jedné svíčce: gap přes SL/TP na open → výstup za open; SL i TP v rozsahu → SL (ambiguity 'conservative'; 'optimistic' = TP).
@@ -35,7 +38,7 @@ import {spreadPrice,DEFAULT_RULES} from '../backtest/rules.ts';
 import {MIN_OOS_TRADES,MIN_OOS_PF,IS_FROM,OOS_FROM,median} from './sweep-grid.ts';
 import {zoned as zonedAt} from '../market-hours.ts';
 
-export const STRAT_VERSION='strat-v3'; // v2: ATR bez gapů (auto), statistiky zón při 1. dotyku, skupiny NEBO, cíl zóna; v3: nové bloky a možnosti (staré definice beze změny)
+export const STRAT_VERSION='strat-v4'; // v2: ATR bez gapů (auto), statistiky zón při 1. dotyku, skupiny NEBO, cíl zóna; v3: nové bloky a možnosti (staré definice beze změny); v4: minimální vzdálenost stopu
 const DAY=B.DAY;
 type Side=1|-1;
 
@@ -194,7 +197,23 @@ export function zoneTarget(cp:Compiled,from:string,side:Side,avg:number,i:number
  let best:number|null=null;for(const x of (side>0?z.S:z.L)[i]??B.NO_ZONES){const d=side*(x.proximal-avg);if(d>0&&(best===null||d<side*(best-avg)))best=x.proximal}
  return best;
 }
-export const SKIP_NO_ZONE='chybí cílová zóna';
+export const SKIP_NO_ZONE='chybí cílová zóna',SKIP_MIN_STOP='stop pod minimem';
+// ---- minimální vzdálenost stopu: max(kSpread × výchozí spread trhu u ceny, kAtr × ATR14 vstupního TF); ATR neznámé → jen spread
+export const MIN_STOP_K_SPREAD=3,MIN_STOP_K_ATR=.25,MIN_STOP_ATR_PERIOD=14;
+export function minStopOf(x:{spread:number;atr:number|null;kSpread?:number;kAtr?:number}):number{
+ const a=x.atr!==null&&Number.isFinite(x.atr)&&x.atr>0?x.atr:0;
+ return Math.max((x.kSpread??MIN_STOP_K_SPREAD)*Math.max(0,x.spread),(x.kAtr??MIN_STOP_K_ATR)*a);
+}
+// ATR14 vstupního TF (def.tf.entry) na svíčce i datové řady: vyšší TF = poslední UZAVŘENÁ svíčka vyššího TF, nižší / stejný TF = datová řada
+export function entryAtrAt(def:Pick<StrategyDef,'tf'|'data'>,pm:PM,i:number):number|null{
+ const tf=def.tf?.entry;let v:number;
+ if(!tf||B.TF_MS[tf]<=B.TF_MS[pm.data])v=B.atrOf(pm.E,MIN_STOP_ATR_PERIOD)[i];
+ else{const x=tfData(pm,tf),k=x.done[i];v=k>=0?B.atrOf(x.s,MIN_STOP_ATR_PERIOD)[k]:NaN}
+ return Number.isFinite(v)&&v>0?v:null;
+}
+export function minStopDist(def:Pick<StrategyDef,'tf'|'data'|'stop'>,pm:PM,i:number,price:number):number{
+ return minStopOf({spread:spreadPrice(pm.id,price,DEFAULT_RULES),atr:entryAtrAt(def,pm,i),kSpread:def.stop.minDistSpread,kAtr:def.stop.minDistAtr});
+}
 // úrovňová matematika: zapsáno pro long, short zrcadlově (min ↔ max, posuny ATR / % opačně). base = vstup pro offsetPct a {r};
 // sigBar = úroveň signální svíčky (low long / high short); need 'all' = chybějící úroveň → NaN
 export function evalExpr(cp:Compiled,ex:Pick<LevelExpr,'op'|'of'|'offsetAtr'|'offsetPct'|'need'>,side:Side,i:number,a:number,base:{entry:number;sigBar:number;avg:number;risk:number|null}):number{
@@ -221,6 +240,7 @@ export function riskPctOf(def:StrategyDef,rating:number):number{let p=def.risk.b
 
 // ---- plán obchodu ze signálu (úrovně vstupu, stop, cíl, TP1) – sdílí backtest i živá simulace
 export type Plan={side:Side;legs:{L:number;share:number}[];stop:number;ref:number;target:number|null;tp1:number|null;risk:number;rr:number|null;rating:number;riskPct:number;sat:number[];
+ minDist:number; // minimální vzdálenost stopu (cena) – živá simulace ji kontroluje znovu proti skutečné ceně vstupu
  targetFallback?:'r'|'swing'}; // cíl zóna nenalezen / pod minRR → použitý fallback
 export type PlanSkip={skip:string};
 export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rating:number,sat:number[],entryOverride?:number):Plan|PlanSkip{
@@ -242,6 +262,12 @@ export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rati
  if(def.stop.pct>0)stop-=side*def.stop.pct/100*Math.abs(first-ref);
  if(def.stop.minAtrK>0){for(const l of legs)if(side*(l.L-stop)<def.stop.minAtrK*a)stop=l.L-side*def.stop.minAtrK*a}
  if(legs.some(l=>!(side*(l.L-stop)>0)))return {skip:'stop na špatné straně vstupu'};
+ // minimální vzdálenost stopu od každé nohy (spread u ceny nohy, ATR14 vstupního TF)
+ const minDist=Math.max(...legs.map(l=>minStopDist(def,pm,i,l.L)));
+ if(legs.some(l=>side*(l.L-stop)<minDist-1e-12)){
+  if(!def.stop.widenToMin)return {skip:SKIP_MIN_STOP};
+  for(const l of legs)if(side*(l.L-stop)<minDist)stop=l.L-side*minDist;
+ }
  const risk=side*(avg-stop);
  let target:number|null=null,ttype:'r'|'swing'|'level'|'zone'|'expr'=def.targets.type,fallback=false;
  if(ttype==='zone'){
@@ -267,7 +293,7 @@ export function planAt(def:StrategyDef,pm:PM,cp:Compiled,i:number,side:Side,rati
  const P1=def.targets.partial;let tp1:number|null=null;
  if(P1){if(P1.level&&(!exprNeedsAtr(P1.level)||a>0)){const v=evalExpr(cp,P1.level,side,i,a,{entry:avg,sigBar:side>0?E.h[i]:E.l[i],avg,risk});if(Number.isFinite(v)&&side*(v-avg)>0&&side*(target-v)>0)tp1=v}
   if(tp1===null&&P1.atR!==null)tp1=avg+side*P1.atR*risk}
- return {side,legs,stop,ref,target,tp1,risk,rr,rating,riskPct:riskPctOf(def,rating),sat,...(fallback?{targetFallback:ttype as 'r'|'swing'}:{})};
+ return {side,legs,stop,ref,target,tp1,risk,rr,rating,riskPct:riskPctOf(def,rating),sat,minDist,...(fallback?{targetFallback:ttype as 'r'|'swing'}:{})};
 }
 
 // ---- portfolio limity (sdílí backtest i živá simulace)
@@ -315,15 +341,15 @@ export function traceOf(def:StrategyDef,cp:Compiled,i:number,pl:Plan,sigBarT:num
 }
 
 // ---- fáze vstupu (diagnostika): co se stalo se svíčkami, kde platily všechny povinné podmínky. Součty (test check-lab-strategies.mjs):
-//  allRequired = both + busy + setups;  setups = skipRating + skipRR + skipObstacle + skipLevel + placed;
+//  allRequired = both + busy + setups;  setups = skipRating + skipRR + skipObstacle + skipLevel + skipMinStop + placed;
 //  market_on_close: placed = opened + blockSession + blockNews + blockFull + blockTrades + blockLoss;
 //  limit: placed = opened + expired + pendingAtEnd + blockFull + blockTrades + blockLoss (blockSession / blockNews = dotyky limitu mimo okno, příkaz dál čeká).
-export type Stages={bars:number;allRequired:number;both:number;busy:number;setups:number;skipRating:number;skipRR:number;skipObstacle:number;skipLevel:number;placed:number;
+export type Stages={bars:number;allRequired:number;both:number;busy:number;setups:number;skipRating:number;skipRR:number;skipObstacle:number;skipLevel:number;skipMinStop:number;placed:number;
  blockSession:number;blockNews:number;blockFull:number;blockTrades:number;blockLoss:number;expired:number;pendingAtEnd:number;opened:number};
-export const STAGE_KEYS:(keyof Stages)[]=['bars','allRequired','both','busy','setups','skipRating','skipRR','skipObstacle','skipLevel','placed','blockSession','blockNews','blockFull','blockTrades','blockLoss','expired','pendingAtEnd','opened'];
+export const STAGE_KEYS:(keyof Stages)[]=['bars','allRequired','both','busy','setups','skipRating','skipRR','skipObstacle','skipLevel','skipMinStop','placed','blockSession','blockNews','blockFull','blockTrades','blockLoss','expired','pendingAtEnd','opened'];
 export const newStages=():Stages=>Object.fromEntries(STAGE_KEYS.map(k=>[k,0])) as Stages;
 export const SKIP_RATING='hodnocení pod minimem',SKIP_RR='R:R pod minimem',SKIP_OBSTACLE='překážka před cílem';
-const planSkipKey=(m:string):keyof Stages=>m===SKIP_RR?'skipRR':m===SKIP_OBSTACLE?'skipObstacle':m===SKIP_RATING?'skipRating':'skipLevel'; // chybí cílová zóna → skipLevel
+const planSkipKey=(m:string):keyof Stages=>m===SKIP_MIN_STOP?'skipMinStop':m===SKIP_RR?'skipRR':m===SKIP_OBSTACLE?'skipObstacle':m===SKIP_RATING?'skipRating':'skipLevel'; // chybí cílová zóna → skipLevel
 // portfolioBlock → druh: plno (maxOpen), limit počtu obchodů, ztrátové stopky (stop-den, denní / týdenní limit ztráty)
 export const blockKind=(m:string):'blockFull'|'blockTrades'|'blockLoss'=>m.startsWith('plno')?'blockFull':m.startsWith('limit')?'blockTrades':'blockLoss';
 
@@ -620,7 +646,7 @@ function liveLegs(def:StrategyDef,cp:Compiled,E:B.Series,i:number,last:number,pl
 // touched = limitní noha už byla na dokončených svíčkách dosažena (pozdě se nevstupuje; první vstup nastavení pak už ne)
 export type LiveLeg={L:number;share:number;type?:'market_on_close';ready?:boolean;touched?:boolean};
 export type LiveSetup={key:string;side:Side;type:'limit'|'market_on_close';sigT:number;legs:LiveLeg[];stop:number;target:number|null;tp1:number|null;
- risk:number;rating:number;riskPct:number;sat:string[];expiresT:number};
+ risk:number;rating:number;riskPct:number;sat:string[];expiresT:number;minDist?:number;widenToMin?:boolean}; // minDist = minimální vzdálenost stopu (chybí u starších testů)
 export function liveSetups(def:StrategyDef,id:string,bars:B.Bar[],ctx:Ctx,now:number):LiveSetup[]{
  const ms=B.TF_MS[def.data],done=bars.filter(b=>b.t+ms<=now);if(done.length<20)return [];
  const pm=prepare(id,done,def.data),cp=compile(def,pm,ctx),E=pm.E,last=E.n-1,out:LiveSetup[]=[];
@@ -633,9 +659,18 @@ export function liveSetups(def:StrategyDef,id:string,bars:B.Bar[],ctx:Ctx,now:nu
   if(def.entry.type==='limit'&&!mixed){let touched=false;for(let j=i+1;j<=last;j++)if(pl.legs.some(l=>sg.side>0?E.l[j]<=l.L:E.h[j]>=l.L)){touched=true;break}if(touched)continue}
   else if(mixed)legs=liveLegs(def,cp,E,i,last,pl);
   out.push({key:`${E.t[i]}:${sg.side}`,side:pl.side,type:def.entry.type,sigT:E.t[i]+ms,legs,stop:pl.stop,target:pl.target,tp1:pl.tp1,risk:pl.risk,rating:pl.rating,riskPct:pl.riskPct,
-   sat:pl.sat.map(k=>condLabel(def.conditions[k],def)+(def.conditions[k].role==='optional'?' · volitelná':'')),expiresT:E.t[i]+ms+win*ms});
+   sat:pl.sat.map(k=>condLabel(def.conditions[k],def)+(def.conditions[k].role==='optional'?' · volitelná':'')),expiresT:E.t[i]+ms+win*ms,minDist:pl.minDist,...(def.stop.widenToMin?{widenToMin:true}:{})});
  }
  // u stejné strany jen nejnovější nastavení
  const seen=new Set<number>();return out.reverse().filter(s=>{if(seen.has(s.side))return false;seen.add(s.side);return true});
 }
 export const ruleOptionalCount=(def:StrategyDef)=>def.conditions.filter(c=>c.role==='optional').length;
+// minimální vzdálenost stopu v okamžiku vstupu (scripts/lab-void-tiny-stops.mjs): svíčky datového TF DOKONČENÉ před `at`, cena = vstup obchodu.
+// def null = obchod bez definice (A–D, S…, G…) → D1 data, výchozí koeficienty. Málo svíček → jen spread (ATR neznámé).
+export function minStopAt(def:Pick<StrategyDef,'tf'|'data'|'stop'>|null,id:string,bars:B.Bar[],at:number,price:number):number|null{
+ const d=def??{data:'D1' as const,tf:{context:'D1' as Tf,zone:'D1' as Tf,entry:'D1' as Tf},stop:{} as StrategyDef['stop']};
+ const ms=B.TF_MS[d.data],done=bars.filter(b=>b.t+ms<=at);
+ if(!done.length||!(price>0))return null;
+ const pm=prepare(id,done,d.data);if(!pm.E.n)return null;
+ return minStopDist(d,pm,pm.E.n-1,price);
+}

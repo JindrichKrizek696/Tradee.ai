@@ -93,7 +93,7 @@ function printDiag(dg){
   if(c.stats)console.log('       detektor: '+Object.entries(c.stats).map(([k,v])=>`${k} ${v}`).join(' · '));
  }
  const s=t.stages;
- console.log(`   fáze: povinné ${s.allRequired} → obě strany ${s.both} · pozice běží ${s.busy} · nastavení ${s.setups} → hodnocení ${s.skipRating} · R:R ${s.skipRR} · překážka ${s.skipObstacle} · chybí úroveň ${s.skipLevel} → ${dg.entryType==='limit'?'limitů':'pokusů o vstup'} ${s.placed}`);
+ console.log(`   fáze: povinné ${s.allRequired} → obě strany ${s.both} · pozice běží ${s.busy} · nastavení ${s.setups} → hodnocení ${s.skipRating} · R:R ${s.skipRR} · překážka ${s.skipObstacle} · chybí úroveň ${s.skipLevel} · stop pod minimem ${s.skipMinStop??0} → ${dg.entryType==='limit'?'limitů':'pokusů o vstup'} ${s.placed}`);
  console.log(`         → seance ${s.blockSession} · zprávy ${s.blockNews} · plno ${s.blockFull} · limit obchodů ${s.blockTrades} · ztrátové stopky ${s.blockLoss}${dg.entryType==='limit'?` · vypršelo ${s.expired} · čeká na konci ${s.pendingAtEnd}`:''} → otevřeno ${s.opened}`);
 }
 for(const x of defs){

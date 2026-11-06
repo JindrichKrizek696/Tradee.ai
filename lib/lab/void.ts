@@ -2,6 +2,7 @@
 // Před opravou obchodních hodin (lib/market-hours.ts isMarketOpen) se zavřený trh poznal jen podle stáří živé ceny – Yahoo ale o víkendu kotuje FX
 // orientačně, takže simulace o víkendu otevírala i zavírala. Neplatný obchod zůstává v DB (void_reason), do statistik se nepočítá (paper.ts validTrades).
 import {isMarketOpen} from '../market-hours.ts';
+import {VOID_TINY_STOP} from './sim-labels.ts';
 
 const H=3600000;
 export type VoidIn={id:string;variant?:string|null;instrument:string;opened:number;closed:number|null;exitReason?:string|null;pnlCzk?:number|null;voidReason?:string|null};
@@ -19,5 +20,16 @@ export type VoidAction={id:string;variant:string;instrument:string;reason:string
 /** Plán: které obchody zneplatnit; otevřené se zavřou jako neplatné (bez P&L) a uvolní místo. */
 export function voidPlan(trades:VoidIn[]):VoidAction[]{
  return trades.flatMap(x=>{const reason=voidReasonOf(x);return reason?[{id:x.id,variant:x.variant??'A',instrument:x.instrument,reason,wasOpen:x.closed===null,opened:x.opened,closed:x.closed,pnlCzk:x.closed===null?null:(x.pnlCzk??0)}]:[]})
+  .sort((a,b)=>a.opened-b.opened||a.id.localeCompare(b.id));
+}
+
+// ---- stop pod minimem (scripts/lab-void-tiny-stops.mjs): |vstup − SL| < minimální vzdálenost (lib/lab/strat-engine.ts minStopDist
+// se spreadem trhu a ATR14 vstupního TF ze svíček DOKONČENÝCH před vstupem). minDist null = nejde spočítat → obchod zůstává platný.
+export {VOID_TINY_STOP};
+export type TinyIn=VoidIn&{entry:number;sl:number;minDist:number|null};
+export type TinyAction=VoidAction&{dist:number;minDist:number};
+export function tinyStopPlan(trades:TinyIn[]):TinyAction[]{
+ return trades.flatMap(x=>{if(x.voidReason||x.minDist===null||!(x.minDist>0))return [];const dist=Math.abs(x.entry-x.sl);
+  return dist<x.minDist-1e-12?[{id:x.id,variant:x.variant??'A',instrument:x.instrument,reason:VOID_TINY_STOP,wasOpen:x.closed===null,opened:x.opened,closed:x.closed,pnlCzk:x.closed===null?null:(x.pnlCzk??0),dist,minDist:x.minDist}]:[]})
   .sort((a,b)=>a.opened-b.opened||a.id.localeCompare(b.id));
 }

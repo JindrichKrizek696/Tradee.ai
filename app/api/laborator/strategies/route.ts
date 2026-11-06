@@ -7,7 +7,7 @@
 // {action:'delete',id,confirm:'SMAZAT'} = smazat definici a její běhy (agenti R… zůstávají – mají vlastní kopii).
 import {db,sameOrigin} from '@/lib/server';
 import {labUser,labFailed,labNotFound,LAB_HEADERS} from '@/lib/lab/http';
-import {listDefs,getDef,saveDef,deleteDef,latestRuns,getRun} from '@/lib/lab/strat-store';
+import {listDefs,getDef,saveDef,deleteDef,latestRuns,getRun,setSourceLabel} from '@/lib/lab/strat-store';
 import {createRuleVariant,listAccounts} from '@/lib/lab/paper-store';
 import {refreshSummary} from '@/lib/lab/store';
 import {isRuleVariant} from '@/lib/lab/paper';
@@ -28,16 +28,16 @@ export async function GET(req:Request){try{const u=await labUser(req);if(u insta
   if(!ID.test(id))return labNotFound();
   const def=await getDef(d,u.id,id);if(!def)return labNotFound();
   const run=await getRun(d,u.id,id).catch(()=>null);
-  return Response.json({def:{id:def.id,name:def.name,version:def.version,text:def.text,errors:def.errors,updated:def.updated,outline:def.def?defOutline(def.def):[]},run},{headers:LAB_HEADERS});
+  return Response.json({def:{id:def.id,name:def.name,version:def.version,text:def.text,errors:def.errors,updated:def.updated,outline:def.def?defOutline(def.def):[],sourceLabel:def.sourceLabel,side:def.def?.entry.side??null},run},{headers:LAB_HEADERS});
  }
  const [defs,runs,accounts]=await Promise.all([listDefs(d,u.id),latestRuns(d,u.id),listAccounts(d,u.id).catch(()=>[])]);
- const running=accounts.filter(a=>isRuleVariant(a.variant)&&a.rule).map(a=>({variant:a.variant,defId:a.rule!.origin.defId,version:a.rule!.def.version,active:a.active}));
+ const running=accounts.filter(a=>isRuleVariant(a.variant)&&a.rule).map(a=>({variant:a.variant,defId:a.rule!.origin.defId,version:a.rule!.def.version,active:a.active,sourceLabel:a.rule!.origin.sourceLabel??null}));
  return Response.json({defs:defs.map(x=>({id:x.id,name:x.name,version:x.version,updated:x.updated,valid:!!x.def,errors:x.errors.length,
-  markets:x.def?.markets??[],data:x.def?.data??null,conditions:x.def?.conditions.length??0,variants:x.def?.variants.length??0,run:runs[x.id]??null})),running},{headers:LAB_HEADERS});
+  markets:x.def?.markets??[],data:x.def?.data??null,conditions:x.def?.conditions.length??0,variants:x.def?.variants.length??0,run:runs[x.id]??null,sourceLabel:x.sourceLabel,side:x.def?.entry.side??null})),running},{headers:LAB_HEADERS});
 }catch(e){return labFailed(e)}}
 export async function POST(req:Request){try{const u=await labUser(req);if(u instanceof Response)return u;sameOrigin(req);const d=db();
  const site=req.headers.get('sec-fetch-site');if(site&&site!=='same-origin')return labNotFound();
- const b=await req.json().catch(()=>({})) as {action?:unknown;id?:unknown;text?:unknown;confirm?:unknown};
+ const b=await req.json().catch(()=>({})) as {action?:unknown;id?:unknown;text?:unknown;confirm?:unknown;sourceLabel?:unknown};
  const id=typeof b.id==='string'&&ID.test(b.id)?b.id:null;
  if(b.action==='save'){
   if(typeof b.text!=='string'||b.text.length>250000)return bad('Chybí text definice (JSON).');
@@ -52,9 +52,15 @@ export async function POST(req:Request){try{const u=await labUser(req);if(u inst
   if(!def.def)return bad('Definice není platná – nejdřív ji oprav.',def.errors);
   const run=await getRun(d,u.id,id).catch(()=>null),cur=run&&run.version===def.version?run:null,base=cur?.result.variants[0];
   const pick=(m:{trades:number;avgR:number|null;pf:number|null;maxDd:number}|undefined)=>m?{trades:m.trades,avgR:m.avgR,pf:m.pf,maxDd:m.maxDd}:null;
-  const variant=await createRuleVariant(d,u.id,Date.now(),id,def.def,{runId:cur?.id??null,is:pick(base?.metrics.is),oos:pick(base?.metrics.oos),chance:cur?.result.chance?.median??null,robust:!!base?.robust,at:cur?.created??''});
+  const variant=await createRuleVariant(d,u.id,Date.now(),id,def.def,{sourceLabel:def.sourceLabel,runId:cur?.id??null,is:pick(base?.metrics.is),oos:pick(base?.metrics.oos),chance:cur?.result.chance?.median??null,robust:!!base?.robust,at:cur?.created??''});
   await refreshSummary(d,u.id).catch(e=>console.error(e));
   return Response.json({ok:true,variant},{headers:LAB_HEADERS});
+ }
+ if(b.action==='label'){
+  // zdroj definice (volitelný popisek, max. 120 znaků; prázdný = bez zdroje) – běžící agenti R… mají vlastní kopii z doby spuštění
+  if(b.sourceLabel!==null&&b.sourceLabel!==undefined&&(typeof b.sourceLabel!=='string'||b.sourceLabel.length>500))return bad('Zdroj musí být text do 120 znaků.');
+  if(!await setSourceLabel(d,u.id,id,b.sourceLabel??null))return labNotFound();
+  return Response.json({ok:true},{headers:LAB_HEADERS});
  }
  if(b.action==='delete'){
   if(b.confirm!=='SMAZAT')return bad('Smazání je potřeba potvrdit.');

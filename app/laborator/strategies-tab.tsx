@@ -11,10 +11,17 @@ import {parseDefJson,BLOCKS,BLOCK_IDS} from '@/lib/lab/rules-def';
 import type {StrategyRunResult,RunSummary,SegMetrics} from '@/lib/lab/strat-engine';
 import {EquityChart} from '../journaling/backtest/equity-chart';
 import {DiagPanel,SamplesPanel,CompareVersions,type VersionRun} from './strategy-diag';
+import {familyInfo,NO_SOURCE,cleanSource} from '@/lib/lab/sim-labels';
+import {FamBadge} from './sim-badge';
+const RULE_FAM={cls:familyInfo('rule').cls,familyLabel:familyInfo('rule').label};
 
-type DefItem={id:string;name:string;version:number;updated:string;valid:boolean;errors:number;markets:string[];data:string|null;conditions:number;variants:number;run:{id:string;version:number;created:string;summary:RunSummary|null}|null};
-type ListData={defs:DefItem[];running:{variant:string;defId:string;version:number;active:boolean}[]};
-type Detail={def:{id:string;name:string;version:number;text:string;errors:string[];updated:string;outline:string[]};run:{id:string;version:number;created:string;result:StrategyRunResult}|null};
+type DefItem={id:string;name:string;version:number;updated:string;valid:boolean;errors:number;markets:string[];data:string|null;conditions:number;variants:number;run:{id:string;version:number;created:string;summary:RunSummary|null}|null;
+ sourceLabel?:string|null;side?:'both'|'long'|'short'|null};
+type ListData={defs:DefItem[];running:{variant:string;defId:string;version:number;active:boolean;sourceLabel?:string|null}[]};
+type Detail={def:{id:string;name:string;version:number;text:string;errors:string[];updated:string;outline:string[];sourceLabel?:string|null;side?:'both'|'long'|'short'|null};run:{id:string;version:number;created:string;result:StrategyRunResult}|null};
+const DIR_LABEL:Record<string,string>={long:'long',short:'short',both:'long i short'};
+// celkové R posledního běhu (IS + OOS základní varianty) – řazení seznamu
+const totalROf=(x:DefItem)=>{const s=x.run?.summary;return s?s.is.totalR+s.oos.totalR:null};
 async function call<T>(url:string,method='GET',body?:unknown):Promise<T>{
  const r=await fetch(url,{method,cache:'no-store',headers:body===undefined?undefined:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
  const j=await r.json().catch(()=>({})) as {error?:string;errors?:string[]};
@@ -34,13 +41,20 @@ const METRIC_ROWS:[keyof SegMetrics,string,(v:number|null)=>string][]=[['trades'
 export function StrategiesTab(){
  const [list,setList]=useState<ListData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[sel,setSel]=useState<string|null>(null);
  const [detail,setDetail]=useState<Detail|null>(null),[edit,setEdit]=useState<string|null>(null),[editErrs,setEditErrs]=useState<string[]>([]),[busy,setBusy]=useState(false),[msg,setMsg]=useState('');
+ const [srcF,setSrcF]=useState(''),[srcEdit,setSrcEdit]=useState<string|null>(null);
  const [vi,setVi]=useState(0),[cmpA,setCmpA]=useState(''),[cmpB,setCmpB]=useState(''),[cmp,setCmp]=useState<{a:VersionRun;b:VersionRun}|null>(null),[cmpBusy,setCmpBusy]=useState(false);
  // verze podle názvu (nejnovější první) – seznam ukazuje poslední verzi, starší jsou odkazy
  const groups=useMemo(()=>{const g=new Map<string,DefItem[]>();for(const x of list?.defs??[]){const a=g.get(x.name);if(a)a.push(x);else g.set(x.name,[x])}
   return [...g.values()].map(a=>a.sort((p,q)=>q.version-p.version))},[list]);
+ // seznam podle zdroje (abecedně, bez zdroje na konci), uvnitř podle celkového R posledního běhu; zdroj skupiny = zdroj nejnovější verze
+ const srcOf=(g:DefItem[])=>cleanSource(g[0].sourceLabel);
+ const sources=useMemo(()=>{const s=new Set<string>();let none=false;for(const g of groups){const x=srcOf(g);if(x)s.add(x);else none=true}return [...[...s].sort((a,b)=>a.localeCompare(b,'cs')),...(none?[NO_SOURCE]:[])]},[groups]);
+ const bySource=useMemo(()=>{const m=new Map<string,DefItem[][]>();for(const g of groups){const k=srcOf(g)??NO_SOURCE;if(srcF&&k!==srcF)continue;const a=m.get(k);if(a)a.push(g);else m.set(k,[g])}
+  const r=(g:DefItem[])=>totalROf(g[0])??-Infinity;
+  return [...m.entries()].sort((a,b)=>a[0]===b[0]?0:a[0]===NO_SOURCE?1:b[0]===NO_SOURCE?-1:a[0].localeCompare(b[0],'cs')).map(([k,gs])=>[k,[...gs].sort((p,q)=>r(q)-r(p)||p[0].name.localeCompare(q[0].name,'cs'))] as const)},[groups,srcF]);
  const load=useCallback(()=>{call<ListData>('/api/laborator/strategies').then(j=>{setList(j);setErr('')}).catch(e=>{if((e as {status?:number}).status===503)setMissing(true);else setErr((e as Error).message)})},[]);
  useEffect(()=>{load()},[load]);
- const open=useCallback((id:string)=>{setSel(id);setDetail(null);setEdit(null);setEditErrs([]);setMsg('');setVi(0);setCmp(null);
+ const open=useCallback((id:string)=>{setSel(id);setDetail(null);setEdit(null);setSrcEdit(null);setEditErrs([]);setMsg('');setVi(0);setCmp(null);
   call<Detail>('/api/laborator/strategies?id='+encodeURIComponent(id)).then(setDetail).catch(e=>setErr((e as Error).message))},[]);
  const check=(text:string)=>{const v=parseDefJson(text);setEditErrs(v.ok?[]:v.errors);return v.ok};
  async function save(){
@@ -51,6 +65,9 @@ export function StrategiesTab(){
  }
  async function simulate(){if(!sel||sel==='new')return;setBusy(true);setMsg('');
   try{const r=await call<{variant:string}>('/api/laborator/strategies','POST',{action:'simulate',id:sel});setMsg(`Agent ${r.variant} poběží v Simulaci od dalšího běhu (každých 15 min).`);load()}
+  catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
+ async function saveSource(){if(!sel||sel==='new'||srcEdit===null)return;setBusy(true);setMsg('');
+  try{await call('/api/laborator/strategies','POST',{action:'label',id:sel,sourceLabel:srcEdit.trim()||null});setMsg(srcEdit.trim()?`Zdroj uložen. Nový agent v simulaci si ho zkopíruje; běžící agenti bez zdroje ho převezmou podle definice.`:'Zdroj odebrán.');setSrcEdit(null);load();open(sel)}
   catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
  async function remove(){if(!sel||sel==='new'||!confirm(`Smazat tuto verzi (v${detail?.def.version??'?'}) a její výsledky? Ostatní verze zůstanou, agenti v simulaci také (mají vlastní kopii).`))return;setBusy(true);
   try{await call('/api/laborator/strategies','POST',{action:'delete',id:sel,confirm:'SMAZAT'});setSel(null);setDetail(null);load()}catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
@@ -72,24 +89,29 @@ export function StrategiesTab(){
    {err&&<p className="mt-alert" role="alert">{err}</p>}
    {!list?<p className="mt-empty">Načítám…</p>:<>
     {!list.defs.length&&<p className="mt-empty">Zatím žádná definice. Vlož ji tlačítkem níže nebo importem <code>--import soubor.json</code>.</p>}
+    {sources.length>1&&<div className="lb-filters"><select aria-label="Filtr zdroje" value={srcF} onChange={e=>setSrcF(e.target.value)}><option value="">Všechny zdroje ({sources.length})</option>{sources.map(x=><option key={x} value={x}>{x}</option>)}</select></div>}
     {!!list.defs.length&&<div className="lb-scroll"><table className="mt-table lb-table"><thead><tr><th>Název</th><th>Verze</th><th>Data</th><th>Trhy</th><th>Podmínky</th><th>IS průměr R</th><th>OOS průměr R</th><th>OOS obchodů</th><th>Náhoda</th><th>Robustní</th><th>Spočítáno</th></tr></thead>
-     <tbody>{groups.map(g=>{const x=g.find(y=>y.id===sel)??g[0],s=x.run?.summary;return <tr key={g[0].name} className={g.some(y=>y.id===sel)?'lb-sel':''}>
-      <td><button className="lb-link" onClick={()=>open(g[0].id)}>{x.name}</button>{!x.valid&&<small><AlertTriangle size={12}/> neplatná ({x.errors} chyb)</small>}</td>
+     <tbody>{bySource.flatMap(([src,gs])=>[<tr key={'src:'+src} className="lb-srcrow"><td colSpan={11}>Zdroj: {src} <small>({gs.length})</small></td></tr>,...gs.map(g=>{const x=g.find(y=>y.id===sel)??g[0],s=x.run?.summary,run=list.running.filter(r=>g.some(y=>y.id===r.defId));return <tr key={g[0].name} className={g.some(y=>y.id===sel)?'lb-sel':''}>
+      <td><span className="lb-sim"><button className="lb-link lb-sim-name" onClick={()=>open(g[0].id)}>{x.name}</button><span className="lb-sim-meta">{x.side&&<span>{DIR_LABEL[x.side]}</span>}{run.length>0&&<><FamBadge l={RULE_FAM} sm/><span className="lb-sim-id">{run.map(r=>r.variant).join(', ')}</span></>}</span></span>{!x.valid&&<small><AlertTriangle size={12}/> neplatná ({x.errors} chyb)</small>}</td>
       <td><span className="lb-vers">{g.map(y=><button key={y.id} className={'lb-link'+(y.id===x.id?' lb-strong':'')} onClick={()=>open(y.id)} title={y.run?'má výsledek':'bez výsledku'}>v{y.version}</button>)}</span>{x.run&&x.run.version!==x.version&&<small>výsledek je z v{x.run.version}</small>}</td><td>{x.data??'–'}</td><td>{x.markets.length}</td><td>{x.conditions}{x.variants?` · ${x.variants} var.`:''}</td>
-      <td className={sgn(s?.is.avgR)}>{rr(s?.is.avgR)}</td><td className={sgn(s?.oos.avgR)}>{rr(s?.oos.avgR)}</td><td>{s?.oos.trades??'–'}</td><td>{rr(s?.chance)}</td><td>{s?(s.robust?`ano (${s.robust}/${s.variants})`:'ne'):'–'}</td><td>{x.run?when(x.run.created):'zatím ne'}</td></tr>})}</tbody></table></div>}
+      <td className={sgn(s?.is.avgR)}>{rr(s?.is.avgR)}</td><td className={sgn(s?.oos.avgR)}>{rr(s?.oos.avgR)}</td><td>{s?.oos.trades??'–'}</td><td>{rr(s?.chance)}</td><td>{s?(s.robust?`ano (${s.robust}/${s.variants})`:'ne'):'–'}</td><td>{x.run?when(x.run.created):'zatím ne'}</td></tr>})])}</tbody></table></div>}
     <div className="lb-form"><button className="mt-btn" onClick={()=>{setSel('new');setDetail(null);setEdit(TEMPLATE);setEditErrs([]);setMsg('')}}><Plus size={15}/>Nová definice</button></div>
    </>}
   </section>
   {sel&&sel!=='new'&&!detail&&<section className="mt-card"><p className="mt-empty">Načítám…</p></section>}
   {detail&&<section className="mt-card">
-   <h2>{detail.def.name} · v{detail.def.version}</h2>
+   <h2>{detail.def.name} · v{detail.def.version}{detail.def.side?<small className="lb-sim-id"> · {DIR_LABEL[detail.def.side]}</small>:null}</h2>
+   <div className="lb-form">
+    <label>Zdroj (odkud pravidla jsou; jen popisek, max. 120 znaků)<input value={srcEdit??detail.def.sourceLabel??''} maxLength={120} placeholder="bez zdroje" onChange={e=>setSrcEdit(e.target.value)} aria-label="Zdroj definice"/></label>
+    <button className="mt-btn" disabled={busy||srcEdit===null||(srcEdit.trim()||null)===(detail.def.sourceLabel??null)} onClick={saveSource}><Save size={15}/>Uložit zdroj</button>
+   </div>
    {detail.def.errors.length>0&&<div className="mt-alert" role="alert"><b>Definice není platná:</b><ul>{detail.def.errors.map((e,i)=><li key={i}>{e}</li>)}</ul></div>}
    {detail.def.outline.length>0&&<ul className="lb-notes">{detail.def.outline.map((l,i)=><li key={i}>{l}</li>)}</ul>}
    <div className="lb-form lb-actions">
     <button className="mt-btn dark" disabled={busy||!!detail.def.errors.length} onClick={simulate}><Play size={15}/>Pustit do simulace</button>
     <button className="mt-btn" onClick={()=>{setEdit(detail.def.text);setEditErrs([]);setMsg('')}}>Upravit JSON</button>
     <button className="mt-btn" disabled={busy} onClick={remove}><Trash2 size={15}/>Smazat</button>
-    {running.length>0&&<span className="lb-hint">V simulaci: {running.map(r=>`${r.variant} (v${r.version}${r.active?'':', vypnutý'})`).join(', ')}</span>}
+    {running.length>0&&<span className="lb-hint"><FamBadge l={RULE_FAM} sm/> V simulaci: {running.map(r=>`${r.variant} (v${r.version}${r.active?'':', vypnutý'}${r.sourceLabel?` · zdroj ${r.sourceLabel}`:''})`).join(', ')}</span>}
    </div>
    {msg&&<p className="lb-meta" role="status">{msg}</p>}
    {!res?<p className="mt-empty">Výsledek zatím není – spusť na VPS <code>{cmd('--id '+detail.def.id)}</code>.</p>:<>

@@ -324,5 +324,61 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  check('migrace 0032: void_reason + index, oddělovač; store čte void_reason a výstup nepřepíše neplatný',/ADD COLUMN IF NOT EXISTS void_reason VARCHAR\(80\) NULL/.test(mig)&&/--> statement-breakpoint/.test(mig)&&/CREATE INDEX IF NOT EXISTS lab_paper_trades_void/.test(mig)&&/void_reason'/.test(store)&&/closed IS NULL AND void_reason IS NULL/.test(store));
 }
 
+// ---- stop pod minimem: plán zneplatnění (lib/lab/void.ts tinyStopPlan) a jednorázový skript nad fixture (bez DB)
+{
+ const {tinyStopPlan,VOID_TINY_STOP}=await import('../lib/lab/void.ts');
+ const {voidLabel,voidTitle}=await import('../lib/lab/sim-labels.ts');
+ const T=Date.UTC(2026,8,3,11);
+ const tp=tinyStopPlan([{id:'a',variant:'R01',instrument:'USD/JPY',opened:T,closed:T+H,entry:150,sl:149.9964,pnlCzk:82000,minDist:.05},{id:'b',variant:'R01',instrument:'EUR/USD',opened:T,closed:null,entry:1.1,sl:1.098,minDist:.0005},
+  {id:'c',variant:'R01',instrument:'EUR/USD',opened:T,closed:null,entry:1.1,sl:1.0999,minDist:null},{id:'d',variant:'R01',instrument:'EUR/USD',opened:T,closed:T+H,entry:1.1,sl:1.0999,pnlCzk:5,minDist:.0005,voidReason:'zavřený trh při vstupu'},
+  {id:'e',variant:'R02',instrument:'EUR/USD',opened:T-H,closed:null,entry:1.1,sl:1.0999,minDist:.0005}]);
+ check('stop pod minimem: plán jen pod minimem (ne neplatné, ne bez minima), otevřený se zavře, důvod „stop pod minimem“',tp.map(a=>a.id).join()==='e,a'&&tp[0].wasOpen&&tp[0].pnlCzk===null&&tp[1].pnlCzk===82000&&tp.every(a=>a.reason===VOID_TINY_STOP)&&VOID_TINY_STOP==='stop pod minimem'&&near(tp[1].dist,.0036,1e-9),tp);
+ check('odznak neplatného obchodu podle důvodu',voidLabel('stop pod minimem')==='neplatný – stop pod minimem'&&voidLabel('zavřený trh při vstupu')==='neplatný – zavřený trh'&&/minimální vzdálenost/.test(voidTitle('stop pod minimem')));
+ const {spawnSync}=await import('node:child_process');
+ const run=a=>spawnSync(process.execPath,['--experimental-strip-types','--no-warnings','scripts/lab-void-tiny-stops.mjs',...a],{cwd:new URL('..',import.meta.url).pathname,encoding:'utf8'});
+ const r=run(['--fixture','scripts/fixtures/lab-void-tiny-fixture.json']),out=r.stdout;
+ check('skript lab-void-tiny-stops (fixture, dry): USD/JPY 0,0036 a EUR/USD 1 pip pod minimem; 20 pipů, vypnuté minimum, už neplatný, S… a bez svíček ne',
+  r.status===0&&/DRY/.test(out)&&/stop pod minimem 2 \(otevřených 1\)/.test(out)&&/\[t1\]/.test(out)&&/\[t2\]/.test(out)&&!/\[t[34567]\]/.test(out)&&/bez svíček pro minimum 1/.test(out)&&/odečte 82000 Kč/.test(out),out+r.stderr);
+ const ra=run(['--fixture','scripts/fixtures/lab-void-tiny-fixture.json','--apply']);
+ const sv=readFileSync(new URL('./lab-void-tiny-stops.mjs',import.meta.url),'utf8');
+ check('skript: --fixture s --apply odmítne; zápis jen void_reason IS NULL, křivka odečte P&L od slotu uzavření, přepočet shrnutí',ra.status!==0&&/void_reason IS NULL/.test(sv)&&/UPDATE lab_paper_equity SET equity=equity-\?/.test(sv)&&/refreshSummary/.test(sv),ra.status);
+}
+
+// ---- označení simulací podle rodiny a zdroje (lib/lab/sim-labels.ts): resolver, skupiny, filtry, řazení podle celkového R
+{
+ const L=await import('../lib/lab/sim-labels.ts');
+ check('rodina podle id: A–D skóre, S01–S20 prahy, G… evoluce, R… podklady, jinak nic',['A','D','S01','S20','G01','G123','R07'].map(L.simFamily).join()==='score,score,sweep,sweep,evo,evo,rule'&&L.simFamily('X1')===null&&L.simFamily('E')===null);
+ check('rodiny: názvy, rozsahy a barevné třídy',L.SIM_FAMILIES.map(f=>f.label).join('|')==='Tradee skóre|Hledání prahů|Známé strategie / evoluce|Strategie z podkladů'&&L.SIM_FAMILIES.map(f=>f.range).join()==='A–D,S01–S20,G…,R…'&&new Set(L.SIM_FAMILIES.map(f=>f.cls)).size===4);
+ const defs={d1:{name:'definice-alfa',version:3,sourceLabel:'Zdroj Y'},d2:{name:'definice-beta',version:1,sourceLabel:null}};
+ const r1=L.simLabel({id:'R01',name:'kopie',rule:{defId:'d1',name:'definice-alfa',version:2,sourceLabel:'  Zdroj   X ',side:'long'}},defs);
+ check('R…: název a verze z kopie, zdroj z kopie (očištěný), směr',r1.family==='rule'&&r1.title==='definice-alfa'&&r1.version===2&&r1.source==='Zdroj X'&&r1.direction==='long'&&r1.text==='R01 · Strategie z podkladů · definice-alfa v2 · zdroj Zdroj X · long'&&L.simHead(r1)==='R01 – definice-alfa v2 · zdroj Zdroj X · long',r1);
+ const r2=L.simLabel({id:'R02',name:'kopie',rule:{defId:'d1',side:'both'}},defs),r3=L.simLabel({id:'R03',name:'jen-název',rule:{defId:'zz',side:'short'}},defs);
+ check('R… bez zdroje v kopii: dohledání podle defId (název, verze, zdroj); neznámá definice = název účtu, bez zdroje',r2.title==='definice-alfa'&&r2.version===3&&r2.source==='Zdroj Y'&&r2.direction==='long i short'&&r3.title==='jen-název'&&r3.source===null&&r3.version===null&&/zdroj bez zdroje/.test(r3.text),[r2,r3]);
+ const a=L.simLabel({id:'A',name:'Základní'}),g=L.simLabel({id:'G04',name:'Trend'});
+ check('A–D / G…: bez zdroje a směru, titulek = název',a.familyLabel==='Tradee skóre'&&a.title==='Základní'&&a.source===null&&a.text==='A · Tradee skóre · Základní'&&g.cls==='fam-evo'&&L.simHead(g)==='G04 – Trend');
+ const rows=[{id:'R03',name:'c',rule:{sourceLabel:'Beta',name:'c'},r:1},{id:'B',name:'b',r:-2},{id:'R01',name:'a',rule:{sourceLabel:'Alfa',name:'a'},r:5},{id:'S02',name:'s',r:3},{id:'R02',name:'x',rule:{name:'x'},r:9},
+  {id:'A',name:'a',r:4},{id:'R04',name:'d',rule:{sourceLabel:'Alfa',name:'d'},r:7},{id:'S01',name:'t',r:null},{id:'G01',name:'g',r:0}];
+ const lab=x=>L.simLabel(x,null),gr=L.groupSims(rows,lab,x=>x.r);
+ check('skupiny: pořadí rodin skóre → prahy → evoluce → podklady',gr.map(x=>x.family).join()==='score,sweep,evo,rule'&&gr.map(x=>x.count).join()==='2,2,1,4',gr.map(x=>[x.family,x.count]));
+ check('skupiny: uvnitř podle celkového R sestupně (bez R na konci)',gr[0].sources[0].items.map(x=>x.id).join()==='A,B'&&gr[1].sources[0].items.map(x=>x.id).join()==='S02,S01');
+ const rs=gr[3].sources;
+ check('Strategie z podkladů: podle zdroje abecedně, bez zdroje na konci, v rámci zdroje podle R',rs.map(x=>x.source).join()==='Alfa,Beta,'&&rs[0].items.map(x=>x.id).join()==='R04,R01'&&rs[2].items[0].id==='R02',rs.map(x=>[x.source,x.items.map(y=>y.id)]));
+ check('filtry: rodina, zdroj (jen R…), bez zdroje',L.filterSims(rows,lab,{family:'sweep'}).map(x=>x.id).join()==='S02,S01'&&L.filterSims(rows,lab,{source:'Alfa'}).map(x=>x.id).sort().join()==='R01,R04'&&L.filterSims(rows,lab,{source:L.NO_SOURCE}).map(x=>x.id).join()==='R02'&&L.filterSims(rows,lab,{}).length===rows.length);
+ check('seznam zdrojů pro filtr: abecedně + „bez zdroje“',L.sourcesOf(rows,lab).join('|')==='Alfa|Beta|bez zdroje'&&L.sourcesOf([{id:'A',name:'a'}],lab).length===0);
+ check('zdroj: ořez na 120 znaků, prázdný = null',L.cleanSource('x'.repeat(300)).length===120&&L.cleanSource('   ')===null&&L.cleanSource(5)===null);
+ // týdenní souhrn a shrnutí pro AI: rodina, u R… definice, verze, zdroj a směr; skupiny podle rodiny
+ const w=weeklySummary([{id:'R01',name:'kopie',label:r1,started:NOW-2*DAY,startEquity:100000,stats:paperStats([],100000,0,[]),equity:[],trades:[],open:[]},{id:'A',started:NOW-30*DAY,startEquity:100000,stats:paperStats([],100000,0,[]),equity:[],trades:[],open:[]}],NOW);
+ check('týdenní souhrn: legenda rodin, skupina „Tradee skóre“ před „Strategie z podkladů“, R… s definicí, verzí, zdrojem a směrem',w.variants.map(v=>v.id).join()==='A,R01'&&w.md.includes('Rodiny simulací: A–D = Tradee skóre')&&w.md.indexOf('**Tradee skóre**')<w.md.indexOf('**Strategie z podkladů**')&&w.md.includes('R01 – definice-alfa v2 · zdroj Zdroj X · long')&&w.html.includes('Strategie z podkladů'),w.md);
+ const md=paperSummaryMd({started:NOW,stats:paperStats([],100000,0,[]),open:[],closed:[],variant:PAPER_VARIANTS.B});
+ check('shrnutí pro AI: hlavička s rodinou',md.includes('varianta B – Jen FX · rodina Tradee skóre'),md.slice(0,120));
+ // API a UI: zdroj se dohledá podle defId, legenda a odznaky ve všech pohledech
+ const src=f=>readFileSync(new URL('../'+f,import.meta.url),'utf8');
+ const api=src('app/api/laborator/paper/route.ts'),sapi=src('app/api/laborator/strategies/route.ts'),ui=src('app/laborator/lab-page.tsx'),ag=src('app/laborator/agents-tab.tsx'),st=src('app/laborator/strategies-tab.tsx'),mc=src('app/market-chart.tsx');
+ check('API: zdroj agenta z kopie, jinak podle defId; graf dostane označení účtů; spuštění agenta zkopíruje zdroj; úprava zdroje jen labUser',/defLabels/.test(api)&&/labels/.test(api)&&/sourceLabel:def\.sourceLabel/.test(sapi)&&/action==='label'/.test(sapi)&&/setSourceLabel/.test(sapi));
+ check('UI: Simulace (legenda, filtry rodiny a zdroje, skupiny, celkem R), Agenti, Strategie (zdroj, filtr), graf (legenda)',/FamLegend/.test(ui)&&/filterSims/.test(ui)&&/groupSims/.test(ui)&&/Celkem R/.test(ui)&&/FamLegend/.test(ag)&&/SimName/.test(ag)&&/Uložit zdroj/.test(st)&&/Filtr zdroje/.test(st)&&/mc-sim-legend/.test(mc)&&/simHead/.test(mc));
+ const mig=src('drizzle/mariadb/0044_lab_strategy_source.sql');
+ check('migrace 0044: source_label VARCHAR(120) NULL na lab_strategy_defs',/ALTER TABLE lab_strategy_defs ADD COLUMN IF NOT EXISTS source_label VARCHAR\(120\) NULL;/.test(mig));
+}
+
 if(fails.length){console.log(`\n${fails.length} kontrol selhalo`);process.exit(1)}
 console.log('\nVšechny kontroly Simulace prošly.');
