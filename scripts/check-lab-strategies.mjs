@@ -433,7 +433,7 @@ const flat=n=>Array.from({length:n},()=>[1,1,1,1]);
 // ======================= 13) jen vlastník, úložiště, runner
 {
  const U='https://tradee.eu/api/laborator/strategies',owner={id:'g:1',role:'admin',owner:true},admin={id:'g:2',role:'admin',owner:false};
- check('labGate: vlastník projde, admin i nepřihlášený 404',labGate(owner,U)===owner&&labGate(admin,U).status===404&&labGate(null,U).status===404&&labGate(owner,U+'?as=g:2').status===404);
+ check('labGate: vlastník projde, admin i nepřihlášený 404',labGate(owner,U).id===owner.id&&labGate(admin,U).status===404&&labGate(null,U).status===404&&labGate(owner,U+'?as=g:2').status===404);
  const rt=src('app/api/laborator/strategies/route.ts'),hs=rt.split(/export async function /).slice(1);
  check('route strategies: GET a POST, každý začíná labUser (404)',hs.length===2&&hs.every(h=>/^(GET|POST)\(req:Request\)\{try\{const u=await labUser\(req\);if\(u instanceof Response\)return u;/.test(h)));
  check('route strategies: POST jen z vlastní stránky (sameOrigin + sec-fetch-site)',/sameOrigin\(req\)/.test(hs[1])&&/sec-fetch-site/.test(hs[1]));

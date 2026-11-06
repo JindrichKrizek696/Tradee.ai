@@ -50,7 +50,7 @@ export function SearchButton({mobile}:{mobile?:boolean}){
  return <button type="button" className={mobile?'t-icon-btn t-search-m':'t-search'} onClick={()=>dispatchEvent(new Event('tradee:search'))} aria-label="Hledat v Tradee" aria-keyshortcuts="Control+K Meta+K" title={`Hledat (${k})`}><Search size={17}/></button>;
 }
 
-type Props={rows:Row[];calendar:CalendarEvent[];now:number;admin:boolean;owner:boolean;merge:boolean;setView:(v:View)=>void;openMarket:(id:string)=>void;onRefresh:()=>void};
+type Props={rows:Row[];calendar:CalendarEvent[];now:number;admin:boolean;lab:boolean;merge:boolean;setView:(v:View)=>void;openMarket:(id:string)=>void;onRefresh:()=>void};
 /** Vyhledávání v celém Tradee: stránky, trhy, akce, kalendář, deník, poznámky, pravidla, checklisty, nastavení. */
 export function SearchPalette(p:Props){
  const [open,setOpen]=useState(false),[remote,setRemote]=useState<Remote|null>(null),[loading,setLoading]=useState(false),loadedAt=useRef(0),back=useRef<HTMLElement|null>(null),openRef=useRef(false);
@@ -72,7 +72,7 @@ export function SearchPalette(p:Props){
  return open?<Dialog {...p} remote={remote} loading={loading} close={hide}/>:null;
 }
 
-function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefresh,remote,loading,close}:Props&{remote:Remote|null;loading:boolean;close:(restore?:boolean)=>void}){
+function Dialog({rows,calendar,now,admin,lab,merge,setView,openMarket,onRefresh,remote,loading,close}:Props&{remote:Remote|null;loading:boolean;close:(restore?:boolean)=>void}){
  const [q,setQ]=useState(''),[active,setActive]=useState(0),input=useRef<HTMLInputElement>(null),list=useRef<HTMLDivElement>(null);
  const {theme,toggle}=useTheme(),{zone}=useCalendarTz();
  const all=useMemo(()=>{
@@ -98,7 +98,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
    {id:'p:alerty',group:'page',icon:Bell,title:'Alerty',subtitle:'Cenové alerty',keywords:'alert upozornění notifikace hlídání ceny cena skóre zvonek',boost:3,run:href('/alerty')},
    {id:'p:checklisty',group:'page',icon:ListChecks,title:'Checklisty',keywords:'kontrolní seznam před vstupem',boost:3,run:href('/checklisty')},
    {id:'p:mt',group:'page',icon:Link2,title:'Propojení s MetaTraderem',keywords:'mt4 mt5 ea expert advisor účet broker',boost:3,run:href('/mt')},
-   ...(owner?[{id:'p:lab',group:'page' as const,icon:FlaskConical,title:'Laboratoř',keywords:'agenti strategie evoluce',boost:3,run:href('/laborator')}]:[]),
+   ...(lab?[{id:'p:lab',group:'page' as const,icon:FlaskConical,title:'Laboratoř',keywords:'agenti strategie evoluce',boost:3,run:href('/laborator')}]:[]),
    ...(admin?[{id:'p:admin',group:'page' as const,icon:Shield,title:'Administrace',keywords:'uživatelé členové waitlist přístup',boost:3,run:href('/admin')}]:[]),
    {id:'p:slovnik',group:'page',icon:BookOpen,title:'Slovník pojmů',keywords:'pojmy glosář vysvětlení definice co je',boost:3,run:href('/slovnik')},
    {id:'s:pruvodce',group:'setting',icon:Settings,title:'Průvodce nastavením',subtitle:'Nastavení',keywords:'onboarding dotazník úvod začátek přizpůsobit',boost:2,run:href('/pruvodce')},
@@ -131,7 +131,7 @@ function Dialog({rows,calendar,now,admin,owner,merge,setView,openMarket,onRefres
   for(const t of GLOSSARY)items.push({id:'g:'+t.id,group:'term',icon:BookOpen,title:t.term,subtitle:t.def.length>90?t.def.slice(0,89)+'…':t.def,keywords:[t.id,...(t.aliases||[])].join(' '),run:href('/slovnik#'+t.id)});
   for(const r of RULES)items.push({id:'r:'+r.id,group:'rule',icon:ShieldCheck,title:r.label,subtitle:'Pravidlo disciplíny',keywords:r.help,run:href('/pravidla')});
   return items;
- },[rows,calendar,now,zone,admin,owner,merge,setView,openMarket,onRefresh,remote,theme,toggle]);
+ },[rows,calendar,now,zone,admin,lab,merge,setView,openMarket,onRefresh,remote,theme,toggle]);
 
  const results=useMemo(()=>{
   if(!q.trim()){

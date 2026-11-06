@@ -1,4 +1,4 @@
-// Laboratoř (jen vlastník): ověření přístupu pro stránku /laborator + číselníky. Ostatní → 404.
+// Laboratoř (vlastník + LAB_EMAILS): ověření přístupu pro stránku /laborator + číselníky. Ostatní → 404.
 import {labUser,LAB_HEADERS} from '@/lib/lab/http';
 import {instruments} from '@/lib/markets';
 import {STUDY_SETS,SCORE_METHODS} from '@/lib/lab/run';

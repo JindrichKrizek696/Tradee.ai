@@ -40,8 +40,8 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
  const [data,setData]=useState({...initialReport,ffMacro,tePmi,retailOfficial} as unknown as FundamentalData),[market,setMarket]=useState(initialMarket),[history,setHistory]=useState<HistoryLike>({snapshots:[]});
  useEffect(()=>{let live=true;fetch('/api/fundamentals',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<FundamentalData&{scoreMarket:MarketData;history:HistoryLike}>:null).then(j=>{if(live&&j){setData(j);setMarket(j.scoreMarket);setHistory(j.history)}}).catch(()=>{});return()=>{live=false}},[]);
  // vlastník vidí v grafu i vrstvu Simulace z Laboratoře (ostatním se data simulace nikdy nežádají)
- const [owner,setOwner]=useState(false);
- useEffect(()=>{let live=true;fetch('/api/watchlist',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{user?:{owner?:boolean}}>:null).then(j=>{if(live)setOwner(j?.user?.owner===true)}).catch(()=>{});return()=>{live=false}},[]);
+ const [lab,setLab]=useState(false);
+ useEffect(()=>{let live=true;fetch('/api/watchlist',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{user?:{lab?:boolean}}>:null).then(j=>{if(live)setLab(j?.user?.lab===true)}).catch(()=>{});return()=>{live=false}},[]);
  // pracovní plocha: záložky (trh + TF + rozvržení) uložené k účtu; první záložka podle adresy
  const W=useWorkspace(IDS,{instrument:urlItem?.id??null,tf,view:localView});
  const {ws,setWs}=W,tab=ws.tabs.find(t=>t.id===ws.active)??null;
@@ -70,7 +70,7 @@ export default function ChartPage({slug,tf}:{slug:string;tf?:string}){
    picker={pick=><MarketPicker onPick={pick}/>} snapshot={snapshot} onRestored={(t,d)=>restoreDrawings(t.instrument,d)}/>}
   <main className="mt-main mc-page-main">
    {!W.ready?<div className="mc-full"><section className="s-card mc mc-fill" aria-busy="true"><div className="mc-skeleton" aria-label="Načítám záložky grafu"><i/><i/><i/><i/><i/><i/><i/><i/></div></section></div>
-   :item&&tab?<div className="mc-full"><MarketChart key={tab.id+':'+tab.instrument} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill view={tab.view} onView={onView} onDrawings={onDrawings} headExtra={picker} owner={owner}/></div>
+   :item&&tab?<div className="mc-full"><MarketChart key={tab.id+':'+tab.instrument} instrument={item.id} name={item.name} history={history} method={method} events={calendar} fill view={tab.view} onView={onView} onDrawings={onDrawings} headExtra={picker} lab={lab}/></div>
     :<section className="s-card mc-missing"><h1>Trh nenalezen</h1><p className="mc-empty-note">Tenhle trh nemá graf. Vyber jiný:</p>{picker}</section>}
   </main>
   {/* na telefonu stejná lišta dole jako v aplikaci (graf patří k Analýze trhů); výška grafu s ní počítá (--bnav v CSS) */}

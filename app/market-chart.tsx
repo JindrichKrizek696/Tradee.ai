@@ -138,9 +138,9 @@ function openChartWindow(instrument:string,tf:ChartTf){
 }
 
 // fill = graf vyplní výšku rodiče (stránka /graf); jinak pevná výška (height); initialTf = TF z adresy stránky /graf
-// owner = přihlášený je vlastník → vrstva Simulace (data z /api/laborator/paper; ostatní ji nevidí a nic nežádají)
+// lab = přihlášený má Laboratoř (vlastník + LAB_EMAILS) → vrstva Simulace (data z /api/laborator/paper; ostatní ji nevidí a nic nežádají)
 // view / onView = pohled záložky na stránce /graf (pracovní plocha); bez nich se pohled pamatuje v prohlížeči; onDrawings = kresby trhu nahoru (snímek při zavření záložky)
-export function MarketChart({instrument,name,history,method,events,height,headExtra,fill,initialTf,owner=false,view,onView,onDrawings}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode;fill?:boolean;initialTf?:string;owner?:boolean;view?:ChartView;onView?:(v:ChartView)=>void;onDrawings?:(instrument:string,list:Drawing[])=>void}){
+export function MarketChart({instrument,name,history,method,events,height,headExtra,fill,initialTf,lab=false,view,onView,onDrawings}:{instrument:string;name:string;history:HistoryLike;method:string;events:CalendarEvent[];height?:string;headExtra?:React.ReactNode;fill?:boolean;initialTf?:string;lab?:boolean;view?:ChartView;onView?:(v:ChartView)=>void;onDrawings?:(instrument:string,list:Drawing[])=>void}){
  const [prefs,setPrefs]=useState<Prefs>(()=>view?readView(view):DEFAULT),[ready,setReady]=useState(false);
  const viewCb=useRef(onView);useLayoutEffect(()=>{viewCb.current=onView});
  // hodiny pro neúplnou svíčku a stáří dat (po 30 s)
@@ -228,9 +228,9 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   fetch('/api/chart/trades?instrument='+encodeURIComponent(instrument),{signal:ac.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{trades?:ChartTrade[]}>:Promise.reject()).then((j:{trades?:ChartTrade[]})=>{setTrades(j.trades||[]);setTradesError(false)}).catch(()=>{if(!ac.signal.aborted)setTradesError(true)});
   return()=>ac.abort()},[instrument]);
  // simulace z Laboratoře: jen vlastník (ostatní endpoint ani nevolají; API by jim stejně vrátilo 404)
- useEffect(()=>{if(!owner)return;const ac=new AbortController();
+ useEffect(()=>{if(!lab)return;const ac=new AbortController();
   fetch('/api/laborator/paper?instrument='+encodeURIComponent(instrument),{signal:ac.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{trades?:PaperChartTrade[]}>:Promise.reject()).then(j=>setPaper(j.trades||[])).catch(()=>{});
-  return()=>{ac.abort();setPaper([])}},[instrument,owner]);
+  return()=>{ac.abort();setPaper([])}},[instrument,lab]);
 
  // graf: vytvoří se jednou, data a vrstvy se nastavují v dalších efektech
  useEffect(()=>{
@@ -463,7 +463,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   const c=chart.current,s=price.current,m=markers.current;if(!c||!s||!m)return;
   const bull=css('--bull','#16a34a'),bear=css('--bear','#dc2626'),sec=TF_SEC[tf];
   // značky obchodů a zpráv
-  const pv=prefs.paperVariant,visibleTrades=layers.trades?trades:[],visiblePaper=owner&&layers.paper?paper.filter(t=>pv==='all'||(t.variant??'A')===pv):[];
+  const pv=prefs.paperVariant,visibleTrades=layers.trades?trades:[],visiblePaper=lab&&layers.paper?paper.filter(t=>pv==='all'||(t.variant??'A')===pv):[];
   const simColor=(t:PaperChartTrade)=>{const [v,f]=PAPER_COLORS[t.variant??'A']??PAPER_COLORS.A;return css(v,f)};
   lookup.current.trades=new Map(visibleTrades.map(t=>[t.id,t]));
   lookup.current.paper=new Map(visiblePaper.map(t=>[t.id,t]));
@@ -484,7 +484,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
    if(t.tp>0)lines.current.push(s.createPriceLine({price:t.tp,color:bull,lineStyle:LineStyle.Dotted,lineWidth:1,title:'Sim '+(t.variant??'A')+' TP',axisLabelVisible:true})); // tp 0 = bez TP (varianta ze sweepu)
   }
   // pás skóre se kreslí s panely indikátorů (efekt panelů níž)
- },[times,tf,layers,trades,paper,prefs.paperVariant,owner,news,upcoming,positions,open,tick,ver]);
+ },[times,tf,layers,trades,paper,prefs.paperVariant,lab,news,upcoming,positions,open,tick,ver]);
  // seance s časovým pásmem a DST: pásy a boxy (jen M1–H1)
  const sessData=useMemo(()=>layers.sessions&&sessOk?sessionItems(sessSel,times,ibars.map(b=>({t:b.t,h:b.h,l:b.l})),TF_SEC[tf]):[],[layers.sessions,sessOk,sessSel,times,ibars,tf]);
  useEffect(()=>{sessPrim.items=sessData;sessPrim.alpha=dark()?.13:.08;sessPrim.update()},[sessData,sessPrim,tick,ver]);
@@ -609,7 +609,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
   <p className="mc-ind-foot"><ChartBarDecreasing size={13} aria-hidden/>Profil pro vlastní rozsah nakreslíš nástrojem vlevo ve skupině Objem.</p>
  </div>;
  const layersPanel=<div className="mc-ind">
-  {LAYER_INFO.filter(([k])=>k!=='paper'||owner).map(([k,label,Icon,note])=>{const off=k==='sessions'&&!sessOk;return <IndRow key={k} icon={<Icon size={16} strokeWidth={1.8}/>} title={label} note={off?'Jen na časových rámcích M1–H1':note} on={layers[k]&&!off} disabled={off} onToggle={()=>toggle(k)}>
+  {LAYER_INFO.filter(([k])=>k!=='paper'||lab).map(([k,label,Icon,note])=>{const off=k==='sessions'&&!sessOk;return <IndRow key={k} icon={<Icon size={16} strokeWidth={1.8}/>} title={label} note={off?'Jen na časových rámcích M1–H1':note} on={layers[k]&&!off} disabled={off} onToggle={()=>toggle(k)}>
    {k==='sessions'&&layers.sessions&&!off&&<div className="mc-ind-cfg mc-sess-cfg" role="group" aria-label="Seance a killzóny">{SESSION_IDS.map(id=>{const p=SESSION_PRESETS[id],on=sessSel.includes(id);return <label key={id} className="mc-check" title={p.hint}><input type="checkbox" checked={on} onChange={()=>update({sessions:on?sessSel.filter(x=>x!==id):SESSION_IDS.filter(x=>x===id||sessSel.includes(x))})}/><i className="mc-swatch" style={{background:p.color}}/>{p.label}<small>{p.hint}</small></label>})}</div>}
   </IndRow>})}
   <IndRow icon={<SquareStack size={16} strokeWidth={1.8}/>} title="Zóny vyššího TF" on={prefs.htf} note="Zóny z delších TF i na kratším, s popiskem původu („D1 zóna“)" onToggle={v=>update({htf:v})}/>
@@ -644,7 +644,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
      <Drop title="Vrstvy grafu" role="dialog" label={<><Layers size={15} aria-hidden/><span>Vrstvy</span></>}>{layersPanel}</Drop>
      <Drop title="Zobrazení: měřítko, přiblížení, časové pásmo" role="dialog" className={prefs.log?'on':''} label={<><Eye size={15} aria-hidden/><span>Zobrazení</span></>}>{viewPanel}</Drop>
     </>}
-    {owner&&layers.paper&&!narrow&&<select className="mc-chip mc-type" aria-label="Varianta simulace" title="Obchody které varianty simulace ukázat" value={prefs.paperVariant} onChange={e=>{const v=e.target.value as PaperPick;if(PAPER_PICKS.includes(v))update({paperVariant:v})}}>{PAPER_PICKS.map(v=><option key={v} value={v}>{v==='all'?'Sim: vše':'Sim '+v}</option>)}</select>}
+    {lab&&layers.paper&&!narrow&&<select className="mc-chip mc-type" aria-label="Varianta simulace" title="Obchody které varianty simulace ukázat" value={prefs.paperVariant} onChange={e=>{const v=e.target.value as PaperPick;if(PAPER_PICKS.includes(v))update({paperVariant:v})}}>{PAPER_PICKS.map(v=><option key={v} value={v}>{v==='all'?'Sim: vše':'Sim '+v}</option>)}</select>}
     {!narrow&&alerts.button}
     {headExtra}
     <span className="mc-bar-end">
@@ -656,7 +656,7 @@ export function MarketChart({instrument,name,history,method,events,height,headEx
         <button type="button" className="mc-chip" data-close onClick={()=>full(!fs)}>{fs?'Zmenšit':'Celá obrazovka'}</button>
        </div>
        <label className="mc-row"><span>Typ grafu</span>{typeSelect}</label>
-       {owner&&layers.paper&&<label className="mc-row"><span>Simulace</span><select className="mc-chip mc-type" aria-label="Varianta simulace" value={prefs.paperVariant} onChange={e=>{const v=e.target.value as PaperPick;if(PAPER_PICKS.includes(v))update({paperVariant:v})}}>{PAPER_PICKS.map(v=><option key={v} value={v}>{v==='all'?'Sim: vše':'Sim '+v}</option>)}</select></label>}
+       {lab&&layers.paper&&<label className="mc-row"><span>Simulace</span><select className="mc-chip mc-type" aria-label="Varianta simulace" value={prefs.paperVariant} onChange={e=>{const v=e.target.value as PaperPick;if(PAPER_PICKS.includes(v))update({paperVariant:v})}}>{PAPER_PICKS.map(v=><option key={v} value={v}>{v==='all'?'Sim: vše':'Sim '+v}</option>)}</select></label>}
        <details><summary>Indikátory{calc.length?' ('+calc.length+')':''}</summary>{indPanel}</details>
        <details><summary>Vrstvy a seance</summary>{layersPanel}</details>
        <details><summary>Zobrazení</summary>{viewPanel}</details>

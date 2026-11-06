@@ -1,4 +1,4 @@
-// Laboratoř – jen vlastník. Ostatním (i adminům) stránka vrací 404 už na serveru; data chrání /api/laborator/* (také 404).
+// Laboratoř – vlastník + LAB_EMAILS (lib/lab/access.ts). Ostatním (i adminům) stránka vrací 404 už na serveru; data chrání /api/laborator/* (také 404).
 import {headers} from 'next/headers';
 import {notFound} from 'next/navigation';
 import {currentUser} from '@/lib/server';

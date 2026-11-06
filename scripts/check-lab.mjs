@@ -5,6 +5,7 @@ import {normalizeLabRule,labRuleIssues,labGateFor,toStrategyRules} from '../lib/
 import {validateLabNote,cleanTags,aiSummary,isMissingLabTable} from '../lib/lab/core.ts';
 import {runBacktest} from '../lib/backtest/engine.ts';
 import {COT_LAG_MS} from '../lib/backtest/context.ts';
+import {readFileSync} from 'node:fs';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
 const near=(a,b,e=1e-9)=>a!==null&&b!==null&&Math.abs(a-b)<=e;
@@ -12,13 +13,27 @@ const near=(a,b,e=1e-9)=>a!==null&&b!==null&&Math.abs(a-b)<=e;
 // ---- přístup: jen vlastník; admin (ne vlastník), člen i nepřihlášený → 404
 const owner={id:'g:1',role:'admin',owner:true},admin={id:'g:2',role:'admin',owner:false},member={id:'g:3',role:'member',owner:false};
 const U='https://tradee.eu/api/laborator';
-check('vlastník projde',labAllowed(owner,U)&&labGate(owner,U)===owner);
+check('vlastník projde',labAllowed(owner,U)&&labGate(owner,U).id===owner.id&&labGate(owner,U).actorId===owner.id);
 check('admin (ne vlastník) → 404',!labAllowed(admin,U)&&labGate(admin,U) instanceof Response&&labGate(admin,U).status===404);
 check('člen → 404',labGate(member,U) instanceof Response&&labGate(member,U).status===404);
 check('nepřihlášený → 404',labGate(null,U).status===404&&labGate(undefined,U).status===404);
 check('role admin bez owner příznaku nestačí',!labAllowed({id:'x',role:'admin',owner:false})&&!labAllowed({id:'x',role:'admin'}));
 check('?as= cizí id → 404 i pro vlastníka',labGate(owner,U+'?as=g:2').status===404&&labAllowed(owner,U+'?as=g:1'));
 check('admin s ?as=vlastník → 404',labGate(admin,U+'?as=g:1').status===404);
+// ---- sdílení (LAB_EMAILS → lab:true): stejná data jako vlastník (id = members.id vlastníka), skutečný uživatel v actorId
+{const OID='g:1',shared={id:'g:5',email:'host@example.com',role:'member',owner:false,lab:true},sharedAdmin={id:'g:6',role:'admin',owner:false,lab:true};
+ const go=labGate({...owner,email:'o@example.com',lab:true},U,OID),gs=labGate(shared,U,OID);
+ check('sdílení: vlastník projde, data = jeho id',!(go instanceof Response)&&go.id===OID&&go.actorId===OID);
+ check('sdílení: e-mail z LAB_EMAILS projde, data id = vlastník, actor = on',!(gs instanceof Response)&&gs.id===OID&&gs.actorId==='g:5'&&gs.actorEmail==='host@example.com'&&labGate(sharedAdmin,U,OID).id===OID);
+ check('sdílení: admin mimo LAB_EMAILS → 404',labGate({...admin,lab:false},U,OID).status===404);
+ check('sdílení: člen mimo LAB_EMAILS → 404',labGate({...member,lab:false},U,OID).status===404);
+ check('sdílení: ?as= cizí id → 404 (i ?as=vlastník)',labGate(shared,U+'?as=g:2',OID).status===404&&labGate(shared,U+'?as=g:1',OID).status===404&&labGate(shared,U+'?as=g:5',OID).id===OID);
+ check('sdílení: id vlastníka nedohledáno → 404',labGate(shared,U,null).status===404&&labGate(shared,U).status===404&&labGate(shared,U,'').status===404);
+ check('sdílení: lab:false ani bez příznaku nestačí',!labAllowed({id:'x',role:'member',owner:false,lab:false})&&!labAllowed({id:'x',role:'member',owner:false}));
+ const srv=readFileSync(new URL('../lib/server.ts',import.meta.url),'utf8'),http=readFileSync(new URL('../lib/lab/http.ts',import.meta.url),'utf8');
+ check('LAB_EMAILS: čárkami, bez ohledu na velikost, lab = vlastník || seznam',/LAB_EMAILS\|\|''\)\.split\(','\)\.map\(x=>x\.trim\(\)\.toLowerCase\(\)\)/.test(srv)&&/isOwner\(email\)\|\|labEmails\(\)\.includes\(email\.trim\(\)\.toLowerCase\(\)\)/.test(srv)&&/lab:isLabEmail\(s\.email\)/.test(srv));
+ check('labUser: id vlastníka podle OWNER_EMAIL s cache 5 min, sdílené změny se logují',/ownerEmail\(\)/.test(http)&&/300_000/.test(http)&&/console\.log\(`\[laborator\]/.test(http));
+}
 const nf=labNotFound();check('404 bez prozrazení',nf.status===404&&(await nf.json()).error==='Nenalezeno.'&&nf.headers.get('Cache-Control')==='no-store');
 
 // ---- syntetická řada: pracovní dny od 2008, náhodná procházka se sezónním driftem (deterministický PRNG)

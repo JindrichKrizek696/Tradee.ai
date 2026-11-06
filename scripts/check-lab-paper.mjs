@@ -280,8 +280,8 @@ check('půl spreadu EUR/USD = 0,5 pipu',near(halfSpread('EUR/USD',1.1),0.00005,1
  check('route: každý handler začíná labUser (404)',handlers.length===2&&handlers.every(h=>/^(GET|POST)\(req:Request\)\{try\{const u=await labUser\(req\);if\(u instanceof Response\)return u;/.test(h)));
  check('route: reset / odebrání jen sameOrigin + potvrzení',/POST[\s\S]*sameOrigin\(req\)[\s\S]*sec-fetch-site[\s\S]*confirm!=='RESTART'[\s\S]*confirm!=='ODEBRAT'/.test(src));
  const chart=readFileSync(new URL('../app/market-chart.tsx',import.meta.url),'utf8');
- const fetches=[...chart.matchAll(/fetch\('\/api\/laborator\/paper/g)].length,guard=/if\(!owner\)return;[\s\S]{0,200}\/api\/laborator\/paper/.test(chart);
- check('graf: data simulace jen pro vlastníka',fetches===1&&guard);
+ const fetches=[...chart.matchAll(/fetch\('\/api\/laborator\/paper/g)].length,guard=/if\(!lab\)return;[\s\S]{0,200}\/api\/laborator\/paper/.test(chart);
+ check('graf: data simulace jen s přístupem do Laboratoře (lab)',fetches===1&&guard);
 }
 
 // ---- obchodní hodiny (lib/market-hours.ts) a neplatné obchody (void)
