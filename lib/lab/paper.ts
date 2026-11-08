@@ -12,8 +12,8 @@ import type {StepFn} from './study.ts';
 import {isAgentVariant,agentMarkets,genomeText,FAMILY_SHORT,AGENT_SET_GROUPS,AGENT_SET_LABELS,type Genome} from './agents.ts';
 import {familyDef} from './known-grid.ts';
 import {isMarketOpen,closedBetween} from '../market-hours.ts';
-import {defOutline,type StrategyDef} from './rules-def.ts';
-import {portfolioBlock,entryWindowOk,clockDeadline,SKIP_MIN_STOP,type LiveSetup,type HistTrade} from './strat-engine.ts';
+import {defOutline,condLabel,type StrategyDef} from './rules-def.ts';
+import {portfolioBlock,entryWindowOk,clockDeadline,SKIP_MIN_STOP,type LiveSetup,type HistTrade,type Trade as SimTrade,type LiveOpen,type LiveSim,type LiveDiag} from './strat-engine.ts';
 
 export const PAPER_RULES_VERSION='paper-v1';
 export const PAPER_RULES={
@@ -181,7 +181,7 @@ export {voidLabel,VOID_TINY_STOP} from './sim-labels.ts';
 import {simLabel,simHead,type SimLabel} from './sim-labels.ts'; // odznak podle důvodu (zavřený trh / stop pod minimem – scripts/lab-void-tiny-stops.mjs)
 export const isVoid=(t:{voidReason?:string|null})=>!!t.voidReason;
 export const validTrades=<T extends {voidReason?:string|null}>(ts:T[]):T[]=>ts.filter(t=>!t.voidReason);
-export type PaperClose={id:string;closed:number;exit:number;exitReason:ExitReason;r:number;pnlCzk:number;pct:number;scoreAtExit:number|null;resultNote:string};
+export type PaperClose={id:string;closed:number;exit:number;exitReason:ExitReason;r:number;pnlCzk:number;pct:number;scoreAtExit:number|null;resultNote:string;entry?:number}; // entry = průměrný vstup po doplnění dalších nohou (agent R…)
 export type PaperInput={
  now:number;startEquity:number;trades:PaperTrade[];
  signals:Record<string,PaperSignal|undefined>;quotes:Record<string,PaperQuote|undefined>;
@@ -190,11 +190,16 @@ export type PaperInput={
  variant?:PaperVariant;cot?:Record<string,number|undefined>; // cot = COT signál trhu −1…+1 (jen varianta C)
  // agenti se známou strategií: COT percentil (krokové funkce) a sazby pro carry; noEntries = archivovaný agent jen dobíhá otevřené pozice
  known?:{cotPct?:Record<string,StepFn|null|undefined>;rates?:RateSource|null};noEntries?:boolean;
- // agenti R…: nastavení z definice po trzích (scripts/lab-paper.mjs → liveSetups)
+ // agenti R… (starší cesta, jen testy): nastavení z definice po trzích (liveSetups)
  ruleSetups?:Record<string,LiveSetup[]|undefined>;
+ // agenti R…: výsledek STEJNÉ simulace jako backtest (strat-engine.ts simulate, live) nad dokončenými svíčkami od startu agenta
+ ruleSim?:RuleSim;
 };
+// živá simulace agenta R…: obchody (uzavřené), otevřené pozice a čekající limity z simulate() (strat-engine.ts liveSim) + diagnostika
+export type RuleSim=LiveSim;
+export type RuleLiveDiag=LiveDiag&{opened?:number;closed?:number;legacyOpen?:number;entrySkips?:Record<string,number>};
 export type PaperSkip={instrument:string;score:number;reason:string};
-export type PaperStepResult={closes:PaperClose[];opens:PaperTrade[];skipped:PaperSkip[];log:string[];balance:number;openPnl:number;openCount:number};
+export type PaperStepResult={closes:PaperClose[];opens:PaperTrade[];skipped:PaperSkip[];log:string[];balance:number;openPnl:number;openCount:number;diag?:RuleLiveDiag};
 
 const H=3600000,DAY=86400000;
 const round=(v:number,d:number)=>{const f=10**d;return Math.round(v*f)/f};
@@ -513,6 +518,7 @@ export function paperStep(inp:PaperInput):PaperStepResult{
 // Částečný výstup = dva řádky obchodu (a = TP1 s podílem pct, b = zbytek s cílem a stopem na BE od TP1); dvě nohy = řádek na nohu
 // (další noha jen ke stejnému nastavení, dokud první běží; po zavření se zbylé nohy ruší). Limity portfolia počítají nastavení, ne řádky.
 export function ruleStep(inp:PaperInput,V:PaperVariant):PaperStepResult{
+ if(inp.ruleSim)return ruleSimStep(inp,V,inp.ruleSim);
  const def=V.rule!.def,R=inp.rules??V.rules,now=inp.now,log:string[]=[],name=(id:string)=>inp.names?.[id]||id;
  const trades=validTrades(inp.trades),open=trades.filter(t=>t.closed===null),closes:PaperClose[]=[];
  for(const t of [...open].sort((a,b)=>a.opened-b.opened||a.id.localeCompare(b.id))){
@@ -585,6 +591,84 @@ export function ruleStep(inp:PaperInput,V:PaperVariant):PaperStepResult{
  let openPnl=0;
  for(const t of [...still,...opens]){const q=inp.quotes[t.instrument];if(q&&q.price>0)openPnl+=markToMarket(t,q.price).pnlCzk}
  return {closes,opens,skipped,log,balance,openPnl:round(openPnl,2),openCount:still.length+opens.length};
+}
+
+// ---- agent R… živě = backtest: obchody z simulate() nad DOKONČENÝMI svíčkami od startu agenta (stejné signály, limity čekající přes kroky,
+// plnění na svíčce dotyku, výstupy SL / TP / BE / čas jako v testu). Krok jen sladí databázi s výsledkem simulace:
+//  - obchod / pozice ze simulace bez řádku → nový řádek (čas a cena vstupu ze simulace, riziko z % zůstatku v okamžiku vstupu),
+//  - otevřený řádek, který simulace už zavřela → výstup za cenu a čas ze simulace (R ze simulace včetně spreadu a částečného výstupu),
+//  - otevřené řádky bez protějšku (starší obchody z doby před touto cestou) → dobíhají postaru (checkExit).
+// Svíčky chodí se zpožděním (synchronizace 1× za hodinu) → vstup / výstup se zapíše zpětně s časem ze svíčky. Čas mimo obchodní hodiny
+// (svíčka Yahoo po zavření trhu podle lib/market-hours.ts) se posune na poslední otevřený okamžik svíčky, ať obchod není „při zavřeném trhu“.
+export const simKey=(market:string,sigT:number,side:number)=>`${market}@${sigT}:${side>0?1:-1}`;
+const SIM_REASON:Record<SimTrade['reason'],ExitReason>={sl:'sl',be:'be',tp:'tp',time:'time',end:'time'};
+export function openMoment(id:string,t:number,span:number):number{
+ if(isMarketOpen(id,null,t))return t;
+ const step=5*60000;
+ for(let x=t-step;x>=t-span;x-=step)if(isMarketOpen(id,null,x))return x;
+ for(let x=t+step;x<=t+span;x+=step)if(isMarketOpen(id,null,x))return x;
+ return t;
+}
+function ruleSimStep(inp:PaperInput,V:PaperVariant,sim:RuleSim):PaperStepResult{
+ const def=V.rule!.def,R=inp.rules??V.rules,now=inp.now,log:string[]=[],name=(id:string)=>inp.names?.[id]||id,ms=def.data==='H1'?H:DAY;
+ const all=inp.trades,trades=validTrades(all),closes:PaperClose[]=[],opens:PaperTrade[]=[],skipped:PaperSkip[]=[],entrySkips:Record<string,number>={};
+ const skip=(id:string,rating:number,reason:string)=>{skipped.push({instrument:id,score:rating,reason});entrySkips[reason]=(entrySkips[reason]||0)+1};
+ const byKey=new Map<string,PaperTrade>();for(const t of all){const k=t.partsAtEntry?.rule?.key;if(k&&k.includes('@'))byKey.set(k,t)}
+ const optN=Math.max(1,def.conditions.filter(c=>c.role==='optional').length);
+ // zůstatek v čase T: start + uzavřené P&L do T (z databáze i z výstupů tohoto kroku)
+ const realized:[number,number][]=trades.filter(t=>t.closed!==null).map(t=>[t.closed as number,t.pnlCzk??0]);
+ const balanceAt=(T:number)=>inp.startEquity+realized.reduce((s,[c,p])=>s+(c<=T?p:0),0);
+ const closeOf=(t:PaperTrade,x:SimTrade):PaperClose=>{
+  // více nohou: řádek vznikl při první plněné noze, průměr vstupu ze simulace se doplní při výstupu (R už je za všechny plněné nohy)
+  const r=round(x.r,4),exit=x.exit??t.entry,closed=Math.max(t.opened,openMoment(t.instrument,x.exitT,ms)),reason=SIM_REASON[x.reason],entry=x.entry??t.entry;
+  const pnlCzk=round(r*t.riskCzk,2),pct=round(pctOf({direction:t.direction,entry},exit),4);
+  return {id:t.id,closed,exit,exitReason:reason,r,pnlCzk,pct,scoreAtExit:null,...(entry!==t.entry?{entry}:{}),
+   resultNote:`Výstup: ${EXIT_LABELS[reason]} za ${fmtPx(exit)}${x.partial?' (po částečném výstupu na TP1)':''} → ${signed(r,2)} R, ${fmtCzk(pnlCzk)} (${signed(pct,2)} % ceny), stejně jako v testu (svíčka ${new Date(x.exitT).toISOString().slice(0,16).replace('T',' ')} UTC).`};
+ };
+ const sealed=new Set<string>(); // klíče ze simulace (uzavřené i otevřené)
+ const items=[...sim.trades.map(x=>({x,open:null as LiveOpen|null})),...sim.open.map(o=>({x:null as SimTrade|null,open:o}))]
+  .sort((a,b)=>(a.x?.entryT??a.open!.entryT)-(b.x?.entryT??b.open!.entryT));
+ for(const it of items){
+  const m=it.x?.market??it.open!.market,side=it.x?.side??it.open!.side,sigT=it.x?.sigT??it.open!.sigT,entryT=it.x?.entryT??it.open!.entryT,key=simKey(m,sigT,side);
+  sealed.add(key);
+  const row=byKey.get(key)??opens.find(t=>t.partsAtEntry.rule?.key===key);
+  if(row){
+   if(it.x&&row.closed===null&&!isVoid(row)){const c=closeOf(row,it.x);closes.push(c);realized.push([c.closed,c.pnlCzk]);
+    log.push(`Zavřeno ${name(row.instrument)} ${row.direction} (${V.id}): ${EXIT_LABELS[c.exitReason]}, ${signed(c.r,2)} R, ${fmtCzk(c.pnlCzk)}.`)}
+   continue;
+  }
+  const rating=it.x?.rating??it.open!.rating;
+  if(inp.noEntries){skip(m,rating,'agent je archivovaný – nové vstupy ne');continue}
+  // přechod ze starší cesty: na trhu, kde v okamžiku vstupu běžel starší obchod, se nevstupuje (bez zdvojení pozice; rozhodnutí se v čase nemění)
+  if(trades.some(t=>t.instrument===m&&!String(t.partsAtEntry?.rule?.key??'').includes('@')&&t.opened<=entryT&&(t.closed===null||t.closed>entryT))){skip(m,rating,'na trhu běží starší obchod');continue}
+  if(!(it.x?.legs??it.open!.legs)){skip(m,rating,'bez plněné nohy');continue}
+  const entry=it.x?.entry??it.open!.entry,sl=it.x?.stop??it.open!.orig,tp=it.x?it.x.target??0:it.open!.target??0,riskPct=it.x?.riskPct??it.open!.riskPct;
+  if(!(entry>0)||!(Math.abs(entry-sl)>0)){skip(m,rating,'chybí cena vstupu / stop');continue}
+  const opened=openMoment(m,entryT,ms),balance=balanceAt(opened),riskCzk=round(balance*riskPct/100,2),direction:Direction=side>0?'long':'short';
+  const sat=(it.x?.sat??it.open!.sat??[]).map(k=>def.conditions[k]?condLabel(def.conditions[k],def)+(def.conditions[k].role==='optional'?' · volitelná':''):'');
+  const snap:PaperSnapshot={method:`rule-${V.rule!.defId.slice(0,8)}-v${V.rule!.version}`,coverage:100,alignment:100,freshness:1,atr:Math.abs(entry-sl),
+   parts:sat.map((l,i)=>({id:'c'+i,label:l,weight:0,value:null,contribution:null,detail:'',status:'ok'})),
+   rule:{key,leg:'sim',beAtR:def.management.beAtR,maxHoldMs:def.management.timeExitBars?def.management.timeExitBars*ms:null,clock:def.management.timeExitClock,rating}};
+  const why=[`${name(m)} ${direction} – pravidlová strategie ${V.id} (verze ${V.rule!.version}), signál ze svíčky ukončené ${new Date(sigT).toISOString().slice(0,16).replace('T',' ')} UTC, vstup ${new Date(opened).toISOString().slice(0,16).replace('T',' ')} UTC (stejně jako v testu).`,
+   `Proč: splněno ${sat.length} podmínek – ${sat.join('; ')}. Hodnocení ${rating}/${optN}.`,
+   `Plán: vstup ${fmtPx(entry)}${def.entry.type==='limit'?' (limit)':' (za trh po zavření svíčky)'}, SL ${fmtPx(sl)}, ${tp>0?`TP ${fmtPx(tp)}`:'bez TP'}${def.targets.partial?' (částečný výstup na TP1)':''}, riziko ${cz(round(riskCzk,0),0)} Kč (${cz(riskPct,2)} % z ${cz(round(balance,0),0)} Kč).`].join('\n');
+  const t:PaperTrade={id:'p'+V.id+entryT.toString(36)+'-'+m.replace(/[^A-Za-z0-9]/g,''),instrument:m,direction,opened,entry,sl,tp,riskCzk,confidence:Math.round(50+50*Math.min(1,rating/optN)),
+   scoreAtEntry:rating,partsAtEntry:snap,why,closed:null,exit:null,exitReason:null,r:null,pnlCzk:null,pct:null,scoreAtExit:null,resultNote:null,rulesVersion:V.rulesVersion,variant:V.id};
+  opens.push(t);log.push(`Otevřeno ${name(m)} ${direction} (${V.id}) za ${fmtPx(entry)} (hodnocení ${rating}, riziko ${cz(round(riskCzk,0),0)} Kč).`);
+  if(it.x){const c=closeOf(t,it.x);closes.push(c);realized.push([c.closed,c.pnlCzk]);log.push(`Zavřeno ${name(m)} ${direction} (${V.id}): ${EXIT_LABELS[c.exitReason]}, ${signed(c.r,2)} R, ${fmtCzk(c.pnlCzk)}.`)}
+ }
+ // otevřené řádky bez protějšku v simulaci (obchody z dřívější cesty) dobíhají postaru
+ const closedIds=new Set(closes.map(c=>c.id));let legacy=0;
+ for(const t of trades.filter(t=>t.closed===null&&!closedIds.has(t.id)&&!sealed.has(t.partsAtEntry?.rule?.key??''))){
+  legacy++;const ex=checkExit(t,{now,h1:inp.h1?.[t.instrument],points:inp.points?.[t.instrument],quote:inp.quotes[t.instrument],rules:R});if(!ex)continue;
+  closes.push({id:t.id,...ex,scoreAtExit:null,resultNote:`Výstup: ${EXIT_LABELS[ex.exitReason]} za ${fmtPx(ex.exit)} → ${signed(ex.r,2)} R, ${fmtCzk(ex.pnlCzk)} (${signed(ex.pct,2)} % ceny).`});
+  realized.push([ex.closed,ex.pnlCzk]);log.push(`Zavřeno ${name(t.instrument)} ${t.direction} (${V.id}): ${EXIT_LABELS[ex.exitReason]}, ${signed(ex.r,2)} R, ${fmtCzk(ex.pnlCzk)}.`);
+ }
+ const done=new Set(closes.map(c=>c.id)),stillOpen=[...trades,...opens].filter(t=>t.closed===null&&!done.has(t.id));
+ let openPnl=0;for(const t of stillOpen){const q=inp.quotes[t.instrument];if(q&&q.price>0)openPnl+=markToMarket(t,q.price).pnlCzk}
+ const balance=round(inp.startEquity+trades.reduce((s,t)=>s+(t.closed!==null?t.pnlCzk??0:0),0)+closes.reduce((s,c)=>s+c.pnlCzk,0),2);
+ const diag:RuleLiveDiag={...sim.diag,opened:opens.length,closed:closes.length,legacyOpen:legacy,entrySkips};
+ return {closes,opens,skipped,log,balance,openPnl:round(openPnl,2),openCount:stillOpen.length,diag};
 }
 
 // ---- statistiky a shrnutí pro AI

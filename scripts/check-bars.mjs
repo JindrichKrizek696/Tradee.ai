@@ -27,8 +27,13 @@ const base=Date.UTC(2026,0,5,0);
 const h4=toH4([b(base+H,2,3,1,2.5,1),b(base,1,2,0.5,1.5,null),b(base+2*H,2.5,4,2,3,2),b(base+4*H,3,3,3,3,null)]);
 check('H4: agregace OHLCV',h4.length===2&&h4[0].t===base&&h4[0].o===1&&h4[0].h===4&&h4[0].l===0.5&&h4[0].c===3&&h4[0].v===3&&h4[1].t===base+4*H&&h4[1].v===null,h4);
 const calls=[];
-const fake={prepare:sql=>({bind:(...a)=>({all:async()=>{calls.push([sql,a]);return {results:[{t:'5',o:1,h:2,l:0.5,c:1,v:null}]}}})})};
+const fake={prepare:sql=>({bind:(...a)=>({all:async()=>{calls.push([sql,a]);return {results:[{t:String(T*1000),o:1,h:2,l:0.5,c:1,v:null},{t:String(T*1000+2405000),o:1,h:1,l:1,c:1,v:null}]}}})})};
 const lb=await loadBars(fake,'EUR/USD','H1',0,10);
-check('loadBars: jeden dotaz, t číslo',calls.length===1&&/ORDER BY t/.test(calls[0][0])&&lb[0].t===5&&calls[0][1].join()==='EUR/USD,H1,0,10',calls);
+check('loadBars: jeden dotaz, t číslo',calls.length===1&&/ORDER BY t/.test(calls[0][0])&&lb[0].t===T*1000&&calls[0][1].join()==='EUR/USD,H1,0,10',calls);
+check('loadBars: živý bod Yahoo mimo mřížku 30 min (dřív uložený jako svíčka) se vynechá',lb.length===1,lb);
+{const live={chart:{result:[{timestamp:[T,T+3600,T+3600+2405],indicators:{quote:[{open:[1,1,1],high:[1.1,1.1,1],low:[.9,.9,1],close:[1,1,1],volume:[1,1,1]}]}}]}},pl=parseBars(live);
+ check('parse: poslední živý bod Yahoo (čas posledního obchodu, ne začátek svíčky) se neuloží',pl.bars.length===2&&pl.bars.every(b=>b.t%1800000===0),pl.bars);
+ const d1={chart:{result:[{timestamp:[Date.UTC(2026,10,5)/1000,Date.UTC(2026,10,6)/1000,Date.UTC(2026,10,8,21,40,30)/1000,Date.UTC(2026,10,6,13,30)/1000],indicators:{quote:[{open:[1,1,1,1],high:[1,1,1,1],low:[1,1,1,1],close:[1,1,1,1],volume:[1,1,1,1]}]}}]}};
+ check('parse D1: dny na 00:00 i 13:30 zůstanou, živý bod 21:40:30 ne',parseBars(d1).bars.length===3);}
 {const r=fixFxOpen([{t:0,o:1,h:1.2,l:.9,c:1.1,v:null},{t:1,o:1.15,h:1.16,l:1.12,c:1.15,v:null}]);check('archiv FX D1: open z předchozího close, low rozšířené',r[1].o===1.1&&r[1].l===1.1&&r[0].o===1,r);}
 console.log(fails.length?`\n${fails.length} selhalo`:'\nvše ok');process.exit(fails.length?1:0);

@@ -355,16 +355,20 @@ export const blockKind=(m:string):'blockFull'|'blockTrades'|'blockLoss'=>m.start
 
 // ---- simulace (jeden průchod časem přes trhy)
 export type Trade={market:string;side:Side;sigT:number;entryT:number;exitT:number;r:number;reason:'sl'|'be'|'tp'|'time'|'end';rating:number;riskPct:number;legs:number;partial:boolean;
- entry?:number;stop?:number;target?:number|null;exit?:number;trace?:Trace;mae?:number;mfe?:number;bars?:number}; // entry = průměr plněných nohou (mid), stop = původní stop, exit = mid výstupu
+ entry?:number;stop?:number;target?:number|null;exit?:number;trace?:Trace;mae?:number;mfe?:number;bars?:number;sat?:number[]}; // entry = průměr plněných nohou (mid), stop = původní stop, exit = mid výstupu; sat = splněné podmínky (jen živá simulace)
 // mae / mfe = největší nepříznivý / příznivý pohyb od průměrného vstupu v násobcích původního rizika (|vstup − stop|, mid), bars = svíček v pozici
 // moc = noha market_on_close (when = index podmínky potvrzení, −1 = bez), spent = pokus proběhl; cancelAfter = poslední svíčka (od signální) pro plnění
 type Leg={L:number;share:number;filled:boolean;fill:number;mid:number;moc:boolean;when:number;spent:boolean;cancelAfter:number;cancelAtTp1:boolean};
 type Pos={side:Side;fillSide:Side;sig:number;sigT:number;legs:Leg[];stop:number;orig:number;target:number|null;tp1:number|null;risk:number;entryIdx:number;entryT:number;
  partialDone:boolean;pendingBE:boolean;rating:number;riskPct:number;partR:number;deadline:number;active:boolean;expires:number;type:'limit'|'market_on_close';h:HistTrade|null;
- inWin:boolean;trace:Trace|null;atClose?:boolean;mae:number;mfe:number;held:number}; // atClose = pozici otevřela MOC noha (držení se počítá jako u market_on_close)
-export type SimOut={trades:Trade[];skips:Record<string,number>;signals:number;unknown:Record<string,number>;stages?:Stages[]};
+ inWin:boolean;trace:Trace|null;atClose?:boolean;mae:number;mfe:number;held:number;sat:number[]}; // atClose = pozici otevřela MOC noha (držení se počítá jako u market_on_close)
+// živá simulace agentů R… (SimOpts.live): pozice otevřené na konci dat (bez výstupu „end“) a čekající limitní příkazy
+export type LiveOpen={market:string;side:Side;sigT:number;entryT:number;entry:number;stop:number;orig:number;target:number|null;tp1:number|null;partial:boolean;rating:number;riskPct:number;legs:number;sat:number[]};
+export type LivePending={market:string;side:Side;sigT:number;expiresT:number;legs:number[]};
+export type SimOut={trades:Trade[];skips:Record<string,number>;signals:number;unknown:Record<string,number>;stages?:Stages[];open?:LiveOpen[];pending?:LivePending[]};
 // diagFrom = sbírat fáze vstupu pro signální svíčky od tohoto času (null/undefined = bez diagnostiky); trace = stopa u každého obchodu
-export type SimOpts={flipSeed?:number|null;to?:number;diagFrom?:number|null;trace?:boolean};
+// from = signály jen ze svíček dokončených od tohoto času (start agenta R…); live = otevřené pozice a čekající limity vrátit (open / pending) místo výstupu „end“
+export type SimOpts={flipSeed?:number|null;to?:number;diagFrom?:number|null;trace?:boolean;from?:number;live?:boolean};
 export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOpts={}):SimOut{
  const trades:Trade[]=[],skips:Record<string,number>={},hist:HistTrade[]=[],unknown:Record<string,number>={};
  const stages=o.diagFrom!=null?pms.map(()=>newStages()):null,diagFrom=o.diagFrom??Infinity;
@@ -382,7 +386,7 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   const filledShare=p.legs.reduce((s,l)=>s+(l.filled?l.share:0),0);r-=commR*filledShare;
   const entry=p.legs.reduce((s,l)=>s+(l.filled?l.mid*l.share:0),0)/filledShare;
   const t:Trade={market:pm.id,side,sigT:p.sigT,entryT:p.entryT,exitT,r,reason,rating:p.rating,riskPct:p.riskPct,legs:p.legs.filter(l=>l.filled).length,partial:p.partialDone,entry,stop:p.orig,target:p.target,exit:mid,mae:rd(p.mae,2),mfe:rd(p.mfe,2),bars:p.held};
-  if(p.trace)t.trace=p.trace;trades.push(t);
+  if(p.trace)t.trace=p.trace;if(o.live)t.sat=p.sat;trades.push(t);
   if(p.h){p.h.knownAt=knownAt;p.h.r=r}openCount--;pos[m]=null;
  };
  const partial=(m:number,mid:number)=>{const p=pos[m]!,hs=pms[m].hs*cost,side=p.side,pct=def.targets.partial!.pct/100;
@@ -466,8 +470,10 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   if(p.target!==null)p.target=2*avg-p.target;if(p.tp1!==null)p.tp1=2*avg-p.tp1;
   for(const l of p.legs)if(l.filled)l.fill=l.mid+p.side*hs;
  };
+ const sigFrom=o.from??-Infinity;
  const signal=(m:number,i:number)=>{
-  const pm=pms[m],cp=cps[m],E=pm.E,D=stages&&E.t[i]>=diagFrom?stages[m]:null;
+  const pm=pms[m],cp=cps[m],E=pm.E;if(E.t[i]+E.ms<sigFrom)return;
+  const D=stages&&E.t[i]>=diagFrom?stages[m]:null;
   if(D)D.bars++;
   if(pos[m]){if(D){const sg=signalAt(def,cp,i);if(sg.side||sg.both){D.allRequired++;D.busy++}}return}
   const sg=signalAt(def,cp,i);if(sg.both){skip('obě strany zároveň');if(D){D.allRequired++;D.both++}return}if(!sg.side)return;
@@ -479,7 +485,7 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   const p:Pos={side:pl.side,fillSide:pl.side,sig:i,sigT:T,legs:pl.legs.map((l,q)=>{const d=def.entry.legs?.[q];return {L:l.L,share:l.share,filled:false,fill:NaN,mid:NaN,moc:d?.type==='market_on_close',
     when:d?.when?cp.idx.get(d.when)??-1:-1,spent:false,cancelAfter:d?.cancelAfterBars??def.entry.validBars,cancelAtTp1:!!d?.cancelAtTp1}}),stop:pl.stop,orig:pl.stop,target:pl.target,tp1:pl.tp1,risk:pl.risk,
    entryIdx:-1,entryT:NaN,partialDone:false,pendingBE:false,rating:pl.rating,riskPct:pl.riskPct,partR:0,deadline:0,active:false,expires:i+def.entry.validBars,type:def.entry.type,h:null,
-   inWin:!!D,trace:o.trace?traceOf(def,cp,i,pl,E.t[i]):null,mae:0,mfe:0,held:0};
+   inWin:!!D,trace:o.trace?traceOf(def,cp,i,pl,E.t[i]):null,mae:0,mfe:0,held:0,sat:pl.sat};
   if(def.entry.type==='market_on_close'){
    const win=entryWindowOk(def,T);if(!win||newsBlocked(pm,T)){skip('mimo vstupní okno / zprávy');st(m,p,win?'blockNews':'blockSession');return}
    const blk=portfolioBlock(def.filters,hist,T,openCount);if(blk){skip(blk);st(m,p,blockKind(blk));return}
@@ -495,9 +501,15 @@ export function simulate(def:StrategyDef,pms:PM[],cps:Compiled[],ctx:Ctx,o:SimOp
   for(const m of now)fills(m,ptr[m]);
   for(const m of now){atClose(m,ptr[m]);const p=pos[m];if(p&&p.sig<ptr[m])mocCheck(m,ptr[m]);signal(m,ptr[m]);ptr[m]++}
  }
- for(let m=0;m<pms.length;m++){const p=pos[m];if(!p)continue;if(!p.active){st(m,p,'pendingAtEnd');pos[m]=null;continue}const E=pms[m].E,i=Math.min(E.n,ptr[m])-1;close(m,E.c[i],E.t[i],E.t[i]+E.ms,'end')}
+ const liveOpen:LiveOpen[]=[],pending:LivePending[]=[];
+ for(let m=0;m<pms.length;m++){const p=pos[m];if(!p)continue;const E=pms[m].E;
+  if(!p.active){st(m,p,'pendingAtEnd');if(o.live)pending.push({market:pms[m].id,side:p.side,sigT:p.sigT,expiresT:p.sigT+(p.expires-p.sig)*E.ms,legs:p.legs.map(l=>l.L)});pos[m]=null;continue}
+  if(o.live){const f=p.legs.filter(l=>l.filled);liveOpen.push({market:pms[m].id,side:p.side,sigT:p.sigT,entryT:p.entryT,entry:be(p),stop:p.stop,orig:p.orig,target:p.target,tp1:p.tp1,partial:p.partialDone,rating:p.rating,riskPct:p.riskPct,legs:f.length,sat:p.sat});pos[m]=null;continue}
+  const i=Math.min(E.n,ptr[m])-1;close(m,E.c[i],E.t[i],E.t[i]+E.ms,'end')}
  trades.sort((a,b)=>a.exitT-b.exitT||a.entryT-b.entryT);
- return stages?{trades,skips,signals,unknown,stages}:{trades,skips,signals,unknown};
+ const out:SimOut=stages?{trades,skips,signals,unknown,stages}:{trades,skips,signals,unknown};
+ if(o.live){out.open=liveOpen;out.pending=pending}
+ return out;
 }
 
 // ---- diagnostika podmínek (čistá funkce nad zkompilovanými výstupy bloků) – „trychtýř“ v pořadí definice:
@@ -684,6 +696,22 @@ export function liveSetups(def:StrategyDef,id:string,bars:B.Bar[],ctx:Ctx,now:nu
  }
  // u stejné strany jen nejnovější nastavení
  const seen=new Set<number>();return out.reverse().filter(s=>{if(seen.has(s.side))return false;seen.add(s.side);return true});
+}
+// ---- živá simulace agenta R… = backtest: simulate() nad DOKONČENÝMI svíčkami (začátek + délka datového TF ≤ now), signály od `from`
+// (start agenta), čekající limity a otevřené pozice na konci dat (live). Runner (scripts/lab-paper.mjs) i test přehrávání krok po kroku volají totéž.
+// diag = živá diagnostika (jen počty, časy a trhy – žádná pravidla): poslední svíčka, trhy bez dat, fáze vstupu, důvody přeskočení, čekající limity.
+export type LiveDiag={at:number;from:number;lastBarT:number|null;oldestBarT:number|null;markets:number;noData:string[];errors:string[];
+ stages:Partial<Stages>;skips:Record<string,number>;pending:{market:string;side:number;sigT:number;expiresT:number}[];simTrades:number;simOpen:number};
+export type LiveSim={trades:Trade[];open:LiveOpen[];pending:LivePending[];diag:LiveDiag};
+export function liveSim(def:StrategyDef,markets:MarketIn[],ctx:Ctx,now:number,from:number):LiveSim{
+ const ms=B.TF_MS[def.data],pms:PM[]=[],cps:Compiled[]=[],noData:string[]=[],errors:string[]=[];
+ for(const m of markets){const done=m.bars.filter(b=>b.t+ms<=now);if(done.length<20){noData.push(m.id);continue}
+  try{const pm=prepare(m.id,done,def.data);cps.push(compile(def,pm,ctx));pms.push(pm)}catch(e){errors.push(m.id+': '+(e as Error).message)}}
+ const out=simulate(def,pms,cps,ctx,{from,diagFrom:from-ms,live:true}); // diagnostika = stejné signální svíčky jako from (konec svíčky ≥ from)
+ const stages:Partial<Stages>={};for(const k of STAGE_KEYS)stages[k]=(out.stages??[]).reduce((s,x)=>s+(x[k]||0),0);
+ const last=pms.filter(pm=>pm.E.n).map(pm=>pm.E.t[pm.E.n-1]),open=out.open??[],pending=out.pending??[];
+ return {trades:out.trades,open,pending,diag:{at:now,from,lastBarT:last.length?Math.max(...last):null,oldestBarT:last.length?Math.min(...last):null,markets:pms.length,noData,errors,
+  stages,skips:out.skips,pending:pending.map(p=>({market:p.market,side:p.side,sigT:p.sigT,expiresT:p.expiresT})),simTrades:out.trades.length,simOpen:open.length}};
 }
 export const ruleOptionalCount=(def:StrategyDef)=>def.conditions.filter(c=>c.role==='optional').length;
 // minimální vzdálenost stopu v okamžiku vstupu (scripts/lab-void-tiny-stops.mjs): svíčky datového TF DOKONČENÉ před `at`, cena = vstup obchodu.

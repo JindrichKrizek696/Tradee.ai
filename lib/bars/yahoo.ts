@@ -10,7 +10,12 @@ const fin=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n);
 export function validBar(b:Bar):boolean{
  return [b.t,b.o,b.h,b.l,b.c].every(fin)&&b.t>0&&b.h>=Math.max(b.o,b.c)&&b.l<=Math.min(b.o,b.c);
 }
-// odpověď /v8/finance/chart → svíčky seřazené podle času; řádky s null/neplatné se vynechají (počet vynechaných v skipped)
+// Yahoo k poslední (rozpracované) svíčce dává čas posledního obchodu (např. 10:40:05 u H1, 21:40:30 u D1), ne začátek svíčky.
+// Taková „svíčka“ by se v archivu uložila jako další řádek (každý běh synchronizace nový) → H1 i D1 řady by obsahovaly falešné svíčky.
+// Skutečné svíčky Yahoo začínají vždy na celé nebo půl hodině (UTC) → mimo mřížku 30 min = živý bod, ne svíčka.
+export const BAR_GRID_MS=1800000;
+export const onBarGrid=(t:number)=>t%BAR_GRID_MS===0;
+// odpověď /v8/finance/chart → svíčky seřazené podle času; řádky s null/neplatné se vynechají (počet vynechaných v skipped), živý bod mimo mřížku také
 export function parseBars(json:unknown):{bars:Bar[];skipped:number}{
  const res=(json as YahooChart|null)?.chart?.result?.[0];if(!res)return {bars:[],skipped:0};
  const ts=res.timestamp||[],q=res.indicators?.quote?.[0]||{},bars:Bar[]=[];let skipped=0;
@@ -18,7 +23,7 @@ export function parseBars(json:unknown):{bars:Bar[];skipped:number}{
   const o=q.open?.[i],h=q.high?.[i],l=q.low?.[i],c=q.close?.[i],v=q.volume?.[i];
   if(!fin(o)||!fin(h)||!fin(l)||!fin(c)){skipped++;return}
   const b:Bar={t:s*1000,o,h,l,c,v:fin(v)?v:null};
-  if(validBar(b))bars.push(b);else skipped++;
+  if(validBar(b)&&onBarGrid(b.t))bars.push(b);else skipped++;
  });
  bars.sort((a,b)=>a.t-b.t);
  return {bars:bars.filter((b,i)=>!i||b.t!==bars[i-1].t),skipped};

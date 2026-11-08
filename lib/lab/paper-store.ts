@@ -1,7 +1,7 @@
 // Laboratoř · Simulace – databáze (lab_paper_*). Volá se z /api/laborator/paper za labGate a ze scripts/lab-paper.mjs (jen pro vlastníka).
 // Všechny dotazy filtrují user_id vlastníka (a variantu A/B/C/D, migrace 0027); nikdy se nepoužívá ?as= (lib/admin/http.ts viewAs).
 import type {Db} from '../mysql.ts';
-import {PAPER_RULES,PAPER_VARIANTS,isVoid,VARIANT_IDS,SWEEP_VARIANT_IDS,RULE_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,isAgentVariant,isRuleVariant,sweepVariant,agentVariant,ruleVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint} from './paper.ts';
+import {PAPER_RULES,PAPER_VARIANTS,isVoid,VARIANT_IDS,SWEEP_VARIANT_IDS,RULE_VARIANT_IDS,isVariantId,isBaseVariant,isSweepVariant,isAgentVariant,isRuleVariant,sweepVariant,agentVariant,ruleVariant,markToMarket,paperStats,paperSummaryMd,type VariantId,type PaperVariant,type PaperTrade,type PaperStepResult,type PaperSnapshot,type ExitReason,type Direction,type PaperEquityPoint,type RuleLiveDiag} from './paper.ts';
 import {normalizeCombo,comboIndex,type SweepCombo} from './sweep.ts';
 import {validateGenome,type Genome} from './agents.ts';
 import {validateDef,type StrategyDef} from './rules-def.ts';
@@ -118,13 +118,26 @@ export async function equitySeries(d:Db,uid:string,variant?:VariantId):Promise<(
 }
 
 // zápis jednoho kroku (idempotentní: vstup má id podle slotu 15 min, varianty a trhu, výstup jen u ještě otevřeného obchodu, snímek equity podle slotu)
+const ENTRY_SET=',entry=?'; // průměrný vstup po doplnění dalších nohou (agent R…)
+// vstupy dřív než výstupy: agent R… může v jednom kroku zapsat obchod, který simulace už i zavřela (svíčky chodí se zpožděním)
 export async function applyStep(d:Db,uid:string,now:number,slot:number,s:PaperStepResult,variant:VariantId='A'){
- for(const c of s.closes)await d.prepare('UPDATE lab_paper_trades SET closed=?,exit_price=?,exit_reason=?,r=?,pnl_czk=?,pct=?,score_at_exit=?,result_note=? WHERE id=? AND user_id=? AND variant=? AND closed IS NULL AND void_reason IS NULL')
-  .bind(toSql(c.closed,true),c.exit,c.exitReason,c.r,c.pnlCzk,c.pct,c.scoreAtExit,c.resultNote,c.id,uid,variant).run();
  for(const t of s.opens)await d.prepare(`INSERT IGNORE INTO lab_paper_trades(id,user_id,variant,instrument,direction,opened,entry,sl,tp,risk_czk,confidence,score_at_entry,parts_at_entry,why,rules_version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
   .bind(t.id,uid,variant,t.instrument,t.direction,toSql(t.opened,true),t.entry,t.sl,t.tp,t.riskCzk,t.confidence,t.scoreAtEntry,JSON.stringify(t.partsAtEntry),t.why,t.rulesVersion).run();
+ for(const c of s.closes){const setEntry=c.entry!==undefined?ENTRY_SET:'';await d.prepare(`UPDATE lab_paper_trades SET closed=?,exit_price=?,exit_reason=?,r=?,pnl_czk=?,pct=?,score_at_exit=?,result_note=?${setEntry} WHERE id=? AND user_id=? AND variant=? AND closed IS NULL AND void_reason IS NULL`)
+  .bind(toSql(c.closed,true),c.exit,c.exitReason,c.r,c.pnlCzk,c.pct,c.scoreAtExit,c.resultNote,...(c.entry!==undefined?[c.entry]:[]),c.id,uid,variant).run()}
  await d.prepare('INSERT INTO lab_paper_equity(user_id,variant,at,equity,open_pnl,open_count) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE equity=VALUES(equity),open_pnl=VALUES(open_pnl),open_count=VALUES(open_count)').bind(uid,variant,toSql(slot),s.balance,s.openPnl,s.openCount).run();
  for(const l of s.log)await addLog(d,uid,now,l,variant);
+}
+// živá diagnostika agenta R… (lab_paper_accounts.live_diag, migrace 0045): poslední vyhodnocená svíčka, fáze vstupu, důvody přeskočení.
+// Bez migrace (sloupec chybí) se nic neukládá ani nečte – simulace běží dál.
+const noColumn=(e:unknown)=>{const c=(e as {code?:string})?.code;return c==='ER_BAD_FIELD_ERROR'||c==='ER_NO_SUCH_TABLE'};
+export async function saveLiveDiag(d:Db,uid:string,variant:VariantId,diag:RuleLiveDiag):Promise<boolean>{
+ try{await d.prepare('UPDATE lab_paper_accounts SET live_diag=? WHERE user_id=? AND variant=?').bind(JSON.stringify(diag),uid,variant).run();return true}
+ catch(e){if(noColumn(e))return false;throw e}
+}
+export async function liveDiagOf(d:Db,uid:string,variant:VariantId):Promise<RuleLiveDiag|null>{
+ try{const r=await d.prepare('SELECT live_diag FROM lab_paper_accounts WHERE user_id=? AND variant=?').bind(uid,variant).first<{live_diag:string|null}>();return json<RuleLiveDiag|null>(r?.live_diag,null)}
+ catch(e){if(noColumn(e))return null;throw e}
 }
 // restart jedné varianty: smaže její obchody, křivku i deník a začne znovu se 100 000 Kč (ostatní varianty beze změny)
 export async function resetPaper(d:Db,uid:string,now:number,variant:VariantId='A'){
@@ -161,12 +174,12 @@ export function ruleMetaOf(V:PaperVariant,acc:PaperAccount|null):RuleMeta|null{
 // označení účtu (rodina, u R… název definice, verze, zdroj z kopie nebo dohledaný podle defId, směr)
 export const simLabelOf=(V:PaperVariant,acc:PaperAccount|null,defs?:Record<string,DefLabel|undefined>|null)=>simLabel({id:V.id,name:V.name,rule:ruleMetaOf(V,acc)},defs);
 export async function paperView(d:Db,uid:string,quotes:Quotes,variant:VariantId='A'){
- const [all,log]=await Promise.all([paperAll(d,uid,quotes),listLog(d,uid,variant)]);
+ const [all,log,liveDiag]=await Promise.all([paperAll(d,uid,quotes),listLog(d,uid,variant),isRuleVariant(variant)?liveDiagOf(d,uid,variant).catch(()=>null):Promise.resolve(null)]);
  const me=all.find(x=>x.variant===variant);
  if(!me)return null;
  const variants=all.map(({V,...x})=>({id:x.variant,name:V.name,kind:V.kind,rulesVersion:x.account?.rulesVersion??V.rulesVersion,started:x.account?.started??null,startEquity:x.account?.startEquity??V.rules.startEquity,stats:x.stats,equity:x.equity,sweep:x.account?.sweep??null,
   rule:ruleMetaOf(V,x.account)}));
- return {variant,V:me.V,account:me.account,stats:me.stats,equity:me.equity,open:me.open,closed:me.closed,log,variants};
+ return {variant,V:me.V,account:me.account,stats:me.stats,equity:me.equity,open:me.open,closed:me.closed,log,variants,liveDiag};
 }
 export async function paperSummary(d:Db,uid:string,quotes:Quotes){
  const [all,weekly,defs]=await Promise.all([paperAll(d,uid,quotes),lastWeekly(d,uid).catch(()=>null),import('./strat-store.ts').then(m=>m.defLabels(d,uid)).catch(()=>({}))]);

@@ -10,7 +10,7 @@ import {DEFAULT_LAB_RULE,DIRECTION_LABELS,LAB_COND_LABELS,type LabRule,type LabC
 import type {LabNote,LabRuleRow} from '@/lib/lab/core';
 import type {BacktestSummary} from '@/lib/backtest/metrics';
 import type {EquityPoint,MarketResult} from '@/lib/backtest/engine';
-import type {PaperTrade,PaperStats,PaperEquityPoint,VariantId} from '@/lib/lab/paper';
+import type {PaperTrade,PaperStats,PaperEquityPoint,VariantId,RuleLiveDiag} from '@/lib/lab/paper';
 import {ENTRY_LABELS,EXIT_LABELS as SWEEP_EXIT_LABELS,SET_LABELS,type SweepCombo} from '@/lib/lab/sweep-grid';
 import {voidLabel,voidTitle,simLabel,groupSims,filterSims,sourcesOf,SIM_FAMILIES,type RuleMeta,type SimFamily} from '@/lib/lab/sim-labels';
 import {FamBadge,FamLegend,SimName} from './sim-badge';
@@ -216,10 +216,10 @@ type PaperRow=Omit<PaperTrade,'partsAtEntry'>&{partsAtEntry?:unknown;mark:{price
 type SweepOriginRow={sweepId:string|null;combo:number;params:SweepCombo;is:Record<string,number|null>|null;oos:Record<string,number|null>|null;nb:number|null;chance:number|null;at:string};
 type PaperVariantRow={id:VariantId;name:string;kind:string;rulesVersion:string;started:number|null;startEquity:number;stats:PaperStats;equity:PaperEquityPoint[];sweep?:SweepOriginRow|null;rule?:RuleMeta|null};
 const labOf=(v:PaperVariantRow)=>simLabel({id:v.id,name:v.name,rule:v.rule});
-type PaperData={variant:VariantId;account:{startEquity:number;started:number;rulesVersion:string;active:boolean}|null;stats:PaperStats;equity:PaperEquityPoint[];open:PaperRow[];closed:PaperRow[];log:{at:number;text:string}[];rules:{version:string;name:string;text:string[]};variants:PaperVariantRow[];names:Record<string,string>;now:number};
+type PaperData={variant:VariantId;account:{startEquity:number;started:number;rulesVersion:string;active:boolean}|null;stats:PaperStats;equity:PaperEquityPoint[];open:PaperRow[];closed:PaperRow[];log:{at:number;text:string}[];rules:{version:string;name:string;text:string[]};variants:PaperVariantRow[];names:Record<string,string>;now:number;liveDiag?:RuleLiveDiag|null};
 type VCls='a'|'b'|'c'|'d'|'e';
 const VARIANTS:{id:VariantId;cls:VCls;hint:string}[]=[{id:'A',cls:'a',hint:'všechny trhy, |skóre| ≥ 50'},{id:'B',cls:'b',hint:'jen FX páry'},{id:'C',cls:'c',hint:'proti nataženému trendu'},{id:'D',cls:'d',hint:'|skóre| ≥ 65, max 1 krypto'}];
-const isVid=(v:string)=>/^[A-D]$|^S(0[1-9]|1\d|20)$|^R(0[1-9]|[1-3]\d|40)$/.test(v);
+const isVid=(v:string)=>/^[A-D]$|^S(0[1-9]|1\d|20)$|^R(0[1-9]|[1-9]\d|1[01]\d|120)$/.test(v);
 // A–D pevně, S… ze sweepu a R… agenti strategií podle účtů (barva „e“)
 const extraV=(id:string)=>id.startsWith('S')||id.startsWith('R');
 const variantList=(rows:PaperVariantRow[])=>[...VARIANTS,...rows.filter(v=>extraV(v.id)).map(v=>({id:v.id,cls:'e' as VCls,hint:v.sweep?sweepHint(v.sweep.params):v.id.startsWith('R')?'agent strategie':'ze sweepu'}))];
@@ -230,7 +230,21 @@ const kc=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(
 const rr=(v:number|null)=>v===null?'–':(v>0?'+':v<0?'−':'')+fmtNum(Math.abs(v),2)+' R';
 const px=(v:number|null)=>v===null?'–':fmtNum(v,Math.abs(v)<10?5:Math.abs(v)<1000?3:2);
 const when=(t:number|null)=>t===null?'–':new Date(t).toLocaleString('cs-CZ',{timeZone:'Europe/Prague',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
-const EXIT:Record<string,string>={sl:'SL',tp:'TP',time:'Čas',signal:'Signál',mean:'GMA50',trail:'Trailing'};
+const EXIT:Record<string,string>={sl:'SL',tp:'TP',time:'Čas',signal:'Signál',mean:'GMA50',trail:'Trailing',be:'BE'};
+// živá diagnostika agenta R… (lab_paper_accounts.live_diag): stejná simulace jako backtest – poslední svíčka, fáze vstupu, důvody přeskočení
+const STAGE_LABEL:[string,string][]=[['allRequired','povinné podmínky'],['setups','nastavení'],['placed','limitů / pokusů o vstup'],['opened','otevřeno'],['expired','limit vypršel'],['skipRating','hodnocení'],['skipRR','R:R'],['skipObstacle','překážka'],['skipLevel','chybí úroveň'],['skipMinStop','stop pod minimem'],['blockSession','mimo seanci'],['blockNews','zprávy'],['blockFull','plno'],['blockTrades','limit obchodů'],['blockLoss','ztrátové stopky']];
+function LiveDiagView({g,name}:{g:RuleLiveDiag;name:(id:string)=>string}){
+ const st=g.stages as Record<string,number|undefined>,skips=Object.entries({...g.skips,...(g.entrySkips??{})}).sort((a,b)=>b[1]-a[1]);
+ const stale=g.lastBarT!==null&&g.at-g.lastBarT>3*86400000;
+ return <details className="lb-details" open={g.errors.length>0||stale}><summary>Živá diagnostika · krok {when(g.at)}{g.errors.length?` · ${g.errors.length} chyb`:''}</summary>
+  <p className="lb-meta">Agent obchoduje přes stejnou simulaci jako test (dokončené svíčky od {when(g.from)}). Poslední vyhodnocená svíčka {when(g.lastBarT)}{g.oldestBarT!==null&&g.oldestBarT!==g.lastBarT?` (nejstarší trh ${when(g.oldestBarT)})`:''} · trhů s daty {g.markets}{g.noData.length?` · bez dat: ${g.noData.map(name).join(', ')}`:''}.
+   {' '}Simulace od startu: {g.simTrades} uzavřených, {g.simOpen} otevřených, {g.pending.length} čekajících limitů · v tomto kroku zapsáno +{g.opened??0} / −{g.closed??0}{g.legacyOpen?` · starších otevřených ${g.legacyOpen}`:''}.</p>
+  <dl className="lb-genome">{STAGE_LABEL.filter(([k])=>k==='setups'||k==='opened'||(st[k]??0)>0).map(([k,l])=><div key={k}><dt>{l}</dt><dd>{st[k]??0}</dd></div>)}</dl>
+  {skips.length>0&&<><h4>Důvody přeskočení</h4><ul className="lb-notes">{skips.slice(0,12).map(([k,v])=><li key={k}>{k}: {v}×</li>)}</ul></>}
+  {g.pending.length>0&&<><h4>Čekající limity</h4><ul className="lb-notes">{g.pending.map(p=><li key={p.market+p.sigT}>{name(p.market)} {p.side>0?'long':'short'} · signál {when(p.sigT)} · nejdéle ~{when(p.expiresT)}</li>)}</ul></>}
+  {g.errors.length>0&&<ul className="lb-notes">{g.errors.map(e=><li key={e} className="neg">{e}</li>)}</ul>}
+ </details>;
+}
 const slug=(id:string)=>'/graf/'+encodeURIComponent(id.replace(/\//g,'-'));
 function Paper(){
  const [d,setD]=useState<PaperData|null>(null),[err,setErr]=useState(''),[missing,setMissing]=useState(false),[openId,setOpenId]=useState<string|null>(null),[busy,setBusy]=useState(false);
@@ -288,6 +302,7 @@ function Paper(){
    <EquityChart series={[{label:'Equity',points:curve,cls:'a'}]} fmt={v=>fmtNum(Math.round(v),0)+' Kč'} base={s.startEquity}/>
    {(()=>{const o=d.variants.find(v=>v.id===d.variant)?.sweep;return o?<p className="lb-meta">Ze sweepu {o.at?new Date(o.at).toLocaleDateString('cs-CZ'):''}: IS {o.is?.isN??'–'} obch. {rr(o.is?.isAvg??null)} (PF {num(o.is?.isPf??null)}) · OOS {o.oos?.oosN??'–'} obch. {rr(o.oos?.oosAvg??null)} (PF {num(o.oos?.oosPf??null)}, DD {num(o.oos?.oosDd??null,1)} R) · okolí {rr(o.nb)} · hranice náhody {rr(o.chance)}. Živě se práh porovnává se skutečným skóre Tradee (FX i s fundamenty).</p>:null})()}
    <details className="lb-details"><summary>Pravidla {d.variant} · {d.rules.version} (uložená u každého obchodu)</summary><ul className="lb-notes">{d.rules.text.map(t=><li key={t}>{t}</li>)}</ul></details>
+   {d.variant.startsWith('R')&&(d.liveDiag?<LiveDiagView g={d.liveDiag} name={name}/>:<p className="lb-meta">Živá diagnostika se ukáže po příštím kroku simulace (bez migrace 0045_lab_live_diag.sql se neukládá).</p>)}
   </section>
   <section className="mt-card">
    <h2>Otevřené pozice ({d.open.length})</h2>

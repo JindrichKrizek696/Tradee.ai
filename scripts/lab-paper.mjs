@@ -1,4 +1,4 @@
-// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS), S01… ze sweepu, agentů strategií R01… (zmrazená definice, nastavení z dokončených svíček lib/lab/strat-engine.ts liveSetups) a agentů populace G01… (pravidla z lab_paper_accounts.rules; archivovaný agent jen dobíhá otevřené pozice) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
+// Laboratoř · Simulace 100 000 Kč: jeden krok (výstupy, pak vstupy) všech variant A/B/C/D (lib/lab/paper.ts PAPER_VARIANTS), S01… ze sweepu, agentů strategií R01… (zmrazená definice, obchody ze STEJNÉ simulace jako backtest – lib/lab/strat-engine.ts simulate nad dokončenými svíčkami od startu agenta, lib/lab/paper.ts ruleSimStep; živá diagnostika do lab_paper_accounts.live_diag) a agentů populace G01… (pravidla z lab_paper_accounts.rules; archivovaný agent jen dobíhá otevřené pozice) pro vlastníka (OWNER_EMAIL → members.id), zápis do lab_paper_*.
 // Cron: scripts/refresh-live.sh hned po živých cenách (každých 15 min, flock /tmp/tradee-lab-paper.lock; chyba nesmí shodit živé ceny).
 // node --experimental-strip-types scripts/lab-paper.mjs [--dry] [--why] [--near] [--owner-email x@y] [--try-combo N]   (--near = u C vypíše, proč který trh nesplnil vstup;
 //   --try-combo N = jen s --dry: přidá dočasnou variantu S99 z kombinace N sweepu, nic se neukládá; --try-agents = jen s --dry bez DB: dočasná populace G01…G20)
@@ -51,7 +51,7 @@ if(args.includes('--try-agents')){
 
 // ---- zdroje: DB (VPS) nebo Yahoo (lokální --dry)
 const envFile=new URL('../.mariadb.env',import.meta.url);
-let d=null,uid=null,cotSrc=null;const accounts={},tradesOf={},quotes={},h1={},points={},d1={},ruleSetups={};
+let d=null,uid=null,cotSrc=null;const accounts={},tradesOf={},quotes={},h1={},points={},d1={},ruleSims={};
 for(const v of VARIANT_IDS){accounts[v]=null;tradesOf[v]=[]}
 if(existsSync(envFile)){
  const env=Object.fromEntries(readFileSync(envFile,'utf8').split(/\r?\n/).filter(l=>l.includes('=')&&!l.startsWith('#')).map(l=>[l.slice(0,l.indexOf('=')).trim(),l.slice(l.indexOf('=')+1).trim()]));
@@ -80,25 +80,38 @@ if(existsSync(envFile)){
  for(const id of new Set([...needD1,...since.keys()]))d1[id]=await loadBars(d,id,'D1',now-Math.max(400,histDays[id]??0)*DAY,now+DAY);
  // COT: lab_cot (plná historie), jinak záloha z JSON souborů
  try{const {loadCot}=await import('../lib/lab/store.ts');const src=await loadCot(d);if(Object.keys(src).length)cotSrc=src}catch(e){console.warn('lab-paper: lab_cot nejde načíst –',e.code||e.message)}
- // agenti strategií (R…): nastavení z dokončených svíček podle zmrazené definice (H1 ~400 dní, D1 ~12 let kvůli W1/MN, COT a sezonalitě)
+ // agenti strategií (R…): obchody = simulate() (stejný engine jako backtest) nad DOKONČENÝMI svíčkami od startu agenta; okno svíček ukotvené
+ // ke startu nejstaršího agenta (H1 −400 dní, D1 −12 let kvůli W1/MN, COT a sezonalitě) → zahřátí indikátorů se mezi kroky nemění
  const rv=variants.filter(V=>V.kind==='rule'&&V.rule);
  if(rv.length){
-  const {liveSetups}=await import('../lib/lab/strat-engine.ts');const {syntheticDxy,DXY_WEIGHTS}=await import('../lib/lab/strat-blocks.ts');
-  const bc=new Map(),bars=async(id,tf)=>{const k=id+':'+tf;if(!bc.has(k))bc.set(k,(await loadBars(d,id,tf,now-(tf==='H1'?400:4400)*DAY,now+DAY)).map(b=>({t:b.t,o:b.o,h:b.h,l:b.l,c:b.c})));return bc.get(k)};
+  const {liveSim}=await import('../lib/lab/strat-engine.ts');const {syntheticDxy,DXY_WEIGHTS,TF_MS}=await import('../lib/lab/strat-blocks.ts');
+  const base=Math.min(...rv.map(V=>accounts[V.id]?.started??now)),fromOf=tf=>Math.floor((base-(tf==='H1'?400:4400)*DAY)/DAY)*DAY;
+  // jen dokončené a DOSTAŽENÉ svíčky: konec svíčky ≤ teď a zároveň ≤ poslední synchronizace trhu (market_bars_meta.updated) – svíčka uložená
+  // rozpracovaná (synchronizace v hh:40 uloží hodinu hh jen do :40) se bere až po další synchronizaci, ať se rozhodnutí později nezmění
+  const synced=new Map();try{for(const r of (await d.prepare('SELECT instrument,tf,updated FROM market_bars_meta').all()).results){const t=Date.parse(String(r.updated).replace(' ','T')+'Z');if(Number.isFinite(t))synced.set(r.instrument+':'+r.tf,t)}}catch(e){console.warn('lab-paper: market_bars_meta –',e.code||e.message)}
+  const bc=new Map(),bars=async(id,tf)=>{const k=id+':'+tf,upTo=Math.min(now,synced.get(k)??now);if(!bc.has(k))bc.set(k,(await loadBars(d,id,tf,fromOf(tf),now+DAY)).filter(b=>b.t+TF_MS[tf]<=upTo).map(b=>({t:b.t,o:b.o,h:b.h,l:b.l,c:b.c})));return bc.get(k)};
   let cotRows=null,newsFn=null;
   const calNews=async()=>{if(newsFn)return newsFn;const {newsItems,newsLookup}=await import('../lib/backtest/context.ts');newsFn=newsLookup(newsItems(read('calendar.json').events,f.events,f.sources));return newsFn};
   for(const V of rv){
-   const def=V.rule.def,tf=def.data,conds=def.conditions,ctx={extra:{},d1:{}};
-   if(conds.some(c=>c.block==='cot_index')){if(!cotRows)try{const st=await import('../lib/lab/strat-store.ts');cotRows=await st.loadCotRows(d)}catch(e){console.warn('lab-paper: COT pro strategie –',e.code||e.message)}ctx.cot=cotRows}
-   if(def.filters.news||conds.some(c=>c.block==='news_blackout'))ctx.news=await calNews();
-   for(const c of conds){
-    if(c.block==='rel_strength'){const o=String(c.params.other);ctx.extra[o]??=await bars(o,tf)}
-    if(c.block==='rs_best')for(const o of String(c.params.group).split(',').map(x=>x.trim()).filter(Boolean))ctx.extra[o]??=await bars(o,tf);
-    if(c.block==='seasonality'&&tf==='H1')for(const id of def.markets)ctx.d1[id]??=await bars(id,'D1');
-    if(c.block==='dxy_trend'&&!ctx.dxy){const dx=await bars('DX-Y.NYB',tf);if(dx.length)ctx.dxy=dx;else{const by={};for(const [p] of DXY_WEIGHTS)by[p]=await bars(p,tf);ctx.dxy=syntheticDxy(by)}}
+   const def=V.rule.def,tf=def.data,conds=def.conditions,ctx={extra:{},d1:{}},started=accounts[V.id]?.started??now;
+   // obchody z dřívější cesty (klíč bez „@“): simulace začne až po posledním z nich, ať se historie nezdvojí; agent bez nich = od startu
+   const legacy=tradesOf[V.id].filter(t=>!String(t.partsAtEntry?.rule?.key??'').includes('@')).map(t=>t.opened);
+   const from=Math.max(started,legacy.length?Math.max(...legacy)+1:-Infinity),errors=[];
+   try{
+    if(conds.some(c=>c.block==='cot_index')){if(!cotRows)try{const st=await import('../lib/lab/strat-store.ts');cotRows=await st.loadCotRows(d)}catch(e){errors.push('COT: '+(e.code||e.message))}ctx.cot=cotRows}
+    if(def.filters.news||conds.some(c=>c.block==='news_blackout'))ctx.news=await calNews();
+    for(const c of conds){
+     if(c.block==='rel_strength'){const o=String(c.params.other);ctx.extra[o]??=await bars(o,tf)}
+     if(c.block==='rs_best')for(const o of String(c.params.group).split(',').map(x=>x.trim()).filter(Boolean))ctx.extra[o]??=await bars(o,tf);
+     if(c.block==='seasonality'&&tf==='H1')for(const id of def.markets)ctx.d1[id]??=await bars(id,'D1');
+     if(c.block==='dxy_trend'&&!ctx.dxy){const dx=await bars('DX-Y.NYB',tf);if(dx.length)ctx.dxy=dx;else{const by={};for(const [p] of DXY_WEIGHTS)by[p]=await bars(p,tf);ctx.dxy=syntheticDxy(by)}}
+    }
+    const markets=[];for(const id of def.markets)markets.push({id,bars:await bars(id,tf)});
+    const sim=liveSim(def,markets,ctx,now,from);sim.diag.errors.unshift(...errors);ruleSims[V.id]=sim;
+   }catch(e){
+    console.warn('lab-paper: simulace',V.id,e.message);
+    ruleSims[V.id]={trades:[],open:[],pending:[],diag:{at:now,from,lastBarT:null,oldestBarT:null,markets:0,noData:[],errors:[...errors,e.message],stages:{},skips:{},pending:[],simTrades:0,simOpen:0}};
    }
-   const su={};for(const id of def.markets){try{su[id]=liveSetups(def,id,await bars(id,tf),ctx,now)}catch(e){console.warn('lab-paper: nastavení',V.id,id,e.message)}}
-   ruleSetups[V.id]=su;
   }
  }
 }else{
@@ -135,13 +148,23 @@ if(fams.has('carry')){
 }
 
 for(const V of variants){accounts[V.id]??=null;tradesOf[V.id]??=[]}
+// živá diagnostika agenta R… (jen počty, časy a trhy – žádná pravidla)
+const isoM=t=>t===null||t===undefined?'–':new Date(t).toISOString().slice(0,16).replace('T',' ');
+function diagText(g,full){
+ const s=g.stages||{},top=Object.entries({...g.skips,...g.entrySkips}).sort((a,b)=>b[1]-a[1]);
+ const lines=[`  živě: od ${isoM(g.from)} · poslední svíčka ${isoM(g.lastBarT)} (nejstarší trh ${isoM(g.oldestBarT)}) · trhů ${g.markets}${g.noData.length?` · bez dat ${g.noData.join(', ')}`:''}${g.errors.length?` · CHYBY ${g.errors.length}`:''}`,
+  `  fáze: povinné ${s.allRequired??0} → nastavení ${s.setups??0} → limitů / pokusů ${s.placed??0} → otevřeno ${s.opened??0} · vypršelo ${s.expired??0} · čeká ${g.pending.length} · seance ${s.blockSession??0} · zprávy ${s.blockNews??0} · plno ${s.blockFull??0} · limit obchodů ${s.blockTrades??0} · ztráty ${s.blockLoss??0} · stop pod minimem ${s.skipMinStop??0} · R:R ${s.skipRR??0}`,
+  `  simulace: obchodů ${g.simTrades}, otevřeno ${g.simOpen} · zapsáno teď +${g.opened??0} / −${g.closed??0} · starší otevřené ${g.legacyOpen??0}${top.length?` · přeskočeno: ${top.slice(0,full?20:4).map(([k,v])=>k+' '+v).join('; ')}`:''}`];
+ if(full){for(const p of g.pending)lines.push(`  čeká limit ${p.market} ${p.side>0?'long':'short'} ze svíčky ${isoM(p.sigT)} do ${isoM(p.expiresT)}`);for(const e of g.errors)lines.push('  chyba '+e)}
+ return lines.join('\n');
+}
 const slot=slotOf(now),results={};
 for(const V of variants){
  const a=accounts[V.id];
  // archivovaný agent: žádné nové vstupy, jen dobíhají otevřené pozice (pak se už nic nezapisuje); ostatní vypnuté varianty nic
  const winding=a&&!a.active&&isAgentVariant(V.id)&&tradesOf[V.id].some(t=>t.closed===null);
  if(a&&!a.active&&!winding){results[V.id]=null;continue}
- results[V.id]=paperStep({now,startEquity:a?.startEquity??V.rules.startEquity,trades:tradesOf[V.id],signals,quotes,h1,points,d1,news,names,variant:V,cot,known,noEntries:!!winding,ruleSetups:ruleSetups[V.id]});
+ results[V.id]=paperStep({now,startEquity:a?.startEquity??V.rules.startEquity,trades:tradesOf[V.id],signals,quotes,h1,points,d1,news,names,variant:V,cot,known,noEntries:!!winding,ruleSim:ruleSims[V.id]});
 }
 if(dry||!d){
  console.log(`lab-paper ${dry?'DRY':''} ${new Date(now).toISOString()} · silných signálů ${strong.length} · trhů pro kontra ${contraIds.length} (COT u ${Object.keys(cot).length})`);
@@ -153,6 +176,7 @@ if(dry||!d){
   for(const t of step.opens)console.log('OTEVŘEL BY',t.instrument.padEnd(9),t.direction.padEnd(5),V.kind==='contra'&&t.partsAtEntry.contra?'natažení '+signed(t.partsAtEntry.contra.extAtr,2).padStart(6)+' ATR':'skóre '+signed(t.scoreAtEntry,1).padStart(6),'jistota',String(t.confidence).padStart(3)+' %','vstup',fmtPx(t.entry),'SL',fmtPx(t.sl),'TP',fmtPx(t.tp),'riziko',t.riskCzk+' Kč');
   for(const s of step.skipped)console.log('přeskočen  ',s.instrument.padEnd(9),signed(s.score,1).padStart(6),'–',s.reason);
   if(V.kind==='contra'&&args.includes('--near'))for(const id of contraIds){const q=quotes[id];if(!q)continue;const r=contraSetup(d1[id]||[],now,q.price,cot[id],V.rules);if(!r.setup)console.log('  kontra ne',id.padEnd(9),r.reason)}
+  if(step.diag)console.log(diagText(step.diag,args.includes('--why')));
   if(args.includes('--why'))for(const t of step.opens)console.log('\n'+t.why);
   console.log(`zůstatek ${step.balance} Kč, otevřený P&L ${step.openPnl} Kč, pozic ${step.openCount}`);
  }
@@ -162,6 +186,7 @@ const ps=await import('../lib/lab/paper-store.ts');
 let changed=false;const out=[];
 for(const V of variants){const step=results[V.id];if(!step){out.push(`${V.id} vypnutá`);continue}
  await ps.applyStep(d,uid,now,slot,step,V.id);
+ if(step.diag)try{await ps.saveLiveDiag(d,uid,V.id,step.diag)}catch(e){console.error('lab-paper: diagnostika',V.id,e.code||e.message)}
  if(step.opens.length||step.closes.length)changed=true;
  out.push(`${V.id}: +${step.opens.length}/−${step.closes.length}, pozic ${step.openCount}, zůstatek ${step.balance} Kč, otevřený P&L ${step.openPnl} Kč`);
 }

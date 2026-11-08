@@ -1,9 +1,10 @@
 // Čtení archivu svíček pro backtesty. loadBars = jeden dotaz po primárním klíči; toH4 = čistá agregace H1 → H4.
-import type {Bar,BarTf} from './yahoo.ts';
+import {onBarGrid,type Bar,type BarTf} from './yahoo.ts';
 type Reader={prepare(sql:string):{bind(...p:unknown[]):{all<T=Record<string,unknown>>():Promise<{results:T[]}>}}};
 export async function loadBars(d:Reader,instrument:string,tf:BarTf,fromMs:number,toMs:number):Promise<Bar[]>{
  const r=await d.prepare('SELECT t,o,h,l,c,v FROM market_bars WHERE instrument=? AND tf=? AND t>=? AND t<? ORDER BY t').bind(instrument,tf,fromMs,toMs).all<Bar>();
- const rows=r.results.map(x=>({t:Number(x.t),o:x.o,h:x.h,l:x.l,c:x.c,v:x.v===null||x.v===undefined?null:x.v}));
+ // řádky mimo mřížku 30 min = živé body Yahoo uložené dřívější synchronizací jako „svíčky“ (lib/bars/yahoo.ts onBarGrid) → vynechat
+ const rows=r.results.map(x=>({t:Number(x.t),o:x.o,h:x.h,l:x.l,c:x.c,v:x.v===null||x.v===undefined?null:x.v})).filter(b=>onBarGrid(b.t));
  // Yahoo FX denní svíčky mají open ≈ close téhož dne (= nahlížení do budoucna v backtestu) → open = close předchozího dne
  return tf==='D1'&&instrument.includes('/')?fixFxOpen(rows):rows;
 }

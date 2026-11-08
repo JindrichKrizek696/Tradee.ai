@@ -10,9 +10,9 @@ import * as B from '../lib/lab/strat-blocks.ts';
 import {validateDef,parseDefJson,applyOverrides,defRuns,BLOCKS,BLOCK_IDS,defOutline} from '../lib/lab/rules-def.ts';
 import {minStopOf,minStopDist,minStopAt,entryAtrAt,SKIP_MIN_STOP,MIN_STOP_K_SPREAD,MIN_STOP_K_ATR} from '../lib/lab/strat-engine.ts';
 import {spreadPrice,DEFAULT_RULES} from '../lib/backtest/rules.ts';
-import {prepare,compile,simulate,planAt,signalAt,SKIP_RR,SKIP_OBSTACLE,SKIP_NO_ZONE,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32,condFunnel,buildDiag,mergeDiag,pickSamples,STAGE_KEYS} from '../lib/lab/strat-engine.ts';
+import {liveSim,prepare,compile,simulate,planAt,signalAt,SKIP_RR,SKIP_OBSTACLE,SKIP_NO_ZONE,splitOf,evaluate,isRobustRun,runStrategy,liveSetups,portfolioBlock,clockDeadline,mulberry32,condFunnel,buildDiag,mergeDiag,pickSamples,STAGE_KEYS} from '../lib/lab/strat-engine.ts';
 import {versionPlan,importDef,saveDef,saveRun,getRun,listDefs,getDef,setSourceLabel,defLabels} from '../lib/lab/strat-store.ts';
-import {ruleVariant,paperStep,checkExit,isRuleVariant,isVariantId,RULE_VARIANT_IDS} from '../lib/lab/paper.ts';
+import {ruleVariant,paperStep,checkExit,isRuleVariant,isVariantId,RULE_VARIANT_IDS,simKey,openMoment} from '../lib/lab/paper.ts';
 import {labGate} from '../lib/lab/access.ts';
 const fails=[];
 const check=(name,ok,got)=>{console.log((ok?'ok   ':'FAIL ')+name+(ok?'':' → '+JSON.stringify(got)));if(!ok)fails.push(name)};
@@ -994,6 +994,67 @@ function newSt(){return Object.fromEntries(STAGE_KEYS.map(k=>[k,0]))}
  check('UI: grafy a statistiky v detailu strategie (equity, drawdown, náhoda, R, měsíce, rozpady, MAE/MFE, Monte Carlo, srovnání, živě), starší běh = přepočítej pro grafy',
   /<StrategyCharts /.test(tab)&&/přepočítej pro grafy/.test(ui)&&['Overview','Dist','TimeSec','Groups','Mc','Compare','Live','Scatter'].every(k=>new RegExp('function '+k+'\\(').test(ui))&&/runs:1000/.test(ui)&&!/fetch\('(?!\/api\/laborator\/strategies)/.test(ui));
  check('API: ?eq= a ?live= až po labUser, ověřená id, data podle u.id',/if\(eq!==null\)/.test(rt)&&/if\(live!==null\)/.test(rt)&&/ids\.every\(x=>ID\.test\(x\)\)/.test(rt)&&/ID\.test\(live\)/.test(rt)&&rt.indexOf('if(eq!==null)')>rt.indexOf('labUser(req)'));
+}
+
+const ND_LIVE={name:'zone-swing-live',version:1,markets:['EUR/USD'],data:'H1',tf:{context:'D1',zone:'H4',entry:'H1'},
+ conditions:[
+  {id:'z2',block:'zone',group:'g',params:{impulseK:.6,requireBreak:false,status:'valid',maxBase:2,baseBodyRatio:.7}},
+  {id:'ob',block:'order_block',group:'g',params:{impulseK:.6,requireBreak:false,status:'valid'}},
+  {id:'zH',block:'zone',role:'info',tf:'zone',params:{impulseK:.6,requireBreak:false,status:'valid',maxBase:2,baseBodyRatio:.7,maxAge:500}},
+  {id:'pd',block:'premium_discount',role:'optional',params:{rangeTf:'D1'}},
+ ],
+ entry:{type:'limit',from:'g',key:'proximal',validBars:6},stop:{from:'g',key:'distal',atrK:.1},targets:{type:'zone',from:'zH',minRR:1,fallback:'r',r:2},management:{beAtR:1.2}};
+// ======================= 29) živě = backtest: přehrání syntetického proudu svíček krok po kroku (15 min) živou cestou agenta R…
+// Svíčky „přicházejí“ jako na VPS: synchronizace v hh:40 (některé hodiny vypadnou, jednou 3 h výpadek), krok runneru každých 15 min,
+// každý krok = liveSim nad tím, co je k dispozici, → paperStep (ruleSimStep) → zápis jako applyStep. Na konci se zapsané obchody musí
+// shodovat s obchody simulate() nad celou řadou od startu agenta: stejný trh, směr, signál, čas a cena vstupu, stop, cíl, výstup, R.
+{
+ const M=15*60000,flatCosts={costs:{spreadMult:0,commissionR:0}};
+ const defs=[
+  ['smíšené nohy (limit + MOC), TP1, časový výstup, max. 2 pozice, 2 trhy',validateDef({...COMP_DEF,...flatCosts}).def,ctxC],
+  ['limit ze skupiny NEBO, cíl zóna, 1 trh',validateDef({...ND_LIVE,...flatCosts}).def,{}],
+  ['market-on-close + seance + limit obchodů za den',validateDef({...ND_LIVE,...flatCosts,name:'moc-live',markets:['EUR/USD','GBP/USD'],entry:{type:'market_on_close'},filters:{sessions:['london','ny'],maxTradesPerDay:2}}).def,{}],
+ ];
+ const series={'EUR/USD':eu,'GBP/USD':gu},i0=4700,i1=5300,started=eu[i0].t,end=eu[i1].t;
+ const cutCtx=(c,T)=>c.extra?{...c,extra:Object.fromEntries(Object.entries(c.extra).map(([k,b])=>[k,b.filter(x=>x.t+H<=T)]))}:c;
+ for(const [label,def,ctx0] of defs){
+  const V=ruleVariant('R09','99999999-0000-0000-0000-000000000000',def),rows=[];let availT=-1,sim=null,lag=0;
+  for(let S=started;S<=end;S+=M){
+   const hr=Math.floor(S/H),syncAt=hr*H+40*60000,skipped=hr%9===4||(hr>=Math.floor(started/H)+200&&hr<Math.floor(started/H)+203);
+   if(S>=syncAt&&!skipped)availT=hr*H;else if(!lag)lag=0; // dokončené svíčky do hh:00, jen když v hh:40 proběhla synchronizace
+   if(availT<0)continue;
+   if(!sim||sim.at!==availT){const mk=def.markets.map(id=>({id,bars:series[id].filter(b=>b.t+H<=availT)}));sim={at:availT,...liveSim(def,mk,cutCtx(ctx0,availT),S,started)}}
+   const quotes=Object.fromEntries(def.markets.map(id=>{const b=series[id].filter(x=>x.t+H<=availT);return [id,{price:b[b.length-1].c,marketTime:S-60000}]}));
+   const st=paperStep({now:S,startEquity:100000,trades:rows.map(r=>({...r})),signals:{},quotes,d1:{},news:[],variant:V,ruleSim:sim});
+   for(const t of st.opens)if(!rows.some(r=>r.id===t.id))rows.push({...t});
+   for(const c of st.closes){const r=rows.find(x=>x.id===c.id);if(r&&r.closed===null)Object.assign(r,{closed:c.closed,exit:c.exit,exitReason:c.exitReason,r:c.r,pnlCzk:c.pnlCzk,pct:c.pct},c.entry!==undefined?{entry:c.entry}:{})}
+  }
+  const ref=liveSim(def,def.markets.map(id=>({id,bars:series[id].filter(b=>b.t+H<=availT)})),cutCtx(ctx0,availT),end,started);
+  const want=[...ref.trades.map(x=>({key:simKey(x.market,x.sigT,x.side),m:x.market,entryT:x.entryT,entry:x.entry,stop:x.stop,target:x.target??0,exitT:x.exitT,r:x.r,reason:x.reason})),
+   ...ref.open.map(o=>({key:simKey(o.market,o.sigT,o.side),m:o.market,entryT:o.entryT,entry:o.legs>1?null:o.entry,stop:o.orig,target:o.target??0,exitT:null}))]; // otevřená 2. noha: průměr vstupu se doplní při výstupu
+  const bad=[];
+  for(const w of want){const r=rows.find(x=>x.partsAtEntry.rule.key===w.key);
+   if(!r){bad.push('chybí '+w.key);continue}
+   if(r.opened!==openMoment(w.m,w.entryT,H)||(w.entry!==null&&!near(r.entry,w.entry,1e-12))||!near(r.sl,w.stop,1e-12)||!near(r.tp,w.target,1e-12))bad.push('vstup '+w.key);
+   if(w.exitT===null?r.closed!==null:(r.closed===null||!near(r.r,w.r,1e-4)||r.exitReason!==(w.reason==='end'?'time':w.reason)||r.closed!==Math.max(r.opened,openMoment(w.m,w.exitT,H))))bad.push('výstup '+w.key+' '+JSON.stringify([r.closed,r.r,r.exitReason,w.exitT,w.r,w.reason]))}
+  const extra=rows.filter(r=>!want.some(w=>w.key===r.partsAtEntry.rule.key)).map(r=>r.partsAtEntry.rule.key);
+  check(`živě = backtest (${label}): ${want.length} obchodů, každý krok 15 min, svíčky se zpožděním a výpadky`,want.length>=3&&!bad.length&&!extra.length,{n:want.length,bad:bad.slice(0,5),extra:extra.slice(0,5)});
+  const late=rows.filter(r=>r.opened<r.partsAtEntry.rule.key.split('@')[1].split(':')[0]*1-1);
+  check(`živě (${label}): vstup nikdy před koncem signální svíčky`,!late.length,late.map(r=>r.id));
+ }
+ // diagnostika kroku: poslední svíčka, fáze, čekající limity, žádná pravidla
+ const def=validateDef({...ND_LIVE,...flatCosts}).def,s2=liveSim(def,[{id:'EUR/USD',bars:eu.slice(0,i1)},{id:'GBP/USD',bars:gu.slice(0,10)}],{},eu[i1-1].t+H,started);
+ const st=paperStep({now:eu[i1-1].t+H,startEquity:100000,trades:[],signals:{},quotes:{},d1:{},news:[],variant:ruleVariant('R09','x',def),ruleSim:s2});
+ check('živá diagnostika: poslední vyhodnocená svíčka, trh bez dat, fáze vstupu a důvody, zapsané obchody',st.diag&&st.diag.lastBarT===eu[i1-1].t&&st.diag.noData.join()==='GBP/USD'&&st.diag.stages.setups>0&&st.diag.opened===st.opens.length&&typeof st.diag.skips==='object',st.diag);
+ check('živá diagnostika bez parametrů definice',!/impulseK|requireBreak|maxBase|"params"/.test(JSON.stringify(st.diag)));
+ // obchody z dřívější cesty bez protějšku v simulaci dobíhají postaru (checkExit), nové se k nim nezdvojí
+ const old={...st.opens[0]??{},id:'old1',partsAtEntry:{...(st.opens[0]?.partsAtEntry??{}),rule:{key:'123:1',leg:'0/-',beAtR:null,maxHoldMs:null,clock:null,rating:0}},instrument:'EUR/USD',direction:'long',entry:1,sl:.5,tp:0,opened:eu[i1-50].t,closed:null,riskCzk:100};
+ const wed=Date.UTC(2023,8,13,12),st2=paperStep({now:wed,startEquity:100000,trades:[old],signals:{},quotes:{'EUR/USD':{price:.4,marketTime:wed-60000}},h1:{},d1:{},news:[],variant:ruleVariant('R09','x',def),ruleSim:s2});
+ check('starší otevřený obchod (bez klíče simulace) dobíhá postaru: stop-loss podle živé ceny',st2.closes.some(c=>c.id==='old1'&&c.exitReason==='sl')&&st2.diag.legacyOpen===1,st2.closes);
+ check('runner: agenti R… přes liveSim (stejný engine jako backtest), diagnostika se ukládá, bez liveSetups',/liveSim\(def,markets,ctx,now,from\)/.test(src('scripts/lab-paper.mjs'))&&/saveLiveDiag/.test(src('scripts/lab-paper.mjs'))&&!/liveSetups/.test(src('scripts/lab-paper.mjs')));
+ check('UI Simulace: živá diagnostika agenta R… (poslední svíčka, fáze, důvody, čekající limity) z paperView → API',/function LiveDiagView/.test(src('app/laborator/lab-page.tsx'))&&/d\.liveDiag\?<LiveDiagView/.test(src('app/laborator/lab-page.tsx'))&&/liveDiagOf\(d,uid,variant\)/.test(src('lib/lab/paper-store.ts'))&&/ADD COLUMN IF NOT EXISTS live_diag/.test(src('drizzle/mariadb/0045_lab_live_diag.sql')));
+ check('svíčky: živý bod Yahoo mimo mřížku se neukládá ani nenačítá',/onBarGrid\(b\.t\)/.test(src('lib/bars/query.ts'))&&/onBarGrid\(b\.t\)/.test(src('lib/bars/yahoo.ts')));
+ check('applyStep: vstupy před výstupy (obchod zapsaný a zavřený v jednom kroku)',(()=>{const t=src('lib/lab/paper-store.ts'),a=t.indexOf('export async function applyStep');return t.indexOf('INSERT IGNORE INTO lab_paper_trades',a)<t.indexOf('UPDATE lab_paper_trades SET closed',a)})());
 }
 
 console.log(fails.length?`\n${fails.length} chyb`:'\nvše v pořádku');
