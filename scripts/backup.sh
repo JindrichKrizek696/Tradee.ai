@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Denní záloha: mysqldump databáze tradee + archiv složky data/ do ~/backups/tradee. Drží 60 dumpů a 30 archivů dat.
+# Denní záloha: mysqldump databáze tradee + archiv složky data/ do ~/backups/tradee. Drží 5 dumpů a 30 archivů dat.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 DEST="$HOME/backups/tradee"; mkdir -p "$DEST"
@@ -16,6 +16,6 @@ else
 fi
 rm -f "$CNF"
 tar -czf "$DEST/data-$STAMP.tar.gz" data
-ls -1t "$DEST"/mariadb-*.sql.gz 2>/dev/null | tail -n +61 | xargs -r rm -f
+ls -1t "$DEST"/mariadb-*.sql.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
 ls -1t "$DEST"/data-*.tar.gz 2>/dev/null | tail -n +31 | xargs -r rm -f
 echo "backup $STAMP ok · $(ls "$DEST" | wc -l) souborů · $(du -sh "$DEST" | cut -f1)"
