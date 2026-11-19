@@ -101,8 +101,9 @@ def check_fundamentals(data, mtime, now, max_age=timedelta(hours=36)):
 
 
 def check_score():
+    # nvm potřebuje bash (pod /bin/sh skončí s kódem 3)
     cmd = f'cd {ROOT} && . ~/.nvm/nvm.sh >/dev/null 2>&1 && nvm use 22 >/dev/null 2>&1 && node --experimental-strip-types scripts/check-score.mjs'
-    r = sh(cmd, timeout=120)
+    r = sh(['bash', '-c', cmd], timeout=120)
     if r.returncode == 0:
         return []
     err = (r.stderr or r.stdout).strip().splitlines()
@@ -207,7 +208,9 @@ def send_mail(subject, text):
         return 'chybí RESEND_API_KEY v .notify.env'
     body = json.dumps({'from': env.get('MAIL_FROM') or 'Tradee <info@dejny.eu>', 'to': [MAIL_TO], 'subject': subject, 'text': text}).encode()
     req = urllib.request.Request('https://api.resend.com/emails', data=body, method='POST',
-                                 headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
+                                 headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json',
+                                          # Cloudflare před api.resend.com blokuje výchozí User-Agent Pythonu (error 1010)
+                                          'User-Agent': 'tradee-hlidac/1 (+https://tradee.eu)'})
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             return None if r.status < 300 else f'Resend {r.status}'
