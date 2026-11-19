@@ -24,6 +24,13 @@ PROMPT = ('Jsi ověřovatel fundamentů Tradee.ai. Přečti FUNDAMENTALS.md a li
           'fundamentals.json v tomto adresáři přesně podle FUNDAMENTALS.md. Používej jen veřejné primární zdroje. '
           'Nejdřív obnov checkedAt zdrojů rozhodnutí bank od nejstaršího (oficiální RSS jako záloha, viz FUNDAMENTALS.md), až potom nová data. '
           'Měň jen soubor fundamentals.json. Na konci napiš jednu větu shrnutí česky.')
+
+
+def prompt():
+    # Agent nemá shell, čas si zjistit neumí – bez tohoto údaje si ho domyslel z plánu cronu (18:30) a běh mimo plán
+    # skončil na 'checkedAt je v budoucnosti' (19. 11. 2026).
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:00Z')
+    return PROMPT + f' Aktuální čas je {now}; checkedAt nastav na tento skutečný čas, ne na čas plánovaného spuštění.'
 # Read/Edit jen v pracovní složce ('//' = absolutní cesta); domov, /home, /etc a /root výslovně zakázané.
 # Bez těchto omezení by podvržená webová stránka mohla agenta přimět přečíst deploy key nebo upravit ~/.bashrc
 # (ověřeno na VPS 5. 10. 2026: holé 'Read' klíč přečetlo, omezená pravidla ho zamítla).
@@ -189,7 +196,7 @@ def attempt(root, work):
     work.mkdir(parents=True)
     for f in ('data/fundamentals.json', 'FUNDAMENTALS.md', 'lib/fundamentals.ts'):
         shutil.copy(root / f, work / Path(f).name)
-    cmd = [env('TRADEE_CLAUDE_CMD', 'claude'), '-p', PROMPT, '--allowedTools', *allowed_tools(work),
+    cmd = [env('TRADEE_CLAUDE_CMD', 'claude'), '-p', prompt(), '--allowedTools', *allowed_tools(work),
            '--disallowedTools', *DENIED, '--permission-mode', 'dontAsk', '--add-dir', str(work), '--output-format', 'json']
     try:
         r = sh(cmd, work, timeout=int(env('TRADEE_AGENT_TIMEOUT', '1500')))
