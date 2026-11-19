@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodVersion": "macro-policy-v1",
-  "checkedAt": "2026-11-19T13:18:00Z",
+  "checkedAt": "2026-11-19T16:43:00Z",
   "reviewCadenceHours": 4,
   "staleAfterHours": 36,
   "horizon": "Několik dnů až týdnů",
@@ -41,7 +41,7 @@
       "label": "RBNZ — OCR ponechána na 2,75 % (říjen 2026)",
       "url": "https://www.rbnz.govt.nz/news-and-events/news/2026/10/ocr-held-at-2-75-percent",
       "publishedAt": "2026-10-28",
-      "checkedAt": "2026-11-19T13:18:00Z"
+      "checkedAt": "2026-11-19T16:43:00Z"
     },
     "rba": {
       "label": "RBA — zápis z jednání 29. září",
@@ -71,7 +71,7 @@
       "label": "BoJ — Outlook for Economic Activity and Prices (říjen 2026), souhrn",
       "url": "https://www.boj.or.jp/en/mopo/outlook/highlight/ten202610.htm",
       "publishedAt": "2026-10-30",
-      "checkedAt": "2026-11-19T13:18:00Z"
+      "checkedAt": "2026-11-19T16:43:00Z"
     },
     "rba-nov03": {
       "label": "RBA — rozhodnutí 3. listopadu",
@@ -708,18 +708,18 @@
           "source": "rbnz-oct26"
         },
         "guidance": {
-          "value": null,
-          "reason": "Neověřeno: text říjnového Monetary Policy Review a Record of Meeting vrací automatickým nástrojům 403 a RSS obsahuje jen titulek. Zářijové hodnocení (+1) už neodpovídá poslednímu rozhodnutí, proto se nepřenáší.",
+          "value": 1,
+          "reason": "Record of Meeting 28. 10.: všichni členové se shodli, že zpřísnění měnové politiky bude pravděpodobně nutné, podmíněno výhledem; 3 ze 7 hlasovali už pro +25 bb. Ověřeno z plného textu (čteno v prohlížeči, nástrojům stránka vrací 403).",
           "source": "rbnz-oct26"
         },
         "activity": {
-          "value": null,
-          "reason": "Neověřeno: hodnocení aktivity z říjnového rozhodnutí nebylo možné přečíst (403); zářijové hodnocení (0) se nepřenáší.",
+          "value": 0,
+          "reason": "Record of Meeting 28. 10.: oživení pokračuje, HDP v 1. pololetí nad očekáváním a exportní sektor silný, ale domácí poptávka a spotřeba domácností slabé, ceny domů klesají – smíšený obraz.",
           "source": "rbnz-oct26"
         },
         "labor": {
-          "value": null,
-          "reason": "Neověřeno: hodnocení trhu práce z říjnového rozhodnutí nebylo možné přečíst (403); zářijové hodnocení (−1) se nepřenáší.",
+          "value": -1,
+          "reason": "Record of Meeting 28. 10.: růst zaměstnanosti zůstává utlumený, záměry najímat slabé („continued slow recovery in the labour market“), růst mezd utlumený; nezaměstnanost 3Q 5,7 %.",
           "source": "rbnz-oct26"
         }
       },
@@ -823,8 +823,8 @@
           "source": "boj-outlook-oct26"
         },
         "labor": {
-          "value": null,
-          "reason": "Neověřeno: HTML souhrn říjnového Outlooku uvádí jen posun firem k zvyšování mezd a cen, hodnocení trhu práce je v PDF, které není strojově čitelné. Zářijové hodnocení (+1) se nepřenáší.",
+          "value": 1,
+          "reason": "Outlook Report říjen 2026 (plný text PDF gor2610a.pdf, s. 3–5): „labor market conditions have remained tight“ a mají zůstat napjaté, nominální mzdy dál rostou, silný pocit nedostatku pracovní síly.",
           "source": "boj-outlook-oct26"
         }
       },
@@ -1150,7 +1150,9 @@
       "timeKnown": true,
       "title": "USA • zápis z FOMC 15.–16. září",
       "category": "central-bank",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "central-bank",
       "signal": 2,
       "global": false,
@@ -1169,7 +1171,9 @@
       "timeKnown": true,
       "title": "Eurozóna • zápis ECB ze zasedání 9.–10. září",
       "category": "central-bank",
-      "markets": ["EUR"],
+      "markets": [
+        "EUR"
+      ],
       "kind": "central-bank",
       "signal": 2,
       "global": false,
@@ -1188,7 +1192,9 @@
       "timeKnown": true,
       "title": "USA • PPI za září",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "ppi",
       "signal": 2,
       "global": false,
@@ -1207,7 +1213,9 @@
       "timeKnown": true,
       "title": "USA • maloobchodní tržby za září",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "macro",
       "signal": 2,
       "global": false,
@@ -1226,7 +1234,9 @@
       "timeKnown": false,
       "title": "Spojené království • CPI za září",
       "category": "macro",
-      "markets": ["GBP"],
+      "markets": [
+        "GBP"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1245,7 +1255,9 @@
       "timeKnown": false,
       "title": "Kanada • CPI za září",
       "category": "macro",
-      "markets": ["CAD"],
+      "markets": [
+        "CAD"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1264,7 +1276,9 @@
       "timeKnown": false,
       "title": "Spojené království • maloobchodní tržby za září",
       "category": "macro",
-      "markets": ["GBP"],
+      "markets": [
+        "GBP"
+      ],
       "kind": "retail",
       "signal": 2,
       "global": false,
@@ -1283,7 +1297,9 @@
       "timeKnown": false,
       "title": "Nový Zéland • CPI za 3. čtvrtletí",
       "category": "macro",
-      "markets": ["NZD"],
+      "markets": [
+        "NZD"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1302,7 +1318,9 @@
       "timeKnown": false,
       "title": "Japonsko • CPI za září",
       "category": "macro",
-      "markets": ["JPY"],
+      "markets": [
+        "JPY"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1321,7 +1339,9 @@
       "timeKnown": false,
       "title": "Kanada • maloobchodní tržby za srpen",
       "category": "macro",
-      "markets": ["CAD"],
+      "markets": [
+        "CAD"
+      ],
       "kind": "retail",
       "signal": 2,
       "global": false,
@@ -1340,7 +1360,9 @@
       "timeKnown": true,
       "title": "Austrálie • CPI za září",
       "category": "macro",
-      "markets": ["AUD"],
+      "markets": [
+        "AUD"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1359,7 +1381,9 @@
       "timeKnown": true,
       "title": "USA • HDP Q3, první odhad",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "gdp",
       "signal": 3,
       "global": true,
@@ -1378,7 +1402,9 @@
       "timeKnown": false,
       "title": "USA • ISM výroba za říjen",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "pmi",
       "signal": 2,
       "global": false,
@@ -1397,7 +1423,9 @@
       "timeKnown": true,
       "title": "USA • ISM služby za říjen",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "pmi",
       "signal": 2,
       "global": false,
@@ -1416,7 +1444,9 @@
       "timeKnown": true,
       "title": "USA • zaměstnanost za říjen",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "nfp",
       "signal": 3,
       "global": true,
@@ -1435,7 +1465,9 @@
       "timeKnown": false,
       "title": "USA • CPI za říjen",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": true,
@@ -1454,7 +1486,9 @@
       "timeKnown": false,
       "title": "USA • maloobchodní tržby za říjen",
       "category": "macro",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "retail",
       "signal": 2,
       "global": false,
@@ -1473,7 +1507,9 @@
       "timeKnown": true,
       "title": "USA • zápis z FOMC 27.–28. října",
       "category": "central-bank",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "central-bank",
       "signal": 2,
       "global": false,
@@ -1492,7 +1528,9 @@
       "timeKnown": false,
       "title": "Eurozóna • HDP Q3, předběžný odhad",
       "category": "macro",
-      "markets": ["EUR"],
+      "markets": [
+        "EUR"
+      ],
       "kind": "gdp",
       "signal": 3,
       "global": false,
@@ -1511,7 +1549,9 @@
       "timeKnown": false,
       "title": "Eurozóna • nezaměstnanost za září",
       "category": "macro",
-      "markets": ["EUR"],
+      "markets": [
+        "EUR"
+      ],
       "kind": "unemployment",
       "signal": 2,
       "global": false,
@@ -1530,7 +1570,9 @@
       "timeKnown": false,
       "title": "Eurozóna • maloobchod za září",
       "category": "macro",
-      "markets": ["EUR"],
+      "markets": [
+        "EUR"
+      ],
       "kind": "retail",
       "signal": 2,
       "global": false,
@@ -1549,7 +1591,9 @@
       "timeKnown": false,
       "title": "Eurozóna • HICP za říjen (finální)",
       "category": "macro",
-      "markets": ["EUR"],
+      "markets": [
+        "EUR"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1568,7 +1612,9 @@
       "timeKnown": false,
       "title": "Spojené království • HDP Q3, první odhad",
       "category": "macro",
-      "markets": ["GBP"],
+      "markets": [
+        "GBP"
+      ],
       "kind": "gdp",
       "signal": 3,
       "global": false,
@@ -1587,7 +1633,9 @@
       "timeKnown": false,
       "title": "Spojené království • trh práce (červenec–září)",
       "category": "macro",
-      "markets": ["GBP"],
+      "markets": [
+        "GBP"
+      ],
       "kind": "unemployment",
       "signal": 2,
       "global": false,
@@ -1606,7 +1654,9 @@
       "timeKnown": false,
       "title": "Spojené království • CPI za říjen",
       "category": "macro",
-      "markets": ["GBP"],
+      "markets": [
+        "GBP"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1625,7 +1675,9 @@
       "timeKnown": false,
       "title": "Austrálie • výdaje domácností za září (MHSI)",
       "category": "macro",
-      "markets": ["AUD"],
+      "markets": [
+        "AUD"
+      ],
       "kind": "retail",
       "signal": 2,
       "global": false,
@@ -1644,7 +1696,9 @@
       "timeKnown": true,
       "title": "Austrálie • Labour Force za říjen",
       "category": "macro",
-      "markets": ["AUD"],
+      "markets": [
+        "AUD"
+      ],
       "kind": "unemployment",
       "signal": 2,
       "global": false,
@@ -1663,7 +1717,9 @@
       "timeKnown": false,
       "title": "Kanada • měsíční HDP za srpen",
       "category": "macro",
-      "markets": ["CAD"],
+      "markets": [
+        "CAD"
+      ],
       "kind": "gdp",
       "signal": 2,
       "global": false,
@@ -1682,7 +1738,9 @@
       "timeKnown": false,
       "title": "Kanada • Labour Force Survey za říjen",
       "category": "macro",
-      "markets": ["CAD"],
+      "markets": [
+        "CAD"
+      ],
       "kind": "unemployment",
       "signal": 2,
       "global": false,
@@ -1701,7 +1759,9 @@
       "timeKnown": false,
       "title": "Kanada • CPI za říjen",
       "category": "macro",
-      "markets": ["CAD"],
+      "markets": [
+        "CAD"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1720,7 +1780,9 @@
       "timeKnown": false,
       "title": "Švýcarsko • CPI za říjen",
       "category": "macro",
-      "markets": ["CHF"],
+      "markets": [
+        "CHF"
+      ],
       "kind": "cpi",
       "signal": 3,
       "global": false,
@@ -1739,7 +1801,9 @@
       "timeKnown": true,
       "title": "RBA • rozhodnutí o sazbách",
       "category": "central-bank",
-      "markets": ["AUD"],
+      "markets": [
+        "AUD"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": false,
@@ -1757,7 +1821,9 @@
       "timeKnown": false,
       "title": "FOMC • závěr zasedání 8.–9. prosince (se SEP)",
       "category": "central-bank",
-      "markets": ["USD"],
+      "markets": [
+        "USD"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": true,
@@ -1775,7 +1841,9 @@
       "timeKnown": true,
       "title": "BoC • rozhodnutí o sazbách",
       "category": "central-bank",
-      "markets": ["CAD"],
+      "markets": [
+        "CAD"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": false,
@@ -1793,7 +1861,9 @@
       "timeKnown": false,
       "title": "RBNZ • rozhodnutí OCR a Monetary Policy Statement",
       "category": "central-bank",
-      "markets": ["NZD"],
+      "markets": [
+        "NZD"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": false,
@@ -1811,7 +1881,9 @@
       "timeKnown": true,
       "title": "ECB • sazby a tisková konference",
       "category": "central-bank",
-      "markets": ["EUR"],
+      "markets": [
+        "EUR"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": true,
@@ -1829,7 +1901,9 @@
       "timeKnown": false,
       "title": "Bank of England · rozhodnutí o sazbě",
       "category": "central-bank",
-      "markets": ["GBP"],
+      "markets": [
+        "GBP"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": false,
@@ -1847,7 +1921,9 @@
       "timeKnown": false,
       "title": "BoJ • závěr zasedání 17.–18. prosince",
       "category": "central-bank",
-      "markets": ["JPY"],
+      "markets": [
+        "JPY"
+      ],
       "kind": "rate-decision",
       "signal": 3,
       "global": false,
@@ -2525,28 +2601,162 @@
       "at": "2026-10-28T06:35:00Z",
       "methodVersion": "macro-policy-v1",
       "values": {
-        "USD": { "decision": 1, "guidance": 1, "activity": 1, "labor": 0 },
-        "EUR": { "decision": 1, "guidance": 0, "activity": 1, "labor": 1 },
-        "NZD": { "decision": 0, "guidance": null, "activity": null, "labor": null },
-        "AUD": { "decision": 1, "guidance": 1, "activity": -1, "labor": 0 },
-        "CAD": { "decision": 0, "guidance": 0, "activity": 1, "labor": -1 },
-        "JPY": { "decision": 1, "guidance": 1, "activity": 0, "labor": 1 },
-        "GBP": { "decision": 0, "guidance": 0, "activity": 1, "labor": -1 },
-        "CHF": { "decision": 0, "guidance": 0, "activity": 1, "labor": -1 }
+        "USD": {
+          "decision": 1,
+          "guidance": 1,
+          "activity": 1,
+          "labor": 0
+        },
+        "EUR": {
+          "decision": 1,
+          "guidance": 0,
+          "activity": 1,
+          "labor": 1
+        },
+        "NZD": {
+          "decision": 0,
+          "guidance": null,
+          "activity": null,
+          "labor": null
+        },
+        "AUD": {
+          "decision": 1,
+          "guidance": 1,
+          "activity": -1,
+          "labor": 0
+        },
+        "CAD": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 1,
+          "labor": -1
+        },
+        "JPY": {
+          "decision": 1,
+          "guidance": 1,
+          "activity": 0,
+          "labor": 1
+        },
+        "GBP": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 1,
+          "labor": -1
+        },
+        "CHF": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 1,
+          "labor": -1
+        }
       }
     },
     {
       "at": "2026-11-19T13:18:00Z",
       "methodVersion": "macro-policy-v1",
       "values": {
-        "USD": { "decision": 0, "guidance": 1, "activity": 1, "labor": 0 },
-        "EUR": { "decision": 0, "guidance": 0, "activity": 0, "labor": 0 },
-        "NZD": { "decision": 0, "guidance": null, "activity": null, "labor": null },
-        "AUD": { "decision": 1, "guidance": 0, "activity": -1, "labor": -1 },
-        "CAD": { "decision": 1, "guidance": 1, "activity": 1, "labor": 0 },
-        "JPY": { "decision": 0, "guidance": 1, "activity": 0, "labor": null },
-        "GBP": { "decision": 1, "guidance": 0, "activity": 1, "labor": 0 },
-        "CHF": { "decision": 0, "guidance": 0, "activity": 1, "labor": -1 }
+        "USD": {
+          "decision": 0,
+          "guidance": 1,
+          "activity": 1,
+          "labor": 0
+        },
+        "EUR": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 0,
+          "labor": 0
+        },
+        "NZD": {
+          "decision": 0,
+          "guidance": null,
+          "activity": null,
+          "labor": null
+        },
+        "AUD": {
+          "decision": 1,
+          "guidance": 0,
+          "activity": -1,
+          "labor": -1
+        },
+        "CAD": {
+          "decision": 1,
+          "guidance": 1,
+          "activity": 1,
+          "labor": 0
+        },
+        "JPY": {
+          "decision": 0,
+          "guidance": 1,
+          "activity": 0,
+          "labor": null
+        },
+        "GBP": {
+          "decision": 1,
+          "guidance": 0,
+          "activity": 1,
+          "labor": 0
+        },
+        "CHF": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 1,
+          "labor": -1
+        }
+      }
+    },
+    {
+      "at": "2026-11-19T16:43:00Z",
+      "methodVersion": "macro-policy-v1",
+      "values": {
+        "USD": {
+          "decision": 0,
+          "guidance": 1,
+          "activity": 1,
+          "labor": 0
+        },
+        "EUR": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 0,
+          "labor": 0
+        },
+        "NZD": {
+          "decision": 0,
+          "guidance": 1,
+          "activity": 0,
+          "labor": -1
+        },
+        "AUD": {
+          "decision": 1,
+          "guidance": 0,
+          "activity": -1,
+          "labor": -1
+        },
+        "CAD": {
+          "decision": 1,
+          "guidance": 1,
+          "activity": 1,
+          "labor": 0
+        },
+        "JPY": {
+          "decision": 0,
+          "guidance": 1,
+          "activity": 0,
+          "labor": 1
+        },
+        "GBP": {
+          "decision": 1,
+          "guidance": 0,
+          "activity": 1,
+          "labor": 0
+        },
+        "CHF": {
+          "decision": 0,
+          "guidance": 0,
+          "activity": 1,
+          "labor": -1
+        }
       }
     }
   ],
