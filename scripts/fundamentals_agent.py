@@ -210,11 +210,13 @@ def attempt(root, work):
     if claude_error(r.stdout):
         return 'claude selhal', summary(r.stdout), '-'
     new, old = work / 'fundamentals.json', root / DATA
+    kept = restore_nulled(old, new)
     if same_json(new, old):
         return 'bez změny', summary(r.stdout), '-'
     c = sh([sys.executable, str(root / 'scripts' / 'check_fundamentals.py'), str(old), str(new)], root)
     if c.returncode:
         return 'odmítnuto: ' + c.stdout.strip(), '-', '-'
+    detail = c.stdout.strip() + (f'; zachováno místo null: {", ".join(kept)}' if kept else '')
     backup = old.read_bytes()
     tmp = old.with_suffix('.json.tmp')
     shutil.copy(new, tmp)
@@ -226,7 +228,7 @@ def attempt(root, work):
             deploy(root)
             return 'build selhal', err, '-'
         res, commit = push(root, datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'))
-        return res, c.stdout.strip(), commit
+        return res, detail, commit
     except Exception:
         # Necommitnutá nová data by blokovala každý další pull – vrátit a nasadit původní.
         if git(root, 'status', '--porcelain', '--', str(DATA)).stdout.strip():
@@ -235,11 +237,54 @@ def attempt(root, work):
         raise
 
 
+def keep_verified_factors(old, new):
+    """Dřív ověřený faktor měny nesmí kvůli nedostupnému zdroji (RBNZ 403, BoJ PDF) spadnout na null – to vyřadí
+    páry s měnou i všechny indexy (19. 11. 2026: NZD). Ponechá poslední ověřenou hodnotu s poznámkou; vrací seznam
+    obnovených faktorů ('NZD.guidance'). Číselná hodnota od agenta (i jiná) má vždy přednost."""
+    kept = []
+    for cur, oc in (old.get('currencies') or {}).items():
+        nc = (new.get('currencies') or {}).get(cur)
+        if not isinstance(nc, dict) or not isinstance(oc, dict):
+            continue
+        nf = nc.setdefault('factors', {}) if isinstance(nc.get('factors'), dict) or nc.get('factors') is None else None
+        if nf is None:
+            continue
+        for name, of in (oc.get('factors') or {}).items():
+            if not isinstance(of, dict) or isinstance(of.get('value'), bool) or not isinstance(of.get('value'), (int, float)):
+                continue
+            f = nf.get(name)
+            if isinstance(f, dict) and f.get('value') is not None:
+                continue
+            note = ' [Zachováno poslední ověřené hodnocení – nový zdroj nebyl dostupný (agent ' + \
+                datetime.now(timezone.utc).strftime('%Y-%m-%d') + '); ověřit ručně.]'
+            restored = dict(of)
+            reason = str(of.get('reason') or '')
+            if '[Zachováno poslední ověřené hodnocení' not in reason:
+                restored['reason'] = (reason + note).strip()
+            nf[name] = restored
+            kept.append(f'{cur}.{name}')
+    return kept
+
+
 def claude_error(out):
     try:
         return bool(json.loads(out).get('is_error'))
     except Exception:  # noqa: BLE001
         return False
+
+
+def restore_nulled(old_path, new_path):
+    """Načte oba soubory, vrátí faktory obnovené funkcí keep_verified_factors a přepíše nový soubor. Neplatný JSON
+    nechá být (odmítne ho check_fundamentals.py)."""
+    try:
+        old = json.loads(old_path.read_text(encoding='utf-8'))
+        new = json.loads(new_path.read_text(encoding='utf-8'))
+    except ValueError:
+        return []
+    kept = keep_verified_factors(old, new)
+    if kept:
+        new_path.write_text(json.dumps(new, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    return kept
 
 
 def same_json(a, b):

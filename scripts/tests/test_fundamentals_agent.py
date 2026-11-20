@@ -26,6 +26,13 @@ if mode in ('valid', 'conflict'):
     d['checkedAt'] = '2099-01-01T00:00:00+00:00' if os.environ.get('FAKE_FUTURE') else os.environ['FAKE_NOW']
     f = d['currencies']['EUR']['factors']['decision']; f.update(value=0, reason='Ověřeno agentem', source='ecb-report')
 if mode == 'invalid': d['methodVersion'] = 'jina'
+if mode == 'nulled':  # zdroj vrátil 403 → agent vynuloval dřív ověřené faktory NZD, decision ale ohodnotil z RSS
+    d['checkedAt'] = os.environ['FAKE_NOW']
+    fs = d['currencies']['NZD']['factors']
+    fs['decision'].update(value=-1, reason='OCR snížena (titulek RSS)', source='rbnz-oct26')
+    fs['guidance'] = {'value': None, 'reason': 'Record of Meeting vrací 403', 'source': 'rbnz-oct26'}
+    fs['labor'] = None
+    del fs['activity']
 json.dump(d, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
 if mode == 'conflict':  # mezitím někdo pushne jinou verzi fundamentů
     subprocess.run(['bash', '-c', os.environ['FAKE_CONFLICT']], check=True)
@@ -93,6 +100,33 @@ class Agent(unittest.TestCase):
     def test_future_checked_at_rejected(self):
         code, out = self.agent('valid', FAKE_FUTURE='1')
         self.assertIn('odmítnuto: checkedAt je v budoucnosti', out)
+
+    def test_nulled_factor_keeps_last_verified(self):
+        before = self.local()['currencies']['NZD']['factors']
+        self.assertIsInstance(before['guidance']['value'], int)
+        code, out = self.agent('nulled')
+        self.assertEqual(code, 0, out)
+        self.assertIn('zachováno místo null: NZD.guidance, NZD.activity, NZD.labor', out)
+        after = self.local()['currencies']['NZD']['factors']
+        self.assertEqual(after['decision']['value'], -1)
+        for name in ('guidance', 'activity', 'labor'):
+            self.assertEqual(after[name]['value'], before[name]['value'], name)
+            self.assertEqual(after[name]['source'], before[name]['source'])
+            self.assertIn('Zachováno poslední ověřené hodnocení', after[name]['reason'])
+        self.assertTrue(after['guidance']['reason'].startswith(before['guidance']['reason']))
+        self.assertEqual(json.loads(run(['git', 'show', 'main:data/fundamentals.json'], self.remote))['currencies']['NZD']['factors'], after)
+
+    def test_keep_verified_factors_unit(self):
+        sys.path.insert(0, str(REPO / 'scripts'))
+        import fundamentals_agent as fa
+        old = {'currencies': {'NZD': {'factors': {'a': {'value': 1, 'reason': 'r', 'source': 's'}, 'b': {'value': None}, 'c': {'value': 0, 'reason': 'x', 'source': 's'}}}}}
+        new = {'currencies': {'NZD': {'factors': {'a': {'value': None}, 'b': {'value': None}, 'c': {'value': 2, 'reason': 'nové', 'source': 't'}}}}}
+        self.assertEqual(fa.keep_verified_factors(old, new), ['NZD.a'])
+        self.assertEqual(new['currencies']['NZD']['factors']['a']['value'], 1)
+        self.assertEqual(new['currencies']['NZD']['factors']['c']['value'], 2)  # nová číselná hodnota má přednost
+        self.assertIsNone(new['currencies']['NZD']['factors']['b']['value'])  # null → null se nemění
+        self.assertEqual(fa.keep_verified_factors(old, new), [])  # idempotentní, poznámka se nepřidá dvakrát
+        self.assertEqual(new['currencies']['NZD']['factors']['a']['reason'].count('Zachováno'), 1)
 
     def test_unchanged(self):
         code, out = self.agent('same')
